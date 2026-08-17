@@ -261,11 +261,64 @@ def main(argv=None) -> int:
                 f.write(json.dumps(rec) + "\n")
         print(f"Wrote {jsonl_path}")
 
+    # Paired comparison: same 100 examples, same order in both lists, so zip() correctly
+    # pairs each example across Path A and Path B.
+    a_key, b_key = "A_upstream_replica_text_only", "B_multimodal_control"
+    if a_key in records_by_path and b_key in records_by_path:
+        a_recs, b_recs = records_by_path[a_key], records_by_path[b_key]
+        assert [r["question_id"] for r in a_recs] == [r["question_id"] for r in b_recs], (
+            "Path A / Path B example order mismatch -- paired comparison would be invalid"
+        )
+        a_wrong_b_correct = sum(
+            1 for a, b in zip(a_recs, b_recs)
+            if not a["correct_head_scoring"] and b["correct_head_scoring"]
+        )
+        a_correct_b_wrong = sum(
+            1 for a, b in zip(a_recs, b_recs)
+            if a["correct_head_scoring"] and not b["correct_head_scoring"]
+        )
+        both_correct = sum(1 for a, b in zip(a_recs, b_recs) if a["correct_head_scoring"] and b["correct_head_scoring"])
+        both_wrong = sum(1 for a, b in zip(a_recs, b_recs) if not a["correct_head_scoring"] and not b["correct_head_scoring"])
+        report["paired_comparison_head_scoring"] = {
+            "a_wrong_b_correct": a_wrong_b_correct,
+            "a_correct_b_wrong": a_correct_b_wrong,
+            "both_correct": both_correct,
+            "both_wrong": both_wrong,
+            "n": len(a_recs),
+        }
+        print(f"\nPaired (head-scoring): A-wrong/B-correct={a_wrong_b_correct}  "
+              f"A-correct/B-wrong={a_correct_b_wrong}  both-correct={both_correct}  both-wrong={both_wrong}")
+
+        # Proposed verdict, per the interpretation table agreed in GATE1_DIAGNOSIS.md
+        # BEFORE seeing any numbers -- this is a mechanical threshold on the observed delta,
+        # not a judgment call made after looking at results. Final verdict still needs
+        # human review + the independent lmms-eval cross-check, which this script cannot run.
+        delta = report["paths"][b_key]["accuracy_head_scoring"] - report["paths"][a_key]["accuracy_head_scoring"]
+        if delta >= 0.20:
+            proposed = "CONFIRMED"
+        elif delta >= 0.05:
+            proposed = "PARTIAL"
+        else:
+            proposed = "REJECTED"
+        report["proposed_verdict"] = {
+            "verdict": proposed,
+            "basis": f"Path B head-scoring accuracy - Path A head-scoring accuracy = {delta:+.1%}",
+            "thresholds": "CONFIRMED >= +20pp, PARTIAL >= +5pp, REJECTED < +5pp",
+            "caveat": "mechanical threshold only -- cross-check against lmms-eval result and pair verification before treating as final",
+        }
+        print(f"Proposed verdict: {proposed} (delta={delta:+.1%})")
+
     print(f"\n=== Verifying {args.verify_pairs} question<->image pairs against {DATASET_NAME} ===")
-    report["pair_verification"] = verify_pairs(
+    pair_report = verify_pairs(
         task_datas, sample_indices, Path(args.data_dir) / "images", args.verify_pairs, args.seed
     )
-    print(f"pair verification all_ok: {report['pair_verification']['all_ok']}")
+    pair_report["pairs_ok"] = sum(
+        1 for e in pair_report["details"]
+        if e["found_in_source"] and e["question_matches"] and e["answer_matches"]
+        and e["image_id_matches"] and e["image_dims_match"]
+    )
+    report["pair_verification"] = pair_report
+    print(f"pair verification: {pair_report['pairs_ok']}/{pair_report['pairs_checked']} valid, all_ok={pair_report['all_ok']}")
 
     report_path = out_dir / "gate1_failure_audit.json"
     report_path.write_text(json.dumps(report, indent=2))

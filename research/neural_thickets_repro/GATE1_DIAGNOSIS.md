@@ -71,12 +71,19 @@ git pull origin neural-thickets-repro-gate1-prep
 pip install -e .
 
 # 1. The failure audit: 100-example sample, both generation paths, both scorings,
-#    failure classification, and 20 question<->image pair verification.
+#    failure classification, paired A-vs-B comparison, proposed verdict, and 20
+#    question<->image pair verification.
 python -m neural_thickets_repro.diagnostics.gate1_failure_audit \
     --config configs/gqa_repro.yaml --sample-size 100 --verify-pairs 20
 # Outputs: results/gate1_diagnosis/gate1_failure_audit.json
+#            -> paths.A_upstream_replica_text_only.{accuracy_head_scoring,accuracy_march_scoring}
+#            -> paths.B_multimodal_control.{accuracy_head_scoring,accuracy_march_scoring}
+#            -> paired_comparison_head_scoring.a_wrong_b_correct
+#            -> pair_verification.{pairs_ok,pairs_checked,all_ok}
+#            -> proposed_verdict.verdict  (mechanical threshold, see "Interpretation guide" below)
 #          results/gate1_diagnosis/sample_A_upstream_replica_text_only.jsonl
 #          results/gate1_diagnosis/sample_B_multimodal_control.jsonl
+#          (same question_id in both files, in the same order -- directly pairable)
 
 # 2. Independent control: standard lmms-eval GQA baseline on the same checkpoint.
 pip install lmms-eval
@@ -101,8 +108,26 @@ python -m lmms_eval \
 | Path B high but lmms-eval also ≈ 18% | Something wrong with our checkpoint/environment, not the pipeline. |
 | Large head-vs-march scoring gap on the same path | Evaluator mismatch (Finding 2) is a material contributor; quantify and report both numbers. |
 
+## What to bring back
+
+The `gate1_failure_audit.json` + lmms-eval output directly answer the requested report:
+
+- Path A current-score (head) accuracy — `paths.A_upstream_replica_text_only.accuracy_head_scoring`
+- Path A paper-era (march) accuracy — `paths.A_upstream_replica_text_only.accuracy_march_scoring`
+- Path B current-score (head) accuracy — `paths.B_multimodal_control.accuracy_head_scoring`
+- Path B paper-era (march) accuracy — `paths.B_multimodal_control.accuracy_march_scoring`
+- lmms-eval GQA result — from `results/gate1_diagnosis/lmms_eval_gqa/`
+- A-wrong/B-correct count — `paired_comparison_head_scoring.a_wrong_b_correct`
+- 20-pair validity — `pair_verification.pairs_ok` / `pair_verification.pairs_checked` / `pair_verification.all_ok`
+- Root-cause verdict — the script proposes one mechanically in `proposed_verdict.verdict`
+  (CONFIRMED/PARTIAL/REJECTED by a fixed threshold on the A→B delta, decided before any
+  numbers existed); final verdict still needs the lmms-eval cross-check, which the script
+  can't run itself. Bring back both.
+
 ## Explicitly not done
 
 - No prompt, scoring, dataset, or model-setting changes toward 56.6%.
 - No RandOpt / Gate 2 execution.
+- No image-passing adapter written yet — that's conditioned on CONFIRMED and comes after
+  this audit's numbers are in, not before.
 - `MULTIMODAL_FIX_NOTES` in `vlm_adapter.py` stays unset until the pod confirms the hypothesis.
