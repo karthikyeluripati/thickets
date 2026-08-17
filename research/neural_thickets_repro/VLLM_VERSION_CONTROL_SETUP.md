@@ -1,23 +1,33 @@
-# Final controlled causal test: vLLM 0.27.1 vs 0.11.0 (paper-era)
+# Final controlled causal test: vLLM 0.27.1 vs 0.11.0 (paper-era, official Docker image)
 
 This is the last planned diagnostic step for the residual −2.41pp Gate 1 gap. It compares
-the current working environment (vLLM 0.27.1) against the paper repo's own pinned
-`vllm/vllm-openai:v0.11.0` (`docker/Dockerfile_vllm`, unchanged March 2026 → pinned HEAD) on
-an identical fixed 200-example sample, then applies a pre-agreed statistical decision rule.
+the current working environment (vLLM 0.27.1) against the **official
+`vllm/vllm-openai:v0.11.0` Docker image** — the exact base image `docker/Dockerfile_vllm`
+pins, unchanged between the March 2026 commit and the pinned HEAD — on an identical fixed
+200-example sample, then applies a pre-agreed statistical decision rule.
 
-**Isolation approach: a fresh Python venv, not Docker.** RunPod pods commonly run without
-privileged/nested-container access, so Docker-in-Docker for the `vllm/vllm-openai:v0.11.0`
-image may simply not be available. A separate venv gives equivalent isolation for this
-purpose (`generate_predictions.py` is deliberately standalone — it imports nothing from our
-package, only `transformers`/`vllm`/`Pillow`/`huggingface_hub` — so it drops into the new
-venv without needing our package or `requirements-gpu.txt` installed there at all) and
-**cannot touch or downgrade the existing 0.27.1 environment**, which lives in a different
-venv/site-packages entirely. If you do have working GPU-passthrough Docker-in-Docker, the
-Docker route is noted as an alternative at the bottom — functionally equivalent, just more
-setup risk on a typical pod.
+**Isolation: the official Docker image**, matching the RandOpt repo's own documented
+environment more faithfully than a pip-only venv would (the image pins the surrounding
+CUDA/system libraries too, not just the `vllm` package version). `generate_predictions.py`
+is deliberately standalone — it imports nothing from our package, only
+`transformers`/`vllm`/`Pillow`/`huggingface_hub`, all of which vLLM's own image already
+bundles — so it runs inside the container unmodified, no extra install step expected.
+**Cannot touch or downgrade the existing 0.27.1 environment**: nothing about running a
+separate container writes to the host's Python environment.
 
 **GPU is shared and not meant to run both versions concurrently** — check `nvidia-smi` is
-clear of other processes before starting each generation run.
+clear of other processes before starting each generation run, and don't run the container
+while a 0.27.1 process still holds GPU memory.
+
+## 0. Sanity-check Docker + GPU passthrough before relying on it mid-run
+
+```bash
+docker --version
+docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
+```
+If this fails (no privileged access, no nested containers on this pod), stop here and say
+so rather than debugging Docker itself as part of this reproduction task — that's an
+infrastructure question, not a reproduction one.
 
 ## 1. Pin the fixed 200-example sample (once, in the normal 0.27.1 environment)
 
@@ -42,43 +52,46 @@ python src/neural_thickets_repro/diagnostics/vllm_version_control/generate_predi
     --out-dir results/gate1_diagnosis/vllm_version_control
 ```
 
-## 3. Isolated venv for vLLM 0.11.0 — build once
+## 3. Generate under the official vLLM 0.11.0 Docker image
+
+Mount the repo (and the HF cache, so the already-downloaded model snapshot is reused
+instead of a redundant multi-GB re-download) at **identical paths** inside the container --
+`fixed_200.json`'s image paths are absolute host paths under
+`/workspace/thickets/...`, so mounting at the same path means they resolve correctly
+inside the container with no rewriting.
+
+`--entrypoint python3` is required: the `vllm/vllm-openai` image's default entrypoint
+launches the OpenAI-compatible server, not a plain Python interpreter -- overriding it is
+the standard way to run an arbitrary script in that image. `--ipc=host` is vLLM's own
+documented requirement for Docker (its multiprocessing/tensor ops need more shared memory
+than Docker's small default).
 
 ```bash
-nvidia-smi   # confirm no other GPU process is currently running
-
-python3 -m venv /workspace/venv_vllm0110
-source /workspace/venv_vllm0110/bin/activate
-
-pip install "vllm==0.11.0"
-pip install pillow huggingface_hub   # in case not already pulled in transitively
-
-# sanity check the pin actually took (this venv only, does not affect the main environment):
-python -c "import vllm; print(vllm.__version__)"   # must print 0.11.0
+docker run --rm --gpus all --ipc=host \
+    --entrypoint python3 \
+    -v /workspace/thickets:/workspace/thickets \
+    -v /workspace/hf_cache:/root/.cache/huggingface \
+    -e HF_HOME=/root/.cache/huggingface \
+    vllm/vllm-openai:v0.11.0 \
+    /workspace/thickets/research/neural_thickets_repro/src/neural_thickets_repro/diagnostics/vllm_version_control/generate_predictions.py \
+        --fixed-sample /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control/fixed_200.json \
+        --model-name Qwen/Qwen2.5-VL-3B-Instruct \
+        --revision 66285546d2b821cf421d4f5eb2576359d3770cd3 \
+        --max-tokens 256 --seed 42 --label vllm0110 \
+        --out-dir /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control
 ```
 
-## 4. Generate under vLLM 0.11.0 (isolated venv — same script, run as a plain file, no package install needed)
+**If vLLM 0.11.0's Python API doesn't accept the same `LLM(...)`/`SamplingParams(...)`/
+`multi_modal_data` shapes as 0.27.1** (plausible across a 16-minor-version gap), that's a
+mechanical library-compatibility issue, not a reproduction-behavior change -- fix the call
+signature only (e.g. an older multimodal input kwarg name), never the prompt text, image
+content, decoding parameters, or scoring. Note whatever had to change in
+`GATE1_DIAGNOSIS.md` when you report back. If a bundled dependency is missing inside the
+image (unlikely -- `transformers`/`Pillow`/`huggingface_hub` all ship with vLLM's own
+image), `docker run` with an interactive shell and `pip install <package>` first, same
+container/image, still isolated from the host.
 
-```bash
-# still inside: source /workspace/venv_vllm0110/bin/activate
-python /workspace/thickets/research/neural_thickets_repro/src/neural_thickets_repro/diagnostics/vllm_version_control/generate_predictions.py \
-    --fixed-sample /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control/fixed_200.json \
-    --model-name Qwen/Qwen2.5-VL-3B-Instruct \
-    --revision 66285546d2b821cf421d4f5eb2576359d3770cd3 \
-    --max-tokens 256 --seed 42 --label vllm0110 \
-    --out-dir /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control
-
-deactivate   # back to the normal environment for step 5
-```
-
-**If vLLM 0.11.0's API doesn't accept the same `LLM(...)`/`SamplingParams(...)`/
-`multi_modal_data` shapes as 0.27.1** (plausible across a 16-minor-version gap), that is a
-mechanical library-compatibility issue, not a reproduction-behavior change — fix the call
-signature only (e.g. an older multimodal input kwarg name), do not touch the prompt text,
-image content, decoding parameters, or scoring. Note whatever had to change in
-`GATE1_DIAGNOSIS.md` when you report back.
-
-## 5. Compare (back in the normal 0.27.1 environment — no GPU needed for this step)
+## 4. Compare (back in the normal 0.27.1 environment — no GPU/Docker needed for this step)
 
 ```bash
 python -m neural_thickets_repro.diagnostics.vllm_version_control.compare_results \
@@ -98,25 +111,31 @@ the McNemar exact two-sided p-value on the 200-example paired sample is < 0.05. 
 percentage-point threshold — at n=200 a few-point swing is not reliably distinguishable
 from sampling noise, and an arbitrary cutoff would just be a different kind of tuning.
 
-- **Significant improvement** → run the full 12,578-example baseline under vLLM 0.11.0
-  (same isolated venv), same as `eval_base_image_aware.py` but pointed at that venv's
-  Python interpreter.
+- **Significant improvement** → run the full 12,578-example baseline under the same
+  `vllm/vllm-openai:v0.11.0` container (same `docker run` shape as step 3, pointed at all
+  12,578 examples instead of the fixed 200 -- an image-aware equivalent of
+  `eval_base_image_aware.py` for that environment).
 - **Not significant** → stop. Classify the Gate 1 reconstruction as a paper-faithful
   reproduction of the released method with a documented, unrecoverable runtime-version
-  discrepancy (the paper repo itself never pinned exact versions either). Gate 1 accepted
-  for the purpose of continuing the research; Gate 2 prep (not launch) begins.
+  discrepancy (the paper repo itself never pinned exact versions either, only the Docker
+  base-image tag). Gate 1 accepted for the purpose of continuing the research; Gate 2 prep
+  (not launch) begins.
 
-## Docker alternative (only if you have working GPU-passthrough Docker-in-Docker)
+## Fallback: isolated venv, only if Docker-in-Docker isn't available on this pod
+
+If step 0's sanity check fails, `generate_predictions.py` also runs fine in a plain venv --
+it has no dependency on Docker specifically:
 
 ```bash
-docker run --rm --gpus all \
-    -v /workspace/thickets:/workspace/thickets \
-    -v /workspace/hf_cache:/root/.cache/huggingface \
-    vllm/vllm-openai:v0.11.0 \
-    python /workspace/thickets/research/neural_thickets_repro/src/neural_thickets_repro/diagnostics/vllm_version_control/generate_predictions.py \
-        --fixed-sample /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control/fixed_200.json \
-        --model-name Qwen/Qwen2.5-VL-3B-Instruct \
-        --revision 66285546d2b821cf421d4f5eb2576359d3770cd3 \
-        --max-tokens 256 --seed 42 --label vllm0110 \
-        --out-dir /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control
+python3 -m venv /workspace/venv_vllm0110 && source /workspace/venv_vllm0110/bin/activate
+pip install "vllm==0.11.0" pillow huggingface_hub
+python /workspace/thickets/research/neural_thickets_repro/src/neural_thickets_repro/diagnostics/vllm_version_control/generate_predictions.py \
+    --fixed-sample /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control/fixed_200.json \
+    --model-name Qwen/Qwen2.5-VL-3B-Instruct --revision 66285546d2b821cf421d4f5eb2576359d3770cd3 \
+    --max-tokens 256 --seed 42 --label vllm0110 \
+    --out-dir /workspace/thickets/research/neural_thickets_repro/results/gate1_diagnosis/vllm_version_control
+deactivate
 ```
+This pins the `vllm` package version but not the surrounding system libraries the official
+image provides — less faithful to "the RandOpt repo's documented environment" than Docker,
+so prefer Docker whenever it's actually available on the pod.

@@ -66,8 +66,9 @@ python -m lmms_eval --model qwen2_5_vl \
 ## Then: the final controlled test (vLLM 0.27.1 vs 0.11.0)
 
 This is the last planned diagnostic step for the residual gap — see
-**`VLLM_VERSION_CONTROL_SETUP.md`** for the full procedure (isolated venv, does not touch
-the working 0.27.1 environment). It compares the two vLLM versions on an identical fixed
+**`VLLM_VERSION_CONTROL_SETUP.md`** for the full procedure (official `vllm/vllm-openai:v0.11.0`
+Docker image, matching the RandOpt repo's documented environment; does not touch the
+working 0.27.1 environment). It compares the two vLLM versions on an identical fixed
 200-example sample and applies a pre-agreed statistical decision rule (McNemar exact test,
 not an arbitrary percentage threshold) that resolves directly to either "run the full
 12,578 baseline under 0.11.0" or "stop and accept Gate 1 as a paper-faithful reconstruction
