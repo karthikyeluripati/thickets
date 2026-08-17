@@ -1,3 +1,7 @@
+import os
+import shutil
+from pathlib import Path
+
 import pytest
 
 from neural_thickets_repro.env_check import (
@@ -5,8 +9,10 @@ from neural_thickets_repro.env_check import (
     GateBlockedError,
     assert_feasible,
     check_disk,
+    check_filesystem_consistency,
     check_gate_artifact,
     check_module,
+    resolve_hf_home,
 )
 
 
@@ -29,6 +35,54 @@ def test_check_disk_blocked_when_threshold_too_high(tmp_path):
 
 def test_check_disk_ok_when_threshold_trivial(tmp_path):
     result = check_disk(tmp_path, min_gb=0)
+    assert result.ok is True
+
+
+def test_check_disk_checks_the_real_path_not_its_drive_root(tmp_path, monkeypatch):
+    """Regression test: check_disk must call shutil.disk_usage on the actual (nearest
+    existing) path, NOT on path.anchor. `.anchor` collapses any POSIX path to "/",
+    which would silently report the container root filesystem instead of e.g. a mounted
+    persistent volume the path actually lives under (the RunPod /workspace bug).
+    """
+    nested = tmp_path / "workspace" / "thickets" / "research"
+    nested.mkdir(parents=True)
+
+    calls = []
+    real_disk_usage = shutil.disk_usage
+
+    def spy_disk_usage(path):
+        calls.append(Path(path))
+        return real_disk_usage(path)
+
+    monkeypatch.setattr(shutil, "disk_usage", spy_disk_usage)
+    check_disk(nested, min_gb=0)
+
+    assert calls == [nested.resolve()]
+    assert calls[0] != Path(nested.resolve().anchor)
+
+
+def test_check_disk_walks_up_to_nearest_existing_ancestor(tmp_path):
+    not_yet_created = tmp_path / "hf_cache" / "hub"
+    result = check_disk(not_yet_created, min_gb=0)
+    assert result.ok is True  # should not raise even though the exact path doesn't exist yet
+
+
+def test_resolve_hf_home_honors_env_var(monkeypatch, tmp_path):
+    monkeypatch.setenv("HF_HOME", str(tmp_path / "custom_hf_home"))
+    assert resolve_hf_home() == tmp_path / "custom_hf_home"
+
+
+def test_resolve_hf_home_defaults_when_unset(monkeypatch):
+    monkeypatch.delenv("HF_HOME", raising=False)
+    assert resolve_hf_home() == Path.home() / ".cache" / "huggingface"
+
+
+def test_check_filesystem_consistency_true_for_same_tree(tmp_path):
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    result = check_filesystem_consistency({"a": a, "b": b})
     assert result.ok is True
 
 

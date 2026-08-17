@@ -11,10 +11,19 @@ from pathlib import Path
 from typing import List
 
 from .config import load_config
-from .env_check import CheckResult, check_cuda, check_disk, check_gate_artifact, check_module
+from .env_check import (
+    CheckResult,
+    check_cuda,
+    check_disk,
+    check_filesystem_consistency,
+    check_gate_artifact,
+    check_module,
+    resolve_hf_home,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[2]  # research/neural_thickets_repro/
 RESULTS_DIR = REPO_ROOT / "results"
+GQA_DATA_DIR = REPO_ROOT / "external" / "RandOpt" / "data" / "gqa"
 
 
 def _print_row(stage: str, checks: List[CheckResult]) -> bool:
@@ -36,12 +45,32 @@ def main(argv=None) -> int:
 
     _print_row("Gate 0: config/spec/scaffold", [])
 
+    hf_home = resolve_hf_home()
+
     cuda = check_cuda()
     vllm = check_module("vllm")
     ray = check_module("ray")
-    disk = check_disk(REPO_ROOT, cfg.hardware.min_free_disk_gb)
-    hw_checks = [cuda, vllm, ray, disk]
+    # Checked separately and by name: REPO_ROOT (code/data-prep defaults) and HF_HOME
+    # (model cache, often multi-GB) can be on different filesystems -- e.g. HF_HOME
+    # defaults to ~/.cache/huggingface, which on RunPod is the ephemeral container root,
+    # not the persistent /workspace volume, unless HF_HOME is explicitly set there.
+    disk_repo = check_disk(REPO_ROOT, cfg.hardware.min_free_disk_gb)
+    disk_repo.name = "disk(repo_root)"
+    disk_hf = check_disk(hf_home, cfg.hardware.min_free_disk_gb)
+    disk_hf.name = "disk(hf_home)"
+    # Advisory, not a hard feasibility blocker: both locations can independently have
+    # enough free space even if they're on different filesystems, so this is reported
+    # separately rather than folded into the FEASIBLE/BLOCKED gate check.
+    fs_consistency = check_filesystem_consistency({
+        "repo_root": REPO_ROOT,
+        "hf_home": hf_home,
+        "gqa_data": GQA_DATA_DIR,
+        "results": RESULTS_DIR,
+    })
+    hw_checks = [cuda, vllm, ray, disk_repo, disk_hf]
 
+    print(f"  HF_HOME resolves to: {hf_home}")
+    print(f"  filesystem consistency (advisory): {'OK' if fs_consistency.ok else 'MISMATCH'} -- {fs_consistency.detail}")
     _print_row("Gate 1: baseline eval", hw_checks)
 
     gate1_artifact = check_gate_artifact(RESULTS_DIR / "base" / "metrics.json")

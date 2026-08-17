@@ -8,6 +8,49 @@ running on the pod) to execute — I can't run them for you from here.
 **Scope: Gate 1 baseline only.** Do not run `run_randopt.py` (Gate 2/3) until Gate 1 is
 reviewed and accepted.
 
+## Update: disk-check fix (pull this before continuing)
+
+`validate_env`'s disk check had a real bug: `check_disk()` called `shutil.disk_usage(path.anchor)`,
+and `.anchor` collapses any POSIX path to `/` regardless of mount points further down the
+tree — so it was reporting free space on the container's root filesystem instead of the
+actual persistent `/workspace` volume the repo/data/cache live under. Fixed to check the
+real path directly (`shutil.disk_usage` correctly resolves through mount points when given
+an actual path, not its anchor). `validate_env` now also checks disk space at `HF_HOME`
+separately from the repo root (they can be different filesystems), and prints an advisory
+filesystem-consistency line. The required free-space threshold (`hardware.min_free_disk_gb`,
+25GB) is unchanged.
+
+Since your GQA prep already completed (testdev: 12,578/398, selection: 200/154 — both
+plausible counts, matching what I validated locally at small scale), **do not re-run
+`prepare_gqa_data.py`**. The `PyGILState_Release` abort you saw happened at interpreter
+shutdown, after the script's own `Done.` print — that's consistent with a third-party C
+extension misbehaving during teardown, not with the actual parquet/image writing having
+failed (that work was already complete and flushed to disk by the time `Done.` printed).
+Verify the artifacts directly instead (step below) rather than inferring anything from the
+shutdown exception.
+
+```bash
+cd /workspace/thickets   # or wherever you cloned it
+git fetch origin
+git checkout neural-thickets-repro-gate1-prep
+git pull origin neural-thickets-repro-gate1-prep
+cd research/neural_thickets_repro
+pip install -e .   # re-run if this is a fresh shell and the editable install didn't persist
+
+# 1. Verify the already-prepared GQA data is actually intact (does NOT re-download anything)
+python -m neural_thickets_repro.verify_gqa_data --config configs/gqa_repro.yaml
+# Exit code 1 / "VERIFICATION FAILED" means something really is missing/corrupt -- only
+# THEN consider re-running prepare_gqa_data.py, and only for the specific split that failed.
+
+# 2. Re-run validate_env with the fix
+python -m neural_thickets_repro.validate_env --config configs/gqa_repro.yaml
+# Gate 1 should now read FEASIBLE if /workspace actually has >= 25GB free.
+```
+
+If `verify_gqa_data` passes and `validate_env` shows Gate 1 FEASIBLE, skip straight to
+section 7 (Gate 1 baseline) below — sections 0-6 describe the full first-time setup and are
+otherwise unchanged.
+
 ## 0. Get the code onto `/workspace`
 
 Pick one:
@@ -84,7 +127,12 @@ this is the same script, just running the full 200-row selection set instead of 
 
 ```bash
 python -m neural_thickets_repro.prepare_gqa_data --config configs/gqa_repro.yaml
+python -m neural_thickets_repro.verify_gqa_data --config configs/gqa_repro.yaml
 ```
+
+Always run `verify_gqa_data` right after prep, regardless of whether the prep script exited
+cleanly — it checks the actual parquet row counts/columns and that every referenced image
+exists and isn't corrupt, rather than trusting the prep script's own exit behavior.
 
 ## 5. Validate the environment
 
@@ -144,8 +192,9 @@ Record whichever way it goes (worked unmodified / needed the patch / neither wor
 - `results/base/*/results.json` (or wherever `--experiment_dir results/base` landed it) —
   base_test_accuracy specifically.
 - `results/drift_audit_real_model_1_10.json`.
-- Console output/errors from step 7, especially if the patch launcher was needed.
-- Anything `validate_env` or the prep script printed that looked off.
+- `verify_gqa_data`'s output (pass/fail, and full JSON if it failed).
+- `validate_env`'s output, including the HF_HOME line and both disk(repo_root)/disk(hf_home) numbers.
+- Console output/errors from step 7 (Gate 1 baseline), especially if the patch launcher was needed.
 
 I'll compare the baseline number against 56.6% using the agreed thresholds (≤1pp
 proceed/document, 1-3pp investigate, >3pp hard stop) and write up the Gate 1 report from
