@@ -1,7 +1,72 @@
-# Gate 1 HARD FAIL — diagnosis (baseline 17.94% vs published 56.6%)
+# Gate 1 HARD FAIL — diagnosis (baseline 17.94% → 54.19% reconstructed vs 56.60% published)
 
-Status: **CONFIRMED by GPU audit.** No prompts, scoring, data prep, or model settings have
+Status: **Image-blindness confirmed at full scale.** Full 12,578-example image-aware
+reconstruction: **54.19% march-era scoring** vs published 56.60% = **−2.41pp**, inside the
+pre-agreed 1–3pp investigation band. No prompts, scoring, data prep, or model settings have
 been changed toward 56.6%. RandOpt / Gate 2 remains blocked.
+
+## Residual −2.41pp gap investigation (this pass)
+
+Five items requested, three resolved from static/network research (no GPU needed), two
+still need the pod:
+
+| # | Item | Status | Finding |
+|---|---|---|---|
+| 1 | Independent lmms-eval GQA control | **Still outstanding** | Not yet run/reported (was already owed from the prior round too) |
+| 2 | GQA parquet vs canonical source | **RULED OUT** | Full 12,578-row audit against `lmms-lab-encoder/GQA` `testdev_balanced_instructions`: exact row count match, order matches source exactly, IDs unique, zero null/empty answers, zero rows needing case/whitespace normalization our construction didn't already apply, no filtering anywhere. Our parquet is a faithful, unmodified copy of the source. |
+| 3a | March-era vLLM version | **Real, documented gap — candidate contributor** | `docker/Dockerfile_vllm` pins `FROM vllm/vllm-openai:v0.11.0` at the March 2026 commit (`60061828e3`) — and this line is **byte-identical** at the pinned HEAD commit today, i.e. the authors' own Docker recipe has never moved off v0.11.0. Our pod reports vLLM **0.27.1** — 16+ minor versions ahead. `requirements.txt` only floors `vllm>=0.10.0` (both then and now), so pip-based installs were never pinned exactly, but the Docker tag is the best actual evidence of the authors' real environment. |
+| 3b | March-era transformers version | **Unresolvable exactly** | `requirements.txt` says bare `transformers`, no version bound, unchanged March→HEAD. No other artifact in the repo pins it. Genuinely not recoverable from the repo alone. |
+| 3c | Qwen2.5-VL image preprocessing (min/max_pixels, patch/merge size) | **RULED OUT — stable since before the paper** | Fetched `preprocessor_config.json` at the commit where it was last touched (`1b989f2c63`, 2025-02-15) and at our pinned model revision (`66285546d2`, 2025-04-06): **byte-identical** (`min_pixels=3136, max_pixels=12845056, patch_size=14, merge_size=2, Qwen2VLImageProcessor`). Both predate the paper's March 2026 date by over a year with zero changes since. No drift possible here regardless of which revision the paper actually used. |
+| 4 | March-era Qwen2.5-VL-3B-Instruct checkpoint revision | **RULED OUT — no drift possible** | Full HF commit history for the checkpoint: last commit `66285546d2` on **2025-04-06** ("Update tokenizer_config.json") — nothing since, at any point through today. That commit **is** our pinned revision. The checkpoint has been frozen for ~11 months before the paper published and remains frozen now — whatever revision the paper used in March 2026, it can only have been this one. |
+| 5 | 200-example paired classification of remaining failures | **Tooling ready, needs the pod** | `diagnostics/residual_gap_audit.py` — reuses the *already-generated* `results/base_image_aware/predictions.jsonl` (no new GPU generation), classifies march-scoring-incorrect examples into `extraction_or_scoring_failure` / `model_wrong_yes_no` / `empty_or_degenerate_response` / `model_wrong_other`. |
+
+### Ranked hypothesis for the remaining −2.41pp (pending items 1 and 5)
+
+1. **Extraction/scoring imperfection** (not a model-content miss) — the 100-example audit
+   already showed this failure mode exists even in the fully image-aware path; at n=12,578
+   even a few-percent residual extraction-miss rate plausibly accounts for a meaningful
+   slice of 2.41pp. `residual_gap_audit.py` will quantify this directly.
+2. **vLLM version gap (v0.11.0 vs 0.27.1)** — real and documented, plausible contributor via
+   differences in multimodal image handling maturity or generation-kernel numerics between
+   major vLLM versions, but not yet isolated or measured.
+3. **Generation numerics / determinism across library versions** — greedy (temperature=0)
+   decoding is deterministic *within* a fixed stack, but different vLLM/CUDA/torch versions
+   can produce different token-level outputs on identical inputs; this is a known,
+   generally irreducible class of reproducibility gap, not a bug to fix.
+4. **transformers version drift** — plausible but unresolvable exactly (item 3b).
+
+### Preliminary read (will sharpen, not necessarily reverse, once items 1 and 5 land)
+
+Both **fully controllable, "our fault" candidates are now ruled out** (data construction,
+model revision, image preprocessing config). What remains — vLLM/transformers version
+drift and generation-numerics differences — are environmental factors the *original authors
+themselves* did not pin exactly either (`requirements.txt` has only floors, never exact
+versions, in both the March and current commits). Current best assessment: **likely
+"explain the gap but not fully eliminate it"** rather than reproduce-to-≤1pp, pending the
+lmms-eval cross-check and the failure classification. Do not treat this as final.
+
+## What to run on the pod
+
+```bash
+cd /workspace/thickets/research/neural_thickets_repro
+git pull origin neural-thickets-repro-gate1-prep
+pip install -e .
+
+# Item 5: classify existing predictions (fast -- no new generation, reuses the full run)
+python -m neural_thickets_repro.diagnostics.residual_gap_audit \
+    --predictions results/base_image_aware/predictions.jsonl --sample-size 200 --scoring march
+
+# Item 1: if not already running/done, the outstanding independent control
+python -m lmms_eval --model qwen2_5_vl \
+    --model_args pretrained=Qwen/Qwen2.5-VL-3B-Instruct \
+    --tasks gqa --batch_size 1 --log_samples \
+    --output_path results/gate1_diagnosis/lmms_eval_gqa
+```
+
+Bring back `results/gate1_diagnosis/residual_gap_audit.json` (classification counts +
+overall accuracy) and the lmms-eval GQA number. Do not start RandOpt / Gate 2.
+
+---
 
 ## Confirmed results (100-example paired audit, seed=42)
 
