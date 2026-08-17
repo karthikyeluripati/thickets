@@ -1,8 +1,28 @@
 # Gate 1 HARD FAIL — diagnosis (baseline 17.94% vs published 56.6%)
 
-Status: **root-cause hypothesis identified from static analysis; pod runs required to
-confirm.** No prompts, scoring, data prep, or model settings have been changed. RandOpt /
-Gate 2 remains blocked.
+Status: **CONFIRMED by GPU audit.** No prompts, scoring, data prep, or model settings have
+been changed toward 56.6%. RandOpt / Gate 2 remains blocked.
+
+## Confirmed results (100-example paired audit, seed=42)
+
+| Path | Current (HEAD) scoring | March/paper-era scoring |
+|---|---|---|
+| A — text-only (upstream-replica) | 15% | 22% |
+| B — with actual images | 59% | 59% |
+
+- Paired comparison (head scoring): **45 examples flipped wrong→correct** when the image
+  was added; only **1** flipped the other way.
+- **20/20** question↔image pairs independently verified against the source HF dataset.
+- Proposed verdict from the pre-registered threshold (≥20pp delta ⇒ CONFIRMED): **CONFIRMED**
+  — delta is +44pp, more than double the threshold.
+- Independent lmms-eval control: **still pending** — not yet run/reported. The evidence
+  above (44pp swing, 45:1 flip ratio, Path B already close to 56.6% on just 100 examples,
+  20/20 pair integrity) is strong enough on its own to proceed to the full baseline while
+  lmms-eval runs in parallel, but the lmms-eval number is still owed before this is called
+  fully closed.
+
+**Root cause: the released RandOpt GQA generation path never supplies image data to the
+VLM — confirmed, not hypothesized.**
 
 ## Finding 1 (primary suspect): the released code never passes images to the model
 
@@ -99,6 +119,43 @@ python -m lmms_eval \
 # renamed across releases: qwen2_5_vl / qwen2_vl).
 ```
 
+## Next: full 12,578-example reconstructed baseline (still no RandOpt)
+
+Confirmed by the 100-example audit above. Run the full testdev-balanced set through the
+same minimal image-aware adapter (`src/neural_thickets_repro/vlm_adapter.py:
+generate_with_images` — identical data/prompt/decoding/scoring to upstream, only change is
+that the image is actually attached to the request):
+
+```bash
+cd /workspace/thickets/research/neural_thickets_repro
+git pull origin neural-thickets-repro-gate1-prep
+pip install -e .
+
+python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro.yaml
+```
+
+Outputs, matching the original Step-2 spec:
+- `results/base_image_aware/predictions.jsonl` — one record per example: `example_id`,
+  `image_id`, `question`, `reference_answer`, `raw_prediction`, `normalized_prediction`,
+  `correct_head_scoring`, `correct_march_scoring`.
+- `results/base_image_aware/metrics.json` — `accuracy_head_scoring`,
+  `accuracy_march_scoring`, both diffed against `published_base_accuracy` (0.566) in
+  percentage points, plus the Gate 1 threshold rule from the config for reference.
+- `results/base_image_aware/run_metadata.json` — model name/pinned revision/resolved
+  snapshot path, dataset name/revision/split, our repo's git commit, external RandOpt's
+  pinned commit, Python/package versions, seed, decoding config, prompt template, image
+  handling note, example counts, elapsed time, exact command.
+
+**Report both `accuracy_head_scoring` and `accuracy_march_scoring` from `metrics.json`.**
+The paper-era (march) scoring is the fairer direct comparison to the published 56.6%, since
+that's the evaluator that was actually in place in March 2026 — but bring back both, since
+the head-scoring number is what any future Gate 2 run will actually use. Apply the agreed
+Gate 1 threshold rule (≤1pp proceed & document / 1-3pp investigate / >3pp hard stop) to the
+march-era number specifically.
+
+If lmms-eval hasn't finished yet, run it in parallel with this — it doesn't block the full
+baseline, only the final "fully closed" call on Finding 1.
+
 ## Interpretation guide (decided in advance, not after seeing numbers)
 
 | Audit outcome | Conclusion |
@@ -110,24 +167,20 @@ python -m lmms_eval \
 
 ## What to bring back
 
-The `gate1_failure_audit.json` + lmms-eval output directly answer the requested report:
-
-- Path A current-score (head) accuracy — `paths.A_upstream_replica_text_only.accuracy_head_scoring`
-- Path A paper-era (march) accuracy — `paths.A_upstream_replica_text_only.accuracy_march_scoring`
-- Path B current-score (head) accuracy — `paths.B_multimodal_control.accuracy_head_scoring`
-- Path B paper-era (march) accuracy — `paths.B_multimodal_control.accuracy_march_scoring`
-- lmms-eval GQA result — from `results/gate1_diagnosis/lmms_eval_gqa/`
-- A-wrong/B-correct count — `paired_comparison_head_scoring.a_wrong_b_correct`
-- 20-pair validity — `pair_verification.pairs_ok` / `pair_verification.pairs_checked` / `pair_verification.all_ok`
-- Root-cause verdict — the script proposes one mechanically in `proposed_verdict.verdict`
-  (CONFIRMED/PARTIAL/REJECTED by a fixed threshold on the A→B delta, decided before any
-  numbers existed); final verdict still needs the lmms-eval cross-check, which the script
-  can't run itself. Bring back both.
+- **lmms-eval GQA result** — still outstanding, from `results/gate1_diagnosis/lmms_eval_gqa/`.
+- **Full-baseline `results/base_image_aware/metrics.json`**: `accuracy_head_scoring`,
+  `accuracy_march_scoring`, and both diffs against 56.6%.
+- Whether the march-era diff falls in the ≤1pp / 1-3pp / >3pp band, and therefore whether
+  Gate 1 (as reconstructed) is a PASS to consider for eventual Gate 2 review, or needs
+  further investigation.
 
 ## Explicitly not done
 
 - No prompt, scoring, dataset, or model-setting changes toward 56.6%.
-- No RandOpt / Gate 2 execution.
-- No image-passing adapter written yet — that's conditioned on CONFIRMED and comes after
-  this audit's numbers are in, not before.
+- No RandOpt / Gate 2 execution. `eval_base_image_aware.py` cannot start RandOpt -- that
+  code path doesn't exist in this script.
+- No extension of image-awareness into the RandOpt candidate-sampling/ensemble loops
+  (`core/engine.py`, `utils/worker_extn.py`) -- out of scope until Gate 2 is authorized.
+- Full 12,578-example baseline not yet run (needs the pod) -- results above are from the
+  100-example audit only.
 - `MULTIMODAL_FIX_NOTES` in `vlm_adapter.py` stays unset until the pod confirms the hypothesis.
