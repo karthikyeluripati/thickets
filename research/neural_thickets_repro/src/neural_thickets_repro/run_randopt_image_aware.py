@@ -257,6 +257,11 @@ def main(argv=None) -> int:
     candidates = sample_candidates(args.N, sigma_values, cfg.reproducibility.global_seed)
 
     print(f"Sigma candidate: {args.sigma_candidate} = {sigma_values}  (UNRESOLVED assumption, see REPRO_SPEC.md)")
+    # enable_prefix_caching intentionally NOT overridden: launch_engines' own default is
+    # False, which is what makes it safe to repeatedly re-generate the same 200 selection-
+    # set prompts across different perturbed weight states without stale KV-cache reuse --
+    # verified against the pinned source, see GATE2_CACHE_SAFETY_REVIEW.md. Do not set this
+    # to True without re-reading that review first.
     engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
     engine = engines[0]
     try:
