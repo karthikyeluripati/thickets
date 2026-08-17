@@ -39,6 +39,8 @@ def test_eval_base_invokes_subprocess_with_external_repo_root_as_cwd(tmp_path, m
     monkeypatch.setattr(eval_base_module, "EXTERNAL_RANDOPT", external_root / "randopt.py")
     monkeypatch.setattr(eval_base_module, "EXTERNAL_RANDOPT_ROOT", external_root)
     monkeypatch.setattr(eval_base_module, "assert_feasible", lambda stage, checks: None)
+    fake_snapshot = str(tmp_path / "hf_snapshot" / "Qwen2.5-VL-3B-Instruct")
+    monkeypatch.setattr(eval_base_module, "resolve_model_snapshot", lambda name, rev: fake_snapshot)
 
     recorded = {}
     monkeypatch.setattr(eval_base_module.subprocess, "run", _fake_run_recorder(recorded))
@@ -50,6 +52,10 @@ def test_eval_base_invokes_subprocess_with_external_repo_root_as_cwd(tmp_path, m
     assert recorded["cwd"] != tmp_path  # must NOT be our reproduction repo (the old bug)
     assert recorded["check"] is True
     assert str(external_root / "randopt.py") in recorded["cmd"]
+    # revision pinning: the resolved local snapshot path must be what reaches --model_name,
+    # never the bare hub name (which vLLM would resolve at revision=None / current main)
+    model_name_arg = recorded["cmd"][recorded["cmd"].index("--model_name") + 1]
+    assert model_name_arg == fake_snapshot
 
 
 def test_run_randopt_invokes_subprocess_with_external_repo_root_as_cwd(tmp_path, monkeypatch):
@@ -60,6 +66,8 @@ def test_run_randopt_invokes_subprocess_with_external_repo_root_as_cwd(tmp_path,
     monkeypatch.setattr(run_randopt_module, "GATE1_ARTIFACT", tmp_path / "unused_gate1.json")
     monkeypatch.setattr(run_randopt_module, "GATE2_ARTIFACT", tmp_path / "unused_gate2.json")
     monkeypatch.setattr(run_randopt_module, "assert_feasible", lambda stage, checks: None)
+    fake_snapshot = str(tmp_path / "hf_snapshot" / "Qwen2.5-VL-3B-Instruct")
+    monkeypatch.setattr(run_randopt_module, "resolve_model_snapshot", lambda name, rev: fake_snapshot)
 
     recorded = {}
     monkeypatch.setattr(run_randopt_module.subprocess, "run", _fake_run_recorder(recorded))
@@ -75,3 +83,5 @@ def test_run_randopt_invokes_subprocess_with_external_repo_root_as_cwd(tmp_path,
     assert recorded["cwd"] != tmp_path  # must NOT be our reproduction repo (the old bug)
     assert recorded["check"] is True
     assert str(external_root / "randopt.py") in recorded["cmd"]
+    model_name_arg = recorded["cmd"][recorded["cmd"].index("--model_name") + 1]
+    assert model_name_arg == fake_snapshot

@@ -38,3 +38,20 @@ CORRECTED_MODEL_CLASS_NAME = "Qwen2_5_VLForConditionalGeneration"
 # None = not yet tested. When resolved, set to a short factual note (what was observed,
 # whether a fix was needed and what it was), not a guess.
 MULTIMODAL_FIX_NOTES: "str | None" = None
+
+
+def resolve_model_snapshot(model_name: str, revision: str) -> str:
+    """Downloads (or reuses from cache) the checkpoint at the EXACT pinned revision and
+    returns the local snapshot path.
+
+    Divergence #3: upstream randopt.py has no --revision argument and passes --model_name
+    straight to vLLM, which then resolves whatever the hub's current main is
+    (runtime logs show revision=None). Passing a local snapshot path pinned via
+    huggingface_hub.snapshot_download is the zero-upstream-modification way to guarantee
+    the configured revision is what actually runs. Note: the snapshot path contains the
+    model name, so upstream's is_instruct_model substring check ('instruct' in name)
+    still matches and the chat-template path is still taken.
+    """
+    from huggingface_hub import snapshot_download
+
+    return snapshot_download(repo_id=model_name, revision=revision)

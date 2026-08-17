@@ -16,6 +16,7 @@ from pathlib import Path
 
 from .config import load_config
 from .env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
+from .vlm_adapter import resolve_model_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_RANDOPT = REPO_ROOT / "external" / "RandOpt" / "randopt.py"
@@ -58,10 +59,16 @@ def main(argv=None) -> int:
     results_dir = REPO_ROOT / "results" / "base"
     results_dir.mkdir(parents=True, exist_ok=True)
 
+    # Pin the model revision by resolving it to a local snapshot path -- upstream has no
+    # --revision argument, so passing the hub name would let vLLM resolve revision=None
+    # (whatever main currently is) instead of the configured pin.
+    model_path = resolve_model_snapshot(cfg.model.name, cfg.model.revision)
+    print(f"Resolved {cfg.model.name}@{cfg.model.revision} -> {model_path}")
+
     cmd = [
         sys.executable, str(EXTERNAL_RANDOPT),
         "--dataset", "gqa",
-        "--model_name", cfg.model.name,
+        "--model_name", model_path,
         "--precision", cfg.model.precision,
         "--train_samples", str(cfg.dataset.selection_set_size),
         "--population_size", "0",

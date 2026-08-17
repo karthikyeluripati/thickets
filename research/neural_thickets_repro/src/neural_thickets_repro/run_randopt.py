@@ -27,6 +27,7 @@ from .env_check import (
     check_gate_artifact,
     check_module,
 )
+from .vlm_adapter import resolve_model_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_RANDOPT = REPO_ROOT / "external" / "RandOpt" / "randopt.py"
@@ -94,10 +95,14 @@ def main(argv=None) -> int:
     results_dir = REPO_ROOT / "results" / ("randopt_smoke" if not is_full_run else f"randopt_{label}")
     results_dir.mkdir(parents=True, exist_ok=True)
 
+    # Same revision-pinning rule as eval_base.py: upstream has no --revision argument.
+    model_path = resolve_model_snapshot(cfg.model.name, cfg.model.revision)
+    print(f"Resolved {cfg.model.name}@{cfg.model.revision} -> {model_path}")
+
     cmd = [
         sys.executable, str(EXTERNAL_RANDOPT),
         "--dataset", "gqa",
-        "--model_name", cfg.model.name,
+        "--model_name", model_path,
         "--precision", cfg.model.precision,
         "--train_samples", str(cfg.dataset.selection_set_size),
         "--population_size", str(N),
