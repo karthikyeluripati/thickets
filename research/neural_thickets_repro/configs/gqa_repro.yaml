@@ -1,0 +1,55 @@
+# Neural Thickets §5.2 reproduction config.
+# Every field cites REPRO_SPEC.md. Fields marked UNRESOLVED are left null on purpose —
+# they must never be silently filled with a guess. See REPRO_SPEC.md for the full
+# Confirmed/UNRESOLVED table and the sigma resolution plan.
+
+experiment: neural_thickets_gqa_reproduction
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct          # paper §5.2 — Confirmed
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3  # HF hub main as of this repo's check date — Confirmed as of check, not paper/upstream-pinned
+  architecture: Qwen2_5_VLForConditionalGeneration     # Confirmed via HF config.json
+  precision: bfloat16                        # upstream CLI default — Confirmed as upstream default
+
+dataset:
+  name: GQA
+  source: lmms-lab-encoder/GQA               # renamed from lmms-lab/GQA — see REPRO_SPEC.md
+  revision: a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8  # pinned HF dataset repo commit, fetched this session
+  selection_split: train_balanced_instructions[:200]+train_balanced_images  # RESOLVED BY DOCUMENTED ASSUMPTION, not upstream-confirmed — see REPRO_SPEC.md
+  test_split: testdev_balanced_instructions+testdev_balanced_images         # RESOLVED BY DOCUMENTED ASSUMPTION, not upstream-confirmed — see REPRO_SPEC.md
+  selection_set_size: 200                    # paper Appendix E.3, matches upstream --train_samples default — Confirmed
+  test_set_size: 12578                       # testdev_balanced, verified by generating the split this session — Confirmed under the resolved-by-assumption split choice above
+
+randopt:
+  N: 5000                                    # paper §5.2 — Confirmed
+  K: 50                                      # paper §5.2 — Confirmed
+  sigmas: null                               # UNRESOLVED — first-class open variable, see REPRO_SPEC.md "Sigma — resolution plan"
+  sigma_candidates:                          # labeled sensitivity configs for Gate 2, none presented as "the" answer
+    sigma_default: [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01]
+    sigma_example_scripts: [0.0005, 0.001, 0.002]
+    sigma_appendix_e3: [0.005]
+  perturbation_distribution: gaussian        # paper §4 — Confirmed
+  perturbation_scope: language_model_only    # paper §5.2 — Confirmed
+  freeze_visual_encoder: true                # paper §5.2 — Confirmed
+  visual_param_prefixes: ["visual.", "model.visual."]  # upstream WorkerExtension._should_perturb — Confirmed, must not be reinterpreted
+
+evaluation:
+  answer_normalization: gqa_flexible_match   # see REPRO_SPEC.md "Answer normalization / extraction" — behavior described, not copied
+  decoding: greedy                           # temperature=0.0 — Confirmed
+  max_tokens: 256                            # upstream GQAHandler.default_max_tokens — Confirmed
+  voting: majority                           # paper — Confirmed
+  tie_break: first_by_selection_score        # Counter.most_common insertion-order consequence — Confirmed as implementation behavior
+
+reproducibility:
+  global_seed: 42                            # upstream CLI default; used for candidate seed/sigma RNG stream
+
+gates:
+  baseline_tolerance_pp:
+    proceed_at_most: 1.0     # <=1 pp from 56.6% -> proceed and document
+    investigate_at_most: 3.0 # 1-3 pp -> stop and investigate before proceeding
+                              # >3 pp -> hard stop, no further gates
+  require_gate1_before_gate2: true
+  require_gate2_before_gate3: true
+
+hardware:
+  min_free_disk_gb: 25        # ~6-7GB model + 5-20GB GQA images + 8-12GB GPU pip stack, see REPRO_SPEC.md/README.md

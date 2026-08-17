@@ -1,0 +1,6 @@
+# Gate 0 only: config parsing, scaffold logic, tests. No GPU/vLLM/Ray needed.
+torch>=2.6.0
+transformers>=4.41.2
+numpy
+pyyaml
+pytest>=7.0

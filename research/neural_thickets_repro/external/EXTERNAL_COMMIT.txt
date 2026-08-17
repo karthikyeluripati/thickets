@@ -1,0 +1,13 @@
+upstream_url = https://github.com/sunrainyg/RandOpt
+pinned_commit = 536df0a308f3990b6270c991fbb96bd0b779a58e
+fetched_date_utc = 2026-08-17
+upstream_license = none declared (GitHub API reports license: null) -- code is NEVER copied into this
+                    repository; it is only cloned locally (gitignored, not committed) and invoked via
+                    subprocess by src/neural_thickets_repro/eval_base.py and run_randopt.py.
+
+To materialize the clone locally, run:
+    python external/setup_external_repo.py
+
+This creates external/RandOpt/ (gitignored) checked out at the exact commit above. If upstream force-pushes
+or deletes history, that commit is still reachable by SHA as long as GitHub's object store retains it;
+consider keeping a private mirror if long-term reproducibility matters more than repo size.

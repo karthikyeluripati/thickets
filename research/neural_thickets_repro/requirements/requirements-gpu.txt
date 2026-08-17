@@ -1,0 +1,13 @@
+# Gates 1-3: real model/dataset execution. Requires a CUDA GPU.
+# Mirrors the pins used by the external RandOpt repo (see external/EXTERNAL_COMMIT.txt)
+# plus the extras needed for the VLM/GQA path specifically.
+-r requirements-cpu.txt
+vllm>=0.10.0
+ray[default]>=2.0.0
+accelerate
+qwen-vl-utils
+pillow
+datasets
+huggingface-hub
+pandas
+pyarrow
