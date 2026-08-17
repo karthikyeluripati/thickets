@@ -43,9 +43,9 @@ from typing import List
 
 os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"  # same runtime fix as Gate 1/2 -- see eval_base_image_aware.py
 
-from .config import load_config
-from .env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
-from .vlm_adapter import build_image_aware_requests, resolve_model_snapshot
+from ..config import load_config
+from ..env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
+from ..vlm_adapter import build_image_aware_requests, resolve_model_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
