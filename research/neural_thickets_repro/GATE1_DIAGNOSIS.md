@@ -63,6 +63,17 @@ python -m lmms_eval --model qwen2_5_vl \
     --output_path results/gate1_diagnosis/lmms_eval_gqa
 ```
 
+## Then: the final controlled test (vLLM 0.27.1 vs 0.11.0)
+
+This is the last planned diagnostic step for the residual gap — see
+**`VLLM_VERSION_CONTROL_SETUP.md`** for the full procedure (isolated venv, does not touch
+the working 0.27.1 environment). It compares the two vLLM versions on an identical fixed
+200-example sample and applies a pre-agreed statistical decision rule (McNemar exact test,
+not an arbitrary percentage threshold) that resolves directly to either "run the full
+12,578 baseline under 0.11.0" or "stop and accept Gate 1 as a paper-faithful reconstruction
+with a documented, unrecoverable runtime-version discrepancy." No further open-ended
+debugging beyond this step is planned.
+
 Bring back `results/gate1_diagnosis/residual_gap_audit.json` (classification counts +
 overall accuracy) and the lmms-eval GQA number. Do not start RandOpt / Gate 2.
 
