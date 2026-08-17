@@ -15,10 +15,32 @@ Does NOT touch core/engine.py, utils/worker_extn.py, or any perturbation/selecti
 code. Does NOT run RandOpt. Gate 2 stays blocked regardless of what this baseline reports --
 this script cannot start it (no such code path exists here).
 
+RUNTIME COMPATIBILITY FIX (not a reproduction-behavior change -- no prompt, scoring, model
+config, image handling, or generation setting is touched by this fix): forces
+VLLM_WORKER_MULTIPROC_METHOD=spawn before torch/vLLM can be imported anywhere in this
+process. Without it, vLLM's default worker-process start method is "fork", and if CUDA has
+been touched at all in the parent process (e.g. our own check_cuda() feasibility check, or
+just importing torch), forking crashes with "RuntimeError: Cannot re-initialize CUDA in
+forked subprocess." Spawn starts each worker as a genuinely fresh Python process instead,
+which sidesteps the problem regardless of what the parent process touches -- so
+check_cuda()'s torch.cuda.is_available() call below is still safe to keep (it's a real,
+necessary feasibility gate; nothing here removes it). See _assert_spawn_configured() for
+the regression check that this is actually in effect before vLLM initializes.
+
 Usage:
     python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro.yaml
 """
 from __future__ import annotations
+
+import os
+
+# Must execute before torch/vllm can be imported anywhere in this process -- including
+# transitively via the .env_check/.vlm_adapter imports below, both of which import torch
+# lazily inside function bodies rather than at module load time, so setting this here, first,
+# is sufficient to guarantee it's in effect before any CUDA-touching code runs. Forced
+# (not setdefault) so a stale "fork"/other value already present in the environment can't
+# silently defeat the fix -- "ensure spawn is used" means ensure, not default.
+os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"
 
 import argparse
 import json
@@ -37,6 +59,24 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
 
 PUBLISHED_BASE_ACCURACY = 0.566
+
+
+def _assert_spawn_configured() -> None:
+    """Regression check for the runtime compatibility fix above: VLLM_WORKER_MULTIPROC_METHOD
+    must be "spawn" before vLLM is imported/initialized in this process, or we're back to the
+    fork/CUDA crash this fix exists for. Called immediately before `from vllm import LLM,
+    SamplingParams` -- catches the case where a future edit reorders imports or removes the
+    module-level os.environ assignment, failing fast with a clear message instead of vLLM's
+    much less obvious CUDA re-init RuntimeError.
+    """
+    value = os.environ.get("VLLM_WORKER_MULTIPROC_METHOD")
+    if value != "spawn":
+        raise RuntimeError(
+            f"VLLM_WORKER_MULTIPROC_METHOD must be 'spawn' before vLLM initializes, got "
+            f"{value!r}. This should have been forced at module import time -- see the top "
+            f"of eval_base_image_aware.py. Not a reproduction-behavior issue; a runtime "
+            f"multiprocessing/CUDA launch misconfiguration."
+        )
 
 
 def _git_commit() -> str:
@@ -101,6 +141,7 @@ def main(argv=None) -> int:
     model_path = resolve_model_snapshot(cfg.model.name, cfg.model.revision)
     print(f"Resolved {cfg.model.name}@{cfg.model.revision} -> {model_path}")
 
+    _assert_spawn_configured()  # must pass before the vLLM import immediately below
     from transformers import AutoTokenizer
     from vllm import LLM, SamplingParams
 
