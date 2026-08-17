@@ -1,4 +1,11 @@
-"""Gate 2/3 entrypoint:
+"""SUPERSEDED for actual Gate 2 use by run_randopt_image_aware.py -- GATE1_DIAGNOSIS.md
+confirmed on GPU that the released randopt.py this script subprocess-wraps unmodified
+never constructs multi_modal_data, so it would be exactly as image-blind here as it was
+for the Gate 1 baseline (17.94% vs published 56.6%, fixed there by
+eval_base_image_aware.py). Kept only as a reference for "what the literal released code
+does if run as-is" -- do not use this for a real Gate 2 attempt.
+
+Gate 2/3 entrypoint:
     python -m neural_thickets_repro.run_randopt --config configs/gqa_repro.yaml \
         --sigma-candidate sigma_default [--N 20 --K 5]
 

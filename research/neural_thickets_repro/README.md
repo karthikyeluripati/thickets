@@ -8,36 +8,45 @@ RandOpt, etc.) belongs here.
 
 See `REPRO_SPEC.md` for the full Confirmed/UNRESOLVED specification table.
 
-## Status: Gate 0 complete, Gate 1 prepped for GPU execution, Gates 2-3 not started
+## Status: Gate 0 + Gate 1 complete, Gate 2 prepped for GPU execution (not yet run)
 
-This local machine has no CUDA GPU and only ~15GB free disk — nothing that touches the real
-model/dataset can run here. Gate 1 (baseline) is prepared to run on a RunPod pod (1x L40S
-48GB) instead: see **`RUNPOD_SETUP.md`** for the exact command sequence. As of this pass,
-the GQA dataset provenance question is resolved (by documented reproduction assumption, see
-`REPRO_SPEC.md`) and validated end-to-end against the real HF dataset, and a perturb/restore
-drift diagnostic (`src/neural_thickets_repro/diagnostics/perturb_restore_drift.py`, kept
-separate from the reproduction algorithm) is ready to run at real bf16 precision.
+This local machine has no CUDA GPU — nothing that touches the real model/dataset can run
+here; everything below runs on a RunPod pod (1x L40S 48GB) instead (see `RUNPOD_SETUP.md`).
+
+**Branch structure**: `neural-thickets-repro-gate1-prep` is preserved as the complete Gate 1
+reproduction/forensics record (image-blindness diagnosis, the residual-gap investigation,
+the vLLM-version-control experiment). **This branch (`neural-thickets-repro-gate2-prep`)**
+starts from commit `c779ede` on that branch — the canonical **54.19% march-era-scoring
+image-aware baseline** (`results/base_image_aware/`) — and does not carry the later forensic
+commits forward. Gate 1 is accepted at that number: a paper-faithful reconstruction of the
+released method (image-blindness fixed, the one confirmed root cause) with a documented,
+unrecoverable runtime-version discrepancy against the published 56.6% (see the other
+branch's `GATE1_DIAGNOSIS.md` for the full residual-gap forensics).
 
 Run `python -m neural_thickets_repro.validate_env` to see exactly what's blocked and why on
 whatever machine you run it on.
 
 ## Pipeline gates
 
-1. **Gate 0 — Specification & scaffold** (this phase, CPU-only): `REPRO_SPEC.md`, config,
-   environment gate, and pure logic (perturbation math, top-K, voting, resumable ledger)
-   tested against synthetic data. This is **scaffold/unit validation** — it shows the
-   scaffold's logic is consistent with our reconstructed specification. It is not proof of
-   equivalence to the upstream VLM implementation, which is entirely unexercised until
-   Gate 1.
-2. **Gate 1 — Baseline** (requires GPU): `eval_base.py` runs the unperturbed model on real
-   GQA. Compared to published 56.6% with explicit thresholds: ≤1pp → proceed and document;
-   1-3pp → stop and investigate; >3pp → hard stop.
-3. **Gate 2 — Small-scale RandOpt on GPU** (requires GPU, requires Gate 1 passed):
-   `run_randopt.py --N 20 --K 5 --sigma-candidate <name>` — real end-to-end mechanics check
-   against each candidate sigma set as a labeled sensitivity config, not a search for "the"
-   right sigma.
-4. **Gate 3 — Full N=5000, K=50** (requires GPU, requires Gate 2 present):
-   `run_randopt.py --sigma-candidate <name>`.
+1. **Gate 0 — Specification & scaffold** (CPU-only): `REPRO_SPEC.md`, config, environment
+   gate, and pure logic (perturbation math, top-K, voting, resumable ledger) tested against
+   synthetic data.
+2. **Gate 1 — Baseline, image-aware** (GPU, **done**): `eval_base_image_aware.py` —
+   confirmed root cause was that the released code never attaches images to the vLLM
+   request (`GATE1_DIAGNOSIS.md`); this adapter fixes only that, nothing else. Result:
+   54.19% march-era scoring on the full 12,578-example testdev-balanced set vs published
+   56.6% (−2.41pp, accepted with a documented runtime-version discrepancy). The original
+   `eval_base.py` (subprocess-wraps unmodified `randopt.py`) is kept only as a reference for
+   what the literal released code does if run as-is (17.94%, image-blind).
+3. **Gate 2 — Small-scale RandOpt, image-aware** (GPU, **prepared, not executed**):
+   `run_randopt_image_aware.py --N 20 --K 5 --sigma-candidate <name>` — real end-to-end
+   mechanics check (perturb → select → ensemble → vote, all via the unmodified external
+   `WorkerExtension`/`launch_engines`/`GQAHandler`, images attached the same way Gate 1's
+   adapter does) against each candidate sigma set as a labeled sensitivity config, not a
+   search for "the" right sigma. `run_randopt.py` (unmodified-`randopt.py` subprocess wrap)
+   is superseded for real use — it would inherit the identical image-blindness.
+4. **Gate 3 — Full N=5000, K=50** (GPU, not started, requires Gate 2 reviewed first):
+   `run_randopt_image_aware.py --sigma-candidate <name>` (defaults to the paper's N/K).
 
 ## Running Gate 0 (works now)
 
@@ -54,9 +63,10 @@ PYTHONPATH=src python -m neural_thickets_repro.validate_env   # or: pip install 
 pip install -e .   # or: export PYTHONPATH=src (Windows: set PYTHONPATH=src)
 pip install -r requirements/requirements-gpu.txt
 python external/setup_external_repo.py   # clones sunrainyg/RandOpt at a pinned commit; never committed
-python -m neural_thickets_repro.eval_base --config configs/gqa_repro.yaml
-python -m neural_thickets_repro.run_randopt --config configs/gqa_repro.yaml --N 20 --K 5 --sigma-candidate sigma_default
-python -m neural_thickets_repro.run_randopt --config configs/gqa_repro.yaml --sigma-candidate sigma_default
+python -m neural_thickets_repro.prepare_gqa_data --config configs/gqa_repro.yaml
+python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro.yaml   # Gate 1, already run -> 54.19%
+python -m neural_thickets_repro.run_randopt_image_aware --config configs/gqa_repro.yaml --N 20 --K 5 --sigma-candidate sigma_default   # Gate 2 smoke test
+python -m neural_thickets_repro.run_randopt_image_aware --config configs/gqa_repro.yaml --sigma-candidate sigma_default   # Gate 3, full N=5000/K=50, only after Gate 2 is reviewed
 python -m neural_thickets_repro.report --config configs/gqa_repro.yaml
 ```
 

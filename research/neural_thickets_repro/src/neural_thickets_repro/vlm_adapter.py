@@ -36,10 +36,13 @@ Known divergences (see REPRO_SPEC.md for full citations):
    wrong->correct when the image was added vs 1 the other way; 20/20 question<->image
    pairs independently verified against the source HF dataset.
    generate_with_images() below is the minimal fix, used by eval_base_image_aware.py for
-   the Gate 1 baseline (population_size=0, no perturbation/selection/voting involved).
-   It does NOT touch core/engine.py, utils/worker_extn.py, or any perturbation/selection/
-   voting code -- extending image-awareness to the RandOpt candidate-sampling and ensemble
-   loops (needed for Gate 2) is explicitly out of scope until Gate 2 is authorized.
+   the Gate 1 baseline (population_size=0, no perturbation/selection/voting involved), and
+   build_image_aware_requests() (the request-construction piece factored out of it) is
+   reused by run_randopt_image_aware.py for Gate 2 -- same request shape, generated via
+   Ray's engines[i].generate.remote(requests, ...) there instead of a local llm.generate(),
+   since Gate 2 must go through the actual Ray-actor vLLM engines (core/engine.py:
+   launch_engines, unmodified) to reach utils/worker_extn.py's real weight-perturbation
+   RPCs. Neither path touches core/engine.py or utils/worker_extn.py's own code.
 """
 from __future__ import annotations
 
@@ -100,10 +103,13 @@ def format_chat_prompt(tokenizer, messages: List[dict]) -> str:
     return tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
 
 
-def generate_with_images(llm, sampling_params, task_datas: List[Dict], tokenizer) -> List[str]:
-    """The minimal fix for divergence #4: identical prompt text/decoding to upstream, but
-    each request carries the actual image via vLLM's multi_modal_data instead of silently
-    dropping it. task_datas entries are GQAHandler.load_data() records (must have
+def build_image_aware_requests(task_datas: List[Dict], tokenizer) -> List[dict]:
+    """The minimal fix for divergence #4, factored out so both the direct-LLM path
+    (generate_with_images, Gate 1) and the Ray-actor path (run_randopt_image_aware.py,
+    Gate 2) build byte-identical requests: identical prompt text/message shape to upstream
+    (data_handlers/gqa.py's own {"type": "image", ...} + {"type": "text", ...} content
+    list), but each request carries the actual image via vLLM's multi_modal_data instead of
+    silently dropping it. task_datas entries are GQAHandler.load_data() records (must have
     "image_path" -- i.e. images_available was True when the split was prepared).
     """
     from PIL import Image
@@ -113,5 +119,11 @@ def generate_with_images(llm, sampling_params, task_datas: List[Dict], tokenizer
         text = format_chat_prompt(tokenizer, d["messages"])
         image = Image.open(d["image_path"]).convert("RGB")
         requests.append({"prompt": text, "multi_modal_data": {"image": image}})
+    return requests
+
+
+def generate_with_images(llm, sampling_params, task_datas: List[Dict], tokenizer) -> List[str]:
+    """Gate 1 path: a local (non-Ray) vLLM LLM instance, used by eval_base_image_aware.py."""
+    requests = build_image_aware_requests(task_datas, tokenizer)
     outputs = llm.generate(requests, sampling_params, use_tqdm=True)
     return [o.outputs[0].text for o in outputs]
