@@ -68,7 +68,21 @@ def main(argv=None) -> int:
 
     requests = []
     for ex in examples:
-        messages = [{"role": "user", "content": ex["formatted_prompt_text"]}]
+        # Message shape MUST mirror external/RandOpt/data_handlers/gqa.py's own construction
+        # (also what vlm_adapter.generate_with_images/format_chat_prompt renders) exactly:
+        # a content LIST with an explicit {"type": "image", ...} block, not a bare string.
+        # Qwen2.5-VL's chat template only inserts the <|vision_start|><|image_pad|>
+        # <|vision_end|> placeholder tokens when it sees that marker in the input messages --
+        # a bare-string content produces a prompt with ZERO image placeholders, so vLLM's
+        # multi_modal_data has nothing to bind to and raises "Failed to apply prompt
+        # replacement for mm_items['image'][0]" on the first multimodal request. This is
+        # NOT a second, differing multimodal formatting implementation -- it's the same
+        # shape, deliberately duplicated (not imported) only so this script stays
+        # standalone enough to run inside the isolated vLLM 0.11.0 Docker container.
+        messages = [{"role": "user", "content": [
+            {"type": "image", "image": ex["image_path"]},
+            {"type": "text", "text": ex["formatted_prompt_text"]},
+        ]}]
         text = tokenizer.apply_chat_template(messages, add_generation_prompt=True, tokenize=False)
         image = Image.open(ex["image_path"]).convert("RGB")
         requests.append({"prompt": text, "multi_modal_data": {"image": image}})

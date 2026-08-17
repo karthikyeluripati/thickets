@@ -52,7 +52,32 @@ python src/neural_thickets_repro/diagnostics/vllm_version_control/generate_predi
     --out-dir results/gate1_diagnosis/vllm_version_control
 ```
 
-## 3. Generate under the official vLLM 0.11.0 Docker image
+## 3. Fidelity gate — MANDATORY, must PASS before touching vLLM 0.11.0
+
+`generate_predictions.py` is a standalone harness (deliberately not importing our package,
+so it runs inside the isolated 0.11.0 container). Before trusting its 0.27.1 output as one
+arm of the version comparison, prove it actually reproduces the already-validated
+`eval_base_image_aware.py` run (which completed successfully over all 12,578 examples) on
+the same 200 IDs. A harness bug here would be indistinguishable from a real vLLM-version
+effect if left unchecked.
+
+```bash
+python -m neural_thickets_repro.diagnostics.vllm_version_control.fidelity_gate \
+    --fixed-sample results/gate1_diagnosis/vllm_version_control/fixed_200.json \
+    --new-predictions results/gate1_diagnosis/vllm_version_control/predictions_vllm0271.jsonl \
+    --baseline-predictions results/base_image_aware/predictions.jsonl
+```
+
+Reports: IDs matched, raw-prediction exact-match count/rate, march-score accuracy from the
+old full-baseline records (this 200-subset) vs. from the new helper, correctness
+agreement count/rate, and up to 20 concrete disagreements. Exits 0 with `GATE RESULT: PASS`
+only if ≥98% raw-text exact match AND ≥98% correctness agreement — greedy decoding on
+identical model/precision/prompt/image/seed within the same vLLM version should be
+deterministic, so anything short of that means the harness is doing something different,
+not sampling noise. **If it prints `FAIL`, stop — do not run the Docker step below until
+this passes**, and explain (don't paper over) any remaining disagreements it reports.
+
+## 4. Generate under the official vLLM 0.11.0 Docker image
 
 Mount the repo (and the HF cache, so the already-downloaded model snapshot is reused
 instead of a redundant multi-GB re-download) at **identical paths** inside the container --
@@ -91,7 +116,7 @@ image (unlikely -- `transformers`/`Pillow`/`huggingface_hub` all ship with vLLM'
 image), `docker run` with an interactive shell and `pip install <package>` first, same
 container/image, still isolated from the host.
 
-## 4. Compare (back in the normal 0.27.1 environment — no GPU/Docker needed for this step)
+## 5. Compare (back in the normal 0.27.1 environment — no GPU/Docker needed for this step)
 
 ```bash
 python -m neural_thickets_repro.diagnostics.vllm_version_control.compare_results \
@@ -112,7 +137,7 @@ percentage-point threshold — at n=200 a few-point swing is not reliably distin
 from sampling noise, and an arbitrary cutoff would just be a different kind of tuning.
 
 - **Significant improvement** → run the full 12,578-example baseline under the same
-  `vllm/vllm-openai:v0.11.0` container (same `docker run` shape as step 3, pointed at all
+  `vllm/vllm-openai:v0.11.0` container (same `docker run` shape as step 4, pointed at all
   12,578 examples instead of the fixed 200 -- an image-aware equivalent of
   `eval_base_image_aware.py` for that environment).
 - **Not significant** → stop. Classify the Gate 1 reconstruction as a paper-faithful
