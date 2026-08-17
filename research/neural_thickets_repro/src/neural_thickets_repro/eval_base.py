@@ -19,6 +19,7 @@ from .env_check import GateBlockedError, assert_feasible, check_cuda, check_disk
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_RANDOPT = REPO_ROOT / "external" / "RandOpt" / "randopt.py"
+EXTERNAL_RANDOPT_ROOT = EXTERNAL_RANDOPT.parent
 
 
 def main(argv=None) -> int:
@@ -69,7 +70,12 @@ def main(argv=None) -> int:
         "--experiment_dir", str(results_dir),
     ]
     print("Running:", " ".join(cmd))
-    subprocess.run(cmd, check=True)
+    # cwd MUST be the external RandOpt repo root: GQAHandler resolves data/gqa/train.parquet
+    # etc. relative to the process cwd, not relative to randopt.py's own location, so
+    # running with our repo as cwd (the default) fails to find data prepared under
+    # external/RandOpt/data/gqa/. We never copy/move/symlink the data to work around this --
+    # cwd is the correct fix and preserves the official repo's expected layout.
+    subprocess.run(cmd, check=True, cwd=EXTERNAL_RANDOPT_ROOT)
     return 0
 
 
