@@ -45,7 +45,7 @@ os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"  # same runtime fix as Gate
 
 from ..config import load_config
 from ..env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
-from ..vlm_adapter import build_image_aware_requests, resolve_model_snapshot
+from ..vlm_adapter import bootstrap_ray, build_image_aware_requests, resolve_model_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
@@ -97,41 +97,59 @@ def main(argv=None) -> int:
     requests = build_image_aware_requests(task_datas, tokenizer)
     sampling_params = SamplingParams(temperature=0.0, seed=cfg.reproducibility.global_seed, max_tokens=cfg.evaluation.max_tokens)
 
-    # enable_prefix_caching intentionally NOT overridden here -- launch_engines' own default
-    # is False; see GATE2_CACHE_SAFETY_REVIEW.md for why that's what makes this check valid.
-    engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
-    engine = engines[0]
+    # Mirrors upstream randopt.py:main()'s own Ray bootstrap -- launch_engines() assumes an
+    # active Ray session and never starts one itself (see vlm_adapter.py divergence #5).
+    # ray_owned_by_us tracks whether THIS call started Ray, so we only shut down a session
+    # we actually own, never one we merely connected to.
+    ray_owned_by_us = bootstrap_ray()
 
-    def generate() -> List[str]:
-        outputs = ray.get(engine.generate.remote(requests, sampling_params, use_tqdm=False))
-        return [o.outputs[0].text for o in outputs]
-
+    engines = None
+    pgs = None
     try:
-        print(f"1. Generating under base weights (n={len(task_datas)})...")
-        base_outputs = generate()
+        # enable_prefix_caching intentionally NOT overridden here -- launch_engines' own
+        # default is False; see GATE2_CACHE_SAFETY_REVIEW.md for why that's what makes this
+        # check valid.
+        engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
+        engine = engines[0]
 
-        print(f"2. Perturbing test candidate (seed={TEST_SEED}, sigma={TEST_SIGMA})...")
-        ray.get(engine.collective_rpc.remote("perturb_self_weights", args=(TEST_SEED, TEST_SIGMA, False)))
+        def generate() -> List[str]:
+            outputs = ray.get(engine.generate.remote(requests, sampling_params, use_tqdm=False))
+            return [o.outputs[0].text for o in outputs]
 
-        print("3. Regenerating under perturbed weights...")
-        perturbed_outputs = generate()
+        try:
+            print(f"1. Generating under base weights (n={len(task_datas)})...")
+            base_outputs = generate()
 
-        n_changed = sum(1 for a, b in zip(base_outputs, perturbed_outputs) if a.strip() != b.strip())
-        step3_pass = n_changed > 0
-        print(f"   {n_changed}/{len(task_datas)} outputs changed after perturbation -- {'PASS' if step3_pass else 'FAIL'}")
+            print(f"2. Perturbing test candidate (seed={TEST_SEED}, sigma={TEST_SIGMA})...")
+            ray.get(engine.collective_rpc.remote("perturb_self_weights", args=(TEST_SEED, TEST_SIGMA, False)))
 
-        print(f"4. Restoring weights (seed={TEST_SEED}, sigma={TEST_SIGMA})...")
-        ray.get(engine.collective_rpc.remote("restore_self_weights", args=(TEST_SEED, TEST_SIGMA, False)))
+            print("3. Regenerating under perturbed weights...")
+            perturbed_outputs = generate()
 
-        print("5. Regenerating under restored weights...")
-        restored_outputs = generate()
+            n_changed = sum(1 for a, b in zip(base_outputs, perturbed_outputs) if a.strip() != b.strip())
+            step3_pass = n_changed > 0
+            print(f"   {n_changed}/{len(task_datas)} outputs changed after perturbation -- {'PASS' if step3_pass else 'FAIL'}")
 
-        n_mismatched_after_restore = sum(1 for a, b in zip(base_outputs, restored_outputs) if a.strip() != b.strip())
-        step5_exact_pass = n_mismatched_after_restore == 0
-        print(f"   {len(task_datas) - n_mismatched_after_restore}/{len(task_datas)} outputs exactly match base after restore "
-              f"-- {'PASS (exact)' if step5_exact_pass else 'MISMATCH -- see report for details, not necessarily fatal (see docstring)'}")
+            print(f"4. Restoring weights (seed={TEST_SEED}, sigma={TEST_SIGMA})...")
+            ray.get(engine.collective_rpc.remote("restore_self_weights", args=(TEST_SEED, TEST_SIGMA, False)))
+
+            print("5. Regenerating under restored weights...")
+            restored_outputs = generate()
+
+            n_mismatched_after_restore = sum(1 for a, b in zip(base_outputs, restored_outputs) if a.strip() != b.strip())
+            step5_exact_pass = n_mismatched_after_restore == 0
+            print(f"   {len(task_datas) - n_mismatched_after_restore}/{len(task_datas)} outputs exactly match base after restore "
+                  f"-- {'PASS (exact)' if step5_exact_pass else 'MISMATCH -- see report for details, not necessarily fatal (see docstring)'}")
+        finally:
+            # cleanup_engines (unmodified upstream) already calls ray.shutdown()
+            # unconditionally once engines exist -- do not shut down again below.
+            cleanup_engines(engines, pgs)
     finally:
-        cleanup_engines(engines, pgs)
+        # Only reached without cleanup_engines having run if launch_engines() itself threw
+        # before returning engines/pgs -- in that case Ray was never shut down via the path
+        # above. Shut it down ourselves, but only if we're the ones who started it.
+        if engines is None and ray_owned_by_us and ray.is_initialized():
+            ray.shutdown()
 
     overall_pass = step3_pass and step5_exact_pass
     report = {

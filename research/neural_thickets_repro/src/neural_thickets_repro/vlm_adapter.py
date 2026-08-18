@@ -43,6 +43,20 @@ Known divergences (see REPRO_SPEC.md for full citations):
    since Gate 2 must go through the actual Ray-actor vLLM engines (core/engine.py:
    launch_engines, unmodified) to reach utils/worker_extn.py's real weight-perturbation
    RPCs. Neither path touches core/engine.py or utils/worker_extn.py's own code.
+
+5. Ray must be bootstrapped before launch_engines() -- core/engine.py:launch_engines calls
+   ray.cluster_resources() and assumes an active Ray session; it never calls ray.init()
+   itself (confirmed: no ray.init anywhere in core/engine.py). Upstream's OWN entrypoint,
+   randopt.py:main(), does this immediately before its own launch_engines() call:
+       if os.environ.get("RAY_ADDRESS"):
+           ray.init(address="auto", ignore_reinit_error=True)
+       else:
+           ray.init(address="local", ignore_reinit_error=True)
+   (verified against the pinned source; described here, not copied -- it's two lines).
+   bootstrap_ray() below mirrors this exactly. Both run_randopt_image_aware.py and
+   diagnostics/gate2_gpu_preflight.py call core/engine.py's launch_engines() directly
+   without going through randopt.py's own main(), so neither got this bootstrap step for
+   free -- both must call bootstrap_ray() themselves before launch_engines().
 """
 from __future__ import annotations
 
@@ -63,6 +77,29 @@ MULTIMODAL_FIX_NOTES = (
 )
 
 EXTERNAL_ROOT = Path(__file__).resolve().parents[2] / "external" / "RandOpt"
+
+
+def bootstrap_ray() -> bool:
+    """Mirrors upstream randopt.py:main()'s own Ray init sequence exactly (divergence #5
+    above): RAY_ADDRESS env var -> address="auto", else address="local", both with
+    ignore_reinit_error=True. Required because core/engine.py:launch_engines() assumes an
+    active Ray session and never starts one itself.
+
+    Returns True if THIS call actually initialized Ray (i.e. the caller now owns the
+    session and is responsible for shutting it down on exit/failure), False if Ray was
+    already running (e.g. an existing cluster someone else started) -- in which case the
+    caller must NOT shut it down out from under whoever started it.
+    """
+    import os
+
+    import ray
+
+    already_running = ray.is_initialized()
+    if os.environ.get("RAY_ADDRESS"):
+        ray.init(address="auto", ignore_reinit_error=True)
+    else:
+        ray.init(address="local", ignore_reinit_error=True)
+    return not already_running
 
 
 def resolve_model_snapshot(model_name: str, revision: str) -> str:

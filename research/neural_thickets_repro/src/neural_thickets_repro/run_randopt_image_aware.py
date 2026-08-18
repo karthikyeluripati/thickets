@@ -75,7 +75,7 @@ from .env_check import (
 )
 from .ledger import CandidateLedger, CandidateRecord
 from .topk_voting import majority_vote, select_top_k
-from .vlm_adapter import build_image_aware_requests, resolve_model_snapshot
+from .vlm_adapter import bootstrap_ray, build_image_aware_requests, resolve_model_snapshot
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
@@ -228,7 +228,7 @@ def main(argv=None) -> int:
     print(f"Resolved {cfg.model.name}@{cfg.model.revision} -> {model_path}")
 
     _assert_spawn_configured()
-    import ray  # noqa: F401  (imported for side effect check only; used via engine.*.remote below)
+    import ray  # used directly below (ray.is_initialized()) and via engine.*.remote calls
     from transformers import AutoTokenizer
     from vllm import SamplingParams
 
@@ -257,26 +257,44 @@ def main(argv=None) -> int:
     candidates = sample_candidates(args.N, sigma_values, cfg.reproducibility.global_seed)
 
     print(f"Sigma candidate: {args.sigma_candidate} = {sigma_values}  (UNRESOLVED assumption, see REPRO_SPEC.md)")
-    # enable_prefix_caching intentionally NOT overridden: launch_engines' own default is
-    # False, which is what makes it safe to repeatedly re-generate the same 200 selection-
-    # set prompts across different perturbed weight states without stale KV-cache reuse --
-    # verified against the pinned source, see GATE2_CACHE_SAFETY_REVIEW.md. Do not set this
-    # to True without re-reading that review first.
-    engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
-    engine = engines[0]
+
+    # Mirrors upstream randopt.py:main()'s own Ray bootstrap -- launch_engines() assumes an
+    # active Ray session and never starts one itself (see vlm_adapter.py divergence #5).
+    # ray_owned_by_us tracks whether THIS call started Ray, so we only shut down a session
+    # we actually own, never one we merely connected to.
+    ray_owned_by_us = bootstrap_ray()
+
+    engines = None
+    pgs = None
     try:
-        print(f"\n=== Sampling phase: N={args.N} candidates ===")
-        scores = run_sampling_phase(engine, handler, selection_requests, selection_datas, sampling_params, candidates, ledger)
+        # enable_prefix_caching intentionally NOT overridden: launch_engines' own default is
+        # False, which is what makes it safe to repeatedly re-generate the same 200 selection-
+        # set prompts across different perturbed weight states without stale KV-cache reuse --
+        # verified against the pinned source, see GATE2_CACHE_SAFETY_REVIEW.md. Do not set this
+        # to True without re-reading that review first.
+        engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
+        engine = engines[0]
+        try:
+            print(f"\n=== Sampling phase: N={args.N} candidates ===")
+            scores = run_sampling_phase(engine, handler, selection_requests, selection_datas, sampling_params, candidates, ledger)
 
-        top_k = select_top_k(scores, args.K)
-        print(f"\n=== Selected top-{args.K} of {args.N} ===")
-        for rank, (seed, sigma) in enumerate(top_k):
-            print(f"  {rank + 1}. seed={seed} sigma={sigma} score={scores[(seed, sigma)]:.4f}")
+            top_k = select_top_k(scores, args.K)
+            print(f"\n=== Selected top-{args.K} of {args.N} ===")
+            for rank, (seed, sigma) in enumerate(top_k):
+                print(f"  {rank + 1}. seed={seed} sigma={sigma} score={scores[(seed, sigma)]:.4f}")
 
-        print(f"\n=== Ensemble evaluation: K={args.K} on {len(test_datas)} test examples ===")
-        ensemble_results = run_ensemble_phase(engine, handler, test_requests, test_datas, sampling_params, top_k)
+            print(f"\n=== Ensemble evaluation: K={args.K} on {len(test_datas)} test examples ===")
+            ensemble_results = run_ensemble_phase(engine, handler, test_requests, test_datas, sampling_params, top_k)
+        finally:
+            # cleanup_engines (unmodified upstream) already calls ray.shutdown()
+            # unconditionally once engines exist -- do not shut down again below.
+            cleanup_engines(engines, pgs)
     finally:
-        cleanup_engines(engines, pgs)
+        # Only reached without cleanup_engines having run if launch_engines() itself threw
+        # before returning engines/pgs -- in that case Ray was never shut down via the path
+        # above. Shut it down ourselves, but only if we're the ones who started it.
+        if engines is None and ray_owned_by_us and ray.is_initialized():
+            ray.shutdown()
 
     results_path = out_dir / "results.json"
     results_path.write_text(json.dumps({
