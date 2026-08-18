@@ -16,13 +16,18 @@ touched.
 
 Test A (vision_encoder): snapshot base -> perturb ONLY vision_encoder
 (scoped_perturbation.scoped_apply_perturbation, the local package-side extension -- never
-touches external/RandOpt) -> verify >=1 selected vision-encoder param changed -> verify
-merger + entire LM exactly unchanged -> reset_to_base_weights (real, unmodified upstream
-method, string-dispatched exactly as fixed_base already uses it) -> verify entire model
-exactly equals base.
+touches external/RandOpt) -> verify >=1 selected vision-encoder param changed -> verify the
+LITERAL COMPLEMENT of vision_encoder's selected storage across the entire runtime model
+(not an enumerated "merger + LM" list, which can silently miss tensors belonging to neither
+named group) is exactly unchanged -> reset_to_base_weights (real, unmodified upstream method,
+string-dispatched exactly as fixed_base already uses it) -> verify entire model exactly
+equals base.
 
-Test B (lm_middle): same shape -- perturb only lm_middle, verify vision encoder + merger +
-lm_early + lm_late exactly unchanged, reset, verify exact full-model match.
+Test B (lm_middle): same shape -- perturb only lm_middle, verify the literal complement of
+lm_middle's selected storage (every other runtime tensor, whatever component it belongs to --
+this correctly includes non-layer LM tensors like embeddings/final-norm that aren't part of
+ANY lm_early/middle/late third, which an enumerated "vision + merger + lm_early + lm_late"
+list would silently omit) is exactly unchanged, reset, verify exact full-model match.
 
 Drift measurement reuses diagnostics/perturb_restore_drift.py's already-unit-tested
 measure_drift (extended with an optional param_filter for exactly this in-scope/
@@ -104,6 +109,14 @@ def _diag_scope_drift(worker_self, scope_name: str) -> Dict:
     """Runs AFTER a perturbation, before reset. Splits drift into in-scope (the perturbed
     scope's own selected params) vs out-of-scope (everything else) using measure_drift's
     param_filter -- reused math, not reimplemented.
+
+    "Everything else" is deliberately the LITERAL complement of the scope's selected storage
+    set across the entire (deduplicated) runtime model -- computed via full_vlm's own
+    manifest, not an enumerated list of "the other named components" (e.g. "vision + merger
+    + the other LM thirds"), which can silently miss tensors that don't belong to any of the
+    named groups (e.g. non-layer LM tensors like embeddings/final-norm that aren't part of
+    ANY lm_early/middle/late third). out_of_scope_param_count is reported explicitly so the
+    report itself proves the full complement was checked, not just a boolean pass/fail.
     """
     if not hasattr(worker_self, "_scope_diag_base_state"):
         raise RuntimeError("_diag_snapshot_base was never called on this worker before _diag_scope_drift")
@@ -111,11 +124,18 @@ def _diag_scope_drift(worker_self, scope_name: str) -> Dict:
     base_state = worker_self._scope_diag_base_state
     named_parameters = list(model.named_parameters())
     manifest = build_scope_manifest(scope_name, named_parameters)
+    full_vlm_manifest = build_scope_manifest("full_vlm", named_parameters)
     selected_names = set(manifest.selected_param_names)
 
     in_scope = measure_drift(model, base_state, param_filter=lambda n: n in selected_names)
     out_of_scope = measure_drift(model, base_state, param_filter=lambda n: n not in selected_names)
-    return {"in_scope": in_scope, "out_of_scope": out_of_scope, "scope_param_count": manifest.selected_param_count}
+    return {
+        "in_scope": in_scope,
+        "out_of_scope": out_of_scope,
+        "scope_param_count": manifest.selected_param_count,
+        "out_of_scope_param_count": full_vlm_manifest.selected_param_count - manifest.selected_param_count,
+        "full_vlm_param_count": full_vlm_manifest.selected_param_count,
+    }
 
 
 def _diag_full_model_drift(worker_self) -> Dict:
@@ -149,7 +169,7 @@ def _rpc(engine, method, args=(), *, label: str):
     return _validate_collective_rpc_results(results, label=label)
 
 
-def _run_isolation_test(engine, test_label: str, scope: str, out_of_scope_description: str) -> Dict:
+def _run_isolation_test(engine, test_label: str, scope: str) -> Dict:
     print(f"\n=== Test {test_label} ({scope}) ===")
 
     print(f"  Perturbing ONLY {scope} (seed={TEST_SEED}, sigma={TEST_SIGMA})...")
@@ -165,8 +185,10 @@ def _run_isolation_test(engine, test_label: str, scope: str, out_of_scope_descri
         f"{drift['in_scope']['max_abs_drift']:.3e} -- {'PASS (changed)' if in_scope_changed else 'FAIL (no change detected)'}"
     )
     print(
-        f"    out-of-scope ({out_of_scope_description}): max_abs_drift="
-        f"{drift['out_of_scope']['max_abs_drift']:.3e} -- {'PASS (exactly unchanged)' if out_of_scope_unchanged else 'FAIL (leaked outside scope)'}"
+        f"    out-of-scope ({drift['out_of_scope_param_count']} tensors -- literal complement "
+        f"of {scope}'s selected storage across all {drift['full_vlm_param_count']} runtime "
+        f"tensors): max_abs_drift={drift['out_of_scope']['max_abs_drift']:.3e} -- "
+        f"{'PASS (exactly unchanged)' if out_of_scope_unchanged else 'FAIL (leaked outside scope)'}"
     )
 
     print(f"  Resetting to base ({scope})...")
@@ -187,6 +209,8 @@ def _run_isolation_test(engine, test_label: str, scope: str, out_of_scope_descri
         "out_of_scope_drift": drift["out_of_scope"],
         "full_model_drift_after_reset": full_drift_after_reset,
         "scope_param_count": drift["scope_param_count"],
+        "out_of_scope_param_count": drift["out_of_scope_param_count"],
+        "full_vlm_param_count": drift["full_vlm_param_count"],
     }
 
 
@@ -245,8 +269,8 @@ def main(argv=None) -> int:
                     f"elements={summary['total_element_count']}, base_l2={summary['base_l2_norm']:.4f}{alias_note}"
                 )
 
-            test_a = _run_isolation_test(engine, "A", "vision_encoder", "merger + entire LM")
-            test_b = _run_isolation_test(engine, "B", "lm_middle", "vision encoder + merger + lm_early + lm_late")
+            test_a = _run_isolation_test(engine, "A", "vision_encoder")
+            test_b = _run_isolation_test(engine, "B", "lm_middle")
         finally:
             cleanup_engines(engines, pgs)
     finally:

@@ -17,7 +17,7 @@ from neural_thickets_repro.diagnostics.scope_isolation_gpu_check import (
     _diag_snapshot_base,
     _validate_collective_rpc_results,
 )
-from neural_thickets_repro.scopes import PERTURBATION_SCOPES
+from neural_thickets_repro.scopes import PERTURBATION_SCOPES, build_scope_manifest
 
 
 def _fake_worker(model):
@@ -63,6 +63,64 @@ def test_diag_scope_drift_detects_in_scope_change_and_out_of_scope_unchanged(run
     drift = _diag_scope_drift(worker, "vision_encoder")
     assert drift["in_scope"]["max_abs_drift"] == 1.0
     assert drift["out_of_scope"]["max_abs_drift"] == 0.0
+
+
+def test_diag_scope_drift_reports_out_of_scope_as_literal_complement(runtime_wrapped_vlm_factory):
+    """The out-of-scope drift check must cover the LITERAL complement of the scope's selected
+    storage across the entire (deduplicated) runtime model -- not an enumerated list of "the
+    other named components," which can silently omit tensors belonging to none of them (e.g.
+    non-layer LM tensors like embeddings/final-norm that aren't part of any lm_early/middle/
+    late third). Proven directly against scopes.build_scope_manifest's own name sets, not
+    just asserted by reading the implementation.
+    """
+    model = runtime_wrapped_vlm_factory()
+    worker = _fake_worker(model)
+    _diag_snapshot_base(worker)
+
+    drift = _diag_scope_drift(worker, "lm_middle")
+
+    named_parameters = list(model.named_parameters())
+    full_vlm_names = set(build_scope_manifest("full_vlm", named_parameters).selected_param_names)
+    lm_middle_names = set(build_scope_manifest("lm_middle", named_parameters).selected_param_names)
+    out_of_scope_names = full_vlm_names - lm_middle_names
+
+    assert drift["full_vlm_param_count"] == len(full_vlm_names)
+    assert drift["scope_param_count"] == len(lm_middle_names)
+    assert drift["out_of_scope_param_count"] == len(out_of_scope_names)
+
+    # The literal partition property requested: in_scope UNION out_of_scope == full_vlm,
+    # intersection empty -- not just matching counts, the actual name sets.
+    assert lm_middle_names | out_of_scope_names == full_vlm_names
+    assert lm_middle_names & out_of_scope_names == set()
+
+    # Concretely confirms the non-layer LM tensors (embed_tokens/norm -- NOT part of any
+    # lm_early/middle/late third) are included in the out-of-scope complement, exactly the
+    # gap an enumerated "vision + merger + lm_early + lm_late" description would have missed.
+    non_layer_lm_names = {n for n in full_vlm_names if "layers." not in n and not n.startswith("visual.")}
+    assert non_layer_lm_names, "fixture must have at least one non-layer LM tensor to make this check meaningful"
+    assert non_layer_lm_names <= out_of_scope_names
+
+
+@pytest.mark.parametrize("scope", PERTURBATION_SCOPES)
+def test_in_scope_and_out_of_scope_partition_full_vlm_for_every_scope(scope, runtime_wrapped_vlm_factory):
+    """Same partition property as above, generalized across all seven scopes -- in_scope and
+    out_of_scope must always union to exactly full_vlm's own selection and never overlap.
+    """
+    model = runtime_wrapped_vlm_factory()
+    worker = _fake_worker(model)
+    _diag_snapshot_base(worker)
+
+    drift = _diag_scope_drift(worker, scope)
+
+    named_parameters = list(model.named_parameters())
+    full_vlm_names = set(build_scope_manifest("full_vlm", named_parameters).selected_param_names)
+    scope_names = set(build_scope_manifest(scope, named_parameters).selected_param_names)
+    out_of_scope_names = full_vlm_names - scope_names
+
+    assert scope_names | out_of_scope_names == full_vlm_names
+    assert scope_names & out_of_scope_names == set()
+    assert drift["out_of_scope_param_count"] == len(out_of_scope_names)
+    assert drift["scope_param_count"] + drift["out_of_scope_param_count"] == drift["full_vlm_param_count"]
 
 
 def test_diag_scope_drift_requires_snapshot_first(runtime_wrapped_vlm_factory):
