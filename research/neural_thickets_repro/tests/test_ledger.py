@@ -54,3 +54,22 @@ def test_resume_skips_completed_candidates_after_simulated_interruption(tmp_path
 def test_empty_ledger_all_pending(tmp_path):
     ledger = CandidateLedger(tmp_path / "does_not_exist_yet.jsonl")
     assert list(ledger.iter_pending(range(3))) == [0, 1, 2]
+
+
+def test_restoration_mode_defaults_to_none_for_generic_records():
+    # Generic ledger usage (this file's own tests) doesn't need to know about restoration
+    # modes -- only run_randopt_image_aware.py's real usage sets it explicitly.
+    rec = _rec(0, "done", 0.5)
+    assert rec.restoration_mode is None
+
+
+def test_restoration_mode_round_trips_through_append_and_load(tmp_path):
+    ledger = CandidateLedger(tmp_path / "ledger.jsonl")
+    ledger.append(CandidateRecord(
+        candidate_id=0, seed=111, sigma=0.01, selection_score=0.5,
+        rank=None, status="done", runtime_seconds=1.0, restoration_mode="fixed_base",
+    ))
+
+    records = ledger.load_all()
+
+    assert records[0].restoration_mode == "fixed_base"

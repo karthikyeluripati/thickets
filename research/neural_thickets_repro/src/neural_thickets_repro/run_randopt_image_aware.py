@@ -37,9 +37,33 @@ across run_sampling/run_ensemble_evaluation is a throughput optimization, not a 
 requirement at N=20-ish scale). A full N=5000 run would want to match that batching; not
 implemented here, out of scope until a smoke test is reviewed and scaling up is authorized.
 
+Restoration mode (required, --restoration-mode, never defaulted): diagnostics/
+gate2_restoration_ab.py's GPU A/B evidence found that a single perturb_self_weights ->
+restore_self_weights cycle (seed=999999999, sigma=0.01) leaves visible residual drift
+(max abs parameter drift 3.125e-02 after 10 repeated same-seed cycles, roughly stable rather
+than growing -- raw-output restore only 1/5, extracted-answer restore 3/5), while
+apply_perturbation -> reset_to_base_weights showed exactly zero drift and 5/5 exact restore
+on both raw output and extracted answer. Both are real, reused-unmodified WorkerExtension
+mechanisms (utils/worker_extn.py) -- which one is "correct" depends on what's being asked:
+  released_compat: perturb_self_weights(seed, sigma, False) -> evaluate -> restore_self_weights
+    (seed, sigma, False). Behaviorally identical to released RandOpt's own perturb/restore
+    (each candidate's weights are a delta from whatever the CURRENT, possibly-still-drifted
+    state is) -- use this for paper-code reproduction / Gate 2 mechanics fidelity.
+  fixed_base: apply_perturbation(seed, sigma) -> evaluate -> reset_to_base_weights(). Every
+    candidate is independently sampled from the exact stored pretrained base weights
+    launch_engines() already keeps, never from a possibly-drifted current state -- use this
+    for WACV-extension experiments, where independent-per-candidate sampling around theta is
+    the actual scientific claim being tested, not released-code fidelity.
+These are two different scientific interpretations of "perturb from theta," not a bugfix
+replacing the other -- --restoration-mode is required with no default so a run's results are
+never ambiguous about which one produced them. See _perturb_call/_restore_call below for the
+exact per-mode call shapes, and REPRO_SPEC.md's "Gate 2 restoration semantics" row for the
+full A/B evidence this decision is based on.
+
 Usage (smoke test, GPU required):
     python -m neural_thickets_repro.run_randopt_image_aware \
-        --config configs/gqa_repro.yaml --sigma-candidate sigma_default --N 20 --K 5
+        --config configs/gqa_repro.yaml --sigma-candidate sigma_default --N 20 --K 5 \
+        --restoration-mode released_compat
 
 --test-samples optionally caps the ensemble-evaluation test set (upstream default, and this
 script's default, is None = the full 12,578 testdev examples per expert -- matching upstream
@@ -51,6 +75,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -89,6 +115,29 @@ EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
 GATE1_ARTIFACT = REPO_ROOT / "results" / "base_image_aware" / "metrics.json"
 
 
+def _git_commit() -> str:
+    """Mirrors eval_base_image_aware.py's own helper (small enough to keep this script
+    self-contained rather than importing a private helper across an unrelated Gate-1 module).
+    """
+    try:
+        return subprocess.check_output(
+            ["git", "-C", str(REPO_ROOT), "rev-parse", "HEAD"], text=True
+        ).strip()
+    except Exception as exc:  # noqa: BLE001
+        return f"unavailable ({exc})"
+
+
+def _package_versions() -> Dict[str, str]:
+    versions = {}
+    for mod_name in ("torch", "transformers", "vllm", "ray", "numpy"):
+        try:
+            mod = __import__(mod_name)
+            versions[mod_name] = getattr(mod, "__version__", "unknown")
+        except ImportError:
+            versions[mod_name] = "not installed"
+    return versions
+
+
 def _assert_spawn_configured() -> None:
     value = os.environ.get("VLLM_WORKER_MULTIPROC_METHOD")
     if value != "spawn":
@@ -97,6 +146,43 @@ def _assert_spawn_configured() -> None:
             f"{value!r}. Not a reproduction-behavior issue; a runtime multiprocessing/CUDA "
             f"launch misconfiguration."
         )
+
+
+# Confirmed against the pinned utils/worker_extn.py:WorkerExtension checkout (see module
+# docstring's "Restoration mode" section and REPRO_SPEC.md). Neither method name here is
+# reimplemented -- both are dispatched via Ray collective_rpc, unmodified upstream code.
+RESTORATION_MODES: Tuple[str, ...] = ("released_compat", "fixed_base")
+
+
+def _perturb_call(restoration_mode: str, seed: int, sigma: float) -> Tuple[str, tuple]:
+    """(method_name, args) for WorkerExtension's perturb-side call, per restoration mode.
+    released_compat: perturb_self_weights(seed, sigma, negate=False).
+    fixed_base: apply_perturbation(seed, sigma) -- no negate/sync flag; this is the ONLY
+    place restoration_mode affects candidate sampling/selection/voting -- it changes which
+    WorkerExtension method is dispatched and with what args, nothing about which (seed,
+    sigma) pairs are drawn or how scores/votes are computed from the resulting generations.
+    """
+    if restoration_mode == "released_compat":
+        return "perturb_self_weights", (seed, sigma, False)
+    if restoration_mode == "fixed_base":
+        return "apply_perturbation", (seed, sigma)
+    raise ValueError(f"Unknown restoration_mode {restoration_mode!r}, expected one of {RESTORATION_MODES}")
+
+
+def _restore_call(restoration_mode: str, seed: int, sigma: float) -> Tuple[str, tuple]:
+    """(method_name, args) for WorkerExtension's restore-side call, per restoration mode.
+    released_compat: restore_self_weights(seed, sigma, negate=False) -- must reuse the SAME
+    (seed, sigma) as the matching perturb call, or the result isn't the original weights.
+    fixed_base: reset_to_base_weights() -- no arguments at all; (seed, sigma) are accepted
+    here only so both restore functions share one call signature, then discarded, since
+    reset_to_base_weights derives everything from the base weights launch_engines() already
+    stores, not from the just-applied perturbation delta.
+    """
+    if restoration_mode == "released_compat":
+        return "restore_self_weights", (seed, sigma, False)
+    if restoration_mode == "fixed_base":
+        return "reset_to_base_weights", ()
+    raise ValueError(f"Unknown restoration_mode {restoration_mode!r}, expected one of {RESTORATION_MODES}")
 
 
 def sample_candidates(n: int, sigma_values: List[float], seed: int) -> List[Tuple[int, float]]:
@@ -112,10 +198,15 @@ def sample_candidates(n: int, sigma_values: List[float], seed: int) -> List[Tupl
 
 
 def run_sampling_phase(engine, handler, selection_requests, selection_datas, sampling_params,
-                        candidates: List[Tuple[int, float]], ledger: CandidateLedger) -> Dict[Tuple[int, float], float]:
+                        candidates: List[Tuple[int, float]], ledger: CandidateLedger,
+                        restoration_mode: str) -> Dict[Tuple[int, float], float]:
     """Perturb -> generate on the selection set (image-aware) -> score -> restore, once per
     candidate. Resumable: candidates already marked "done" in the ledger are skipped and
     their stored score reused, so an interrupted run doesn't repeat completed work.
+
+    restoration_mode selects ONLY which WorkerExtension perturb/restore call is dispatched
+    (see _perturb_call/_restore_call) -- candidate sampling, scoring, and everything else
+    below is identical regardless of mode.
     """
     import ray
 
@@ -128,18 +219,22 @@ def run_sampling_phase(engine, handler, selection_requests, selection_datas, sam
         seed, sigma = candidates[candidate_id]
         start = time.time()
 
-        ray.get(engine.collective_rpc.remote("perturb_self_weights", args=(seed, sigma, False)))
+        perturb_method, perturb_args = _perturb_call(restoration_mode, seed, sigma)
+        restore_method, restore_args = _restore_call(restoration_mode, seed, sigma)
+
+        ray.get(engine.collective_rpc.remote(perturb_method, args=perturb_args))
         outputs = ray.get(engine.generate.remote(selection_requests, sampling_params, use_tqdm=False))
         responses = [o.outputs[0].text for o in outputs]
         reward = float(np.mean([
             handler.compute_reward(resp, d["ground_truth"]) for resp, d in zip(responses, selection_datas)
         ])) if responses else 0.0
-        ray.get(engine.collective_rpc.remote("restore_self_weights", args=(seed, sigma, False)))
+        ray.get(engine.collective_rpc.remote(restore_method, args=restore_args))
 
         scores[(seed, sigma)] = reward
         ledger.append(CandidateRecord(
             candidate_id=candidate_id, seed=seed, sigma=sigma, selection_score=reward,
             rank=None, status="done", runtime_seconds=time.time() - start,
+            restoration_mode=restoration_mode,
         ))
         print(f"  candidate {candidate_id + 1}/{len(candidates)}: seed={seed} sigma={sigma} score={reward:.4f}")
 
@@ -147,19 +242,25 @@ def run_sampling_phase(engine, handler, selection_requests, selection_datas, sam
 
 
 def run_ensemble_phase(engine, handler, test_requests, test_datas, sampling_params,
-                        top_k_candidates: List[Tuple[int, float]]) -> Dict:
+                        top_k_candidates: List[Tuple[int, float]], restoration_mode: str) -> Dict:
     """Perturb -> generate on the test set (image-aware) -> extract answers -> restore, for
     each of the top-K candidates (ordered highest-selection-score first, matching upstream),
     then majority-vote per example via topk_voting.majority_vote.
+
+    restoration_mode selects ONLY which WorkerExtension perturb/restore call is dispatched
+    (see _perturb_call/_restore_call) -- voting is identical regardless of mode.
     """
     import ray
 
     all_answers: List[List[str]] = []
     for rank, (seed, sigma) in enumerate(top_k_candidates):
-        ray.get(engine.collective_rpc.remote("perturb_self_weights", args=(seed, sigma, False)))
+        perturb_method, perturb_args = _perturb_call(restoration_mode, seed, sigma)
+        restore_method, restore_args = _restore_call(restoration_mode, seed, sigma)
+
+        ray.get(engine.collective_rpc.remote(perturb_method, args=perturb_args))
         outputs = ray.get(engine.generate.remote(test_requests, sampling_params, use_tqdm=False))
         answers = [handler.extract_answer_for_voting(o.outputs[0].text) or "" for o in outputs]
-        ray.get(engine.collective_rpc.remote("restore_self_weights", args=(seed, sigma, False)))
+        ray.get(engine.collective_rpc.remote(restore_method, args=restore_args))
         all_answers.append(answers)
         print(f"  ensemble member {rank + 1}/{len(top_k_candidates)}: seed={seed} sigma={sigma} done")
 
@@ -189,6 +290,16 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--sigma-candidate", required=True,
         help="name of a config.randopt.sigma_candidates entry -- required, never defaulted",
+    )
+    parser.add_argument(
+        "--restoration-mode", required=True, choices=RESTORATION_MODES,
+        help=(
+            "released_compat (perturb_self_weights/restore_self_weights, paper-code "
+            "reproduction) or fixed_base (apply_perturbation/reset_to_base_weights, "
+            "WACV-ready independent-per-candidate sampling) -- two different scientific "
+            "interpretations of 'perturb from theta', not a bugfix for the other. Required, "
+            "never defaulted -- see module docstring's 'Restoration mode' section."
+        ),
     )
     parser.add_argument(
         "--test-samples", type=int, default=None,
@@ -225,7 +336,12 @@ def main(argv=None) -> int:
 
     cfg.require_resolved("model.revision", "dataset.selection_split", "dataset.test_split")
 
-    out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "results" / f"randopt_image_aware_N{args.N}_K{args.K}_{args.sigma_candidate}"
+    # restoration_mode is part of the default out_dir path (not just an internal field) so
+    # that released_compat and fixed_base runs sharing the same N/K/sigma_candidate never
+    # collide on the same candidates.jsonl -- their scores for the "same" (seed, sigma)
+    # candidate are NOT interchangeable (different restoration mechanics), so a shared ledger
+    # would silently mix modes together on resume.
+    out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "results" / f"randopt_image_aware_N{args.N}_K{args.K}_{args.sigma_candidate}_{args.restoration_mode}"
     out_dir.mkdir(parents=True, exist_ok=True)
     ledger = CandidateLedger(out_dir / "candidates.jsonl")
 
@@ -262,6 +378,7 @@ def main(argv=None) -> int:
     candidates = sample_candidates(args.N, sigma_values, cfg.reproducibility.global_seed)
 
     print(f"Sigma candidate: {args.sigma_candidate} = {sigma_values}  (UNRESOLVED assumption, see REPRO_SPEC.md)")
+    print(f"Restoration mode: {args.restoration_mode}")
 
     # Mirrors upstream randopt.py:main()'s own Ray bootstrap -- launch_engines() assumes an
     # active Ray session and never starts one itself (see vlm_adapter.py divergence #5).
@@ -288,16 +405,21 @@ def main(argv=None) -> int:
         engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
         engine = engines[0]
         try:
-            print(f"\n=== Sampling phase: N={args.N} candidates ===")
-            scores = run_sampling_phase(engine, handler, selection_requests, selection_datas, sampling_params, candidates, ledger)
+            print(f"\n=== Sampling phase: N={args.N} candidates ({args.restoration_mode}) ===")
+            scores = run_sampling_phase(
+                engine, handler, selection_requests, selection_datas, sampling_params,
+                candidates, ledger, args.restoration_mode,
+            )
 
             top_k = select_top_k(scores, args.K)
             print(f"\n=== Selected top-{args.K} of {args.N} ===")
             for rank, (seed, sigma) in enumerate(top_k):
                 print(f"  {rank + 1}. seed={seed} sigma={sigma} score={scores[(seed, sigma)]:.4f}")
 
-            print(f"\n=== Ensemble evaluation: K={args.K} on {len(test_datas)} test examples ===")
-            ensemble_results = run_ensemble_phase(engine, handler, test_requests, test_datas, sampling_params, top_k)
+            print(f"\n=== Ensemble evaluation: K={args.K} on {len(test_datas)} test examples ({args.restoration_mode}) ===")
+            ensemble_results = run_ensemble_phase(
+                engine, handler, test_requests, test_datas, sampling_params, top_k, args.restoration_mode,
+            )
         finally:
             # cleanup_engines (unmodified upstream) already calls ray.shutdown()
             # unconditionally once engines exist -- do not shut down again below.
@@ -311,6 +433,7 @@ def main(argv=None) -> int:
 
     results_path = out_dir / "results.json"
     results_path.write_text(json.dumps({
+        "restoration_mode": args.restoration_mode,
         "N": args.N, "K": args.K, "sigma_candidate": args.sigma_candidate, "sigma_values": sigma_values,
         "top_k_candidates": [{"seed": s, "sigma": sg, "selection_score": scores[(s, sg)]} for s, sg in top_k],
         "ensemble_accuracy": ensemble_results["accuracy"],
@@ -322,10 +445,36 @@ def main(argv=None) -> int:
         for rec in ensemble_results["predictions"]:
             f.write(json.dumps(rec) + "\n")
 
+    run_metadata = {
+        "restoration_mode": args.restoration_mode,
+        "restoration_mechanism": {
+            "released_compat": "perturb_self_weights(seed, sigma, False) / restore_self_weights(seed, sigma, False)",
+            "fixed_base": "apply_perturbation(seed, sigma) / reset_to_base_weights()",
+        }[args.restoration_mode],
+        "model_name": cfg.model.name,
+        "model_revision": cfg.model.revision,
+        "model_snapshot_path": model_path,
+        "N": args.N, "K": args.K,
+        "sigma_candidate": args.sigma_candidate, "sigma_values": sigma_values,
+        "selection_set_size": len(selection_datas),
+        "test_set_size": len(test_datas),
+        "global_seed": cfg.reproducibility.global_seed,
+        "our_repo_git_commit": _git_commit(),
+        "external_randopt_commit": "536df0a308f3990b6270c991fbb96bd0b779a58e",
+        "python_version": platform.python_version(),
+        "package_versions": _package_versions(),
+        "platform": platform.platform(),
+        "command": " ".join(sys.argv),
+    }
+    run_metadata_path = out_dir / "run_metadata.json"
+    run_metadata_path.write_text(json.dumps(run_metadata, indent=2))
+
     print("\n=== Gate 2 smoke test complete ===")
+    print(f"Restoration mode: {args.restoration_mode}")
     print(f"Ensemble (K={args.K}) accuracy: {ensemble_results['accuracy']:.4f} ({ensemble_results['correct']}/{ensemble_results['n']})")
     print(f"Wrote {results_path}")
     print(f"Wrote {predictions_path}")
+    print(f"Wrote {run_metadata_path}")
     return 0
 
 

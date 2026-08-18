@@ -24,6 +24,14 @@ class CandidateRecord:
     rank: Optional[int]
     status: str  # "pending" | "running" | "done" | "failed"
     runtime_seconds: Optional[float]
+    # Which WorkerExtension perturb/restore mechanism produced this candidate's score --
+    # "released_compat" (perturb_self_weights/restore_self_weights) or "fixed_base"
+    # (apply_perturbation/reset_to_base_weights), see run_randopt_image_aware.py. Optional
+    # with a None default so this ledger stays usable by generic, restoration-mode-agnostic
+    # tests (tests/test_ledger.py) -- callers that DO have a mode (run_randopt_image_aware.py)
+    # must always set it explicitly; a record from a real run left as None would mean the
+    # score isn't attributable to either restoration mechanism, which should never happen.
+    restoration_mode: Optional[str] = None
 
 
 class CandidateLedger:
