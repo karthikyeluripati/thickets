@@ -45,7 +45,12 @@ os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"  # same runtime fix as Gate
 
 from ..config import load_config
 from ..env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
-from ..vlm_adapter import bootstrap_ray, build_image_aware_requests, resolve_model_snapshot
+from ..vlm_adapter import (
+    bootstrap_ray,
+    build_image_aware_requests,
+    resolve_model_snapshot,
+    verify_workers_can_import_external_root,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
@@ -101,11 +106,19 @@ def main(argv=None) -> int:
     # active Ray session and never starts one itself (see vlm_adapter.py divergence #5).
     # ray_owned_by_us tracks whether THIS call started Ray, so we only shut down a session
     # we actually own, never one we merely connected to.
-    ray_owned_by_us = bootstrap_ray()
+    ray_owned_by_us = bootstrap_ray(EXTERNAL_ROOT)
 
     engines = None
     pgs = None
     try:
+        # Catches "ModuleNotFoundError: No module named 'core'" on Ray workers in seconds
+        # via a trivial remote call, before the slower/more opaque launch_engines()
+        # actor-startup path (placement groups + vLLM engine init) would otherwise surface
+        # it. Run unconditionally, regardless of ray_owned_by_us -- see vlm_adapter.py
+        # divergence #6. Inside this try so a failure here still reaches the Ray-shutdown
+        # finally below, same as a launch_engines() failure would.
+        verify_workers_can_import_external_root(EXTERNAL_ROOT)
+
         # enable_prefix_caching intentionally NOT overridden here -- launch_engines' own
         # default is False; see GATE2_CACHE_SAFETY_REVIEW.md for why that's what makes this
         # check valid.
