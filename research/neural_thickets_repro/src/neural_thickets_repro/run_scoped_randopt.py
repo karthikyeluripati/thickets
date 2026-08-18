@@ -102,7 +102,8 @@ from .topk_voting import majority_vote, select_top_k
 from .vlm_adapter import (
     bootstrap_ray,
     build_image_aware_requests,
-    reset_vllm_encoder_cache,
+    ensure_full_encoder_cache_reset_exposed,
+    reset_vllm_encoder_cache_full,
     resolve_model_snapshot,
     verify_workers_can_import_external_root,
 )
@@ -215,11 +216,14 @@ def run_sampling_phase(
     -- the same explicit value for every candidate in this run, never re-derived per candidate.
 
     For scopes that can change vision-encoder/projector output
-    (scopes.scope_requires_encoder_cache_reset), vlm_adapter.reset_vllm_encoder_cache is
-    called after perturbing and before generating -- otherwise the SAME selection_requests
-    images (built once, reused every candidate) could be served cached embeddings computed
-    under a stale weight state. base_responses is used only for an informational raw-output-
-    diff count printed alongside each candidate -- never used for scoring/selection.
+    (scopes.scope_requires_encoder_cache_reset), vlm_adapter.reset_vllm_encoder_cache_full is
+    called after perturbing and before generating -- the FULL engine-level reset (scheduler
+    bookkeeping + worker-side cache together; the worker-only reset_vllm_encoder_cache was
+    confirmed insufficient on GPU: RuntimeError: Encoder cache miss). Otherwise the SAME
+    selection_requests images (built once, reused every candidate) could be served cached
+    embeddings computed under a stale weight state. base_responses is used only for an
+    informational raw-output-diff count printed alongside each candidate -- never used for
+    scoring/selection.
     """
     import ray
 
@@ -237,10 +241,10 @@ def run_sampling_phase(
             engine, scoped_apply_perturbation, args=(seed, sigma_or_r, scope, scale_mode),
             label="scoped_apply_perturbation",
         )
-        encoder_cache_reset = False
+        encoder_cache_reset = "none"
         if scope_requires_encoder_cache_reset(scope):
-            reset_vllm_encoder_cache(engine)
-            encoder_cache_reset = True
+            reset_vllm_encoder_cache_full(engine)
+            encoder_cache_reset = "full"
         outputs = ray.get(engine.generate.remote(selection_requests, sampling_params, use_tqdm=False))
         responses = [o.outputs[0].text for o in outputs]
         reward = float(np.mean([
@@ -269,11 +273,11 @@ def run_sampling_phase(
         ))
         label = "sigma" if scale_mode == "raw_sigma" else "r"
         status = "EXPERT" if is_expert else ("TIE" if is_tie else "regression")
-        cache_note = f" encoder_cache_reset={encoder_cache_reset}" if scope_requires_encoder_cache_reset(scope) else ""
         print(
             f"  candidate {candidate_id + 1}/{len(candidates)}: seed={seed} {label}={sigma_or_r} "
             f"derived_sigma={perturb_result['derived_sigma']:.6g} score={reward:.4f} "
-            f"raw_outputs_changed_vs_base={n_raw_changed}/{len(responses)}{cache_note} "
+            f"raw_outputs_changed_vs_base={n_raw_changed}/{len(responses)} "
+            f"encoder_cache_reset={encoder_cache_reset} "
             f"delta={delta_score:+.4f} ({status})"
         )
 
@@ -299,16 +303,15 @@ def run_ensemble_phase(
             engine, scoped_apply_perturbation, args=(seed, sigma_or_r, scope, scale_mode),
             label="scoped_apply_perturbation",
         )
-        encoder_cache_reset = False
+        encoder_cache_reset = "none"
         if scope_requires_encoder_cache_reset(scope):
-            reset_vllm_encoder_cache(engine)
-            encoder_cache_reset = True
+            reset_vllm_encoder_cache_full(engine)
+            encoder_cache_reset = "full"
         outputs = ray.get(engine.generate.remote(test_requests, sampling_params, use_tqdm=False))
         answers = [handler.extract_answer_for_voting(o.outputs[0].text) or "" for o in outputs]
         _collective_rpc_single_worker(engine, "reset_to_base_weights", args=(), label="reset_to_base_weights")
         all_answers.append(answers)
-        cache_note = f" encoder_cache_reset={encoder_cache_reset}" if scope_requires_encoder_cache_reset(scope) else ""
-        print(f"  ensemble member {rank + 1}/{len(top_k_candidates)}: seed={seed} done{cache_note}")
+        print(f"  ensemble member {rank + 1}/{len(top_k_candidates)}: seed={seed} done encoder_cache_reset={encoder_cache_reset}")
 
     correct = 0
     predictions = []
@@ -428,6 +431,14 @@ def main(argv=None) -> int:
     from core.engine import cleanup_engines, launch_engines  # type: ignore
     from data_handlers.gqa import GQAHandler  # type: ignore
 
+    # Must run BEFORE launch_engines() -- adds reset_encoder_cache_full to the in-memory
+    # RandOptNcclLLM class object so Ray's actor-method registry (built when launch_engines()
+    # applies ray.remote(...) to it, fresh, every call) includes it. See vlm_adapter.py
+    # divergence #8. Applied unconditionally (cheap, idempotent, harmless for non-visual
+    # scopes too) rather than gated on args.perturbation_scope, so the actor always has the
+    # method available.
+    ensure_full_encoder_cache_reset_exposed(EXTERNAL_ROOT)
+
     handler = GQAHandler()
     selection_datas = handler.load_data(
         str(EXTERNAL_ROOT / "data" / "gqa" / "train.parquet"), split="train",
@@ -473,7 +484,8 @@ def main(argv=None) -> int:
             print(f"\n=== Sampling phase: N={args.N} candidates (scope={args.perturbation_scope}) ===")
             if scope_requires_encoder_cache_reset(args.perturbation_scope):
                 print(f"  scope {args.perturbation_scope!r} can affect vision-encoder output -- "
-                      f"encoder cache will be reset after every perturbation, before generation")
+                      f"FULL encoder cache reset (scheduler + worker) will be applied after "
+                      f"every perturbation, before generation")
             scores = run_sampling_phase(
                 engine, handler, selection_requests, selection_datas, sampling_params,
                 candidates, ledger, args.perturbation_scope, args.perturbation_scale_mode,

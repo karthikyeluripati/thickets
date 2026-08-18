@@ -215,16 +215,50 @@ from source reading alone: the empirical test (does a `vision_encoder` candidate
 now actually differ from base?) is what determines whether the reachable half is sufficient
 in practice.
 
-**Fix**: `scopes.scope_requires_encoder_cache_reset(scope)` (pure, `vision_encoder`/
-`vision_merger`/`full_vlm` → `True`, the four LM-only scopes → `False`) gates a call to
-`vlm_adapter.reset_vllm_encoder_cache(engine)` in `run_scoped_randopt.py`'s sampling and
-ensemble phases, inserted after `scoped_apply_perturbation` and before `engine.generate`.
-Hard-fails (raises) if the `collective_rpc` call itself errors or returns an unexpected
-shape — never silently continues with a possibly-stale cache. Nothing about candidate seeds,
-scopes, radii, relative-L2 math, perturbation math, scoring, prompts, dataset, image
-construction, restoration semantics, `N`, or candidate selection was changed.
+**First fix attempt (worker-only) — confirmed INSUFFICIENT on GPU**: `scopes.
+scope_requires_encoder_cache_reset(scope)` gated a call to `vlm_adapter.
+reset_vllm_encoder_cache(engine)` (the worker-only `collective_rpc("reset_encoder_cache")`
+reset) after `scoped_apply_perturbation` and before `engine.generate`. The N=2 GPU
+validation crashed: `RuntimeError: Encoder cache miss for <mm_hash>`, with scheduler output
+immediately before the crash showing `scheduled_encoder_inputs={}` — exactly the predicted
+failure mode above, now empirically confirmed rather than merely theorized: the scheduler
+still believed the embedding was cached (so it never scheduled recomputation), while the
+worker's copy had already been cleared, producing a lookup miss.
 
-`vision_encoder r=.005`'s pre-fix result is preserved on disk as a forensic artifact
-(0/100/0 expert/tie/regression counts, all candidates scoring 0.5600) and is explicitly
-excluded from the final coarse map — the completed `full_lm` × 4-radii results are valid and
-preserved unchanged.
+**Second fix (full engine-level reset) — implemented, CPU-tested, awaiting GPU
+re-validation**: `LLMEngine.reset_encoder_cache()` clears both halves together
+(`self.engine_core.reset_encoder_cache()` → both `Scheduler.reset_encoder_cache()` and the
+executor's worker-side reset), but is unreachable from `LLM`'s public surface as established
+above. Resolved by reading `external/RandOpt/core/engine.py:launch_engines` directly (pinned
+commit `536df0a308f3990b6270c991fbb96bd0b779a58e`): it applies `ray.remote(num_cpus=0,
+num_gpus=0, scheduling_strategy=strategy)(RandOptNcclLLM).remote(**engine_kwargs)` **fresh,
+inside the function body, on every call** — not a class-level `@ray.remote` decorator
+applied once at import time. `RandOptNcclLLM` is therefore an ordinary, mutable Python class
+object right up until the moment `launch_engines()` wraps it. `vlm_adapter.
+ensure_full_encoder_cache_reset_exposed()` adds a `reset_encoder_cache_full` instance method
+to that already-imported class object — a runtime attribute addition to an in-memory Python
+object, executed entirely in our own package's code — **before** `launch_engines()` is
+called, so Ray's actor-method registry (built when `ray.remote(...)` inspects the class)
+includes it. This is not a file edit to `external/RandOpt` (nothing on disk changes), not a
+subclass (Ray still wraps the exact same `RandOptNcclLLM` class object `launch_engines()`
+always would have), and `launch_engines()` itself is called completely unmodified.
+
+`vlm_adapter.reset_vllm_encoder_cache_full(engine)` then calls the resulting method as a
+genuine Ray actor method — `engine.reset_encoder_cache_full.remote()`, the same calling
+convention as `engine.generate.remote(...)`, **never** `collective_rpc` (which only ever
+reaches worker processes and cannot reach driver-process scheduler state at all) — reaching
+`self.llm_engine.reset_encoder_cache()` on the real running instance, the full
+scheduler-plus-worker reset. This supersedes `reset_vllm_encoder_cache` (the worker-only
+function) as the scientific visual-scope reset in `run_scoped_randopt.py`'s sampling and
+ensemble phases; the old function is kept in `vlm_adapter.py` only for reference/forensic
+value and is proven, by test, to never be dispatched from the candidate loop anymore.
+Hard-fails (raises) if the actor doesn't expose the method at all, or if the call itself
+errors — never silently continues with a possibly-incoherent cache state.
+
+Nothing about candidate seeds, scopes, radii, relative-L2 math, perturbation math, scoring,
+prompts, dataset, image construction, restoration semantics, `N`, or candidate selection was
+changed by either fix attempt.
+
+`vision_encoder r=.005`'s pre-fix result AND the worker-only-reset crash log are preserved
+on disk as forensic artifacts and are explicitly excluded from the final coarse map — the
+completed `full_lm` × 4-radii results are valid and preserved unchanged, not rerun.

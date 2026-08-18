@@ -121,12 +121,34 @@ class _FakeGenerate:
         return self._outputs
 
 
-def _fake_engine(calls, texts, perturb_return, fail_methods=frozenset()):
+class _FakeDirectActorMethod:
+    """Stands in for a REAL Ray actor method (like engine.generate.remote(...) or the
+    monkey-patched engine.reset_encoder_cache_full.remote()) -- distinct from
+    _FakeCollectiveRpc, which stands in for the worker-targeted collective_rpc mechanism.
+    """
+
+    def __init__(self, calls, name, raises=None):
+        self._calls = calls
+        self._name = name
+        self._raises = raises
+
+    def remote(self, *args, **kwargs):
+        self._calls.append((self._name, args))
+        if self._raises is not None:
+            raise self._raises
+        return None
+
+
+def _fake_engine(calls, texts, perturb_return, fail_methods=frozenset(), expose_full_reset=True):
     outputs = [SimpleNamespace(outputs=[SimpleNamespace(text=t)]) for t in texts]
-    return SimpleNamespace(
+    kwargs = dict(
         collective_rpc=_FakeCollectiveRpc(calls, perturb_return, fail_methods=fail_methods),
         generate=_FakeGenerate(outputs),
     )
+    if expose_full_reset:
+        raises = RuntimeError("simulated full-reset failure") if "reset_encoder_cache_full" in fail_methods else None
+        kwargs["reset_encoder_cache_full"] = _FakeDirectActorMethod(calls, "reset_encoder_cache_full", raises=raises)
+    return SimpleNamespace(**kwargs)
 
 
 class _FakeHandler:
@@ -301,11 +323,12 @@ def test_compute_base_score_calls_reset_to_base_weights(tmp_path):
     assert ("reset_to_base_weights", ()) in calls
 
 
-# --- encoder-cache-reset wiring (see vlm_adapter.reset_vllm_encoder_cache /
-# scopes.scope_requires_encoder_cache_reset) ---
+# --- encoder-cache-reset wiring (see vlm_adapter.reset_vllm_encoder_cache_full /
+# scopes.scope_requires_encoder_cache_reset) -- the FULL (scheduler + worker) reset,
+# superseding the worker-only reset_vllm_encoder_cache confirmed insufficient on GPU ---
 
 
-def test_visual_scope_resets_encoder_cache_after_perturbation_before_generation(tmp_path):
+def test_visual_scope_calls_full_reset_after_perturbation_before_generation(tmp_path):
     candidates = [(111, 0.02)]
     handler = _FakeHandler()
     selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
@@ -319,15 +342,15 @@ def test_visual_scope_resets_encoder_cache_after_perturbation_before_generation(
     m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_encoder", "relative_l2", base_score=0.5, base_responses=["yes"])
 
     method_names = [name for name, _ in calls]
-    assert "reset_encoder_cache" in method_names
-    assert method_names.index("scoped_apply_perturbation") < method_names.index("reset_encoder_cache")
+    assert "reset_encoder_cache_full" in method_names
+    assert method_names.index("scoped_apply_perturbation") < method_names.index("reset_encoder_cache_full")
     # generate.remote isn't logged by the fake, but the source calls it strictly after the
-    # reset and before reset_to_base_weights -- confirmed by the reset appearing before the
-    # restore call in the log, which is the only other candidate.
-    assert method_names.index("reset_encoder_cache") < method_names.index("reset_to_base_weights")
+    # full reset and before reset_to_base_weights -- confirmed by the reset appearing before
+    # the restore call in the log, which is the only other candidate.
+    assert method_names.index("reset_encoder_cache_full") < method_names.index("reset_to_base_weights")
 
 
-def test_non_visual_scope_never_resets_encoder_cache(tmp_path):
+def test_non_visual_scope_never_calls_full_reset(tmp_path):
     candidates = [(111, 0.02)]
     handler = _FakeHandler()
     selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
@@ -342,10 +365,10 @@ def test_non_visual_scope_never_resets_encoder_cache(tmp_path):
         m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, scope, "relative_l2", base_score=0.5, base_responses=["yes"])
 
         method_names = [name for name, _ in calls]
-        assert "reset_encoder_cache" not in method_names, f"{scope} should never reset the encoder cache"
+        assert "reset_encoder_cache_full" not in method_names, f"{scope} should never reset the encoder cache"
 
 
-def test_visual_scope_ensemble_phase_also_resets_encoder_cache(tmp_path):
+def test_visual_scope_ensemble_phase_also_calls_full_reset(tmp_path):
     handler = _FakeHandler()
     test_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
     test_requests = ["r0"]
@@ -357,13 +380,36 @@ def test_visual_scope_ensemble_phase_also_resets_encoder_cache(tmp_path):
     m.run_ensemble_phase(engine, handler, test_requests, test_datas, None, [(111, 0.02)], "full_vlm", "relative_l2")
 
     method_names = [name for name, _ in calls]
-    assert "reset_encoder_cache" in method_names
+    assert "reset_encoder_cache_full" in method_names
 
 
-def test_encoder_cache_reset_failure_raises_for_visual_scope_not_silently_continues(tmp_path):
-    """If the installed vLLM engine's collective_rpc('reset_encoder_cache') call fails, this
-    must propagate as a hard failure -- never silently proceed to generate() with a
-    potentially stale cache.
+def test_old_worker_only_reset_is_never_dispatched_for_visual_scopes(tmp_path):
+    """The old worker-only collective_rpc("reset_encoder_cache") approach was confirmed on
+    GPU to be insufficient (RuntimeError: Encoder cache miss) and must no longer be used as
+    the scientific visual-scope reset -- proven directly against the call log, for every
+    visual scope, not just asserted by reading the source.
+    """
+    candidates = [(111, 0.02)]
+    handler = _FakeHandler()
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+
+    for scope in ("vision_encoder", "vision_merger", "full_vlm"):
+        calls = []
+        perturb_return = _perturb_result(scope, "relative_l2", 111, 0.02)
+        engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
+        ledger = CandidateLedger(tmp_path / f"ledger_old_{scope}.jsonl")
+
+        m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, scope, "relative_l2", base_score=0.5, base_responses=["yes"])
+
+        method_names = [name for name, _ in calls]
+        assert "reset_encoder_cache" not in method_names, f"{scope} must not use the old worker-only collective_rpc reset"
+        assert "reset_encoder_cache_full" in method_names, f"{scope} must use the new full reset"
+
+
+def test_full_reset_failure_raises_for_visual_scope_not_silently_continues(tmp_path):
+    """If engine.reset_encoder_cache_full.remote() fails, this must propagate as a hard
+    failure -- never silently proceed to generate() with a potentially stale cache.
     """
     candidates = [(111, 0.02)]
     handler = _FakeHandler()
@@ -372,11 +418,32 @@ def test_encoder_cache_reset_failure_raises_for_visual_scope_not_silently_contin
 
     calls = []
     perturb_return = _perturb_result("vision_encoder", "relative_l2", 111, 0.02)
-    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return, fail_methods={"reset_encoder_cache"})
+    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return, fail_methods={"reset_encoder_cache_full"})
     ledger = CandidateLedger(tmp_path / "ledger.jsonl")
 
     with pytest.raises(RuntimeError):
         m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_encoder", "relative_l2", base_score=0.5, base_responses=["yes"])
 
     # No candidate record should have been written -- the failure happened before scoring.
+    assert ledger.load_all() == {}
+
+
+def test_full_reset_unavailable_on_actor_raises_for_visual_scope(tmp_path):
+    """If ensure_full_encoder_cache_reset_exposed() was never called before launch_engines()
+    (so the actor genuinely doesn't have the method -- distinct from the method existing but
+    erroring), this must also raise, not silently proceed.
+    """
+    candidates = [(111, 0.02)]
+    handler = _FakeHandler()
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+
+    calls = []
+    perturb_return = _perturb_result("vision_encoder", "relative_l2", 111, 0.02)
+    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return, expose_full_reset=False)
+    ledger = CandidateLedger(tmp_path / "ledger.jsonl")
+
+    with pytest.raises(RuntimeError, match="does not expose"):
+        m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_encoder", "relative_l2", base_score=0.5, base_responses=["yes"])
+
     assert ledger.load_all() == {}
