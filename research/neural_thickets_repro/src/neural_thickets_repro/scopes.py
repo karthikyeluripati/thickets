@@ -31,6 +31,25 @@ PERTURBATION_SCOPES: Tuple[str, ...] = (
 
 VISUAL_MERGER_PREFIXES: Tuple[str, ...] = ("visual.merger.",)
 
+# Scopes whose perturbation can change what the vision encoder/projector outputs for a given
+# image -- see vlm_adapter.reset_vllm_encoder_cache's docstring (divergence #7) for the full
+# investigation. full_lm/lm_early/lm_middle/lm_late never touch visual.* parameters, so the
+# vision encoder's output for a given image is unchanged regardless of which of those scopes
+# is perturbed.
+_VISUAL_AFFECTING_SCOPES = frozenset({"vision_encoder", "vision_merger", "full_vlm"})
+
+
+def scope_requires_encoder_cache_reset(scope: str) -> bool:
+    """True if perturbing this scope can change vision-encoder/projector output, and vLLM's
+    per-worker multimodal encoder-output cache must therefore be invalidated
+    (vlm_adapter.reset_vllm_encoder_cache) after perturbing and before evaluating a candidate
+    -- otherwise a later request carrying the same image could be served a cached embedding
+    computed under a different (or the base) weight state.
+    """
+    if scope not in PERTURBATION_SCOPES:
+        raise ValueError(f"Unknown perturbation scope {scope!r}, expected one of {PERTURBATION_SCOPES}")
+    return scope in _VISUAL_AFFECTING_SCOPES
+
 # Explicit, closed registry of recognized LM-decoder-layer naming conventions. Neither is
 # assumed correct a priori -- detect_lm_namespace_convention() below picks whichever one
 # actually appears among the real parameter names handed to it.

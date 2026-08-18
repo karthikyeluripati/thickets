@@ -9,6 +9,7 @@ from neural_thickets_repro.scopes import (
     detect_lm_namespace_convention,
     discover_lm_layer_indices,
     partition_layers_into_thirds,
+    scope_requires_encoder_cache_reset,
 )
 
 
@@ -246,3 +247,28 @@ def test_manifest_selection_deterministic_across_calls(runtime_wrapped_vlm_facto
     assert m1.selected_param_names == m2.selected_param_names
     assert m1.total_element_count == m2.total_element_count
     assert m1.base_l2_norm == m2.base_l2_norm
+
+
+# --- scope_requires_encoder_cache_reset ---
+
+
+@pytest.mark.parametrize("scope", ["vision_encoder", "vision_merger", "full_vlm"])
+def test_visual_affecting_scopes_require_encoder_cache_reset(scope):
+    assert scope_requires_encoder_cache_reset(scope) is True
+
+
+@pytest.mark.parametrize("scope", ["full_lm", "lm_early", "lm_middle", "lm_late"])
+def test_lm_only_scopes_do_not_require_encoder_cache_reset(scope):
+    assert scope_requires_encoder_cache_reset(scope) is False
+
+
+def test_scope_requires_encoder_cache_reset_covers_every_registered_scope():
+    # Every scope in PERTURBATION_SCOPES must have an explicit answer -- none silently
+    # defaulted -- proven by checking the function doesn't raise for any of them.
+    for scope in PERTURBATION_SCOPES:
+        scope_requires_encoder_cache_reset(scope)  # should not raise
+
+
+def test_scope_requires_encoder_cache_reset_rejects_unknown_scope():
+    with pytest.raises(ValueError, match="Unknown perturbation scope"):
+        scope_requires_encoder_cache_reset("not_a_real_scope")

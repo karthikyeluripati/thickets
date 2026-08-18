@@ -162,3 +162,69 @@ mechanical isolation check. No per-layer, attention-vs-MLP, routing, transfer, o
 dataset work. `external/RandOpt` is never edited; `run_randopt_image_aware.py` is never
 modified (not even additively); `released_compat`/`fixed_base`/`sample_candidates`/candidate
 seed generation/top-K selection/majority voting are all reused unmodified.
+
+## Addendum: vLLM multimodal encoder-output cache (found during the coarse sweep, fixed)
+
+The 7×4-run coarse sweep (`full_lm` × 4 radii complete; stopped at `vision_encoder r=.005`)
+found every one of 100 independently-perturbed `vision_encoder` candidates scoring EXACTLY
+the base score — 0 experts, 100 ties, 0 regressions. `vision_encoder r=.02` began showing the
+same pattern before the sweep was intentionally stopped.
+
+**Root cause**: vLLM's per-worker multimodal encoder-OUTPUT cache (distinct from
+`mm_processor_cache_gb`, the image *preprocessing* cache — disabling that does not touch
+this) serves a cached vision embedding for a repeated image regardless of whether model
+weights changed since that embedding was computed. `selection_requests`/`test_requests` are
+built once and reused across every candidate, so every visual-scope candidate's images hash
+to the same cache key as the base model's — and every generation after the first was served
+stale, pre-perturbation (or pre-restoration) embeddings.
+
+**Investigation, verified directly against the pinned `vllm==0.27.1` source** (tag `v0.27.1`,
+commit `6e448d0ea9bf3d88d898b65449ca6dc2aec170ac` — not assumed from another version):
+
+- `vllm.entrypoints.llm.LLM` (what our unmodified, upstream `RandOptNcclLLM` subclasses) has
+  **no `reset_encoder_cache()` method** — confirmed by grepping `entrypoints/llm.py` and all
+  three of its mixin base classes (`BeamSearchOfflineMixin`, `PoolingOfflineMixin`,
+  `OfflineInferenceMixin`), zero matches. Contrast with `reset_mm_cache`/`reset_prefix_cache`,
+  both of which ARE defined on `LLM`.
+- `LLMEngine.reset_encoder_cache()` (`vllm/v1/engine/llm_engine.py`) exists and calls
+  `self.engine_core.reset_encoder_cache()`, which clears BOTH halves:
+  `Scheduler.reset_encoder_cache()` (`vllm/v1/core/sched/scheduler.py:2487`, driver-process
+  bookkeeping — `self.encoder_cache_manager.reset()`) and the executor's worker-side reset.
+  `LLM` never forwards to this method, unlike its two siblings.
+- Since our `engine` is a Ray actor wrapping the whole `RandOptNcclLLM`/`LLM` object, and
+  Ray's actor RPC only exposes methods that exist directly on the wrapped class (confirmed:
+  no `__getattr__` forwarding on `LLM`), `LLMEngine.reset_encoder_cache()` — and therefore
+  the scheduler half — is not reachable from our driver code, and cannot be made reachable
+  without either modifying `external/RandOpt`'s `RandOptNcclLLM` (forbidden) or vLLM itself.
+- What IS reachable: `LLM.collective_rpc(method, args)` is itself a real, public `LLM`
+  method. `Executor.reset_encoder_cache()` (`vllm/v1/executor/abstract.py:314`) is
+  implemented as exactly `self.collective_rpc("reset_encoder_cache")`, dispatching to a
+  real, built-in `vllm.v1.worker.gpu_worker.Worker.reset_encoder_cache()` method (line 858 —
+  not something `WorkerExtension` adds) → `self.model_runner.reset_encoder_cache()`.
+  `vlm_adapter.reset_vllm_encoder_cache(engine)` calls this identical string-dispatched
+  `collective_rpc` directly — the same mechanism already used throughout this project.
+
+**Known limitation, stated plainly, not glossed over**: `Scheduler._try_schedule_encoder_inputs`
+consults `self.encoder_cache_manager.check_and_update_cache(request, i)` — confirmed, from the
+scheduler source directly, to be **pure in-memory bookkeeping with no worker consultation**.
+Resetting only the worker-side cache does not, by source inspection alone, guarantee the
+scheduler will ask the worker to recompute rather than continue believing a (now-cleared)
+cache entry is still valid. This is a genuine, sourced finding, not speculation — and it is
+exactly why the fix ships alongside a GPU A/B validation rather than being declared correct
+from source reading alone: the empirical test (does a `vision_encoder` candidate's raw output
+now actually differ from base?) is what determines whether the reachable half is sufficient
+in practice.
+
+**Fix**: `scopes.scope_requires_encoder_cache_reset(scope)` (pure, `vision_encoder`/
+`vision_merger`/`full_vlm` → `True`, the four LM-only scopes → `False`) gates a call to
+`vlm_adapter.reset_vllm_encoder_cache(engine)` in `run_scoped_randopt.py`'s sampling and
+ensemble phases, inserted after `scoped_apply_perturbation` and before `engine.generate`.
+Hard-fails (raises) if the `collective_rpc` call itself errors or returns an unexpected
+shape — never silently continues with a possibly-stale cache. Nothing about candidate seeds,
+scopes, radii, relative-L2 math, perturbation math, scoring, prompts, dataset, image
+construction, restoration semantics, `N`, or candidate selection was changed.
+
+`vision_encoder r=.005`'s pre-fix result is preserved on disk as a forensic artifact
+(0/100/0 expert/tie/regression counts, all candidates scoring 0.5600) and is explicitly
+excluded from the final coarse map — the completed `full_lm` × 4-radii results are valid and
+preserved unchanged.

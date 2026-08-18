@@ -96,12 +96,13 @@ from .env_check import (
 from .ledger import CandidateLedger, CandidateRecord
 from .run_randopt_image_aware import RESTORATION_MODES, sample_candidates
 from .scoped_perturbation import NOISE_SEMANTICS, PERTURBATION_SCALE_MODES, scoped_apply_perturbation
-from .scopes import PERTURBATION_SCOPES
+from .scopes import PERTURBATION_SCOPES, scope_requires_encoder_cache_reset
 from .thicket_metrics import aggregate_thicket_run
 from .topk_voting import majority_vote, select_top_k
 from .vlm_adapter import (
     bootstrap_ray,
     build_image_aware_requests,
+    reset_vllm_encoder_cache,
     resolve_model_snapshot,
     verify_workers_can_import_external_root,
 )
@@ -174,7 +175,7 @@ def _candidate_key(seed: int, sigma_or_r: float) -> Tuple[int, float]:
     return (seed, sigma_or_r)
 
 
-def compute_base_score(engine, handler, selection_requests, selection_datas, sampling_params) -> float:
+def compute_base_score(engine, handler, selection_requests, selection_datas, sampling_params) -> Tuple[float, List[str]]:
     """Explicitly evaluates the EXACT unperturbed base model on the SAME selection subset
     candidates are scored against, using the identical scoring path (handler.compute_reward)
     -- never inferred from a historical/hard-coded baseline (e.g. the Gate 1 result, which
@@ -182,21 +183,28 @@ def compute_base_score(engine, handler, selection_requests, selection_datas, sam
     (reset_to_base_weights, the real unmodified upstream method) so this is never
     contaminated by whatever state the engine happened to be in beforehand -- must be called
     before any candidate sampling begins.
+
+    Returns (base_score, base_responses) -- the raw text outputs are kept so callers can
+    additionally compare a candidate's raw output against base directly (see
+    run_sampling_phase), since a 200-example exact-match SCORE can legitimately tie even when
+    the underlying raw outputs differ -- a weaker but more sensitive signal than delta_score
+    for confirming a perturbation actually reached inference.
     """
     import ray
 
     _collective_rpc_single_worker(engine, "reset_to_base_weights", args=(), label="reset_to_base_weights")
     outputs = ray.get(engine.generate.remote(selection_requests, sampling_params, use_tqdm=False))
     responses = [o.outputs[0].text for o in outputs]
-    return float(np.mean([
+    base_score = float(np.mean([
         handler.compute_reward(resp, d["ground_truth"]) for resp, d in zip(responses, selection_datas)
     ])) if responses else 0.0
+    return base_score, responses
 
 
 def run_sampling_phase(
     engine, handler, selection_requests, selection_datas, sampling_params,
     candidates: List[Tuple[int, float]], ledger: CandidateLedger,
-    scope: str, scale_mode: str, base_score: float,
+    scope: str, scale_mode: str, base_score: float, base_responses: List[str],
 ) -> Dict[Tuple[int, float], float]:
     """Perturb (scoped) -> generate on the selection set -> score -> restore (exact base),
     once per candidate. Resumable, same pattern as run_randopt_image_aware.py's own sampling
@@ -205,6 +213,13 @@ def run_sampling_phase(
 
     base_score (see compute_base_score) drives every candidate's delta_score/is_expert/is_tie
     -- the same explicit value for every candidate in this run, never re-derived per candidate.
+
+    For scopes that can change vision-encoder/projector output
+    (scopes.scope_requires_encoder_cache_reset), vlm_adapter.reset_vllm_encoder_cache is
+    called after perturbing and before generating -- otherwise the SAME selection_requests
+    images (built once, reused every candidate) could be served cached embeddings computed
+    under a stale weight state. base_responses is used only for an informational raw-output-
+    diff count printed alongside each candidate -- never used for scoring/selection.
     """
     import ray
 
@@ -222,6 +237,10 @@ def run_sampling_phase(
             engine, scoped_apply_perturbation, args=(seed, sigma_or_r, scope, scale_mode),
             label="scoped_apply_perturbation",
         )
+        encoder_cache_reset = False
+        if scope_requires_encoder_cache_reset(scope):
+            reset_vllm_encoder_cache(engine)
+            encoder_cache_reset = True
         outputs = ray.get(engine.generate.remote(selection_requests, sampling_params, use_tqdm=False))
         responses = [o.outputs[0].text for o in outputs]
         reward = float(np.mean([
@@ -232,6 +251,7 @@ def run_sampling_phase(
         delta_score = reward - base_score
         is_expert = delta_score > 0.0
         is_tie = delta_score == 0.0
+        n_raw_changed = sum(1 for a, b in zip(base_responses, responses) if a.strip() != b.strip())
 
         scores[_candidate_key(seed, sigma_or_r)] = reward
         ledger.append(CandidateRecord(
@@ -249,9 +269,11 @@ def run_sampling_phase(
         ))
         label = "sigma" if scale_mode == "raw_sigma" else "r"
         status = "EXPERT" if is_expert else ("TIE" if is_tie else "regression")
+        cache_note = f" encoder_cache_reset={encoder_cache_reset}" if scope_requires_encoder_cache_reset(scope) else ""
         print(
             f"  candidate {candidate_id + 1}/{len(candidates)}: seed={seed} {label}={sigma_or_r} "
             f"derived_sigma={perturb_result['derived_sigma']:.6g} score={reward:.4f} "
+            f"raw_outputs_changed_vs_base={n_raw_changed}/{len(responses)}{cache_note} "
             f"delta={delta_score:+.4f} ({status})"
         )
 
@@ -265,6 +287,9 @@ def run_ensemble_phase(
     """Perturb (scoped) -> generate on the test set -> extract answers -> restore, for each
     of the top-K candidates, then majority-vote -- same pattern/reuse as
     run_randopt_image_aware.py's own ensemble phase.
+
+    Same encoder-cache-reset requirement as run_sampling_phase, for the same reason: the
+    test_requests images are also built once and reused across every top-K candidate here.
     """
     import ray
 
@@ -274,11 +299,16 @@ def run_ensemble_phase(
             engine, scoped_apply_perturbation, args=(seed, sigma_or_r, scope, scale_mode),
             label="scoped_apply_perturbation",
         )
+        encoder_cache_reset = False
+        if scope_requires_encoder_cache_reset(scope):
+            reset_vllm_encoder_cache(engine)
+            encoder_cache_reset = True
         outputs = ray.get(engine.generate.remote(test_requests, sampling_params, use_tqdm=False))
         answers = [handler.extract_answer_for_voting(o.outputs[0].text) or "" for o in outputs]
         _collective_rpc_single_worker(engine, "reset_to_base_weights", args=(), label="reset_to_base_weights")
         all_answers.append(answers)
-        print(f"  ensemble member {rank + 1}/{len(top_k_candidates)}: seed={seed} done")
+        cache_note = f" encoder_cache_reset={encoder_cache_reset}" if scope_requires_encoder_cache_reset(scope) else ""
+        print(f"  ensemble member {rank + 1}/{len(top_k_candidates)}: seed={seed} done{cache_note}")
 
     correct = 0
     predictions = []
@@ -437,13 +467,17 @@ def main(argv=None) -> int:
         engine = engines[0]
         try:
             print(f"\n=== Base score: exact unperturbed model on the selection subset (n={len(selection_datas)}) ===")
-            base_score = compute_base_score(engine, handler, selection_requests, selection_datas, sampling_params)
+            base_score, base_responses = compute_base_score(engine, handler, selection_requests, selection_datas, sampling_params)
             print(f"  base_score = {base_score:.4f}")
 
             print(f"\n=== Sampling phase: N={args.N} candidates (scope={args.perturbation_scope}) ===")
+            if scope_requires_encoder_cache_reset(args.perturbation_scope):
+                print(f"  scope {args.perturbation_scope!r} can affect vision-encoder output -- "
+                      f"encoder cache will be reset after every perturbation, before generation")
             scores = run_sampling_phase(
                 engine, handler, selection_requests, selection_datas, sampling_params,
-                candidates, ledger, args.perturbation_scope, args.perturbation_scale_mode, base_score,
+                candidates, ledger, args.perturbation_scope, args.perturbation_scale_mode,
+                base_score, base_responses,
             )
 
             top_k = select_top_k(scores, args.K)

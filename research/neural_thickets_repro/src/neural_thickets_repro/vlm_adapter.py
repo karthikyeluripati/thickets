@@ -78,6 +78,33 @@ Known divergences (see REPRO_SPEC.md for full citations):
    we can't inject a PYTHONPATH after the fact; that path relies on
    verify_workers_can_import_external_root() below actually running and failing loudly
    rather than launch_engines() being trusted blindly.
+
+7. vLLM's multimodal encoder-OUTPUT cache serves stale vision embeddings across
+   scoped-RandOpt candidates that perturb the visual path -- confirmed real bug (GPU
+   evidence: vision_encoder r=0.005/r=0.02 candidates all scored exactly the base score,
+   0 experts / 100 ties / 0 regressions, for 100 independently-seeded perturbations).
+   Verified directly against the pinned vllm==0.27.1 source (not assumed from another
+   version -- see reset_vllm_encoder_cache() below for the exact file:line citations):
+   this cache is distinct from mm_processor_cache_gb (image PREPROCESSING cache);
+   disabling that does not touch it. vllm.entrypoints.llm.LLM (what our unmodified,
+   upstream RandOptNcclLLM subclasses) has NO reset_encoder_cache() method itself --
+   confirmed by grepping entrypoints/llm.py and all three of its mixin base classes,
+   zero matches -- unlike reset_mm_cache/reset_prefix_cache, which ARE exposed there.
+   LLMEngine.reset_encoder_cache() exists and clears BOTH the scheduler's own bookkeeping
+   (Scheduler.reset_encoder_cache -> encoder_cache_manager.reset(), a driver-process
+   structure) and the worker-side cached tensors, but LLM never forwards to it, and since
+   our engine is a Ray actor wrapping the whole unmodified LLM object, Ray's actor RPC
+   only exposes methods that exist directly on the wrapped class -- the driver-process
+   scheduler half is therefore not reachable from our code. What IS reachable: the same
+   collective_rpc(method, args) mechanism already used throughout this project, dispatched
+   with the string "reset_encoder_cache" -- a real, built-in vllm.v1.worker.gpu_worker.
+   Worker.reset_encoder_cache() method (not something WorkerExtension adds), which is
+   exactly what vLLM's own Executor.reset_encoder_cache() convenience method does
+   internally. reset_vllm_encoder_cache() below calls this directly. KNOWN LIMITATION,
+   not glossed over: the scheduler's cache-hit decision is made purely from its own
+   bookkeeping without consulting the worker, so a worker-only reset is not proven
+   sufficient by source inspection alone -- the GPU A/B validation this fix ships
+   alongside is the empirical check for whether the reachable half is enough in practice.
 """
 from __future__ import annotations
 
@@ -257,3 +284,48 @@ def generate_with_images(llm, sampling_params, task_datas: List[Dict], tokenizer
     requests = build_image_aware_requests(task_datas, tokenizer)
     outputs = llm.generate(requests, sampling_params, use_tqdm=True)
     return [o.outputs[0].text for o in outputs]
+
+
+def reset_vllm_encoder_cache(engine) -> None:
+    """Invalidates vLLM's per-worker multimodal encoder-OUTPUT cache -- see divergence #7
+    above for the full investigation (confirmed against the pinned vllm==0.27.1 source, not
+    assumed from another version). Dispatches the string "reset_encoder_cache" through the
+    same collective_rpc(method, args) mechanism already used throughout this project
+    (`engine` is the Ray actor handle from core/engine.py:launch_engines) -- this resolves to
+    a REAL, built-in vllm.v1.worker.gpu_worker.Worker.reset_encoder_cache() method (not
+    something WorkerExtension adds), the identical call vLLM's own
+    Executor.reset_encoder_cache() convenience method makes internally
+    (`self.collective_rpc("reset_encoder_cache")`).
+
+    Must be called after a candidate's perturbation is applied and before that candidate is
+    evaluated, for any scope that can change what the vision encoder/projector outputs
+    (scopes.scope_requires_encoder_cache_reset) -- otherwise a later request carrying the
+    SAME image (as every candidate's selection/test requests do, since they're built once
+    and reused) can be served a cached embedding computed under a DIFFERENT weight state.
+
+    Hard-fails (raises, does not silently continue) if the collective_rpc call itself errors,
+    or if it doesn't return the expected TP=1 single-worker-result shape -- refusing to
+    assume the reset succeeded rather than silently proceeding with a visual scope's
+    perturbation while the cache might still be stale.
+    """
+    import ray
+
+    try:
+        results = ray.get(engine.collective_rpc.remote("reset_encoder_cache", args=()))
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            f"reset_vllm_encoder_cache: collective_rpc('reset_encoder_cache') failed "
+            f"({type(exc).__name__}: {exc}). The installed vLLM engine does not expose a "
+            f"working encoder-cache reset path -- refusing to silently proceed with a "
+            f"visual scope's perturbation, since stale cached vision embeddings would make "
+            f"every candidate's score collapse to the base score (exactly the bug this "
+            f"exists to prevent)."
+        ) from exc
+
+    if not isinstance(results, list) or len(results) != 1:
+        raise RuntimeError(
+            f"reset_vllm_encoder_cache: collective_rpc('reset_encoder_cache') returned an "
+            f"unexpected shape ({results!r}) -- expected vLLM's own list-of-per-worker-"
+            f"results contract with exactly one worker (TP=1). Refusing to assume the reset "
+            f"succeeded."
+        )

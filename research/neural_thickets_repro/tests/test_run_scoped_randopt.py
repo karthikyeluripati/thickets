@@ -99,14 +99,17 @@ def test_out_dir_naming_relative_l2_includes_r_value():
 
 
 class _FakeCollectiveRpc:
-    def __init__(self, calls, perturb_return):
+    def __init__(self, calls, perturb_return, fail_methods=frozenset()):
         self._calls = calls
         self._perturb_return = perturb_return
+        self._fail_methods = fail_methods
 
     def remote(self, method, args=()):
         is_callable = not isinstance(method, str)
         name = method.__name__ if is_callable else method
         self._calls.append((name, tuple(args)))
+        if name in self._fail_methods:
+            raise RuntimeError(f"simulated failure dispatching {name!r}")
         return [self._perturb_return] if is_callable else ["ack"]
 
 
@@ -118,10 +121,10 @@ class _FakeGenerate:
         return self._outputs
 
 
-def _fake_engine(calls, texts, perturb_return):
+def _fake_engine(calls, texts, perturb_return, fail_methods=frozenset()):
     outputs = [SimpleNamespace(outputs=[SimpleNamespace(text=t)]) for t in texts]
     return SimpleNamespace(
-        collective_rpc=_FakeCollectiveRpc(calls, perturb_return),
+        collective_rpc=_FakeCollectiveRpc(calls, perturb_return, fail_methods=fail_methods),
         generate=_FakeGenerate(outputs),
     )
 
@@ -177,7 +180,7 @@ def test_relative_l2_candidates_use_seed_only_same_r_across_all_seven_scopes(tmp
 
         scores = m.run_sampling_phase(
             engine, handler, selection_requests, selection_datas, None,
-            candidates, ledger, scope, "relative_l2", base_score=0.5,
+            candidates, ledger, scope, "relative_l2", base_score=0.5, base_responses=["yes", "yes"],
         )
         results_by_scope[scope] = (scores, calls)
 
@@ -212,7 +215,7 @@ def test_relative_l2_scores_independent_of_hypothetical_sigma_candidate_choice(t
     engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
     ledger = CandidateLedger(tmp_path / "ledger.jsonl")
 
-    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "full_lm", "relative_l2", base_score=0.5)
+    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "full_lm", "relative_l2", base_score=0.5, base_responses=["yes"])
 
     for method, args in calls:
         if method == "scoped_apply_perturbation":
@@ -232,7 +235,7 @@ def test_ledger_records_scoped_metadata_from_perturb_result(tmp_path):
     engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
     ledger = CandidateLedger(tmp_path / "ledger.jsonl")
 
-    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_merger", "relative_l2", base_score=0.5)
+    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_merger", "relative_l2", base_score=0.5, base_responses=["yes"])
 
     records = ledger.load_all()
     rec = records[0]
@@ -258,7 +261,7 @@ def test_ledger_records_delta_score_against_the_given_base_score(tmp_path):
 
     ledger_low = CandidateLedger(tmp_path / "ledger_low_base.jsonl")
     engine_low = _fake_engine([], texts=["yes"], perturb_return=perturb_return)  # candidate score = 1.0
-    m.run_sampling_phase(engine_low, handler, selection_requests, selection_datas, None, candidates, ledger_low, "full_lm", "relative_l2", base_score=0.0)
+    m.run_sampling_phase(engine_low, handler, selection_requests, selection_datas, None, candidates, ledger_low, "full_lm", "relative_l2", base_score=0.0, base_responses=["no"])
     rec_low = ledger_low.load_all()[0]
     assert rec_low.base_score == 0.0
     assert rec_low.delta_score == pytest.approx(1.0)
@@ -267,7 +270,7 @@ def test_ledger_records_delta_score_against_the_given_base_score(tmp_path):
 
     ledger_high = CandidateLedger(tmp_path / "ledger_high_base.jsonl")
     engine_high = _fake_engine([], texts=["yes"], perturb_return=perturb_return)  # same candidate score = 1.0
-    m.run_sampling_phase(engine_high, handler, selection_requests, selection_datas, None, candidates, ledger_high, "full_lm", "relative_l2", base_score=1.0)
+    m.run_sampling_phase(engine_high, handler, selection_requests, selection_datas, None, candidates, ledger_high, "full_lm", "relative_l2", base_score=1.0, base_responses=["yes"])
     rec_high = ledger_high.load_all()[0]
     assert rec_high.base_score == 1.0
     assert rec_high.delta_score == pytest.approx(0.0)
@@ -291,7 +294,89 @@ def test_compute_base_score_calls_reset_to_base_weights(tmp_path):
     perturb_return = _perturb_result("full_lm", "relative_l2", 1, 0.01)
     engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
 
-    base_score = m.compute_base_score(engine, handler, selection_requests, selection_datas, None)
+    base_score, base_responses = m.compute_base_score(engine, handler, selection_requests, selection_datas, None)
 
     assert base_score == pytest.approx(1.0)
+    assert base_responses == ["yes"]
     assert ("reset_to_base_weights", ()) in calls
+
+
+# --- encoder-cache-reset wiring (see vlm_adapter.reset_vllm_encoder_cache /
+# scopes.scope_requires_encoder_cache_reset) ---
+
+
+def test_visual_scope_resets_encoder_cache_after_perturbation_before_generation(tmp_path):
+    candidates = [(111, 0.02)]
+    handler = _FakeHandler()
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+
+    calls = []
+    perturb_return = _perturb_result("vision_encoder", "relative_l2", 111, 0.02)
+    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
+    ledger = CandidateLedger(tmp_path / "ledger.jsonl")
+
+    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_encoder", "relative_l2", base_score=0.5, base_responses=["yes"])
+
+    method_names = [name for name, _ in calls]
+    assert "reset_encoder_cache" in method_names
+    assert method_names.index("scoped_apply_perturbation") < method_names.index("reset_encoder_cache")
+    # generate.remote isn't logged by the fake, but the source calls it strictly after the
+    # reset and before reset_to_base_weights -- confirmed by the reset appearing before the
+    # restore call in the log, which is the only other candidate.
+    assert method_names.index("reset_encoder_cache") < method_names.index("reset_to_base_weights")
+
+
+def test_non_visual_scope_never_resets_encoder_cache(tmp_path):
+    candidates = [(111, 0.02)]
+    handler = _FakeHandler()
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+
+    for scope in ("full_lm", "lm_early", "lm_middle", "lm_late"):
+        calls = []
+        perturb_return = _perturb_result(scope, "relative_l2", 111, 0.02)
+        engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
+        ledger = CandidateLedger(tmp_path / f"ledger_{scope}.jsonl")
+
+        m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, scope, "relative_l2", base_score=0.5, base_responses=["yes"])
+
+        method_names = [name for name, _ in calls]
+        assert "reset_encoder_cache" not in method_names, f"{scope} should never reset the encoder cache"
+
+
+def test_visual_scope_ensemble_phase_also_resets_encoder_cache(tmp_path):
+    handler = _FakeHandler()
+    test_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    test_requests = ["r0"]
+
+    calls = []
+    perturb_return = _perturb_result("full_vlm", "relative_l2", 111, 0.02)
+    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
+
+    m.run_ensemble_phase(engine, handler, test_requests, test_datas, None, [(111, 0.02)], "full_vlm", "relative_l2")
+
+    method_names = [name for name, _ in calls]
+    assert "reset_encoder_cache" in method_names
+
+
+def test_encoder_cache_reset_failure_raises_for_visual_scope_not_silently_continues(tmp_path):
+    """If the installed vLLM engine's collective_rpc('reset_encoder_cache') call fails, this
+    must propagate as a hard failure -- never silently proceed to generate() with a
+    potentially stale cache.
+    """
+    candidates = [(111, 0.02)]
+    handler = _FakeHandler()
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+
+    calls = []
+    perturb_return = _perturb_result("vision_encoder", "relative_l2", 111, 0.02)
+    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return, fail_methods={"reset_encoder_cache"})
+    ledger = CandidateLedger(tmp_path / "ledger.jsonl")
+
+    with pytest.raises(RuntimeError):
+        m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_encoder", "relative_l2", base_score=0.5, base_responses=["yes"])
+
+    # No candidate record should have been written -- the failure happened before scoring.
+    assert ledger.load_all() == {}
