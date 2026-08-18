@@ -56,6 +56,22 @@ whatever machine you run it on.
    `run_randopt_image_aware.py --sigma-candidate <name> --restoration-mode <mode>` (defaults
    to the paper's N/K; restoration mode still required explicitly).
 
+## WACV extension: scoped RandOpt (first milestone, not part of Gate 0–3 reproduction)
+
+Perturbs a *specific* model component (vision encoder, vision merger, an LM third, full LM,
+or full VLM) instead of the whole LM, with a norm-controlled `--perturbation-scale-mode
+relative_l2` option so perturbation magnitude is comparable across components of very
+different size — see `SCOPED_PERTURBATION_DESIGN.md` for the full design (real runtime
+parameter-name investigation, why this had to be a local extension rather than a
+`WorkerExtension` change, the relative-L2 derivation). `run_scoped_randopt.py` is built and
+CPU-tested but **not executed** this milestone; `run_randopt_image_aware.py` is untouched by
+it. `--restoration-mode` is forced to `fixed_base` (hard-fails otherwise — scope-isolation
+science requires exact per-candidate restoration). The **only** GPU execution authorized this
+milestone is the mechanical scope-isolation check:
+```bash
+python -m neural_thickets_repro.diagnostics.scope_isolation_gpu_check --config configs/gqa_repro.yaml
+```
+
 ## Running Gate 0 (works now)
 
 ```bash

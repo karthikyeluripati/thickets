@@ -73,3 +73,36 @@ def test_restoration_mode_round_trips_through_append_and_load(tmp_path):
     records = ledger.load_all()
 
     assert records[0].restoration_mode == "fixed_base"
+
+
+def test_scoped_fields_default_to_none_for_generic_records():
+    rec = _rec(0, "done", 0.5)
+    assert rec.perturbation_scope is None
+    assert rec.perturbation_scale_mode is None
+    assert rec.requested_relative_l2 is None
+    assert rec.scope_param_count is None
+    assert rec.scope_base_l2_norm is None
+    assert rec.actual_perturbation_l2 is None
+    assert rec.noise_semantics is None
+
+
+def test_scoped_fields_round_trip_through_append_and_load(tmp_path):
+    ledger = CandidateLedger(tmp_path / "ledger.jsonl")
+    ledger.append(CandidateRecord(
+        candidate_id=0, seed=111, sigma=0.0023, selection_score=0.5,
+        rank=None, status="done", runtime_seconds=1.0, restoration_mode="fixed_base",
+        perturbation_scope="vision_encoder", perturbation_scale_mode="relative_l2",
+        requested_relative_l2=0.02, scope_param_count=42, scope_base_l2_norm=12.5,
+        actual_perturbation_l2=0.281, noise_semantics="upstream_per_tensor_reseed",
+    ))
+
+    records = ledger.load_all()
+
+    rec = records[0]
+    assert rec.perturbation_scope == "vision_encoder"
+    assert rec.perturbation_scale_mode == "relative_l2"
+    assert rec.requested_relative_l2 == 0.02
+    assert rec.scope_param_count == 42
+    assert rec.scope_base_l2_norm == 12.5
+    assert rec.actual_perturbation_l2 == 0.281
+    assert rec.noise_semantics == "upstream_per_tensor_reseed"

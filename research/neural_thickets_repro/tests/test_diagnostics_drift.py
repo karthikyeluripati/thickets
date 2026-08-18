@@ -31,6 +31,30 @@ def test_measure_drift_fraction_elements_differing_counts_exact_mismatches(dummy
     assert drift["max_abs_drift"] == 1.0
 
 
+def test_measure_drift_param_filter_restricts_to_matching_names(dummy_vlm_factory):
+    model = dummy_vlm_factory()
+    original = {k: v.clone() for k, v in model.state_dict().items()}
+    with torch.no_grad():
+        for name, p in model.named_parameters():
+            if name.startswith("visual."):
+                p.view(-1)[0] += 1.0
+
+    visual_only = measure_drift(model, original, param_filter=lambda n: n.startswith("visual."))
+    non_visual_only = measure_drift(model, original, param_filter=lambda n: not n.startswith("visual."))
+
+    assert visual_only["max_abs_drift"] == 1.0
+    assert non_visual_only["max_abs_drift"] == 0.0
+
+
+def test_measure_drift_param_filter_none_matches_unfiltered_default(dummy_vlm_factory):
+    model = dummy_vlm_factory()
+    original = {k: v.clone() for k, v in model.state_dict().items()}
+    with torch.no_grad():
+        next(model.parameters()).view(-1)[0] += 1.0
+
+    assert measure_drift(model, original) == measure_drift(model, original, param_filter=None)
+
+
 def test_run_drift_audit_reports_requested_checkpoints(dummy_vlm_factory):
     model = dummy_vlm_factory().to(torch.bfloat16)
     results = run_drift_audit(model, sigma=0.01, cycle_checkpoints=[1, 5, 20])

@@ -44,7 +44,16 @@ from ..perturb_cpu import DEFAULT_VISUAL_PREFIXES, perturb, restore, should_pert
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
 
-def measure_drift(model: nn.Module, original_state: Dict[str, torch.Tensor]) -> dict:
+def measure_drift(
+    model: nn.Module,
+    original_state: Dict[str, torch.Tensor],
+    param_filter: Optional[Callable[[str], bool]] = None,
+) -> dict:
+    """param_filter, if given, restricts the measurement to only the named parameters it
+    accepts (e.g. an in-scope or out-of-scope subset for scope_isolation_gpu_check.py) --
+    default None measures every parameter, exactly as before this option existed (existing
+    callers/tests unaffected).
+    """
     max_abs = 0.0
     sum_abs = 0.0
     n_elems = 0
@@ -52,6 +61,8 @@ def measure_drift(model: nn.Module, original_state: Dict[str, torch.Tensor]) -> 
     orig_sq_sum = 0.0
     n_differing = 0
     for name, p in model.named_parameters():
+        if param_filter is not None and not param_filter(name):
+            continue
         orig = original_state[name]
         diff = (p.detach().float() - orig.float())
         max_abs = max(max_abs, diff.abs().max().item())

@@ -32,6 +32,22 @@ class CandidateRecord:
     # must always set it explicitly; a record from a real run left as None would mean the
     # score isn't attributable to either restoration mechanism, which should never happen.
     restoration_mode: Optional[str] = None
+    # Scoped RandOpt (WACV) fields -- see scopes.py / scoped_perturbation.py /
+    # run_scoped_randopt.py. All None for unscoped (run_randopt_image_aware.py) records.
+    perturbation_scope: Optional[str] = None  # e.g. "vision_encoder", "lm_middle", ...
+    perturbation_scale_mode: Optional[str] = None  # "raw_sigma" | "relative_l2"
+    # In relative_l2 mode, the fixed requested r (see candidate_sampling.py -- candidates
+    # vary by seed only, r is a run-level constant); None in raw_sigma mode, where `sigma`
+    # above is the sampled raw sigma value directly, exactly as in unscoped runs. Never call
+    # a sigma_candidate-drawn value "sigma" in relative_l2 output -- none is ever drawn.
+    requested_relative_l2: Optional[float] = None
+    scope_param_count: Optional[int] = None
+    scope_base_l2_norm: Optional[float] = None
+    actual_perturbation_l2: Optional[float] = None
+    # Always "upstream_per_tensor_reseed" for scoped candidates this milestone -- recorded
+    # explicitly (not left implicit) since preserving this exact noise convention, rather
+    # than introducing a new one, was a hard requirement for this milestone.
+    noise_semantics: Optional[str] = None
 
 
 class CandidateLedger:

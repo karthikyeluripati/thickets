@@ -58,3 +58,101 @@ def dummy_vlm_factory():
         return DummyVLM()
 
     return _make
+
+
+# --- Two namespace-convention fixtures for scopes.py (tests/test_scopes.py) ---
+#
+# SCOPED_PERTURBATION_DESIGN.md's Phase 1 correction: the HF checkpoint's flat safetensors
+# keys (model.layers.*, exercised by DummyVLM above) are NOT necessarily what a loaded/
+# vLLM-wrapped runtime module's named_parameters() yields -- prior GPU logs show the real
+# runtime module nests the LM under language_model.model.*, with a separate lm_head entry
+# even though the checkpoint ties the weight. Both conventions are fixtured here, at a layer
+# count (12) divisible by 3 so lm_early/middle/late partitioning is actually exercised (the
+# 2-layer DummyVLM above can't be split into three non-empty thirds).
+
+_LM_LAYER_COUNT = 12  # divisible by 3: early=0-3, middle=4-7, late=8-11
+
+
+class _DummyVisualWithMerger(nn.Module):
+    """visual.patch_embed / visual.blocks.N / visual.merger -- unprefixed by
+    language_model./model. in either observed convention (see scopes.py).
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.patch_embed = nn.Linear(4, 4, bias=False)
+        self.blocks = nn.ModuleList([nn.Linear(4, 4, bias=False) for _ in range(2)])
+        self.merger = nn.Linear(4, 4, bias=False)
+
+
+class _DummyLM12Layers(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.embed_tokens = nn.Embedding(10, 4)
+        self.layers = nn.ModuleList([nn.Linear(4, 4, bias=False) for _ in range(_LM_LAYER_COUNT)])
+        self.norm = nn.LayerNorm(4)
+
+
+class FlatCheckpointVLM(nn.Module):
+    """visual.* / model.embed_tokens.* / model.layers.N.* / model.norm.* -- the HF
+    checkpoint's flat safetensors-index naming convention (scopes.LM_NAMESPACE_CONVENTIONS
+    "flat_checkpoint"). No separate lm_head -- ties are not modeled in this fixture since the
+    checkpoint form doesn't expose one as a separate tensor at all.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.visual = _DummyVisualWithMerger()
+        self.model = _DummyLM12Layers()
+
+    def forward(self, x):  # pragma: no cover - not exercised, just needed to be a valid nn.Module
+        return x
+
+
+class _RuntimeLanguageModelWrapper(nn.Module):
+    """model.* nested one level under language_model.*, plus a SEPARATE lm_head Linear whose
+    weight is explicitly tied (same underlying nn.Parameter / storage) to
+    model.embed_tokens.weight -- mirrors the observed real runtime module shape
+    (language_model.model.layers.N.* / language_model.lm_head.*) closely enough to exercise
+    scopes.py's storage-dedup and alias-reporting logic (tests/test_scopes.py) against an
+    actual tied-parameter case, not just a hypothetical one.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.model = _DummyLM12Layers()
+        self.lm_head = nn.Linear(4, 10, bias=False)
+        self.lm_head.weight = self.model.embed_tokens.weight  # tied: same nn.Parameter object
+
+
+class RuntimeWrappedVLM(nn.Module):
+    """visual.* / language_model.model.embed_tokens.* / language_model.model.layers.N.* /
+    language_model.model.norm.* / language_model.lm_head.* -- the observed real vLLM-loaded
+    runtime module naming convention (scopes.LM_NAMESPACE_CONVENTIONS "runtime_wrapped").
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.visual = _DummyVisualWithMerger()
+        self.language_model = _RuntimeLanguageModelWrapper()
+
+    def forward(self, x):  # pragma: no cover - not exercised, just needed to be a valid nn.Module
+        return x
+
+
+@pytest.fixture
+def flat_checkpoint_vlm_factory():
+    def _make() -> FlatCheckpointVLM:
+        torch.manual_seed(0)
+        return FlatCheckpointVLM()
+
+    return _make
+
+
+@pytest.fixture
+def runtime_wrapped_vlm_factory():
+    def _make() -> RuntimeWrappedVLM:
+        torch.manual_seed(0)
+        return RuntimeWrappedVLM()
+
+    return _make
