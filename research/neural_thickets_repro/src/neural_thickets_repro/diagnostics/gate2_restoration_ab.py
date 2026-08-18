@@ -40,16 +40,32 @@ diagnostic is designed to surface, not an oversight.
 
 Signature verification: apply_perturbation/reset_to_base_weights were originally assumed to
 accept the same (seed, sigma, <bool>) argument shape perturb_self_weights/restore_self_weights
-do, because external/RandOpt isn't available in this development environment to check
-directly (GPU-only pod). _verify_worker_extension_signatures() below replaces that assumption
-with an explicit check, run on the driver directly against the pinned checkout (now available
-on the pod) before launch_engines() spends any GPU time -- prints every signature and hard-
-fails on a parameter-count mismatch. That check is necessary but not sufficient (it can't see
-parameter names/order/defaults), so the try/except around Path B in main() remains the actual
-safety net: if the real call convention differs in some way the count check can't catch, Ray's
-collective_rpc raises a clear exception, caught and reported verbatim in the output report as
-path_b_fixed_base.error, with Path A's results left intact -- rather than silently producing a
-partial or misleading Path B result.
+do, because external/RandOpt wasn't available in this development environment to check
+directly. Now confirmed on the pod (GPU-only) against the actual pinned
+utils/worker_extn.py:WorkerExtension -- the four methods are NOT one shared shape:
+  perturb_self_weights(self, seed, noise_scale, negate=False)
+  restore_self_weights(self, seed, SIGMA, negate=False)
+  apply_perturbation(self, seed, sigma)
+  reset_to_base_weights(self)
+Path A's two methods share a shape; apply_perturbation takes two args, not three;
+reset_to_base_weights takes NONE (it derives everything from the base weights
+launch_engines() already stored -- there is nothing left to pass). _RestorationPath below
+therefore carries perturb_args/restore_args INDEPENDENTLY per path rather than forcing both
+paths through one identical args tuple -- forcing apply_perturbation/reset_to_base_weights
+through Path A's 3-arg shape is exactly what produced the earlier pod-side crash this
+function now exists to catch pre-launch instead.
+
+_verify_worker_extension_signatures() runs on the driver, directly against the pinned
+checkout (now available on the pod), before launch_engines() spends any GPU time -- for each
+(method, args) pair a path actually intends to call, it checks inspect.signature(method)
+against the ACTUAL args tuple that will be passed (right required-arg count, right maximum,
+no more/fewer than the real callable accepts), not just a count comparison between two
+unrelated methods. Prints every signature alongside the args it will be called with, so it
+can also be eyeballed directly in the run's console output. Necessarily still blind to
+argument NAME/semantic correctness (e.g. it can't know noise_scale vs SIGMA mean the same
+thing) -- the try/except around Path B in main() remains a safety net for anything a shape
+check can't see: if collective_rpc still raises, it's caught and reported verbatim in the
+output report as path_b_fixed_base.error, with Path A's results left intact.
 
 Every collective_rpc call in this module goes through _collective_rpc_single_worker(), which
 explicitly validates and unwraps vLLM's list-of-per-worker-results return shape (collective_rpc
@@ -88,7 +104,7 @@ import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Dict, List, NamedTuple, Optional, Tuple
 
 os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"  # same runtime fix as Gate 1/2 -- see eval_base_image_aware.py
 
@@ -105,6 +121,39 @@ from .perturb_restore_drift import check_vision_frozen, measure_drift
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
+
+
+class _RestorationPath(NamedTuple):
+    """A restoration mode's actual upstream call shape -- perturb_args/restore_args are
+    specified independently per path rather than forcing both paths through one identical
+    args tuple, since perturb_self_weights/restore_self_weights and
+    apply_perturbation/reset_to_base_weights are NOT the same shape (see module docstring's
+    "Signature verification" section for the confirmed pinned signatures).
+    """
+
+    label: str
+    perturb_method: str
+    perturb_args: Tuple
+    restore_method: str
+    restore_args: Tuple
+
+
+# perturb_self_weights(self, seed, noise_scale, negate=False) / restore_self_weights(self,
+# seed, SIGMA, negate=False) -- confirmed against the pinned utils/worker_extn.py checkout.
+PATH_A = _RestorationPath(
+    label="A",
+    perturb_method="perturb_self_weights", perturb_args=(TEST_SEED, TEST_SIGMA, False),
+    restore_method="restore_self_weights", restore_args=(TEST_SEED, TEST_SIGMA, False),
+)
+
+# apply_perturbation(self, seed, sigma) -- no negate/sync flag.
+# reset_to_base_weights(self) -- no arguments at all; derives everything from the base
+# weights launch_engines() already stored, so there is nothing left to pass.
+PATH_B = _RestorationPath(
+    label="B",
+    perturb_method="apply_perturbation", perturb_args=(TEST_SEED, TEST_SIGMA),
+    restore_method="reset_to_base_weights", restore_args=(),
+)
 
 
 def _diag_snapshot_base(worker_self) -> str:
@@ -184,53 +233,64 @@ def _collective_rpc_single_worker(engine, method, args=(), *, label: str):
     return _validate_collective_rpc_results(results, label=label)
 
 
-def _verify_worker_extension_signatures(worker_extension_cls) -> None:
+def _verify_call_shape(method, args: Tuple, *, label: str) -> None:
+    """Verifies `args` (positional, the only convention any of these four upstream methods
+    use -- none takes **kwargs) is a valid argument list for `method`, an unbound
+    WorkerExtension method (so its `self` parameter is dropped before counting). Checks the
+    provided arg count sits between the number of REQUIRED (no-default) parameters and the
+    total number the method accepts (unlimited if it takes *args) -- not merely "same count
+    as some other, unrelated method," which is what let apply_perturbation/
+    reset_to_base_weights get force-fit into perturb_self_weights/restore_self_weights's
+    3-arg shape and crash on the pod.
+    """
+    import inspect
+
+    sig = inspect.signature(method)
+    params = list(sig.parameters.values())[1:]  # drop self
+
+    has_var_positional = any(p.kind is inspect.Parameter.VAR_POSITIONAL for p in params)
+    positional = [p for p in params if p.kind in (inspect.Parameter.POSITIONAL_ONLY, inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    n_required = sum(1 for p in positional if p.default is inspect.Parameter.empty)
+    n_max = None if has_var_positional else len(positional)
+    n_args = len(args)
+
+    if n_args < n_required or (n_max is not None and n_args > n_max):
+        expected = f"{n_required}" if n_max == n_required else f"{n_required}..{n_max if n_max is not None else 'unlimited'}"
+        raise RuntimeError(
+            f"{label}{sig} cannot be called with {n_args} positional arg(s) {args!r} -- "
+            f"expects {expected}. Re-check the pinned utils/worker_extn.py signature and "
+            f"update the offending _RestorationPath's perturb_args/restore_args in "
+            f"gate2_restoration_ab.py before re-running."
+        )
+
+
+def _verify_worker_extension_signatures(worker_extension_cls, paths) -> None:
     """Runs on the DRIVER, directly against the pinned external/RandOpt checkout's
     utils.worker_extn.WorkerExtension class (importable now that main() has put
     EXTERNAL_ROOT on sys.path) -- introspecting the class object directly is equivalent to
     introspecting it on a worker, since it's the same unmodified class definition either way.
 
-    Replaces this module's earlier documented ASSUMPTION that apply_perturbation/
-    reset_to_base_weights accept the same (seed, sigma, bool) argument shape
-    perturb_self_weights/restore_self_weights do -- that assumption was made because
-    external/RandOpt isn't available in the development environment this diagnostic was
-    written in. Now that the pod has the real checkout, this checks it explicitly, BEFORE
-    launch_engines() spends any GPU time, and prints every signature so it can also be
-    eyeballed directly in the run's console output.
-
-    Only compares parameter COUNT, not names/defaults/order -- inspect.signature can't tell
-    us the calling convention is semantically equivalent, only that it's shaped the same. A
-    matching count is necessary but not sufficient; the try/except around Path B in main()
-    remains the actual safety net against a real mismatch.
+    For every (method, args) pair actually used by `paths` (PATH_A/PATH_B in real use),
+    prints the real signature next to the args it will be called with and validates that
+    call shape via _verify_call_shape -- BEFORE launch_engines() spends any GPU time. This is
+    what caught the earlier pod-side crash (apply_perturbation/reset_to_base_weights forced
+    through Path A's 3-arg shape) up front instead of deep inside Path B's cycle loop.
     """
     import inspect
 
-    required = ("perturb_self_weights", "restore_self_weights", "apply_perturbation", "reset_to_base_weights")
-    missing = [name for name in required if not hasattr(worker_extension_cls, name)]
+    required_methods = ("perturb_self_weights", "restore_self_weights", "apply_perturbation", "reset_to_base_weights")
+    missing = [name for name in required_methods if not hasattr(worker_extension_cls, name)]
     if missing:
         raise RuntimeError(
             f"utils.worker_extn.WorkerExtension is missing method(s) {missing} -- cannot run "
             f"this diagnostic's Path A/B as designed. Re-check the pinned source."
         )
 
-    signatures = {name: inspect.signature(getattr(worker_extension_cls, name)) for name in required}
-    for name, sig in signatures.items():
-        print(f"  {name}{sig}")
-
-    if len(signatures["apply_perturbation"].parameters) != len(signatures["perturb_self_weights"].parameters):
-        raise RuntimeError(
-            f"apply_perturbation{signatures['apply_perturbation']} has a different parameter "
-            f"count than perturb_self_weights{signatures['perturb_self_weights']} -- "
-            f"_run_path_cycles calls both with the same (seed, sigma, False) args= tuple. "
-            f"Update that call site for apply_perturbation before trusting Path B's results."
-        )
-    if len(signatures["reset_to_base_weights"].parameters) != len(signatures["restore_self_weights"].parameters):
-        raise RuntimeError(
-            f"reset_to_base_weights{signatures['reset_to_base_weights']} has a different "
-            f"parameter count than restore_self_weights{signatures['restore_self_weights']} -- "
-            f"_run_path_cycles calls both with the same (seed, sigma, False) args= tuple. "
-            f"Update that call site for reset_to_base_weights before trusting Path B's results."
-        )
+    for path in paths:
+        for method_name, args in ((path.perturb_method, path.perturb_args), (path.restore_method, path.restore_args)):
+            method = getattr(worker_extension_cls, method_name)
+            print(f"  [{path.label}] {method_name}{inspect.signature(method)} -- will be called with args={args!r}")
+            _verify_call_shape(method, args, label=method_name)
 
 
 def _generate_and_score(engine, requests, task_datas, handler, sampling_params):
@@ -244,7 +304,7 @@ def _generate_and_score(engine, requests, task_datas, handler, sampling_params):
 
 
 def _run_path_cycles(
-    engine, label: str, perturb_method: str, restore_method: str,
+    engine, path: _RestorationPath,
     requests, task_datas, handler, sampling_params,
     base_raw: List[str], base_answers: List[str], base_correct: List[bool],
     n_cycles: int, drift_available: bool,
@@ -252,8 +312,8 @@ def _run_path_cycles(
     n_total = len(task_datas)
     cycles = []
     for cycle in range(1, n_cycles + 1):
-        _collective_rpc_single_worker(engine, perturb_method, args=(TEST_SEED, TEST_SIGMA, False), label=perturb_method)
-        _collective_rpc_single_worker(engine, restore_method, args=(TEST_SEED, TEST_SIGMA, False), label=restore_method)
+        _collective_rpc_single_worker(engine, path.perturb_method, args=path.perturb_args, label=path.perturb_method)
+        _collective_rpc_single_worker(engine, path.restore_method, args=path.restore_args, label=path.restore_method)
 
         raw, answers, correct = _generate_and_score(engine, requests, task_datas, handler, sampling_params)
 
@@ -276,7 +336,7 @@ def _run_path_cycles(
         })
         drift_msg = f" max_abs_drift={drift['max_abs_drift']:.3e} vision_frozen={drift['vision_frozen']}" if drift else ""
         print(
-            f"  [{label}] cycle {cycle}/{n_cycles}: raw_match={n_raw_match}/{n_total} "
+            f"  [{path.label}] cycle {cycle}/{n_cycles}: raw_match={n_raw_match}/{n_total} "
             f"answer_match={n_answer_match}/{n_total} correctness_agree={n_correctness_agree}/{n_total}{drift_msg}"
         )
     return cycles
@@ -339,7 +399,7 @@ def main(argv=None) -> int:
     from utils.worker_extn import WorkerExtension  # type: ignore
 
     print("Verifying WorkerExtension method signatures against the pinned external/RandOpt checkout...")
-    _verify_worker_extension_signatures(WorkerExtension)
+    _verify_worker_extension_signatures(WorkerExtension, (PATH_A, PATH_B))
 
     handler = GQAHandler()
     task_datas = handler.load_data(
@@ -385,28 +445,30 @@ def main(argv=None) -> int:
             print(f"Generating base outputs (n={len(task_datas)})...")
             base_raw, base_answers, base_correct = _generate_and_score(engine, requests, task_datas, handler, sampling_params)
 
-            print(f"\n=== Path A (released_compat): perturb_self_weights / restore_self_weights, {args.cycles} cycles ===")
+            print(f"\n=== Path A (released_compat): {PATH_A.perturb_method}{PATH_A.perturb_args} / "
+                  f"{PATH_A.restore_method}{PATH_A.restore_args}, {args.cycles} cycles ===")
             path_a = _run_path_cycles(
-                engine, "A", "perturb_self_weights", "restore_self_weights",
+                engine, PATH_A,
                 requests, task_datas, handler, sampling_params,
                 base_raw, base_answers, base_correct, args.cycles, drift_available,
             )
 
-            print(f"\n=== Path B (fixed_base): apply_perturbation / reset_to_base_weights, {args.cycles} cycles ===")
+            print(f"\n=== Path B (fixed_base): {PATH_B.perturb_method}{PATH_B.perturb_args} / "
+                  f"{PATH_B.restore_method}{PATH_B.restore_args}, {args.cycles} cycles ===")
             print("(runs immediately after Path A's cycles with no explicit re-clean -- see module docstring)")
             try:
                 path_b = _run_path_cycles(
-                    engine, "B", "apply_perturbation", "reset_to_base_weights",
+                    engine, PATH_B,
                     requests, task_datas, handler, sampling_params,
                     base_raw, base_answers, base_correct, args.cycles, drift_available,
                 )
             except Exception as exc:  # noqa: BLE001 -- reported in the output report, Path A results stay intact either way
                 path_b_error = (
                     f"{type(exc).__name__}: {exc}. _verify_worker_extension_signatures() above already "
-                    f"confirmed apply_perturbation/reset_to_base_weights have the same parameter COUNT as "
-                    f"perturb_self_weights/restore_self_weights, so this is likely a mismatch in parameter "
-                    f"names/order/defaults/semantics that count-checking can't catch -- inspect the printed "
-                    f"signatures in this run's console output and adjust the args passed by _run_path_cycles "
+                    f"validated apply_perturbation{PATH_B.perturb_args}/reset_to_base_weights{PATH_B.restore_args} "
+                    f"against their real signatures, so this is likely a mismatch in argument SEMANTICS/order/"
+                    f"names that a shape-only check can't catch -- inspect the printed signatures in this run's "
+                    f"console output and adjust PATH_B's perturb_args/restore_args in gate2_restoration_ab.py "
                     f"before re-running Path B."
                 )
                 print(f"  Path B FAILED: {path_b_error}", file=sys.stderr)
@@ -423,13 +485,19 @@ def main(argv=None) -> int:
         "cycles_requested": args.cycles,
         "drift_measurement_available": drift_available,
         "path_a_released_compat": {
-            "methods": {"perturb": "perturb_self_weights", "restore": "restore_self_weights"},
+            "methods": {
+                "perturb": {"name": PATH_A.perturb_method, "args": list(PATH_A.perturb_args)},
+                "restore": {"name": PATH_A.restore_method, "args": list(PATH_A.restore_args)},
+            },
             "cycles": path_a,
             "drift_summary": _drift_summary(path_a),
             "visual_weights_frozen_every_cycle": _visual_frozen_every_cycle(path_a),
         },
         "path_b_fixed_base": {
-            "methods": {"perturb": "apply_perturbation", "restore": "reset_to_base_weights"},
+            "methods": {
+                "perturb": {"name": PATH_B.perturb_method, "args": list(PATH_B.perturb_args)},
+                "restore": {"name": PATH_B.restore_method, "args": list(PATH_B.restore_args)},
+            },
             "cycles": path_b,
             "drift_summary": _drift_summary(path_b),
             "visual_weights_frozen_every_cycle": _visual_frozen_every_cycle(path_b),
