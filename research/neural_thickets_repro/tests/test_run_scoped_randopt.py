@@ -154,11 +154,12 @@ def _fake_ray(monkeypatch):
     monkeypatch.setitem(sys.modules, "ray", SimpleNamespace(get=lambda x: x))
 
 
-def test_relative_l2_candidates_use_seed_only_same_r_across_scopes(tmp_path):
-    """relative_l2 candidates for two DIFFERENT scopes, same N/global_seed/r, must use the
-    exact same seed sequence -- proven directly, not assumed.
+def test_relative_l2_candidates_use_seed_only_same_r_across_all_seven_scopes(tmp_path):
+    """relative_l2 candidates for ALL SEVEN scopes, same N/global_seed/r, must use the exact
+    same seed sequence -- proven directly, not assumed, and not just for two scopes.
     """
     from neural_thickets_repro.candidate_sampling import sample_candidate_seeds
+    from neural_thickets_repro.scopes import PERTURBATION_SCOPES
 
     seeds = sample_candidate_seeds(4, seed=42)
     candidates = [(s, 0.01) for s in seeds]
@@ -168,7 +169,7 @@ def test_relative_l2_candidates_use_seed_only_same_r_across_scopes(tmp_path):
     selection_requests = ["r0", "r1"]
 
     results_by_scope = {}
-    for scope in ("vision_encoder", "lm_middle"):
+    for scope in PERTURBATION_SCOPES:
         calls = []
         perturb_return = _perturb_result(scope, "relative_l2", seeds[0], 0.01)
         engine = _fake_engine(calls, texts=["yes", "yes"], perturb_return=perturb_return)
@@ -176,17 +177,22 @@ def test_relative_l2_candidates_use_seed_only_same_r_across_scopes(tmp_path):
 
         scores = m.run_sampling_phase(
             engine, handler, selection_requests, selection_datas, None,
-            candidates, ledger, scope, "relative_l2",
+            candidates, ledger, scope, "relative_l2", base_score=0.5,
         )
         results_by_scope[scope] = (scores, calls)
 
-    seeds_dispatched_a = [args[0] for method, args in results_by_scope["vision_encoder"][1] if method == "scoped_apply_perturbation"]
-    seeds_dispatched_b = [args[0] for method, args in results_by_scope["lm_middle"][1] if method == "scoped_apply_perturbation"]
-    assert seeds_dispatched_a == seeds_dispatched_b == seeds
+    seed_sequences = {
+        scope: [args[0] for method, args in calls if method == "scoped_apply_perturbation"]
+        for scope, (_, calls) in results_by_scope.items()
+    }
+    assert len(set(tuple(v) for v in seed_sequences.values())) == 1, f"seed sequences differ across scopes: {seed_sequences}"
+    assert list(seed_sequences.values())[0] == seeds
 
-    r_values_a = {args[1] for method, args in results_by_scope["vision_encoder"][1] if method == "scoped_apply_perturbation"}
-    r_values_b = {args[1] for method, args in results_by_scope["lm_middle"][1] if method == "scoped_apply_perturbation"}
-    assert r_values_a == r_values_b == {0.01}
+    r_value_sets = {
+        scope: {args[1] for method, args in calls if method == "scoped_apply_perturbation"}
+        for scope, (_, calls) in results_by_scope.items()
+    }
+    assert all(v == {0.01} for v in r_value_sets.values())
 
 
 def test_relative_l2_scores_independent_of_hypothetical_sigma_candidate_choice(tmp_path):
@@ -206,7 +212,7 @@ def test_relative_l2_scores_independent_of_hypothetical_sigma_candidate_choice(t
     engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
     ledger = CandidateLedger(tmp_path / "ledger.jsonl")
 
-    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "full_lm", "relative_l2")
+    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "full_lm", "relative_l2", base_score=0.5)
 
     for method, args in calls:
         if method == "scoped_apply_perturbation":
@@ -226,7 +232,7 @@ def test_ledger_records_scoped_metadata_from_perturb_result(tmp_path):
     engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
     ledger = CandidateLedger(tmp_path / "ledger.jsonl")
 
-    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_merger", "relative_l2")
+    m.run_sampling_phase(engine, handler, selection_requests, selection_datas, None, candidates, ledger, "vision_merger", "relative_l2", base_score=0.5)
 
     records = ledger.load_all()
     rec = records[0]
@@ -236,3 +242,56 @@ def test_ledger_records_scoped_metadata_from_perturb_result(tmp_path):
     assert rec.sigma == pytest.approx(0.00456)
     assert rec.restoration_mode == "fixed_base"
     assert rec.noise_semantics == "upstream_per_tensor_reseed"
+    assert rec.scope_element_count == 100  # from _perturb_result's scope_total_element_count
+
+
+def test_ledger_records_delta_score_against_the_given_base_score(tmp_path):
+    """delta_score/is_expert/is_tie must be computed from the EXACT base_score passed into
+    run_sampling_phase -- proven by re-running with a DIFFERENT base_score and checking the
+    recorded delta/is_expert change accordingly, not a value read once and assumed fixed.
+    """
+    candidates = [(111, 0.01)]
+    handler = _FakeHandler()  # compute_reward returns 1.0 for a matching response, else 0.0
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+    perturb_return = _perturb_result("full_lm", "relative_l2", 111, 0.01)
+
+    ledger_low = CandidateLedger(tmp_path / "ledger_low_base.jsonl")
+    engine_low = _fake_engine([], texts=["yes"], perturb_return=perturb_return)  # candidate score = 1.0
+    m.run_sampling_phase(engine_low, handler, selection_requests, selection_datas, None, candidates, ledger_low, "full_lm", "relative_l2", base_score=0.0)
+    rec_low = ledger_low.load_all()[0]
+    assert rec_low.base_score == 0.0
+    assert rec_low.delta_score == pytest.approx(1.0)
+    assert rec_low.is_expert is True
+    assert rec_low.is_tie is False
+
+    ledger_high = CandidateLedger(tmp_path / "ledger_high_base.jsonl")
+    engine_high = _fake_engine([], texts=["yes"], perturb_return=perturb_return)  # same candidate score = 1.0
+    m.run_sampling_phase(engine_high, handler, selection_requests, selection_datas, None, candidates, ledger_high, "full_lm", "relative_l2", base_score=1.0)
+    rec_high = ledger_high.load_all()[0]
+    assert rec_high.base_score == 1.0
+    assert rec_high.delta_score == pytest.approx(0.0)
+    assert rec_high.is_expert is False
+    assert rec_high.is_tie is True
+
+
+def test_compute_base_score_calls_reset_to_base_weights(tmp_path):
+    """compute_base_score must restore to the exact stored base before scoring -- checked
+    directly against the collective_rpc call log, not just documented in a docstring. (The
+    fake engine only logs collective_rpc calls, not generate.remote -- the source itself
+    calls reset_to_base_weights, then generate.remote, in that order; this test confirms the
+    reset call actually happens, which is the part a caller-discipline bug could silently
+    skip.)
+    """
+    handler = _FakeHandler()
+    selection_datas = [{"question_id": "q0", "ground_truth": {"answer": "yes"}}]
+    selection_requests = ["r0"]
+
+    calls = []
+    perturb_return = _perturb_result("full_lm", "relative_l2", 1, 0.01)
+    engine = _fake_engine(calls, texts=["yes"], perturb_return=perturb_return)
+
+    base_score = m.compute_base_score(engine, handler, selection_requests, selection_datas, None)
+
+    assert base_score == pytest.approx(1.0)
+    assert ("reset_to_base_weights", ()) in calls

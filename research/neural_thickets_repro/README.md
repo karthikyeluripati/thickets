@@ -56,20 +56,37 @@ whatever machine you run it on.
    `run_randopt_image_aware.py --sigma-candidate <name> --restoration-mode <mode>` (defaults
    to the paper's N/K; restoration mode still required explicitly).
 
-## WACV extension: scoped RandOpt (first milestone, not part of Gate 0–3 reproduction)
+## WACV extension: scoped RandOpt (first milestones, not part of Gate 0–3 reproduction)
 
-Perturbs a *specific* model component (vision encoder, vision merger, an LM third, full LM,
-or full VLM) instead of the whole LM, with a norm-controlled `--perturbation-scale-mode
-relative_l2` option so perturbation magnitude is comparable across components of very
-different size — see `SCOPED_PERTURBATION_DESIGN.md` for the full design (real runtime
-parameter-name investigation, why this had to be a local extension rather than a
-`WorkerExtension` change, the relative-L2 derivation). `run_scoped_randopt.py` is built and
-CPU-tested but **not executed** this milestone; `run_randopt_image_aware.py` is untouched by
-it. `--restoration-mode` is forced to `fixed_base` (hard-fails otherwise — scope-isolation
-science requires exact per-candidate restoration). The **only** GPU execution authorized this
-milestone is the mechanical scope-isolation check:
+**Infrastructure milestone — closed.** Perturbs a *specific* model component (vision encoder,
+vision merger, an LM third, full LM, or full VLM) instead of the whole LM, with a
+norm-controlled `--perturbation-scale-mode relative_l2` option so perturbation magnitude is
+comparable across components of very different size — see `SCOPED_PERTURBATION_DESIGN.md` for
+the full design. The GPU scope-isolation mechanical check
+(`diagnostics/scope_isolation_gpu_check.py`) has **passed** on the real model (580 unique
+runtime tensors; `vision_encoder` 321 selected / 259 complement; `lm_middle` 84 selected / 496
+complement — the literal storage complement across the whole model, not an enumerated
+component list). No further scope-diagnostic work is planned.
+
+**Measurement-instrumentation milestone — implemented, not yet GPU-validated.** Estimates,
+per component `m`, the expert density `rho_{m,t}(r) = (1/N) sum_i 1[S(theta+Delta_i) >
+S(theta)]` and the full candidate score distribution (mean/std/quantiles/deltas, 95% Wilson
+CI) against an *explicitly evaluated* base score (never a historical/hard-coded baseline),
+written per run to `thicket_metrics.json`. Top-K/ensemble machinery (`results.json`) is
+preserved for compatibility but is not the primary result. `--relative-l2` is a fixed
+experimental axis per run — no grid, no auto-tuning; `analysis/aggregate_coarse_thicket.py`
+builds a cross-scope comparison table from completed runs, hard-failing on any mismatched
+task/model/dataset-subset/N/seed/radius/scoring/candidate-seed-sequence. `run_scoped_randopt.py`
+is built and CPU-tested but **not executed** this milestone; `run_randopt_image_aware.py`
+remains untouched. `--restoration-mode` is forced to `fixed_base`.
+
+The **only** GPU execution authorized this measurement milestone is a small validation of the
+measurement path itself (not a real experiment — the radius/N for the actual experiment are
+chosen only after reviewing this):
 ```bash
-python -m neural_thickets_repro.diagnostics.scope_isolation_gpu_check --config configs/gqa_repro.yaml
+python -m neural_thickets_repro.run_scoped_randopt --config configs/gqa_repro.yaml \
+    --N 2 --K 2 --restoration-mode fixed_base --perturbation-scope full_lm \
+    --perturbation-scale-mode relative_l2 --relative-l2 0.01 --test-samples 5
 ```
 
 ## Running Gate 0 (works now)

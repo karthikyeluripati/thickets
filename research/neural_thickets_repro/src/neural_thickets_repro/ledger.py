@@ -48,6 +48,18 @@ class CandidateRecord:
     # explicitly (not left implicit) since preserving this exact noise convention, rather
     # than introducing a new one, was a hard requirement for this milestone.
     noise_semantics: Optional[str] = None
+    # Thicket-measurement fields (see thicket_metrics.py) -- distinct from scope_param_count
+    # (tensor count): this is d_m, the scalar PARAMETER ELEMENT count actually perturbed.
+    scope_element_count: Optional[int] = None
+    # The exact, explicitly-evaluated unperturbed base model's score on the SAME selection
+    # subset this candidate was scored against (never a historical/hardcoded baseline --
+    # see run_scoped_randopt.py's base_score computation). Duplicated onto every candidate
+    # record (redundant with the run-level value) so each record is self-describing, same
+    # convention as restoration_mode/noise_semantics above.
+    base_score: Optional[float] = None
+    delta_score: Optional[float] = None  # selection_score - base_score
+    is_expert: Optional[bool] = None  # delta_score > 0 (strict -- see thicket_metrics.compute_delta_fields)
+    is_tie: Optional[bool] = None  # delta_score == 0
 
 
 class CandidateLedger:

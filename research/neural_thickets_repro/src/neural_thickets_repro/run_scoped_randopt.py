@@ -42,6 +42,22 @@ docstring for the full reasoning):
     constant, computed once per candidate from that candidate's scope manifest (the manifest
     itself doesn't depend on candidate seed) and recorded on every candidate's ledger record.
 
+Measurement (thicket_metrics.py): the primary scientific output is the THICKET, not merely
+final accuracy -- expert density rho_{m,t}(r) = (1/N) sum_i 1[S(theta+Delta_i) > S(theta)]
+and the candidate score distribution around it (mean/std/quantiles/deltas, a 95% Wilson CI
+for expert density), computed against an EXPLICITLY evaluated base_score (see
+compute_base_score() -- the exact unperturbed model on the SAME selection subset candidates
+are scored against, restored to the exact stored base first, never inferred from a
+historical/hard-coded baseline like the old Gate 1 result). Written per run to
+thicket_metrics.json alongside the existing results.json/ensemble_predictions.jsonl
+(Top-K/ensemble machinery, preserved for compatibility but not the headline result of this
+experiment). See analysis/aggregate_coarse_thicket.py for building a cross-scope comparison
+table from several completed runs' thicket_metrics.json files (hard-fails on any mismatched
+task/model/dataset-subset/N/seed/radius/scoring/candidate-seed-sequence).
+
+--relative-l2 (radius r) is an explicit experimental axis, not something this script tunes,
+grids, or auto-selects -- exactly one r per invocation, chosen by the caller.
+
 Usage (GPU required; NOT executed this milestone -- see
 diagnostics/scope_isolation_gpu_check.py for the one authorized GPU validation):
     python -m neural_thickets_repro.run_scoped_randopt \
@@ -65,6 +81,8 @@ os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"  # same runtime fix as ever
 
 import numpy as np
 
+from dataclasses import asdict
+
 from .candidate_sampling import sample_candidate_seeds
 from .config import load_config
 from .env_check import (
@@ -77,8 +95,9 @@ from .env_check import (
 )
 from .ledger import CandidateLedger, CandidateRecord
 from .run_randopt_image_aware import RESTORATION_MODES, sample_candidates
-from .scoped_perturbation import PERTURBATION_SCALE_MODES, scoped_apply_perturbation
+from .scoped_perturbation import NOISE_SEMANTICS, PERTURBATION_SCALE_MODES, scoped_apply_perturbation
 from .scopes import PERTURBATION_SCOPES
+from .thicket_metrics import aggregate_thicket_run
 from .topk_voting import majority_vote, select_top_k
 from .vlm_adapter import (
     bootstrap_ray,
@@ -155,15 +174,37 @@ def _candidate_key(seed: int, sigma_or_r: float) -> Tuple[int, float]:
     return (seed, sigma_or_r)
 
 
+def compute_base_score(engine, handler, selection_requests, selection_datas, sampling_params) -> float:
+    """Explicitly evaluates the EXACT unperturbed base model on the SAME selection subset
+    candidates are scored against, using the identical scoring path (handler.compute_reward)
+    -- never inferred from a historical/hard-coded baseline (e.g. the Gate 1 result, which
+    used a different subset/prompt path entirely). Restores to the exact stored base FIRST
+    (reset_to_base_weights, the real unmodified upstream method) so this is never
+    contaminated by whatever state the engine happened to be in beforehand -- must be called
+    before any candidate sampling begins.
+    """
+    import ray
+
+    _collective_rpc_single_worker(engine, "reset_to_base_weights", args=(), label="reset_to_base_weights")
+    outputs = ray.get(engine.generate.remote(selection_requests, sampling_params, use_tqdm=False))
+    responses = [o.outputs[0].text for o in outputs]
+    return float(np.mean([
+        handler.compute_reward(resp, d["ground_truth"]) for resp, d in zip(responses, selection_datas)
+    ])) if responses else 0.0
+
+
 def run_sampling_phase(
     engine, handler, selection_requests, selection_datas, sampling_params,
     candidates: List[Tuple[int, float]], ledger: CandidateLedger,
-    scope: str, scale_mode: str,
+    scope: str, scale_mode: str, base_score: float,
 ) -> Dict[Tuple[int, float], float]:
     """Perturb (scoped) -> generate on the selection set -> score -> restore (exact base),
     once per candidate. Resumable, same pattern as run_randopt_image_aware.py's own sampling
     phase. Candidate sampling/scoring/selection logic is otherwise identical regardless of
     scope/scale_mode -- only the perturb dispatch (scoped_apply_perturbation) differs.
+
+    base_score (see compute_base_score) drives every candidate's delta_score/is_expert/is_tie
+    -- the same explicit value for every candidate in this run, never re-derived per candidate.
     """
     import ray
 
@@ -188,6 +229,10 @@ def run_sampling_phase(
         ])) if responses else 0.0
         _collective_rpc_single_worker(engine, "reset_to_base_weights", args=(), label="reset_to_base_weights")
 
+        delta_score = reward - base_score
+        is_expert = delta_score > 0.0
+        is_tie = delta_score == 0.0
+
         scores[_candidate_key(seed, sigma_or_r)] = reward
         ledger.append(CandidateRecord(
             candidate_id=candidate_id, seed=seed, sigma=perturb_result["derived_sigma"],
@@ -196,14 +241,18 @@ def run_sampling_phase(
             perturbation_scope=scope, perturbation_scale_mode=scale_mode,
             requested_relative_l2=perturb_result["requested_relative_l2"],
             scope_param_count=perturb_result["scope_param_count"],
+            scope_element_count=perturb_result["scope_total_element_count"],
             scope_base_l2_norm=perturb_result["scope_base_l2_norm"],
             actual_perturbation_l2=perturb_result["actual_perturbation_l2"],
             noise_semantics=perturb_result["noise_semantics"],
+            base_score=base_score, delta_score=delta_score, is_expert=is_expert, is_tie=is_tie,
         ))
         label = "sigma" if scale_mode == "raw_sigma" else "r"
+        status = "EXPERT" if is_expert else ("TIE" if is_tie else "regression")
         print(
             f"  candidate {candidate_id + 1}/{len(candidates)}: seed={seed} {label}={sigma_or_r} "
-            f"derived_sigma={perturb_result['derived_sigma']:.6g} score={reward:.4f}"
+            f"derived_sigma={perturb_result['derived_sigma']:.6g} score={reward:.4f} "
+            f"delta={delta_score:+.4f} ({status})"
         )
 
     return scores
@@ -387,10 +436,14 @@ def main(argv=None) -> int:
         engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
         engine = engines[0]
         try:
+            print(f"\n=== Base score: exact unperturbed model on the selection subset (n={len(selection_datas)}) ===")
+            base_score = compute_base_score(engine, handler, selection_requests, selection_datas, sampling_params)
+            print(f"  base_score = {base_score:.4f}")
+
             print(f"\n=== Sampling phase: N={args.N} candidates (scope={args.perturbation_scope}) ===")
             scores = run_sampling_phase(
                 engine, handler, selection_requests, selection_datas, sampling_params,
-                candidates, ledger, args.perturbation_scope, args.perturbation_scale_mode,
+                candidates, ledger, args.perturbation_scope, args.perturbation_scale_mode, base_score,
             )
 
             top_k = select_top_k(scores, args.K)
@@ -451,12 +504,73 @@ def main(argv=None) -> int:
     run_metadata_path = out_dir / "run_metadata.json"
     run_metadata_path.write_text(json.dumps(run_metadata, indent=2))
 
+    # Primary scientific output of this run -- expert density / score distribution over the
+    # candidate population, NOT Top-1/ensemble accuracy (results.json/predictions above are
+    # preserved for compatibility with the existing Top-K machinery, not the headline result).
+    done_records = sorted(
+        (r for r in ledger.load_all().values() if r.status == "done"),
+        key=lambda r: r.candidate_id,
+    )
+    thicket_stats = aggregate_thicket_run(base_score, [(r.seed, r.selection_score) for r in done_records])
+    thicket_metrics_path = out_dir / "thicket_metrics.json"
+    thicket_metrics_path.write_text(json.dumps({
+        "task": "gqa",
+        "model_name": cfg.model.name,
+        "model_revision": cfg.model.revision,
+        "scope": args.perturbation_scope,
+        "N": args.N,
+        "perturbation_scale_mode": args.perturbation_scale_mode,
+        "sigma_candidate": args.sigma_candidate,
+        "requested_relative_l2": args.relative_l2,
+        "global_seed": cfg.reproducibility.global_seed,
+        "restoration_mode": "fixed_base",
+        "noise_semantics": NOISE_SEMANTICS,
+        "base_score": base_score,
+        "selection_set_size": len(selection_datas),
+        "selection_example_ids": [str(d["question_id"]) for d in selection_datas],
+        "dataset_revision": cfg.dataset.revision,
+        "dataset_selection_split": cfg.dataset.selection_split,
+        "scoring_protocol": "gqa_image_aware_v1",
+        "candidate_seed_sequence": [r.seed for r in done_records],
+        "scope_param_count": done_records[0].scope_param_count if done_records else None,
+        "scope_element_count": done_records[0].scope_element_count if done_records else None,
+        "scope_base_l2_norm": done_records[0].scope_base_l2_norm if done_records else None,
+        "expert_count": thicket_stats.expert_count,
+        "tie_count": thicket_stats.tie_count,
+        "regression_count": thicket_stats.regression_count,
+        "expert_density": thicket_stats.expert_density,
+        "expert_density_ci_95": [thicket_stats.expert_density_ci_lower, thicket_stats.expert_density_ci_upper],
+        "mean_score": thicket_stats.mean_score,
+        "std_score": thicket_stats.std_score,
+        "mean_delta": thicket_stats.mean_delta,
+        "median_delta": thicket_stats.median_delta,
+        "min_delta": thicket_stats.min_delta,
+        "max_delta": thicket_stats.max_delta,
+        "score_quantiles": {
+            "25": thicket_stats.score_quantile_25,
+            "50": thicket_stats.score_quantile_50,
+            "75": thicket_stats.score_quantile_75,
+        },
+        "best_candidate_score": thicket_stats.best_candidate_score,
+        "best_candidate_seed": thicket_stats.best_candidate_seed,
+        "candidate_records": [asdict(r) for r in done_records],
+    }, indent=2))
+
     print("\n=== Scoped RandOpt run complete ===")
     print(f"Scope: {args.perturbation_scope} | scale mode: {args.perturbation_scale_mode}")
-    print(f"Ensemble (K={args.K}) accuracy: {ensemble_results['accuracy']:.4f} ({ensemble_results['correct']}/{ensemble_results['n']})")
+    print(f"Base score: {base_score:.4f}")
+    print(
+        f"Expert density rho_m(r) = {thicket_stats.expert_density:.4f} "
+        f"(95% CI [{thicket_stats.expert_density_ci_lower:.4f}, {thicket_stats.expert_density_ci_upper:.4f}]) "
+        f"-- {thicket_stats.expert_count} experts / {thicket_stats.tie_count} ties / "
+        f"{thicket_stats.regression_count} regressions out of {thicket_stats.n}"
+    )
+    print(f"Best candidate: seed={thicket_stats.best_candidate_seed} score={thicket_stats.best_candidate_score:.4f}")
+    print(f"(Top-K ensemble accuracy, preserved for compatibility, not the primary result: {ensemble_results['accuracy']:.4f})")
     print(f"Wrote {results_path}")
     print(f"Wrote {predictions_path}")
     print(f"Wrote {run_metadata_path}")
+    print(f"Wrote {thicket_metrics_path}")
     return 0
 
 

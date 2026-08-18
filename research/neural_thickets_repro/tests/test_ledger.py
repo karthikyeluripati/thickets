@@ -84,6 +84,11 @@ def test_scoped_fields_default_to_none_for_generic_records():
     assert rec.scope_base_l2_norm is None
     assert rec.actual_perturbation_l2 is None
     assert rec.noise_semantics is None
+    assert rec.scope_element_count is None
+    assert rec.base_score is None
+    assert rec.delta_score is None
+    assert rec.is_expert is None
+    assert rec.is_tie is None
 
 
 def test_scoped_fields_round_trip_through_append_and_load(tmp_path):
@@ -94,6 +99,7 @@ def test_scoped_fields_round_trip_through_append_and_load(tmp_path):
         perturbation_scope="vision_encoder", perturbation_scale_mode="relative_l2",
         requested_relative_l2=0.02, scope_param_count=42, scope_base_l2_norm=12.5,
         actual_perturbation_l2=0.281, noise_semantics="upstream_per_tensor_reseed",
+        scope_element_count=1337, base_score=0.45, delta_score=0.05, is_expert=True, is_tie=False,
     ))
 
     records = ledger.load_all()
@@ -102,6 +108,11 @@ def test_scoped_fields_round_trip_through_append_and_load(tmp_path):
     assert rec.perturbation_scope == "vision_encoder"
     assert rec.perturbation_scale_mode == "relative_l2"
     assert rec.requested_relative_l2 == 0.02
+    assert rec.scope_element_count == 1337
+    assert rec.base_score == 0.45
+    assert rec.delta_score == 0.05
+    assert rec.is_expert is True
+    assert rec.is_tie is False
     assert rec.scope_param_count == 42
     assert rec.scope_base_l2_norm == 12.5
     assert rec.actual_perturbation_l2 == 0.281
