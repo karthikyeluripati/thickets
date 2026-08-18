@@ -15,6 +15,8 @@ from neural_thickets_repro.diagnostics.gate2_restoration_ab import (
     _diag_diff_from_base,
     _diag_snapshot_base,
     _drift_summary,
+    _validate_collective_rpc_results,
+    _verify_worker_extension_signatures,
     _visual_frozen_every_cycle,
 )
 from neural_thickets_repro.perturb_cpu import perturb, restore
@@ -134,3 +136,85 @@ def test_visual_frozen_every_cycle_false_if_any_cycle_flags_it():
 def test_visual_frozen_every_cycle_none_when_drift_unavailable():
     cycles = [{"drift": None}, {"drift": None}]
     assert _visual_frozen_every_cycle(cycles) is None
+
+
+# --- _validate_collective_rpc_results: the TP=1 unwrap/validate fix ---
+
+
+def test_validate_collective_rpc_results_unwraps_single_worker_list():
+    assert _validate_collective_rpc_results(["a value"], label="some_method") == "a value"
+
+
+def test_validate_collective_rpc_results_unwraps_single_worker_dict():
+    # The exact shape that triggered the original bug: collective_rpc(_diag_diff_from_base)
+    # returns [drift_dict] under TP=1, not drift_dict itself.
+    drift_dict = {"max_abs_drift": 0.001, "vision_frozen": True}
+    assert _validate_collective_rpc_results([drift_dict], label="_diag_diff_from_base") is drift_dict
+
+
+def test_validate_collective_rpc_results_rejects_non_list():
+    with pytest.raises(RuntimeError, match="expected vLLM's own list-of-per-worker-results"):
+        _validate_collective_rpc_results({"max_abs_drift": 0.001}, label="_diag_diff_from_base")
+
+
+def test_validate_collective_rpc_results_rejects_empty_list():
+    with pytest.raises(RuntimeError, match="TP=1-only"):
+        _validate_collective_rpc_results([], label="_diag_diff_from_base")
+
+
+def test_validate_collective_rpc_results_rejects_multi_worker_list():
+    with pytest.raises(RuntimeError, match="TP=1-only"):
+        _validate_collective_rpc_results(["shard_0", "shard_1"], label="_diag_diff_from_base")
+
+
+# --- _verify_worker_extension_signatures: the driver-side WorkerExtension signature check ---
+
+
+class _FakeWorkerExtensionMatching:
+    def perturb_self_weights(self, seed, sigma, sync): ...
+    def restore_self_weights(self, seed, sigma, sync): ...
+    def apply_perturbation(self, seed, sigma, sync): ...
+    def reset_to_base_weights(self, seed, sigma, sync): ...
+
+
+class _FakeWorkerExtensionApplyMismatch:
+    def perturb_self_weights(self, seed, sigma, sync): ...
+    def restore_self_weights(self, seed, sigma, sync): ...
+    def apply_perturbation(self, seed, sigma): ...  # missing the third param
+    def reset_to_base_weights(self, seed, sigma, sync): ...
+
+
+class _FakeWorkerExtensionResetMismatch:
+    def perturb_self_weights(self, seed, sigma, sync): ...
+    def restore_self_weights(self, seed, sigma, sync): ...
+    def apply_perturbation(self, seed, sigma, sync): ...
+    def reset_to_base_weights(self, seed, sigma, sync, extra): ...  # one too many
+
+
+class _FakeWorkerExtensionMissingMethod:
+    def perturb_self_weights(self, seed, sigma, sync): ...
+    def restore_self_weights(self, seed, sigma, sync): ...
+    def apply_perturbation(self, seed, sigma, sync): ...
+    # reset_to_base_weights not defined at all
+
+
+def test_verify_worker_extension_signatures_passes_when_shapes_match(capsys):
+    _verify_worker_extension_signatures(_FakeWorkerExtensionMatching)  # should not raise
+    printed = capsys.readouterr().out
+    assert "apply_perturbation" in printed
+    assert "reset_to_base_weights" in printed
+
+
+def test_verify_worker_extension_signatures_flags_apply_perturbation_mismatch():
+    with pytest.raises(RuntimeError, match="apply_perturbation"):
+        _verify_worker_extension_signatures(_FakeWorkerExtensionApplyMismatch)
+
+
+def test_verify_worker_extension_signatures_flags_reset_to_base_weights_mismatch():
+    with pytest.raises(RuntimeError, match="reset_to_base_weights"):
+        _verify_worker_extension_signatures(_FakeWorkerExtensionResetMismatch)
+
+
+def test_verify_worker_extension_signatures_flags_missing_method():
+    with pytest.raises(RuntimeError, match="missing method"):
+        _verify_worker_extension_signatures(_FakeWorkerExtensionMissingMethod)

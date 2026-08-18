@@ -38,14 +38,24 @@ re-derive from launch_engines()'s stored base rather than current state, Path B'
 cycle should already show no residue from Path A. That is itself part of the evidence this
 diagnostic is designed to surface, not an oversight.
 
-Signature assumption, flagged because external/RandOpt is not available in this development
-environment to check directly (GPU-only pod): apply_perturbation/reset_to_base_weights are
-assumed to accept the same (seed, sigma, <bool>) argument shape perturb_self_weights/
-restore_self_weights do (matching the collective_rpc calls already used elsewhere in this
-project). If the real signature differs, Ray's collective_rpc raises a clear exception --
-caught below and reported verbatim in the output report as path_b_fixed_base.error, with the
-correctness/output/answer/drift results for Path A left intact -- rather than silently
-producing a partial or misleading Path B result.
+Signature verification: apply_perturbation/reset_to_base_weights were originally assumed to
+accept the same (seed, sigma, <bool>) argument shape perturb_self_weights/restore_self_weights
+do, because external/RandOpt isn't available in this development environment to check
+directly (GPU-only pod). _verify_worker_extension_signatures() below replaces that assumption
+with an explicit check, run on the driver directly against the pinned checkout (now available
+on the pod) before launch_engines() spends any GPU time -- prints every signature and hard-
+fails on a parameter-count mismatch. That check is necessary but not sufficient (it can't see
+parameter names/order/defaults), so the try/except around Path B in main() remains the actual
+safety net: if the real call convention differs in some way the count check can't catch, Ray's
+collective_rpc raises a clear exception, caught and reported verbatim in the output report as
+path_b_fixed_base.error, with Path A's results left intact -- rather than silently producing a
+partial or misleading Path B result.
+
+Every collective_rpc call in this module goes through _collective_rpc_single_worker(), which
+explicitly validates and unwraps vLLM's list-of-per-worker-results return shape (collective_rpc
+returns a LIST even with exactly one TP-rank worker) instead of indexing into it as if it were
+a bare value -- this diagnostic is TP=1-only (see launch_engines() in main()) and fails clearly
+rather than guessing if that shape assumption is ever violated.
 
 Raw parameter drift (max/mean abs diff, relative L2, fraction of elements differing, and a
 per-cycle check that visual.*-prefixed tensors are EXACTLY unchanged) is measured via a
@@ -129,6 +139,100 @@ def _diag_diff_from_base(worker_self) -> Dict:
     return drift
 
 
+def _validate_collective_rpc_results(results, *, label: str):
+    """Pure validation/unwrap logic, no ray dependency -- split out from
+    _collective_rpc_single_worker() below purely so it can be unit tested directly (with
+    plain lists) without ray installed; see tests/test_gate2_restoration_ab.py.
+
+    vLLM's collective_rpc returns a LIST of per-worker results (one per TP rank), not a bare
+    value -- every call site in this module must go through here rather than treating
+    ray.get(engine.collective_rpc.remote(...)) as the value directly (that was the bug: a
+    single-worker [drift_dict] indexed as if it were drift_dict itself, raising
+    "TypeError: list indices must be integers or slices, not str").
+
+    This diagnostic's launch_engines(..., tensor_parallel_size=1, ...) call (see main())
+    means exactly one worker should ever respond, so this validates that explicitly and
+    unwraps it -- it does NOT blindly take [0] without checking length/type first.
+
+    Deliberately NOT extended to aggregate across workers for TP>1: correctly combining
+    per-shard drift stats (max_abs_drift needs max-across-shards, mean_abs_drift needs
+    sum-of-sums divided by sum-of-counts, not an average of already-averaged per-shard
+    ratios) is untested and unnecessary for how this diagnostic is actually invoked. If this
+    is ever run with TP>1, this is the one place that needs extending -- it fails clearly
+    here instead of silently reporting one shard's numbers as the whole model's.
+    """
+    if not isinstance(results, list):
+        raise RuntimeError(
+            f"collective_rpc({label!r}) returned {type(results).__name__}, expected vLLM's "
+            f"own list-of-per-worker-results contract. Got: {results!r}"
+        )
+    if len(results) != 1:
+        raise RuntimeError(
+            f"collective_rpc({label!r}) returned {len(results)} per-worker results; this "
+            f"diagnostic is TP=1-only (launch_engines(..., tensor_parallel_size=1, ...) in "
+            f"main() below) and expects exactly 1. If you intended to run this under tensor "
+            f"parallelism, _collective_rpc_single_worker needs extending to aggregate "
+            f"per-shard drift correctly (see its docstring) -- it deliberately does not guess."
+        )
+    return results[0]
+
+
+def _collective_rpc_single_worker(engine, method, args=(), *, label: str):
+    import ray
+
+    results = ray.get(engine.collective_rpc.remote(method, args=args))
+    return _validate_collective_rpc_results(results, label=label)
+
+
+def _verify_worker_extension_signatures(worker_extension_cls) -> None:
+    """Runs on the DRIVER, directly against the pinned external/RandOpt checkout's
+    utils.worker_extn.WorkerExtension class (importable now that main() has put
+    EXTERNAL_ROOT on sys.path) -- introspecting the class object directly is equivalent to
+    introspecting it on a worker, since it's the same unmodified class definition either way.
+
+    Replaces this module's earlier documented ASSUMPTION that apply_perturbation/
+    reset_to_base_weights accept the same (seed, sigma, bool) argument shape
+    perturb_self_weights/restore_self_weights do -- that assumption was made because
+    external/RandOpt isn't available in the development environment this diagnostic was
+    written in. Now that the pod has the real checkout, this checks it explicitly, BEFORE
+    launch_engines() spends any GPU time, and prints every signature so it can also be
+    eyeballed directly in the run's console output.
+
+    Only compares parameter COUNT, not names/defaults/order -- inspect.signature can't tell
+    us the calling convention is semantically equivalent, only that it's shaped the same. A
+    matching count is necessary but not sufficient; the try/except around Path B in main()
+    remains the actual safety net against a real mismatch.
+    """
+    import inspect
+
+    required = ("perturb_self_weights", "restore_self_weights", "apply_perturbation", "reset_to_base_weights")
+    missing = [name for name in required if not hasattr(worker_extension_cls, name)]
+    if missing:
+        raise RuntimeError(
+            f"utils.worker_extn.WorkerExtension is missing method(s) {missing} -- cannot run "
+            f"this diagnostic's Path A/B as designed. Re-check the pinned source."
+        )
+
+    signatures = {name: inspect.signature(getattr(worker_extension_cls, name)) for name in required}
+    for name, sig in signatures.items():
+        print(f"  {name}{sig}")
+
+    if len(signatures["apply_perturbation"].parameters) != len(signatures["perturb_self_weights"].parameters):
+        raise RuntimeError(
+            f"apply_perturbation{signatures['apply_perturbation']} has a different parameter "
+            f"count than perturb_self_weights{signatures['perturb_self_weights']} -- "
+            f"_run_path_cycles calls both with the same (seed, sigma, False) args= tuple. "
+            f"Update that call site for apply_perturbation before trusting Path B's results."
+        )
+    if len(signatures["reset_to_base_weights"].parameters) != len(signatures["restore_self_weights"].parameters):
+        raise RuntimeError(
+            f"reset_to_base_weights{signatures['reset_to_base_weights']} has a different "
+            f"parameter count than restore_self_weights{signatures['restore_self_weights']} -- "
+            f"_run_path_cycles calls both with the same (seed, sigma, False) args= tuple. "
+            f"Update that call site for reset_to_base_weights before trusting Path B's results."
+        )
+
+
 def _generate_and_score(engine, requests, task_datas, handler, sampling_params):
     import ray
 
@@ -145,13 +249,11 @@ def _run_path_cycles(
     base_raw: List[str], base_answers: List[str], base_correct: List[bool],
     n_cycles: int, drift_available: bool,
 ) -> List[Dict]:
-    import ray
-
     n_total = len(task_datas)
     cycles = []
     for cycle in range(1, n_cycles + 1):
-        ray.get(engine.collective_rpc.remote(perturb_method, args=(TEST_SEED, TEST_SIGMA, False)))
-        ray.get(engine.collective_rpc.remote(restore_method, args=(TEST_SEED, TEST_SIGMA, False)))
+        _collective_rpc_single_worker(engine, perturb_method, args=(TEST_SEED, TEST_SIGMA, False), label=perturb_method)
+        _collective_rpc_single_worker(engine, restore_method, args=(TEST_SEED, TEST_SIGMA, False), label=restore_method)
 
         raw, answers, correct = _generate_and_score(engine, requests, task_datas, handler, sampling_params)
 
@@ -159,7 +261,10 @@ def _run_path_cycles(
         n_answer_match = sum(1 for a, b in zip(base_answers, answers) if a == b)
         n_correctness_agree = sum(1 for a, b in zip(base_correct, correct) if a == b)
 
-        drift = ray.get(engine.collective_rpc.remote(_diag_diff_from_base, args=())) if drift_available else None
+        drift = (
+            _collective_rpc_single_worker(engine, _diag_diff_from_base, args=(), label="_diag_diff_from_base")
+            if drift_available else None
+        )
 
         cycles.append({
             "cycle": cycle,
@@ -231,6 +336,10 @@ def main(argv=None) -> int:
     sys.path.insert(0, str(EXTERNAL_ROOT))
     from core.engine import cleanup_engines, launch_engines  # type: ignore
     from data_handlers.gqa import GQAHandler  # type: ignore
+    from utils.worker_extn import WorkerExtension  # type: ignore
+
+    print("Verifying WorkerExtension method signatures against the pinned external/RandOpt checkout...")
+    _verify_worker_extension_signatures(WorkerExtension)
 
     handler = GQAHandler()
     task_datas = handler.load_data(
@@ -263,7 +372,7 @@ def main(argv=None) -> int:
         try:
             print("Snapshotting base parameters for drift measurement (diagnostic-only, in-worker)...")
             try:
-                msg = ray.get(engine.collective_rpc.remote(_diag_snapshot_base, args=()))
+                msg = _collective_rpc_single_worker(engine, _diag_snapshot_base, args=(), label="_diag_snapshot_base")
                 print(f"  {msg}")
                 drift_available = True
             except Exception as exc:  # noqa: BLE001 -- any failure here only downgrades drift reporting, never aborts the diagnostic
@@ -293,11 +402,12 @@ def main(argv=None) -> int:
                 )
             except Exception as exc:  # noqa: BLE001 -- reported in the output report, Path A results stay intact either way
                 path_b_error = (
-                    f"{type(exc).__name__}: {exc}. apply_perturbation/reset_to_base_weights were assumed to "
-                    f"accept (seed, sigma, bool) like perturb_self_weights/restore_self_weights (see module "
-                    f"docstring) -- if their real signature differs, this is that mismatch surfacing, not a "
-                    f"restoration finding. Re-check the pinned utils/worker_extn.py signatures directly and "
-                    f"adjust the args passed by _run_path_cycles before re-running."
+                    f"{type(exc).__name__}: {exc}. _verify_worker_extension_signatures() above already "
+                    f"confirmed apply_perturbation/reset_to_base_weights have the same parameter COUNT as "
+                    f"perturb_self_weights/restore_self_weights, so this is likely a mismatch in parameter "
+                    f"names/order/defaults/semantics that count-checking can't catch -- inspect the printed "
+                    f"signatures in this run's console output and adjust the args passed by _run_path_cycles "
+                    f"before re-running Path B."
                 )
                 print(f"  Path B FAILED: {path_b_error}", file=sys.stderr)
         finally:
