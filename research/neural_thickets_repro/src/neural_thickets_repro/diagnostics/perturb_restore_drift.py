@@ -50,6 +50,7 @@ def measure_drift(model: nn.Module, original_state: Dict[str, torch.Tensor]) -> 
     n_elems = 0
     sq_diff_sum = 0.0
     orig_sq_sum = 0.0
+    n_differing = 0
     for name, p in model.named_parameters():
         orig = original_state[name]
         diff = (p.detach().float() - orig.float())
@@ -58,9 +59,16 @@ def measure_drift(model: nn.Module, original_state: Dict[str, torch.Tensor]) -> 
         n_elems += diff.numel()
         sq_diff_sum += diff.pow(2).sum().item()
         orig_sq_sum += orig.float().pow(2).sum().item()
+        n_differing += int((p.detach() != orig).sum().item())
     mean_abs = sum_abs / n_elems if n_elems else 0.0
     rel_norm = (sq_diff_sum**0.5) / (orig_sq_sum**0.5) if orig_sq_sum > 0 else 0.0
-    return {"max_abs_drift": max_abs, "mean_abs_drift": mean_abs, "relative_norm_drift": rel_norm}
+    fraction_differing = n_differing / n_elems if n_elems else 0.0
+    return {
+        "max_abs_drift": max_abs,
+        "mean_abs_drift": mean_abs,
+        "relative_norm_drift": rel_norm,
+        "fraction_elements_differing": fraction_differing,
+    }
 
 
 def check_vision_frozen(

@@ -14,6 +14,21 @@ def test_measure_drift_zero_when_unchanged(dummy_vlm_factory):
     assert drift["max_abs_drift"] == 0.0
     assert drift["mean_abs_drift"] == 0.0
     assert drift["relative_norm_drift"] == 0.0
+    assert drift["fraction_elements_differing"] == 0.0
+
+
+def test_measure_drift_fraction_elements_differing_counts_exact_mismatches(dummy_vlm_factory):
+    model = dummy_vlm_factory()
+    original = {k: v.clone() for k, v in model.state_dict().items()}
+    _, p = next(iter(model.named_parameters()))
+    with torch.no_grad():
+        p.view(-1)[0] += 1.0  # perturb exactly one element of one parameter tensor
+    total_param_elems = sum(pp.numel() for _, pp in model.named_parameters())
+
+    drift = measure_drift(model, original)
+
+    assert drift["fraction_elements_differing"] == 1 / total_param_elems
+    assert drift["max_abs_drift"] == 1.0
 
 
 def test_run_drift_audit_reports_requested_checkpoints(dummy_vlm_factory):
