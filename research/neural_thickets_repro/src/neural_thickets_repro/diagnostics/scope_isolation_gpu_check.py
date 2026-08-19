@@ -34,6 +34,10 @@ same _run_isolation_test helper -- no new diagnostic framework -- for the three
 fine-localization-inside-vision-encoder scopes added for the vision-encoder sub-scope
 milestone (see SCOPED_PERTURBATION_DESIGN.md).
 
+Tests F/G (vision_late_a / vision_late_b): same helper again, for the finer 5/5 split inside
+vision_late added for the vision_late sub-scope milestone (see SCOPED_PERTURBATION_DESIGN.md
+"vision_late sub-scopes" addendum).
+
 Drift measurement reuses diagnostics/perturb_restore_drift.py's already-unit-tested
 measure_drift (extended with an optional param_filter for exactly this in-scope/
 out-of-scope split) rather than a third reimplementation of the same math.
@@ -283,13 +287,18 @@ def main(argv=None) -> int:
             test_c = _run_isolation_test(engine, "C", "vision_early")
             test_d = _run_isolation_test(engine, "D", "vision_middle")
             test_e = _run_isolation_test(engine, "E", "vision_late")
+            # Finer localization inside vision_late (SCOPED_PERTURBATION_DESIGN.md
+            # "vision_late sub-scopes" addendum) -- same _run_isolation_test helper again, no
+            # new diagnostic framework.
+            test_f = _run_isolation_test(engine, "F", "vision_late_a")
+            test_g = _run_isolation_test(engine, "G", "vision_late_b")
         finally:
             cleanup_engines(engines, pgs)
     finally:
         if engines is None and ray_owned_by_us and ray.is_initialized():
             ray.shutdown()
 
-    overall_pass = all(t["pass"] for t in (test_a, test_b, test_c, test_d, test_e))
+    overall_pass = all(t["pass"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g))
     report = {
         "pre_perturbation_report": pre_report,
         "test_seed": TEST_SEED,
@@ -299,6 +308,8 @@ def main(argv=None) -> int:
         "test_c_vision_early": test_c,
         "test_d_vision_middle": test_d,
         "test_e_vision_late": test_e,
+        "test_f_vision_late_a": test_f,
+        "test_g_vision_late_b": test_g,
         "overall": "PASS" if overall_pass else "FAIL",
     }
 
@@ -312,6 +323,8 @@ def main(argv=None) -> int:
     print(f"Test C (vision_early): {'PASS' if test_c['pass'] else 'FAIL'}")
     print(f"Test D (vision_middle): {'PASS' if test_d['pass'] else 'FAIL'}")
     print(f"Test E (vision_late): {'PASS' if test_e['pass'] else 'FAIL'}")
+    print(f"Test F (vision_late_a): {'PASS' if test_f['pass'] else 'FAIL'}")
+    print(f"Test G (vision_late_b): {'PASS' if test_g['pass'] else 'FAIL'}")
     if not overall_pass:
         print(
             "This is a mechanical scope-isolation check only -- it does not run a candidate "

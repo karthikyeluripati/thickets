@@ -32,6 +32,10 @@ PERTURBATION_SCOPES: Tuple[str, ...] = (
     # partition of the 32 vision-encoder blocks (32 is not divisible by 3, unlike the LM's 36
     # layers, so partition_layers_into_thirds does not apply here).
     "vision_early", "vision_middle", "vision_late",
+    # Even finer localization inside vision_late (blocks 22-31), motivated by the 6-cell
+    # vision-localization sweep's paired seed-level analysis (see
+    # SCOPED_PERTURBATION_DESIGN.md "vision_late sub-scopes" addendum) -- a fixed 5/5 split.
+    "vision_late_a", "vision_late_b",
 )
 
 VISUAL_MERGER_PREFIXES: Tuple[str, ...] = ("visual.merger.",)
@@ -46,6 +50,7 @@ VISUAL_ROTARY_POS_EMB_PREFIXES: Tuple[str, ...] = ("visual.rotary_pos_emb.",)
 # they affect vision output for exactly the same reason vision_encoder does.
 _VISUAL_AFFECTING_SCOPES = frozenset({
     "vision_encoder", "vision_merger", "full_vlm", "vision_early", "vision_middle", "vision_late",
+    "vision_late_a", "vision_late_b",
 })
 
 
@@ -212,6 +217,32 @@ def partition_vision_blocks(indices: Sequence[int]) -> Dict[str, List[int]]:
     return {name: list(range(lo, hi + 1)) for name, (lo, hi) in _VISION_BLOCK_THIRDS_BOUNDS.items()}
 
 
+# --- finer localization inside vision_late (blocks 22-31) ---
+#
+# Motivated by the 6-cell vision-localization sweep's paired seed-level analysis: at r=.04,
+# vision_late's expert density was significantly higher than vision_early's (exact McNemar
+# p=.0227) and vision_middle's (p=.0192, paired mean delta -.0065, 95% bootstrap CI
+# [-.0118,-.0012]) -- see SCOPED_PERTURBATION_DESIGN.md "vision_late sub-scopes" addendum.
+_VISION_LATE_HALVES_BOUNDS: Dict[str, Tuple[int, int]] = {
+    "a": (22, 26),
+    "b": (27, 31),
+}
+
+
+def partition_vision_late_into_halves(indices: Sequence[int]) -> Dict[str, List[int]]:
+    """Fixed contiguous 5/5 split of vision_late's own block range (22-31): vision_late_a =
+    blocks 22-26, vision_late_b = blocks 27-31. Requires the complete {0,...,31} block set,
+    same completeness discipline as partition_vision_blocks -- never partitions a
+    partial/gapped block set.
+    """
+    if sorted(indices) != list(range(_VISION_ENCODER_BLOCK_COUNT)):
+        raise ScopeSelectionError(
+            f"partition_vision_late_into_halves requires exactly the complete "
+            f"{_VISION_ENCODER_BLOCK_COUNT}-block index set, got {sorted(indices)}."
+        )
+    return {name: list(range(lo, hi + 1)) for name, (lo, hi) in _VISION_LATE_HALVES_BOUNDS.items()}
+
+
 # --- selector factories: (all_param_names) -> Callable[[str], bool] ---
 
 
@@ -278,6 +309,20 @@ def _make_vision_third_selector_factory(third: str) -> Callable[[Sequence[str]],
     return _factory
 
 
+def _make_vision_late_half_selector_factory(half: str) -> Callable[[Sequence[str]], Callable[[str], bool]]:
+    def _factory(all_names: Sequence[str]) -> Callable[[str], bool]:
+        indices = discover_vision_block_indices(all_names)
+        halves = partition_vision_late_into_halves(indices)
+        selected_block_indices = set(halves[half])
+
+        def _selector(name: str) -> bool:
+            m = _VISION_BLOCK_PATTERN.match(name)
+            return m is not None and int(m.group(1)) in selected_block_indices
+
+        return _selector
+    return _factory
+
+
 _SCOPE_SELECTOR_FACTORIES: Dict[str, Callable[[Sequence[str]], Callable[[str], bool]]] = {
     "full_lm": _full_lm_selector_factory,
     "vision_encoder": _vision_encoder_selector_factory,
@@ -289,6 +334,8 @@ _SCOPE_SELECTOR_FACTORIES: Dict[str, Callable[[Sequence[str]], Callable[[str], b
     "vision_early": _make_vision_third_selector_factory("early"),
     "vision_middle": _make_vision_third_selector_factory("middle"),
     "vision_late": _make_vision_third_selector_factory("late"),
+    "vision_late_a": _make_vision_late_half_selector_factory("a"),
+    "vision_late_b": _make_vision_late_half_selector_factory("b"),
 }
 
 # Scope-specific hard exclusion assertions, run after selection -- catches a selector-factory
@@ -306,6 +353,8 @@ _SCOPE_EXCLUSION_CHECKS: Dict[str, Callable[[str], bool]] = {
     "vision_early": _is_visual_encoder,
     "vision_middle": _is_visual_encoder,
     "vision_late": _is_visual_encoder,
+    "vision_late_a": _is_visual_encoder,
+    "vision_late_b": _is_visual_encoder,
 }
 
 

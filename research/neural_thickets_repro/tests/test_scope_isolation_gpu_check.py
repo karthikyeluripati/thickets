@@ -32,9 +32,9 @@ def test_diag_snapshot_base_stores_full_state(runtime_wrapped_vlm_factory):
     assert str(len(worker._scope_diag_base_state)) in msg
 
 
-def test_diag_report_all_scopes_covers_all_ten(runtime_wrapped_vlm_32vision_factory):
-    # Needs the 32-vision-block fixture: PERTURBATION_SCOPES now includes vision_early/
-    # middle/late, whose fixed 11/11/10 partition hard-requires the complete block set.
+def test_diag_report_all_scopes_covers_every_registered_scope(runtime_wrapped_vlm_32vision_factory):
+    # Needs the 32-vision-block fixture: PERTURBATION_SCOPES includes vision_early/middle/
+    # late and vision_late_a/b, whose fixed partitions hard-require the complete block set.
     model = runtime_wrapped_vlm_32vision_factory()
     worker = _fake_worker(model)
     report = _diag_report_all_scopes(worker)

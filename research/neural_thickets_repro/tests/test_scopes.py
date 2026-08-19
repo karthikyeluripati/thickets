@@ -11,6 +11,7 @@ from neural_thickets_repro.scopes import (
     discover_vision_block_indices,
     partition_layers_into_thirds,
     partition_vision_blocks,
+    partition_vision_late_into_halves,
     scope_requires_encoder_cache_reset,
 )
 
@@ -179,10 +180,11 @@ def test_unknown_scope_name_raises():
         build_scope_manifest("not_a_real_scope", [])
 
 
-def test_all_ten_scopes_are_registered():
-    # 7 coarse scopes + vision_early/middle/late (fine-localization-inside-vision-encoder).
-    assert len(PERTURBATION_SCOPES) == 10
-    assert {"vision_early", "vision_middle", "vision_late"} <= set(PERTURBATION_SCOPES)
+def test_all_twelve_scopes_are_registered():
+    # 7 coarse scopes + vision_early/middle/late + vision_late_a/b (finer localization
+    # inside vision_late).
+    assert len(PERTURBATION_SCOPES) == 12
+    assert {"vision_early", "vision_middle", "vision_late", "vision_late_a", "vision_late_b"} <= set(PERTURBATION_SCOPES)
 
 
 # --- storage dedup / alias reporting ---
@@ -256,7 +258,10 @@ def test_manifest_selection_deterministic_across_calls(runtime_wrapped_vlm_facto
 # --- scope_requires_encoder_cache_reset ---
 
 
-@pytest.mark.parametrize("scope", ["vision_encoder", "vision_merger", "full_vlm", "vision_early", "vision_middle", "vision_late"])
+@pytest.mark.parametrize("scope", [
+    "vision_encoder", "vision_merger", "full_vlm",
+    "vision_early", "vision_middle", "vision_late", "vision_late_a", "vision_late_b",
+])
 def test_visual_affecting_scopes_require_encoder_cache_reset(scope):
     assert scope_requires_encoder_cache_reset(scope) is True
 
@@ -403,3 +408,97 @@ def test_vision_early_relative_l2_sigma_derived_from_its_own_manifest(runtime_wr
     sigma_early = compute_relative_l2_sigma(early_manifest.base_l2_norm, early_manifest.total_element_count, r=0.04)
     sigma_encoder = compute_relative_l2_sigma(encoder_manifest.base_l2_norm, encoder_manifest.total_element_count, r=0.04)
     assert sigma_early != pytest.approx(sigma_encoder)
+
+
+# --- vision_late_a / vision_late_b (finer localization inside vision_late) ---
+
+
+def test_partition_vision_late_into_halves_matches_requested_5_5_bounds():
+    halves = partition_vision_late_into_halves(list(range(32)))
+    assert halves["a"] == list(range(22, 27))
+    assert halves["b"] == list(range(27, 32))
+
+
+def test_partition_vision_late_into_halves_hard_fails_on_incomplete_set():
+    with pytest.raises(ScopeSelectionError, match="requires exactly the complete"):
+        partition_vision_late_into_halves(list(range(30)))
+
+
+def test_vision_late_a_selects_exactly_blocks_22_to_26(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest = build_scope_manifest("vision_late_a", model.named_parameters())
+    names = manifest.selected_param_names
+    for i in range(22, 27):
+        assert any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} missing from vision_late_a"
+    for i in list(range(0, 22)) + list(range(27, 32)):
+        assert not any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} leaked into vision_late_a"
+
+
+def test_vision_late_b_selects_exactly_blocks_27_to_31(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest = build_scope_manifest("vision_late_b", model.named_parameters())
+    names = manifest.selected_param_names
+    for i in range(27, 32):
+        assert any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} missing from vision_late_b"
+    for i in range(0, 27):
+        assert not any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} leaked into vision_late_b"
+
+
+def test_vision_late_halves_exclude_merger_and_lm(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    for scope in ("vision_late_a", "vision_late_b"):
+        manifest = build_scope_manifest(scope, named_params)
+        for name in manifest.selected_param_names:
+            assert "merger" not in name, f"{scope} leaked merger param {name}"
+            assert not name.startswith("language_model."), f"{scope} leaked LM param {name}"
+
+
+def test_vision_late_halves_pairwise_disjoint(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    a = set(build_scope_manifest("vision_late_a", named_params).selected_param_names)
+    b = set(build_scope_manifest("vision_late_b", named_params).selected_param_names)
+    assert a & b == set()
+
+
+def test_vision_late_halves_union_equals_vision_late_exactly(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    a = set(build_scope_manifest("vision_late_a", named_params).selected_param_names)
+    b = set(build_scope_manifest("vision_late_b", named_params).selected_param_names)
+    vision_late = set(build_scope_manifest("vision_late", named_params).selected_param_names)
+    assert a | b == vision_late
+
+
+def test_vision_late_halves_hard_fail_on_incomplete_block_set(runtime_wrapped_vlm_factory):
+    # The 2-block fixture cannot satisfy the fixed 5/5 split's 32-block requirement.
+    model = runtime_wrapped_vlm_factory()
+    with pytest.raises(ScopeSelectionError, match="complete 32 contiguous"):
+        build_scope_manifest("vision_late_a", model.named_parameters())
+
+
+def test_vision_late_halves_relative_l2_sigma_matches_closed_form(runtime_wrapped_vlm_32vision_factory):
+    # Each half's sigma must come from ITS OWN manifest, not a shared/inherited vision_late-
+    # level value -- proven directly against the closed form applied to each half's own
+    # reported norm/count.
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    manifest_a = build_scope_manifest("vision_late_a", named_params)
+    manifest_b = build_scope_manifest("vision_late_b", named_params)
+
+    sigma_a = compute_relative_l2_sigma(manifest_a.base_l2_norm, manifest_a.total_element_count, r=0.04)
+    sigma_b = compute_relative_l2_sigma(manifest_b.base_l2_norm, manifest_b.total_element_count, r=0.04)
+    assert sigma_a == pytest.approx(0.04 * manifest_a.base_l2_norm / (manifest_a.total_element_count ** 0.5))
+    assert sigma_b == pytest.approx(0.04 * manifest_b.base_l2_norm / (manifest_b.total_element_count ** 0.5))
+
+
+def test_existing_vision_third_scopes_unaffected_by_late_halves(runtime_wrapped_vlm_32vision_factory):
+    # Adding vision_late_a/b must not change vision_early/middle/late's own selection --
+    # existing scopes/results remain behaviorally unchanged.
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    late_names = set(build_scope_manifest("vision_late", named_params).selected_param_names)
+    for i in range(22, 32):
+        assert any(n.startswith(f"visual.blocks.{i}.") for n in late_names)
+    assert len(late_names) == 10  # 10 blocks, unchanged shape

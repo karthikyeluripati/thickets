@@ -318,3 +318,49 @@ framework. `_diag_report_all_scopes` picks up the three new scopes automatically
 `scopes.PERTURBATION_SCOPES`), so its pre-perturbation report now also prints each new
 scope's real selected-tensor count, element count, and base L2 norm before any weight is
 touched — the actual numbers depend on the real checkpoint and are not fabricated here.
+
+## Addendum: vision_late sub-scopes (finer localization inside vision_late)
+
+Motivated by the completed, validated 6-cell vision-localization sweep's **paired seed-level
+analysis** (all six cells share the identical 100 candidate seeds, enabling exact within-seed
+comparisons rather than relying on Wilson-interval overlap): at `r=.04`, `vision_late`'s
+expert density was significantly higher than `vision_early`'s (exact two-sided McNemar
+p=.0227) and `vision_middle`'s (p=.0192, paired mean delta −.0065, 95% bootstrap CI
+[−.0118,−.0012]). At `r=.07`, no pairwise McNemar comparison reached significance. The next
+question is *where inside vision_late's 10 blocks (22–31)* the signal concentrates — only at
+`r=.04`, only inside `vision_late`, no new dataset/model/task.
+
+**Partition** (fixed 5/5 split of `vision_late`'s own block range):
+
+| Scope | Selection | Block count |
+|---|---|---|
+| `vision_late_a` | `visual.blocks.22`..`visual.blocks.26` | 5 blocks |
+| `vision_late_b` | `visual.blocks.27`..`visual.blocks.31` | 5 blocks |
+
+`vision_late_a ∪ vision_late_b == vision_late` exactly, pairwise disjoint, no merger
+parameters, no parameters outside blocks 22–31 — proven by test
+(`tests/test_scopes.py::test_vision_late_halves_union_equals_vision_late_exactly`,
+`::test_vision_late_halves_pairwise_disjoint`, `::test_vision_late_halves_exclude_merger_and_lm`)
+against a real named-parameters set. `partition_vision_late_into_halves` requires the
+complete `{0,...,31}` block set, same completeness discipline as `partition_vision_blocks` —
+never partitions a partial/gapped set.
+
+Both scopes added to `_VISUAL_AFFECTING_SCOPES` (full encoder-cache reset required, same
+mechanism as every other visual scope — no change to the reset logic itself). Relative-L2
+sigma is derived independently per half from its own manifest via the same unmodified
+`compute_relative_l2_sigma` — `scoped_perturbation.py` again required zero changes, being
+fully scope-agnostic. `run_scoped_randopt.py`'s CLI again required zero changes
+(`--perturbation-scope` reads its choices from `scopes.PERTURBATION_SCOPES` dynamically).
+`vision_early`/`vision_middle`/`vision_late` and all other existing scopes' own selection
+logic is untouched — proven by the full existing test suite remaining green (312 passed, 1
+skipped, up from 294, zero regressions) alongside a dedicated regression test
+(`test_existing_vision_third_scopes_unaffected_by_late_halves`).
+
+**GPU isolation check**: Tests F/G added to `diagnostics/scope_isolation_gpu_check.py`,
+reusing the identical `_run_isolation_test` helper again — still no new diagnostic framework.
+
+**Scientific protocol, unchanged**: same model/GQA/subset/scorer, `fixed_base` restoration,
+`upstream_per_tensor_reseed` noise semantics, relative-L2 normalization, candidate seed
+generation, N=100, K=1, test_samples=5. Only `r=0.04` (the radius where the paired signal was
+found) — no `r=.07`, no other scopes revisited. 2 scopes × 1 radius × 100 candidates = 200
+candidates, not run by this milestone.
