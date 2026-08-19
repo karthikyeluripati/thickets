@@ -27,16 +27,26 @@ from .perturb_cpu import DEFAULT_VISUAL_PREFIXES, should_perturb
 
 PERTURBATION_SCOPES: Tuple[str, ...] = (
     "full_lm", "vision_encoder", "vision_merger", "lm_early", "lm_middle", "lm_late", "full_vlm",
+    # WACV fine-localization-inside-vision-encoder scopes (see SCOPED_PERTURBATION_DESIGN.md
+    # "Vision-encoder sub-scopes" addendum) -- a fixed, non-uniform 11/11/10 contiguous
+    # partition of the 32 vision-encoder blocks (32 is not divisible by 3, unlike the LM's 36
+    # layers, so partition_layers_into_thirds does not apply here).
+    "vision_early", "vision_middle", "vision_late",
 )
 
 VISUAL_MERGER_PREFIXES: Tuple[str, ...] = ("visual.merger.",)
+VISUAL_PATCH_EMBED_PREFIXES: Tuple[str, ...] = ("visual.patch_embed.",)
+VISUAL_ROTARY_POS_EMB_PREFIXES: Tuple[str, ...] = ("visual.rotary_pos_emb.",)
 
 # Scopes whose perturbation can change what the vision encoder/projector outputs for a given
 # image -- see vlm_adapter.reset_vllm_encoder_cache's docstring (divergence #7) for the full
 # investigation. full_lm/lm_early/lm_middle/lm_late never touch visual.* parameters, so the
 # vision encoder's output for a given image is unchanged regardless of which of those scopes
-# is perturbed.
-_VISUAL_AFFECTING_SCOPES = frozenset({"vision_encoder", "vision_merger", "full_vlm"})
+# is perturbed. vision_early/middle/late are contiguous sub-partitions of vision_encoder, so
+# they affect vision output for exactly the same reason vision_encoder does.
+_VISUAL_AFFECTING_SCOPES = frozenset({
+    "vision_encoder", "vision_merger", "full_vlm", "vision_early", "vision_middle", "vision_late",
+})
 
 
 def scope_requires_encoder_cache_reset(scope: str) -> bool:
@@ -145,6 +155,63 @@ def partition_layers_into_thirds(indices: Sequence[int]) -> Dict[str, List[int]]
     }
 
 
+# --- vision-encoder block discovery/partition (fine-localization-inside-vision-encoder) ---
+#
+# Confirmed (SCOPED_PERTURBATION_DESIGN.md Phase 1): visual.* is NOT re-nested under
+# language_model./model. in either recognized LM namespace convention -- unlike LM layers,
+# vision-block naming needs no convention-discovery step, only a completeness check against
+# the one recognized pattern. Mirrors VISUAL_MERGER_PREFIXES's existing single-prefix (not
+# dual-prefix) precedent.
+_VISION_BLOCK_PATTERN: re.Pattern = re.compile(r"^visual\.blocks\.(\d+)\.")
+
+# The real Qwen2.5-VL-3B-Instruct vision encoder's confirmed block depth (HF config.json
+# "depth": 32). 32 is not divisible by 3, so this milestone uses a fixed, explicitly
+# requested 11/11/10 contiguous partition rather than partition_layers_into_thirds's
+# equal-thirds rule.
+_VISION_ENCODER_BLOCK_COUNT = 32
+_VISION_BLOCK_THIRDS_BOUNDS: Dict[str, Tuple[int, int]] = {
+    "early": (0, 10),
+    "middle": (11, 21),
+    "late": (22, 31),
+}
+
+
+def discover_vision_block_indices(param_names: Sequence[str]) -> List[int]:
+    """Sorted unique vision-encoder block indices matched by _VISION_BLOCK_PATTERN.
+    Hard-fails if zero blocks are found, or if the found indices are not exactly the complete
+    {0, ..., 31} set the fixed 11/11/10 partition below depends on -- never partitions a
+    partial/gapped block set.
+    """
+    indices = sorted({int(m.group(1)) for name in param_names if (m := _VISION_BLOCK_PATTERN.match(name))})
+    if not indices:
+        sample = list(param_names)[:10]
+        raise ScopeSelectionError(
+            f"No parameter names matched the recognized vision-encoder block convention "
+            f"(pattern {_VISION_BLOCK_PATTERN.pattern!r}) among {len(param_names)} names. "
+            f"First names seen: {sample}. Refusing to guess."
+        )
+    if indices != list(range(_VISION_ENCODER_BLOCK_COUNT)):
+        raise ScopeSelectionError(
+            f"Expected exactly the complete {_VISION_ENCODER_BLOCK_COUNT} contiguous "
+            f"vision-encoder block indices (0..{_VISION_ENCODER_BLOCK_COUNT - 1}) to apply "
+            f"the fixed 11/11/10 vision_early/middle/late partition, found {indices}."
+        )
+    return indices
+
+
+def partition_vision_blocks(indices: Sequence[int]) -> Dict[str, List[int]]:
+    """Fixed, non-uniform contiguous partition of the 32 vision-encoder blocks: early=0-10
+    (11 blocks), middle=11-21 (11 blocks), late=22-31 (10 blocks) -- the exact boundaries
+    requested for this milestone, not a formula.
+    """
+    if sorted(indices) != list(range(_VISION_ENCODER_BLOCK_COUNT)):
+        raise ScopeSelectionError(
+            f"partition_vision_blocks requires exactly the complete "
+            f"{_VISION_ENCODER_BLOCK_COUNT}-block index set, got {sorted(indices)}."
+        )
+    return {name: list(range(lo, hi + 1)) for name, (lo, hi) in _VISION_BLOCK_THIRDS_BOUNDS.items()}
+
+
 # --- selector factories: (all_param_names) -> Callable[[str], bool] ---
 
 
@@ -182,6 +249,35 @@ def _make_lm_third_selector_factory(third: str) -> Callable[[Sequence[str]], Cal
     return _factory
 
 
+def _make_vision_third_selector_factory(third: str) -> Callable[[Sequence[str]], Callable[[str], bool]]:
+    def _factory(all_names: Sequence[str]) -> Callable[[str], bool]:
+        indices = discover_vision_block_indices(all_names)
+        thirds = partition_vision_blocks(indices)
+        selected_block_indices = set(thirds[third])
+
+        def _is_selected_block(name: str) -> bool:
+            m = _VISION_BLOCK_PATTERN.match(name)
+            return m is not None and int(m.group(1)) in selected_block_indices
+
+        if third != "early":
+            return _is_selected_block
+
+        # vision_early additionally owns patch_embed and, if any exist at runtime,
+        # rotary_pos_emb's trainable parameters -- per the explicit assignment rule for this
+        # milestone. rotary_pos_emb is typically a registered buffer (no trainable
+        # nn.Parameter), in which case named_parameters() never yields it and this prefix
+        # check is simply never true -- no separate "document there are none" branch needed,
+        # the manifest's own selected_param_names is the documentation.
+        def _selector(name: str) -> bool:
+            return (
+                _is_selected_block(name)
+                or name.startswith(VISUAL_PATCH_EMBED_PREFIXES)
+                or name.startswith(VISUAL_ROTARY_POS_EMB_PREFIXES)
+            )
+        return _selector
+    return _factory
+
+
 _SCOPE_SELECTOR_FACTORIES: Dict[str, Callable[[Sequence[str]], Callable[[str], bool]]] = {
     "full_lm": _full_lm_selector_factory,
     "vision_encoder": _vision_encoder_selector_factory,
@@ -190,6 +286,9 @@ _SCOPE_SELECTOR_FACTORIES: Dict[str, Callable[[Sequence[str]], Callable[[str], b
     "lm_middle": _make_lm_third_selector_factory("middle"),
     "lm_late": _make_lm_third_selector_factory("late"),
     "full_vlm": _full_vlm_selector_factory,
+    "vision_early": _make_vision_third_selector_factory("early"),
+    "vision_middle": _make_vision_third_selector_factory("middle"),
+    "vision_late": _make_vision_third_selector_factory("late"),
 }
 
 # Scope-specific hard exclusion assertions, run after selection -- catches a selector-factory
@@ -202,6 +301,11 @@ _SCOPE_EXCLUSION_CHECKS: Dict[str, Callable[[str], bool]] = {
     "lm_early": lambda name: not _is_visual(name),
     "lm_middle": lambda name: not _is_visual(name),
     "lm_late": lambda name: not _is_visual(name),
+    # Each vision third must stay entirely within vision_encoder's own selection (visual,
+    # never merger) -- catches a selector bug rather than trusting the factory silently.
+    "vision_early": _is_visual_encoder,
+    "vision_middle": _is_visual_encoder,
+    "vision_late": _is_visual_encoder,
 }
 
 

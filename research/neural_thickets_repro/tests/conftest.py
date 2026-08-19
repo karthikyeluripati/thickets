@@ -156,3 +156,51 @@ def runtime_wrapped_vlm_factory():
         return RuntimeWrappedVLM()
 
     return _make
+
+
+# --- 32-vision-block fixture (tests/test_scopes.py, test_scoped_perturbation.py,
+# test_scope_isolation_gpu_check.py) -- vision_early/middle/late's fixed 11/11/10 partition
+# hard-requires the complete visual.blocks.0..31 index set (scopes.discover_vision_block_
+# indices), which the 2-block _DummyVisualWithMerger above cannot exercise. Any test that
+# iterates ALL of scopes.PERTURBATION_SCOPES (not just a couple of named scopes) must use
+# this fixture instead, now that the registry includes the three vision-third scopes.
+
+_VISION_BLOCK_COUNT = 32  # matches the real Qwen2.5-VL-3B-Instruct vision encoder depth
+
+
+class _DummyVisual32Blocks(nn.Module):
+    """visual.patch_embed / visual.blocks.0..31 / visual.merger / visual.rotary_pos_emb --
+    the last one stands in for a trainable rotary_pos_emb parameter so vision_early's "assign
+    trainable rotary_pos_emb params to vision_early, if any exist" rule is actually exercised
+    by at least one test, not only exercised by its absence.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.patch_embed = nn.Linear(4, 4, bias=False)
+        self.blocks = nn.ModuleList([nn.Linear(4, 4, bias=False) for _ in range(_VISION_BLOCK_COUNT)])
+        self.merger = nn.Linear(4, 4, bias=False)
+        self.rotary_pos_emb = nn.Linear(4, 4, bias=False)
+
+
+class RuntimeWrappedVLM32Vision(nn.Module):
+    """Same LM shape as RuntimeWrappedVLM (language_model.model.layers.0..11 + tied lm_head),
+    but with the full 32-block vision encoder.
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.visual = _DummyVisual32Blocks()
+        self.language_model = _RuntimeLanguageModelWrapper()
+
+    def forward(self, x):  # pragma: no cover - not exercised, just needed to be a valid nn.Module
+        return x
+
+
+@pytest.fixture
+def runtime_wrapped_vlm_32vision_factory():
+    def _make() -> RuntimeWrappedVLM32Vision:
+        torch.manual_seed(0)
+        return RuntimeWrappedVLM32Vision()
+
+    return _make

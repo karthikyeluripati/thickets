@@ -158,7 +158,8 @@ other than `fixed_base` is passed.
 No N=20/50/5000 candidate search, no all-seven-scope sweep, no full GQA test evaluation — the
 only GPU execution this milestone authorizes is
 `diagnostics/scope_isolation_gpu_check.py`'s Test A (`vision_encoder`) / Test B (`lm_middle`)
-mechanical isolation check. No per-layer, attention-vs-MLP, routing, transfer, or construction-
+mechanical isolation check (extended to Tests C/D/E for `vision_early`/`vision_middle`/
+`vision_late` -- see "Vision-encoder sub-scopes" addendum below). No per-layer, attention-vs-MLP, routing, transfer, or construction-
 dataset work. `external/RandOpt` is never edited; `run_randopt_image_aware.py` is never
 modified (not even additively); `released_compat`/`fixed_base`/`sample_candidates`/candidate
 seed generation/top-K selection/majority voting are all reused unmodified.
@@ -262,3 +263,58 @@ changed by either fix attempt.
 `vision_encoder r=.005`'s pre-fix result AND the worker-only-reset crash log are preserved
 on disk as forensic artifacts and are explicitly excluded from the final coarse map — the
 completed `full_lm` × 4-radii results are valid and preserved unchanged, not rerun.
+
+## Addendum: vision-encoder sub-scopes (fine-localization inside vision_encoder)
+
+Motivated by the completed, validated 7×4 coarse map: `vision_encoder` showed the highest
+expert density of any scope at `r=.04` (0.87) and `r=.07` (0.89). The next question is
+*where inside the 32-block vision encoder* that density lives — not a new dataset, model, or
+task, only a finer partition of the existing `vision_encoder` scope.
+
+**Partition** (fixed, non-uniform, requested explicitly — 32 is not divisible by 3, so
+`partition_layers_into_thirds`'s equal-thirds rule does not apply):
+
+| Scope | Selection | Block count |
+|---|---|---|
+| `vision_early` | `visual.patch_embed.*`, `visual.blocks.0`..`visual.blocks.10`, and `visual.rotary_pos_emb.*` if any trainable parameters exist there | 11 blocks + patch_embed (+ rotary_pos_emb, if present) |
+| `vision_middle` | `visual.blocks.11`..`visual.blocks.21` | 11 blocks |
+| `vision_late` | `visual.blocks.22`..`visual.blocks.31` | 10 blocks |
+
+`visual.merger.*` stays excluded from all three, same as `vision_encoder` today. The union of
+the three exactly equals `vision_encoder`'s own selection, with zero overlap — proven by test
+(`tests/test_scopes.py::test_vision_thirds_union_equals_vision_encoder_exactly`,
+`::test_vision_thirds_pairwise_disjoint`) against a real named-parameters set, not merely
+inspected.
+
+**Discovery, not hardcoding**: `scopes.discover_vision_block_indices` matches the single
+recognized `visual.blocks.(\d+).` pattern (confirmed — Phase 1 above — that `visual.*` is
+never re-nested under `language_model./model.` in either LM convention, so unlike LM layers
+no convention-discovery step is needed here, only a completeness check) and hard-fails unless
+the found indices are exactly the complete `{0, ..., 31}` set the fixed 11/11/10 boundaries
+depend on. `rotary_pos_emb` is typically a registered buffer (no trainable `nn.Parameter`),
+in which case `named_parameters()` never yields it and `vision_early`'s selector — which
+includes the `visual.rotary_pos_emb.` prefix unconditionally, exactly like the "if it has
+trainable parameters, assign them to `vision_early`" instruction — simply never matches
+anything under that prefix; the resulting manifest's `selected_param_names` is itself the
+documentation of whether any existed, no separate flag needed.
+
+**Relative-L2 sigma** is derived independently per sub-scope from its own manifest
+(`base_l2_norm`, `total_element_count`) via the same unmodified `compute_relative_l2_sigma`
+used by every other scope — `scoped_perturbation.scoped_apply_perturbation` is fully
+scope-agnostic and required no changes at all for this milestone.
+
+**Scientific protocol, unchanged**: same model revision, GQA, 200-example selection subset,
+scorer/prompt, `fixed_base` restoration, `upstream_per_tensor_reseed` noise semantics,
+relative-L2 normalization, candidate seed generation, full encoder-cache reset (all three new
+scopes are visual-affecting — added to `_VISUAL_AFFECTING_SCOPES` — so
+`scope_requires_encoder_cache_reset` returns `True` for all three), N=100, K=1,
+test_samples=5. Only `r ∈ {0.04, 0.07}` (the two radii where `vision_encoder` density peaked)
+are used — no new radii. 3 scopes × 2 radii × 100 candidates = 600 candidates total, not run
+by this milestone.
+
+**GPU isolation check**: `diagnostics/scope_isolation_gpu_check.py` gained Tests C/D/E,
+reusing the identical `_run_isolation_test` helper Test A/B already used — no new diagnostic
+framework. `_diag_report_all_scopes` picks up the three new scopes automatically (it iterates
+`scopes.PERTURBATION_SCOPES`), so its pre-perturbation report now also prints each new
+scope's real selected-tensor count, element count, and base L2 norm before any weight is
+touched — the actual numbers depend on the real checkpoint and are not fabricated here.

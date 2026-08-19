@@ -32,8 +32,10 @@ def test_diag_snapshot_base_stores_full_state(runtime_wrapped_vlm_factory):
     assert str(len(worker._scope_diag_base_state)) in msg
 
 
-def test_diag_report_all_scopes_covers_all_seven(runtime_wrapped_vlm_factory):
-    model = runtime_wrapped_vlm_factory()
+def test_diag_report_all_scopes_covers_all_ten(runtime_wrapped_vlm_32vision_factory):
+    # Needs the 32-vision-block fixture: PERTURBATION_SCOPES now includes vision_early/
+    # middle/late, whose fixed 11/11/10 partition hard-requires the complete block set.
+    model = runtime_wrapped_vlm_32vision_factory()
     worker = _fake_worker(model)
     report = _diag_report_all_scopes(worker)
 
@@ -45,8 +47,8 @@ def test_diag_report_all_scopes_covers_all_seven(runtime_wrapped_vlm_factory):
     assert len(report["representative_param_names"]) > 0
 
 
-def test_diag_report_all_scopes_reports_tied_alias(runtime_wrapped_vlm_factory):
-    model = runtime_wrapped_vlm_factory()
+def test_diag_report_all_scopes_reports_tied_alias(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
     worker = _fake_worker(model)
     report = _diag_report_all_scopes(worker)
     assert "language_model.lm_head.weight" in report["scope_summaries"]["full_lm"]["aliases"]
@@ -102,11 +104,11 @@ def test_diag_scope_drift_reports_out_of_scope_as_literal_complement(runtime_wra
 
 
 @pytest.mark.parametrize("scope", PERTURBATION_SCOPES)
-def test_in_scope_and_out_of_scope_partition_full_vlm_for_every_scope(scope, runtime_wrapped_vlm_factory):
-    """Same partition property as above, generalized across all seven scopes -- in_scope and
-    out_of_scope must always union to exactly full_vlm's own selection and never overlap.
+def test_in_scope_and_out_of_scope_partition_full_vlm_for_every_scope(scope, runtime_wrapped_vlm_32vision_factory):
+    """Same partition property as above, generalized across every registered scope -- in_scope
+    and out_of_scope must always union to exactly full_vlm's own selection and never overlap.
     """
-    model = runtime_wrapped_vlm_factory()
+    model = runtime_wrapped_vlm_32vision_factory()
     worker = _fake_worker(model)
     _diag_snapshot_base(worker)
 

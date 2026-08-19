@@ -8,7 +8,9 @@ from neural_thickets_repro.scopes import (
     compute_relative_l2_sigma,
     detect_lm_namespace_convention,
     discover_lm_layer_indices,
+    discover_vision_block_indices,
     partition_layers_into_thirds,
+    partition_vision_blocks,
     scope_requires_encoder_cache_reset,
 )
 
@@ -177,8 +179,10 @@ def test_unknown_scope_name_raises():
         build_scope_manifest("not_a_real_scope", [])
 
 
-def test_all_seven_scopes_are_registered():
-    assert len(PERTURBATION_SCOPES) == 7
+def test_all_ten_scopes_are_registered():
+    # 7 coarse scopes + vision_early/middle/late (fine-localization-inside-vision-encoder).
+    assert len(PERTURBATION_SCOPES) == 10
+    assert {"vision_early", "vision_middle", "vision_late"} <= set(PERTURBATION_SCOPES)
 
 
 # --- storage dedup / alias reporting ---
@@ -252,7 +256,7 @@ def test_manifest_selection_deterministic_across_calls(runtime_wrapped_vlm_facto
 # --- scope_requires_encoder_cache_reset ---
 
 
-@pytest.mark.parametrize("scope", ["vision_encoder", "vision_merger", "full_vlm"])
+@pytest.mark.parametrize("scope", ["vision_encoder", "vision_merger", "full_vlm", "vision_early", "vision_middle", "vision_late"])
 def test_visual_affecting_scopes_require_encoder_cache_reset(scope):
     assert scope_requires_encoder_cache_reset(scope) is True
 
@@ -272,3 +276,130 @@ def test_scope_requires_encoder_cache_reset_covers_every_registered_scope():
 def test_scope_requires_encoder_cache_reset_rejects_unknown_scope():
     with pytest.raises(ValueError, match="Unknown perturbation scope"):
         scope_requires_encoder_cache_reset("not_a_real_scope")
+
+
+# --- discover_vision_block_indices / partition_vision_blocks (vision_early/middle/late) ---
+
+
+def test_discover_vision_block_indices_finds_complete_32_block_set(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    assert discover_vision_block_indices(names) == list(range(32))
+
+
+def test_discover_vision_block_indices_hard_fails_on_incomplete_set():
+    with pytest.raises(ScopeSelectionError, match="complete 32 contiguous"):
+        discover_vision_block_indices(["visual.blocks.0.weight", "visual.blocks.1.weight"])
+
+
+def test_discover_vision_block_indices_hard_fails_on_zero_matches():
+    with pytest.raises(ScopeSelectionError, match="No parameter names matched"):
+        discover_vision_block_indices(["model.layers.0.weight", "visual.merger.weight"])
+
+
+def test_partition_vision_blocks_matches_requested_11_11_10_bounds():
+    thirds = partition_vision_blocks(list(range(32)))
+    assert thirds["early"] == list(range(0, 11))
+    assert thirds["middle"] == list(range(11, 22))
+    assert thirds["late"] == list(range(22, 32))
+
+
+def test_partition_vision_blocks_hard_fails_on_incomplete_set():
+    with pytest.raises(ScopeSelectionError, match="requires exactly the complete"):
+        partition_vision_blocks(list(range(30)))
+
+
+# --- vision_early / vision_middle / vision_late scope selection ---
+
+
+def test_vision_early_selects_patch_embed_rotary_and_blocks_0_to_10(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest = build_scope_manifest("vision_early", model.named_parameters())
+    names = manifest.selected_param_names
+    assert any(n.startswith("visual.patch_embed.") for n in names)
+    # Fixture's rotary_pos_emb is a trainable nn.Linear -- must be assigned to vision_early.
+    assert any(n.startswith("visual.rotary_pos_emb.") for n in names)
+    for i in range(11):
+        assert any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} missing from vision_early"
+    for i in range(11, 32):
+        assert not any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} leaked into vision_early"
+
+
+def test_vision_middle_selects_exactly_blocks_11_to_21(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest = build_scope_manifest("vision_middle", model.named_parameters())
+    names = manifest.selected_param_names
+    assert not any(n.startswith("visual.patch_embed.") for n in names)
+    assert not any(n.startswith("visual.rotary_pos_emb.") for n in names)
+    for i in range(11, 22):
+        assert any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} missing from vision_middle"
+    for i in list(range(0, 11)) + list(range(22, 32)):
+        assert not any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} leaked into vision_middle"
+
+
+def test_vision_late_selects_exactly_blocks_22_to_31(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest = build_scope_manifest("vision_late", model.named_parameters())
+    names = manifest.selected_param_names
+    assert not any(n.startswith("visual.patch_embed.") for n in names)
+    assert not any(n.startswith("visual.rotary_pos_emb.") for n in names)
+    for i in range(22, 32):
+        assert any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} missing from vision_late"
+    for i in range(0, 22):
+        assert not any(n.startswith(f"visual.blocks.{i}.") for n in names), f"block {i} leaked into vision_late"
+
+
+def test_vision_thirds_exclude_merger_and_lm(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    for scope in ("vision_early", "vision_middle", "vision_late"):
+        manifest = build_scope_manifest(scope, named_params)
+        for name in manifest.selected_param_names:
+            assert "merger" not in name, f"{scope} leaked merger param {name}"
+            assert not name.startswith("language_model."), f"{scope} leaked LM param {name}"
+
+
+def test_vision_thirds_pairwise_disjoint(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    early = set(build_scope_manifest("vision_early", named_params).selected_param_names)
+    middle = set(build_scope_manifest("vision_middle", named_params).selected_param_names)
+    late = set(build_scope_manifest("vision_late", named_params).selected_param_names)
+
+    assert early & middle == set()
+    assert middle & late == set()
+    assert early & late == set()
+
+
+def test_vision_thirds_union_equals_vision_encoder_exactly(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    early = set(build_scope_manifest("vision_early", named_params).selected_param_names)
+    middle = set(build_scope_manifest("vision_middle", named_params).selected_param_names)
+    late = set(build_scope_manifest("vision_late", named_params).selected_param_names)
+    vision_encoder = set(build_scope_manifest("vision_encoder", named_params).selected_param_names)
+
+    assert early | middle | late == vision_encoder
+
+
+def test_vision_thirds_hard_fail_on_incomplete_block_set(runtime_wrapped_vlm_factory):
+    # The 2-block fixture cannot satisfy the fixed 11/11/10 partition's 32-block requirement.
+    model = runtime_wrapped_vlm_factory()
+    with pytest.raises(ScopeSelectionError, match="complete 32 contiguous"):
+        build_scope_manifest("vision_early", model.named_parameters())
+
+
+def test_vision_early_relative_l2_sigma_derived_from_its_own_manifest(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    named_params = list(model.named_parameters())
+    early_manifest = build_scope_manifest("vision_early", named_params)
+    encoder_manifest = build_scope_manifest("vision_encoder", named_params)
+
+    # vision_early is a strict subset of vision_encoder, so its own norm/dimension (and
+    # therefore its derived sigma at the same r) must differ from vision_encoder's -- proves
+    # the sigma is derived from the SUB-scope's manifest, not silently inherited from the
+    # parent vision_encoder scope.
+    assert early_manifest.total_element_count < encoder_manifest.total_element_count
+    sigma_early = compute_relative_l2_sigma(early_manifest.base_l2_norm, early_manifest.total_element_count, r=0.04)
+    sigma_encoder = compute_relative_l2_sigma(encoder_manifest.base_l2_norm, encoder_manifest.total_element_count, r=0.04)
+    assert sigma_early != pytest.approx(sigma_encoder)

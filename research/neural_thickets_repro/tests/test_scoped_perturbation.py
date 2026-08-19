@@ -147,6 +147,64 @@ def test_same_seed_scope_scale_deterministic(runtime_wrapped_vlm_factory):
         assert torch.equal(p_a.detach(), p_b.detach()), f"{name_a} not deterministic"
 
 
+@pytest.mark.parametrize("scope,in_scope_blocks", [
+    ("vision_early", range(0, 11)),
+    ("vision_middle", range(11, 22)),
+    ("vision_late", range(22, 32)),
+])
+def test_vision_thirds_only_change_their_own_selected_params(scope, in_scope_blocks, runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    worker = _FakeWorker(model)
+    base_state = {k: v.clone() for k, v in model.state_dict().items()}
+    in_scope_blocks = set(in_scope_blocks)
+
+    scoped_apply_perturbation(worker, seed=42, sigma_or_r=0.1, scope_name=scope, scale_mode="raw_sigma")
+
+    for name, p in model.named_parameters():
+        changed = not torch.equal(p.detach(), base_state[name])
+        if name.startswith("visual.blocks."):
+            block_idx = int(name.split(".")[2])
+            expected_change = block_idx in in_scope_blocks
+        elif scope == "vision_early" and (name.startswith("visual.patch_embed.") or name.startswith("visual.rotary_pos_emb.")):
+            expected_change = True
+        else:
+            expected_change = False
+        assert changed == expected_change, f"{name}: changed={changed}, expected={expected_change} (scope={scope})"
+
+
+def test_vision_thirds_restore_exactly(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    worker = _FakeWorker(model)
+    base_state = {k: v.clone() for k, v in model.state_dict().items()}
+
+    scoped_apply_perturbation(worker, seed=42, sigma_or_r=0.1, scope_name="vision_middle", scale_mode="raw_sigma")
+    worker.reset_to_base_weights()
+
+    for name, p in model.named_parameters():
+        assert torch.equal(p.detach(), base_state[name]), f"{name} did not restore exactly"
+
+
+def test_vision_thirds_relative_l2_sigma_derived_independently(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    worker = _FakeWorker(model)
+
+    results = {}
+    for scope in ("vision_early", "vision_middle", "vision_late"):
+        results[scope] = scoped_apply_perturbation(worker, seed=1, sigma_or_r=0.04, scope_name=scope, scale_mode="relative_l2")
+
+    # Each scope's derived sigma must come from ITS OWN manifest (norm/dimension), not a
+    # shared/inherited vision_encoder-level value -- proven by checking each result's sigma
+    # matches the closed form applied to that same result's own reported norm/count, and that
+    # not all three scopes (different sizes: 11/11/10 blocks, early also has patch_embed +
+    # rotary_pos_emb) landed on the identical sigma.
+    for scope, result in results.items():
+        expected = compute_relative_l2_sigma(result["scope_base_l2_norm"], result["scope_total_element_count"], r=0.04)
+        assert result["derived_sigma"] == pytest.approx(expected)
+
+    sigmas = {scope: r["derived_sigma"] for scope, r in results.items()}
+    assert len(set(sigmas.values())) > 1, f"expected scope-specific sigmas, got identical values: {sigmas}"
+
+
 def test_different_seed_produces_different_perturbation(runtime_wrapped_vlm_factory):
     model_a = runtime_wrapped_vlm_factory()
     worker_a = _FakeWorker(model_a)
