@@ -60,6 +60,21 @@ class RunResult:
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def prediction_disagreement_rate(result_a: "RunResult", result_b: "RunResult") -> float:
+    """Fraction of examples (matched by example_id) whose parsed prediction differs between
+    two RunResults -- a finer-grained MAGNITUDE companion to parsed_prediction_hash()'s
+    whole-run boolean equality check, for baseline-characterization repeatability reporting
+    (a hash mismatch alone doesn't say whether 1 example changed or all of them did).
+    """
+    a_by_id = {r.example_id: r.parsed.parsed for r in result_a.per_example}
+    b_by_id = {r.example_id: r.parsed.parsed for r in result_b.per_example}
+    common_ids = set(a_by_id) & set(b_by_id)
+    if not common_ids:
+        raise ValueError("prediction_disagreement_rate: the two RunResults share no example_ids")
+    disagreements = sum(1 for eid in common_ids if repr(a_by_id[eid]) != repr(b_by_id[eid]))
+    return disagreements / len(common_ids)
+
+
 def run_benchmark(
     benchmark: CapabilityBenchmark,
     examples: List[Example],

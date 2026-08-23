@@ -388,6 +388,93 @@ confirmed behaving correctly, remaining misses attributed to model/data difficul
 (N=5 = 0.80), CUB (N=5 = 0.60), ImageNet, RandOpt, perturbation code, the historical Gate-1 GQA
 evaluator, model weights, and the vLLM runtime.
 
+## Baseline characterization (S_t(theta_0)) infrastructure, this session
+
+Prepares (but does not run) the N=200 base-model measurement stage for the 7 accessible
+capabilities, BEFORE any RandOpt/perturbation sweep — no capability/benchmark definitions
+changed in this pass.
+
+**N=200 subsets — already supported, zero definition changes needed.** Subset IDs persist to
+`artifacts/benchmark_subsets/{adapter.name}_{subset_size}.json` — the size is baked into the
+filename, so N=5 (`..._5.json`) and N=200 (`..._200.json`) are automatically distinct
+artifacts; nothing needed to happen to avoid overwriting the frozen N=5 files. All 7 configs
+already default `dataset.subset_size: 200`. GQA's spatial/relational adapters filter to the
+FROZEN `gqa_spatial_ids.json`/`gqa_relational_ids.json` pools (2862/2028) BEFORE subset
+selection — an N=200 run draws its 200 from that already-frozen pool via the existing
+`"prefix"` rule, never regenerating or redefining the taxonomy.
+
+**Repeatability — already supported (`--repeat`), enriched this session.** Decoding is
+already effectively deterministic: `SamplingParams(temperature=0.0, seed=..., max_tokens=...)`
+(greedy). `repeatability.json` now additionally records `base_parser_failure_rate`,
+`repeat_parser_failure_rate`, and `prediction_disagreement_rate` (a new
+`runner.prediction_disagreement_rate()` — the fraction of examples, matched by ID, whose
+PARSED prediction differs between the two runs; a finer-grained magnitude than
+`parsed_prediction_hash_match`'s whole-run boolean).
+
+**Image-sanity — already supported (`--image-sanity`), transformation is capability-specific
+by design, not a code change**: `visual_grounding` (only `supports_text_only_condition() ==
+False`) gets ONLY the shuffled-image condition (a wrong photo, not blank) — a true
+"remove-the-image" condition has no well-defined target box, so a wrong-image ablation is the
+adapter's own deliberate choice; a wrong image should still collapse IoU-based performance
+just as hard. The other 6 (`counting`, `spatial_reasoning`, `relational_reasoning`,
+`ocr_text_recognition_grounded`, `attribute_recognition`, `fine_grained_recognition`) all
+inherit the base class default (`True`) and get the full correct/shuffled/text-only trio —
+text-only (no image at all) is expected to collapse performance hardest for OCR (answer is
+literally the visible text) and GQA (visually-grounded relational questions), and strongly for
+CUB (species ID needs the photo) and attributes (can't know a marked object's color/material
+blind).
+
+**Model-reuse across capabilities — NEW this session (`run_baseline_characterization.py`)**:
+all 7 configs pin the identical model/revision/precision (`Qwen/Qwen2.5-VL-3B-Instruct` @
+`66285546d2b821cf421d4f5eb2576359d3770cd3`, `bfloat16`) — only `generation.max_tokens` differs
+per capability, which needs only a new `SamplingParams` object, not an engine reload. The new
+orchestrator builds the vLLM engine ONCE (`run_capability_benchmark_gate.build_llm_and_tokenizer`)
+and loops `run_one_capability()` (the per-capability pipeline, factored out of
+`run_capability_benchmark_gate.main()` unchanged in behavior) across all 7, reusing the same
+`(llm, tokenizer)` pair — avoiding vLLM's own engine-init cost (weight load + CUDA graph
+capture) 7 times instead of once. `_assert_same_model()` hard-fails rather than silently
+sharing an engine across genuinely different models. `object_recognition` (ImageNet, gated)
+and the full (non-OCR-grounded) `ocr_text_recognition` are excluded from the default 7-config
+set (both remain independently runnable via `run_capability_benchmark_gate.py`).
+
+**Baseline card enrichment — NEW this session, additive-only.** `BenchmarkCardData` (and
+`card.json`/`card.md`) now also carries: `model_name`/`model_revision`, `dataset_source`
+(provenance), `candidate_pool_size` (the full pool size BEFORE subset selection — distinct
+from `subset_size`, the N actually evaluated), `subset_ids_hash` (sha256 of the persisted
+subset-IDs file), `prompt_config_hash` (sha256 of `{prompt_template, generation_config}` —
+lets a later perturbation run detect any prompt/config drift at a glance),
+`repeat_absolute_difference`, and `prediction_disagreement_rate`. Every existing card field
+(base/repeat metrics, parser failure rate, image-sanity metrics/gaps, repeatability status,
+integrity, known caveats) is unchanged. `run_metadata.json` additionally records
+`candidate_pool_size` and `runtime_versions` (torch/vllm/transformers/tokenizers/datasets, via
+the new shared `run_capability_benchmark_gate.runtime_versions()` — "not installed" rather
+than crashing when a package is absent, e.g. under `--dry-run` off-GPU). Together, one
+capability's `card.json` is now a self-sufficient S_t(theta_0) record — everything in the
+requested baseline-output list is present in EITHER `card.json` (per-capability) or
+`summary.json` (cross-capability, since it embeds every card) without needing to
+cross-reference `run_metadata.json`/`repeatability.json` separately, though those remain
+available for deeper provenance.
+
+**Estimated RunPod evaluation count** (N=200, `--repeat` + `--image-sanity`, all 7
+capabilities, greedy decoding): per capability, generation calls = 200 (base) + 200 (repeat) +
+`image_sanity_subset_size` (40) × {2 (correct+shuffled) or 3 (+ text-only)} = 200 + 200 + 80
+or 120 ≈ 480–520 model calls. Across 7 capabilities ≈ 3,300–3,600 total generation calls
+(GQA's spatial/relational `max_tokens=256` will dominate wall-clock time relative to the
+short-answer capabilities' `max_tokens` of 16–64). One shared engine load instead of 7 removes
+~6× the vLLM engine-init overhead (weight load + CUDA graph capture) from the total.
+
+```bash
+# cheap: validate every capability's data loading + integrity, no GPU/model call at all
+python -m neural_thickets_repro.run_baseline_characterization --dry-run
+
+# a cheap N=5 smoke test across all 7 with one shared engine, before spending real GPU time
+python -m neural_thickets_repro.run_baseline_characterization --subset-size 5 --repeat --image-sanity
+
+# the real baseline-characterization run: N=200 (each config's own default), repeat,
+# image-sanity, all 7 capabilities, one shared vLLM engine
+python -m neural_thickets_repro.run_baseline_characterization --repeat --image-sanity
+```
+
 ## Fresh RunPod bootstrap
 
 The exact command sequence to go from an empty pod to all 8 capabilities passing `--dry-run`

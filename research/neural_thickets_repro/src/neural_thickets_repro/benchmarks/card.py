@@ -33,6 +33,10 @@ REQUIRED_CARD_FIELDS = (
     "Prediction parser", "Metric", "Base-model score", "Repeat run score", "Repeatability",
     "Image sanity — correct", "Image sanity — shuffled", "Image sanity — text-only",
     "Parser failure rate", "Known caveats", "Status",
+    # Baseline-characterization enrichment (this session) -- makes each card a
+    # self-sufficient S_t(theta_0) record for later perturbation comparisons, without
+    # needing to cross-reference run_metadata.json/repeatability.json separately.
+    "Model", "Dataset source", "Candidate pool size", "Repeat delta", "Prediction disagreement rate",
 )
 
 
@@ -57,6 +61,16 @@ class BenchmarkCardData:
     parsed_prediction_hash_match: Optional[bool] = None
     image_sanity: Optional[ImageSanityResult] = None
     known_caveats: List[str] = field(default_factory=list)
+    # --- Baseline-characterization enrichment (this session), all additive/optional so
+    # existing callers (and tests) that don't pass them keep working unchanged. ---
+    model_name: str = ""
+    model_revision: Optional[str] = None
+    dataset_source: str = ""
+    candidate_pool_size: Optional[int] = None
+    subset_ids_hash: Optional[str] = None
+    prompt_config_hash: Optional[str] = None
+    repeat_absolute_difference: Optional[float] = None
+    prediction_disagreement_rate: Optional[float] = None
 
 
 def decide_status(card: BenchmarkCardData, gates: Any) -> "tuple[str, List[str]]":
@@ -127,11 +141,18 @@ def render_markdown(card: BenchmarkCardData, status: str, reasons: List[str]) ->
         f"Base-model score: {_fmt(card.base_metrics.get('primary_metric'))}",
         f"Repeat run score: {_fmt(card.repeat_metrics.get('primary_metric')) if card.repeat_metrics else 'N/A'}",
         f"Repeatability: {card.repeatability_status} (generation_hash_match={card.generation_hash_match}, parsed_prediction_hash_match={card.parsed_prediction_hash_match})",
+        f"Repeat delta: {_fmt(card.repeat_absolute_difference)}",
+        f"Prediction disagreement rate: {_fmt(card.prediction_disagreement_rate)}",
         f"Image sanity — correct: {_fmt(sanity.correct_image_primary_metric) if sanity else 'N/A'}",
         f"Image sanity — shuffled: {_fmt(sanity.shuffled_image_primary_metric) if sanity else 'N/A'}",
         f"Image sanity — text-only: {_fmt(sanity.text_only_primary_metric) if sanity else 'N/A'}"
         + (f" (NOT_SUPPORTED: {sanity.text_only_unsupported_reason})" if sanity and not sanity.text_only_supported else ""),
         f"Parser failure rate: {_fmt(card.base_metrics.get('parser_failure_rate'))}",
+        f"Model: {card.model_name}@{_fmt(card.model_revision)}",
+        f"Dataset source: {card.dataset_source or 'N/A'}",
+        f"Candidate pool size: {_fmt(card.candidate_pool_size)}",
+        f"Subset IDs hash: {_fmt(card.subset_ids_hash)}",
+        f"Prompt/config hash: {_fmt(card.prompt_config_hash)}",
         f"Known caveats: {'; '.join(card.known_caveats) if card.known_caveats else 'none'}",
         f"Status: {status}",
     ]
@@ -161,8 +182,16 @@ def render_json(card: BenchmarkCardData, status: str, reasons: List[str]) -> dic
         "repeatability_status": card.repeatability_status,
         "generation_hash_match": card.generation_hash_match,
         "parsed_prediction_hash_match": card.parsed_prediction_hash_match,
+        "repeat_absolute_difference": card.repeat_absolute_difference,
+        "prediction_disagreement_rate": card.prediction_disagreement_rate,
         "image_sanity": card.image_sanity.to_dict() if card.image_sanity else None,
         "known_caveats": card.known_caveats,
+        "model_name": card.model_name,
+        "model_revision": card.model_revision,
+        "dataset_source": card.dataset_source,
+        "candidate_pool_size": card.candidate_pool_size,
+        "subset_ids_hash": card.subset_ids_hash,
+        "prompt_config_hash": card.prompt_config_hash,
         "status": status,
         "status_reasons": reasons,
     }

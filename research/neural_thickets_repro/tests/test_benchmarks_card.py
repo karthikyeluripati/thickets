@@ -155,6 +155,38 @@ def test_rendered_markdown_and_json_contain_every_required_field():
     assert payload["base_metrics"]["primary_metric"] == 0.6
 
 
+def test_baseline_characterization_enrichment_fields_round_trip_through_render_json():
+    card = _card(
+        model_name="Qwen/Qwen2.5-VL-3B-Instruct", model_revision="abc123",
+        dataset_source="lmms-lab-encoder/RefCOCO", candidate_pool_size=8811,
+        subset_ids_hash="deadbeef", prompt_config_hash="cafef00d",
+        repeat_absolute_difference=0.0, prediction_disagreement_rate=0.0,
+    )
+    status, reasons = decide_status(card, _gates())
+    payload = render_json(card, status, reasons)
+
+    assert payload["model_name"] == "Qwen/Qwen2.5-VL-3B-Instruct"
+    assert payload["model_revision"] == "abc123"
+    assert payload["dataset_source"] == "lmms-lab-encoder/RefCOCO"
+    assert payload["candidate_pool_size"] == 8811
+    assert payload["subset_ids_hash"] == "deadbeef"
+    assert payload["prompt_config_hash"] == "cafef00d"
+    assert payload["repeat_absolute_difference"] == 0.0
+    assert payload["prediction_disagreement_rate"] == 0.0
+
+
+def test_baseline_characterization_enrichment_fields_default_to_none_or_empty():
+    card = _card()
+    assert card.model_name == ""
+    assert card.model_revision is None
+    assert card.dataset_source == ""
+    assert card.candidate_pool_size is None
+    assert card.subset_ids_hash is None
+    assert card.prompt_config_hash is None
+    assert card.repeat_absolute_difference is None
+    assert card.prediction_disagreement_rate is None
+
+
 def test_write_card_creates_markdown_and_json_files(tmp_path):
     card = _card()
     status, reasons = write_card(card, _gates(), tmp_path)

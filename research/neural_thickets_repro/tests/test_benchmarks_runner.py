@@ -8,7 +8,12 @@ from types import SimpleNamespace
 import pytest
 
 from neural_thickets_repro.benchmarks.base import Example
-from neural_thickets_repro.benchmarks.runner import MissingImageError, run_benchmark, write_predictions_jsonl
+from neural_thickets_repro.benchmarks.runner import (
+    MissingImageError,
+    prediction_disagreement_rate,
+    run_benchmark,
+    write_predictions_jsonl,
+)
 
 
 def _fake_output(text):
@@ -118,6 +123,54 @@ def test_aggregate_metrics_missing_primary_metric_raises(fake_capability_benchma
 
     with pytest.raises(ValueError, match="primary_metric"):
         run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None)
+
+
+# ---------------------------------------------------------------------------------------
+# prediction_disagreement_rate (baseline-characterization prep, this session) -- a
+# finer-grained companion to parsed_prediction_hash()'s whole-run boolean equality.
+# ---------------------------------------------------------------------------------------
+
+def _result(pairs):
+    """pairs: [(example_id, parsed_value), ...] -- builds a minimal RunResult for these tests."""
+    from neural_thickets_repro.benchmarks.runner import PerExampleResult, RunResult
+    from neural_thickets_repro.benchmarks.base import ExampleScore, ParsedPrediction
+
+    per_example = [
+        PerExampleResult(example_id, "img", "raw", ParsedPrediction(parsed_value, True), ExampleScore(1.0))
+        for example_id, parsed_value in pairs
+    ]
+    return RunResult(per_example=per_example, aggregate_metrics={})
+
+
+def test_prediction_disagreement_rate_zero_when_identical():
+    a = _result([("1", "left"), ("2", "right")])
+    b = _result([("1", "left"), ("2", "right")])
+    assert prediction_disagreement_rate(a, b) == pytest.approx(0.0)
+
+
+def test_prediction_disagreement_rate_full_when_all_differ():
+    a = _result([("1", "left"), ("2", "right")])
+    b = _result([("1", "up"), ("2", "down")])
+    assert prediction_disagreement_rate(a, b) == pytest.approx(1.0)
+
+
+def test_prediction_disagreement_rate_partial():
+    a = _result([("1", "left"), ("2", "right"), ("3", "up"), ("4", "down")])
+    b = _result([("1", "left"), ("2", "WRONG"), ("3", "up"), ("4", "down")])
+    assert prediction_disagreement_rate(a, b) == pytest.approx(0.25)
+
+
+def test_prediction_disagreement_rate_uses_only_common_example_ids():
+    a = _result([("1", "left"), ("2", "right"), ("extra_in_a", "x")])
+    b = _result([("1", "left"), ("2", "WRONG"), ("extra_in_b", "y")])
+    assert prediction_disagreement_rate(a, b) == pytest.approx(0.5)  # 1 disagreement / 2 common ids
+
+
+def test_prediction_disagreement_rate_raises_on_no_common_ids():
+    a = _result([("1", "left")])
+    b = _result([("2", "right")])
+    with pytest.raises(ValueError, match="no example_ids"):
+        prediction_disagreement_rate(a, b)
 
 
 def test_write_predictions_jsonl_contains_required_fields(fake_capability_benchmark_factory, tiny_image_factory, tmp_path):
