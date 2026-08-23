@@ -14,6 +14,7 @@ from ._gqa_filtered_base import GQAFilteredBenchmark
 class GQASpatialReasoningBenchmark(GQAFilteredBenchmark):
     capability = "spatial_reasoning"
     name = "gqa_testdev_spatial"
+    DEFAULT_FILTER_IDS_FILENAME = "gqa_spatial_ids.json"
 
     def dataset_source(self) -> str:
         return "lmms-lab-encoder/GQA (raw annotations, filtered to the spatial subset -- see adapters/gqa_raw_schema.py)"

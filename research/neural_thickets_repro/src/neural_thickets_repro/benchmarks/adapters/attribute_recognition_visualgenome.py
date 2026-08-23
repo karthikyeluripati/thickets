@@ -1,29 +1,36 @@
 """Visual Genome attributes (attribute_recognition) adapter.
 
-Dataset source: HuggingFace `ranjaykrishna/visual_genome` (the canonical, original-authors
-repo), config `attributes` -- exact version suffix (e.g. "attributes_v1.2.0") UNCONFIRMED,
-see CAPABILITY_BENCHMARK_GATE.md; `config_name` is a constructor parameter, not hardcoded,
-so it can be corrected without touching this file's logic.
+Dataset source: a LOCALLY PREPARED artifact (see prepare_visual_genome_data.py), not a live
+`datasets.load_dataset()` call -- `ranjaykrishna/visual_genome` (the original config
+`attributes`) is script-based and FAILS on modern `datasets` ("Dataset scripts are no longer
+supported", confirmed on a real RunPod this session, datasets==5.0.1). Replaced with
+`mikewang/vaw` (VAW -- "Visual Attributes in the Wild", CVPR 2021; script-free, confirmed
+live this session) for annotations, joined with Visual Genome's own official images (fetched
+separately, VAW carries no image data) by `prepare_visual_genome_data.py`, which writes
+`<source>/vg_attributes.parquet` + `<source>/images/` -- this adapter reads ONLY that
+prepared local artifact, mirroring GQAHandler's own "prepare offline, adapter reads locally"
+split of labor. See CAPABILITY_BENCHMARK_GATE.md for the full source-migration record.
 
 To keep scoring automatic and unambiguous without reducing this to unrestricted captioning:
 one Example = one (image, object) pair. The queried object is made unambiguous by drawing a
 deterministic bounding-box marker around it (prepare_image() below, PIL ImageDraw, on a COPY
 of the image -- the original is preserved separately, never mutated, and the bbox itself is
 recorded in Example.metadata) -- an outline only, never filled, so the object itself is not
-obscured. If VG annotates MULTIPLE valid attributes for an object, ALL of them are preserved
-as Example.target (a list) rather than arbitrarily picking one -- a prediction is scored
-correct if it matches ANY of them (see score_example), the same "preserve the valid target
-set" discipline TextVQA's 10-answer list already uses in this package.
+obscured. VAW's `positive_attributes` list is preserved in FULL as Example.target (never
+collapsed to one answer) -- a prediction is scored correct if it matches ANY of them (see
+score_example), the same "preserve the valid target set" discipline TextVQA's 10-answer list
+already uses in this package.
 """
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Dict, List
 
 from ..base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
 from ..normalization import normalize_answer
 from ..prompting import build_image_text_messages
 
-DEFAULT_CONFIG_NAME = "attributes_v1.2.0"  # UNCONFIRMED, see module docstring
 INSTRUCTION = (
     "Look at the object outlined in red in the image. Name ONE visual attribute of that "
     "object (for example its color, material, size, or texture). Answer with a single word "
@@ -31,11 +38,13 @@ INSTRUCTION = (
 )
 MARKER_COLOR = (255, 0, 0)
 MARKER_WIDTH = 3
+PREPARE_COMMAND = "python -m neural_thickets_repro.prepare_visual_genome_data"
 
 
 class VisualGenomeSchemaError(RuntimeError):
-    """The loaded Visual Genome 'attributes' rows don't match the assumed per-object shape
-    (image / attributes list of {object_id, attributes, x, y, w, h}) -- refuses to guess.
+    """The prepared local Visual Genome artifact is missing or doesn't match the expected
+    schema (image_id/instance_id/object_name/positive_attributes/bbox_x/y/w/h) -- refuses to
+    guess a different one.
     """
 
 
@@ -43,57 +52,62 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
     capability = "attribute_recognition"
     name = "visual_genome_attributes"
 
-    def __init__(self, config_name: str = DEFAULT_CONFIG_NAME):
-        self.config_name = config_name
-
     def dataset_source(self) -> str:
-        return f"ranjaykrishna/visual_genome (config: {self.config_name})"
+        return "mikewang/vaw (annotations) + Visual Genome official images, prepared locally by prepare_visual_genome_data.py"
 
     def known_caveats(self) -> List[str]:
         return [
-            f"Config name {self.config_name!r} is a documented, revisable choice -- the exact "
-            f"version suffix was not independently confirmed, see CAPABILITY_BENCHMARK_GATE.md.",
+            "Annotation source is mikewang/vaw (VAW), not the original ranjaykrishna/"
+            "visual_genome 'attributes' config -- migrated because that repo's script-based "
+            "loading fails on modern `datasets` versions. VAW is a peer-reviewed (CVPR 2021) "
+            "derivative of Visual Genome specifically curated for attribute recognition, not "
+            "a lower-quality substitute.",
+            "Visual Genome's own image archive URLs (fetched by prepare_visual_genome_data.py) "
+            "were not independently verified by an actual successful download from this "
+            "environment -- see that script's module docstring and CAPABILITY_BENCHMARK_GATE.md.",
             "A bounding-box marker overlay is drawn on every image as part of this benchmark's "
             "own protocol (to make the queried object unambiguous) -- it is not naturally "
-            "occurring VG data. The shuffled-image sanity condition keeps the same fixed "
+            "occurring VG/VAW data. The shuffled-image sanity condition keeps the same fixed "
             "marker coordinates on a swapped photo; this is still a valid distractor for that "
             "check, not a bug.",
-            "When VG annotates multiple valid attributes for an object, ALL are preserved as "
-            "the target set; a prediction is scored correct if it matches ANY of them.",
+            "VAW's full positive_attributes list is preserved as the target set; a prediction "
+            "is scored correct if it matches ANY of them.",
         ]
 
     def load_examples(self, cfg: Any) -> List[Example]:
-        from datasets import load_dataset
+        import pandas as pd
+        from PIL import Image
 
-        hf_dataset = load_dataset(cfg.dataset.source, self.config_name, split=cfg.dataset.split, revision=cfg.dataset.revision)
+        data_dir = Path(cfg.dataset.source)
+        parquet_path = data_dir / "vg_attributes.parquet"
+        images_dir = data_dir / "images"
+        if not parquet_path.exists():
+            raise VisualGenomeSchemaError(
+                f"No prepared Visual Genome attributes parquet found at {parquet_path}. "
+                f"Generate it first with:\n    {PREPARE_COMMAND}"
+            )
+
+        df = pd.read_parquet(parquet_path)
+        missing_columns = {"image_id", "instance_id", "object_name", "positive_attributes", "bbox_x", "bbox_y", "bbox_w", "bbox_h"} - set(df.columns)
+        if missing_columns:
+            raise VisualGenomeSchemaError(f"{parquet_path} is missing expected column(s) {sorted(missing_columns)} -- refusing to guess a different schema.")
 
         examples: List[Example] = []
-        for row in hf_dataset:
-            image = row.get("image")
-            image_id = row.get("image_id")
-            objects = row.get("attributes")
-            if image is None or objects is None:
-                raise VisualGenomeSchemaError(
-                    f"Expected each row to have 'image' and 'attributes' fields, got keys "
-                    f"{list(row.keys())}. Refusing to guess a different schema."
-                )
-            for obj in objects:
-                attributes = obj.get("attributes") or []
-                if not attributes:
-                    continue  # object has no attribute annotation -- not a usable example, not an error
-                for field in ("object_id", "x", "y", "w", "h"):
-                    if field not in obj:
-                        raise VisualGenomeSchemaError(
-                            f"Expected each object to have {field!r}, got keys {list(obj.keys())}."
-                        )
-                examples.append(Example(
-                    example_id=f"{image_id}_{obj['object_id']}",
-                    image=image,
-                    image_ref=f"vg_image_{image_id}",
-                    prompt_input={"object_names": obj.get("names", [])},
-                    target=list(attributes),
-                    metadata={"bbox_xywh": [obj["x"], obj["y"], obj["w"], obj["h"]], "image_id": image_id, "object_id": obj["object_id"]},
-                ))
+        for _, row in df.iterrows():
+            image_path = images_dir / f"{row['image_id']}.jpg"
+            image = Image.open(image_path).convert("RGB") if image_path.exists() else None
+            attributes = json.loads(row["positive_attributes"])
+            examples.append(Example(
+                example_id=str(row["instance_id"]),
+                image=image,
+                image_ref=str(image_path),
+                prompt_input={"object_name": row["object_name"]},
+                target=list(attributes),
+                metadata={
+                    "bbox_xywh": [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]],
+                    "image_id": str(row["image_id"]),
+                },
+            ))
         return examples
 
     def prepare_image(self, example: Example):

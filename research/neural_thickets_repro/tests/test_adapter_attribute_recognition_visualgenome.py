@@ -1,8 +1,6 @@
 """Tests for adapters/attribute_recognition_visualgenome.py -- synthetic VG-shaped rows, no
 real dataset download / GPU / ray / vllm needed.
 """
-import sys
-import types
 from types import SimpleNamespace
 
 import pytest
@@ -24,16 +22,15 @@ def test_capability_and_name():
     assert bench.name == "visual_genome_attributes"
 
 
-def test_config_name_is_documented_and_overridable():
-    default_bench = _bench()
-    assert "attributes" in default_bench.dataset_source()
-    custom_bench = VisualGenomeAttributeBenchmark(config_name="attributes_v1.0.0")
-    assert "attributes_v1.0.0" in custom_bench.dataset_source()
+def test_dataset_source_documents_the_two_source_migration():
+    source = _bench().dataset_source()
+    assert "mikewang/vaw" in source
+    assert "prepare_visual_genome_data.py" in source
 
 
 def test_known_caveats_documents_marker_protocol_and_multi_attribute_targets():
     caveats = " ".join(_bench().known_caveats())
-    assert "not naturally occurring VG data" in caveats
+    assert "not naturally occurring VG/VAW data" in caveats
     assert "matches ANY of them" in caveats
 
 
@@ -98,47 +95,72 @@ def test_aggregate_metrics_accuracy():
     assert metrics["primary_metric"] == metrics["accuracy"]
 
 
-class _FakeHFDataset:
-    def __init__(self, rows):
-        self._rows = rows
+def _write_prepared_artifact(data_dir, rows, tiny_image_factory, with_images=True):
+    """Builds a real local vg_attributes.parquet + images/ dir, matching exactly what
+    prepare_visual_genome_data.py writes -- load_examples() now reads this local artifact,
+    never datasets.load_dataset(), so tests exercise the real pandas/PIL read path directly.
+    """
+    import json as json_module
+    import pandas as pd
 
-    def __iter__(self):
-        return iter(self._rows)
+    data_dir.mkdir(parents=True, exist_ok=True)
+    images_dir = data_dir / "images"
+    images_dir.mkdir(exist_ok=True)
+
+    records = []
+    for row in rows:
+        records.append({
+            "image_id": row["image_id"], "instance_id": row["instance_id"], "object_name": row["object_name"],
+            "positive_attributes": json_module.dumps(row["positive_attributes"]),
+            "bbox_x": row["bbox"][0], "bbox_y": row["bbox"][1], "bbox_w": row["bbox"][2], "bbox_h": row["bbox"][3],
+        })
+        if with_images:
+            tiny_image_factory().save(images_dir / f"{row['image_id']}.jpg")
+    pd.DataFrame.from_records(records).to_parquet(data_dir / "vg_attributes.parquet")
 
 
-def _install_fake_datasets_module(monkeypatch, rows):
-    fake_module = types.ModuleType("datasets")
-    fake_module.load_dataset = lambda source, config_name, split, revision: _FakeHFDataset(rows)
-    monkeypatch.setitem(sys.modules, "datasets", fake_module)
-
-
-def test_load_examples_flattens_objects_and_preserves_multi_attribute_targets(tiny_image_factory, monkeypatch):
-    image = tiny_image_factory()
-    rows = [{
-        "image": image, "image_id": 1,
-        "attributes": [
-            {"object_id": 10, "names": ["chair"], "attributes": ["red", "wooden"], "x": 1, "y": 2, "w": 3, "h": 4},
-            {"object_id": 11, "names": ["table"], "attributes": [], "x": 5, "y": 6, "w": 7, "h": 8},  # no attributes -- skipped
-        ],
-    }]
-    _install_fake_datasets_module(monkeypatch, rows)
+def test_load_examples_reads_prepared_local_parquet_and_images(tmp_path, tiny_image_factory):
+    rows = [
+        {"image_id": "1", "instance_id": "10", "object_name": "chair", "positive_attributes": ["red", "wooden"], "bbox": [1, 2, 3, 4]},
+        {"image_id": "2", "instance_id": "11", "object_name": "table", "positive_attributes": ["blue"], "bbox": [5, 6, 7, 8]},
+    ]
+    _write_prepared_artifact(tmp_path, rows, tiny_image_factory)
 
     bench = _bench()
-    cfg = SimpleNamespace(dataset=SimpleNamespace(source="ranjaykrishna/visual_genome", split="train", revision=None))
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
     examples = bench.load_examples(cfg)
 
-    assert len(examples) == 1  # the no-attribute object is skipped, not scored as a failure
-    assert examples[0].example_id == "1_10"
+    assert len(examples) == 2
+    assert examples[0].example_id == "10"
     assert examples[0].target == ["red", "wooden"]
     assert examples[0].metadata["bbox_xywh"] == [1, 2, 3, 4]
+    assert examples[0].image is not None
 
 
-def test_load_examples_hard_fails_on_missing_expected_fields(tiny_image_factory, monkeypatch):
-    image = tiny_image_factory()
-    rows = [{"image": image, "image_id": 1, "attributes": [{"object_id": 10, "attributes": ["red"]}]}]  # missing x/y/w/h
-    _install_fake_datasets_module(monkeypatch, rows)
+def test_load_examples_hard_fails_when_parquet_missing(tmp_path):
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    with pytest.raises(VisualGenomeSchemaError, match="prepare_visual_genome_data"):
+        bench.load_examples(cfg)
+
+
+def test_load_examples_hard_fails_on_missing_expected_columns(tmp_path):
+    import pandas as pd
+    tmp_path.mkdir(exist_ok=True)
+    pd.DataFrame.from_records([{"image_id": "1", "object_name": "chair"}]).to_parquet(tmp_path / "vg_attributes.parquet")
 
     bench = _bench()
-    cfg = SimpleNamespace(dataset=SimpleNamespace(source="ranjaykrishna/visual_genome", split="train", revision=None))
-    with pytest.raises(VisualGenomeSchemaError):
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    with pytest.raises(VisualGenomeSchemaError, match="missing expected column"):
         bench.load_examples(cfg)
+
+
+def test_load_examples_missing_image_file_yields_none_image_not_a_crash(tmp_path, tiny_image_factory):
+    rows = [{"image_id": "1", "instance_id": "10", "object_name": "chair", "positive_attributes": ["red"], "bbox": [1, 2, 3, 4]}]
+    _write_prepared_artifact(tmp_path, rows, tiny_image_factory, with_images=False)
+
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    examples = bench.load_examples(cfg)
+
+    assert examples[0].image is None

@@ -99,7 +99,34 @@ def test_aggregate_metrics_accuracy_and_parser_failure_rate(fake_gqa_handler_fac
     assert metrics["parser_failure_rate"] == pytest.approx(0.5)
 
 
-def test_missing_ids_and_handler_raises_at_resolution_time():
+def test_no_arg_constructor_resolves_to_the_default_artifact_path(monkeypatch, tmp_path):
+    """The actual bug fix under test: AdapterClass() (the CLI's uniform, no-arg
+    instantiation) must resolve to a real default path, not silently have neither
+    question_ids nor filter_ids_path set (the previously-reported "needs either
+    question_ids or filter_ids_path" RuntimeError on a fresh pod).
+    """
+    from neural_thickets_repro.benchmarks.adapters import _gqa_filtered_base
+    monkeypatch.setattr(_gqa_filtered_base, "DEFAULT_FILTER_IDS_DIR", tmp_path)
+
     bench = GQASpatialReasoningBenchmark()
-    with pytest.raises(RuntimeError, match="needs either question_ids or filter_ids_path"):
+    assert bench._filter_ids_path == tmp_path / "gqa_spatial_ids.json"
+
+
+def test_missing_filter_artifact_gives_actionable_error(monkeypatch, tmp_path):
+    from neural_thickets_repro.benchmarks.adapters import _gqa_filtered_base
+    monkeypatch.setattr(_gqa_filtered_base, "DEFAULT_FILTER_IDS_DIR", tmp_path)
+
+    bench = GQASpatialReasoningBenchmark()
+    with pytest.raises(RuntimeError, match="prepare_gqa_capability_filters") as exc_info:
         bench._resolve_question_ids()
+    assert "no capability filter IDs found" in str(exc_info.value)
+    assert str(tmp_path / "gqa_spatial_ids.json") in str(exc_info.value)
+
+
+def test_explicit_filter_ids_path_overrides_default(tmp_path):
+    from neural_thickets_repro.benchmarks.adapters.gqa_raw_schema import persist_filter_ids
+    custom_path = tmp_path / "custom_spatial.json"
+    persist_filter_ids({"1", "2"}, set(), {}, custom_path, tmp_path / "unused_relational.json", tmp_path / "unused_stats.json")
+
+    bench = GQASpatialReasoningBenchmark(filter_ids_path=custom_path)
+    assert bench._resolve_question_ids() == {"1", "2"}

@@ -9,18 +9,24 @@ read it. This module operates on that already-loaded raw row list; it does not i
 datasets.load_dataset (that stays in each adapter's own load_examples(), consistent with
 every other adapter's lazy-import convention).
 
-UNRESOLVED, pod-side investigation required before trusting this filter (see
-CAPABILITY_BENCHMARK_GATE.md): the field names below (_SEMANTIC_TYPE_FIELD/
-_STRUCTURAL_TYPE_FIELD/the "semantic" reasoning-program shape _extract_relation_name reads)
-are written against GQA's PUBLICLY DOCUMENTED official schema (Hudson & Manning, CVPR 2019 --
-each question has types.semantic in {relation, cat, global, attr, object} and
-types.structural in {verify, query, choose, logical, compare}, plus a semantic reasoning
-program of {"operation", "argument"} steps including "relate" operations) -- NOT yet verified
-against whichever specific raw HF dataset/parquet form actually gets loaded here.
-inspect_raw_schema() below is the required first pod-side step: run it against the real
-loaded raw rows and compare its report against these assumed field names before trusting
-build_spatial_relational_filters() -- update the constants (and this docstring) if they
-don't match, per this project's "confirm against real data, don't guess" discipline.
+FIELD NAMES CONFIRMED (live HF dataset-viewer inspection of `lmms-lab-encoder/GQA`,
+`testdev_balanced_instructions` config, this session -- see CAPABILITY_BENCHMARK_GATE.md):
+the raw rows DO carry `types` (nested `structural`/`semantic`/`detailed`), `semantic` (a list
+of reasoning-program operation steps), `semanticStr`, `groups`, `isBalanced`, `entailed`,
+`equivalent` -- i.e. `prepare_gqa_data.py`'s parquet (`id`/`imageId`/`question`/`answer`/
+`fullAnswer` only) is a deliberately NARROWED projection of these same rows for GQAHandler's
+own needs, not evidence the richer fields don't exist upstream. `types.semantic`'s actual
+value for relational questions is **`"rel"`, not `"relation"`** (corrected from the initial
+public-documentation-based guess after this live check) -- GQA's semantic categories are
+`{"object", "attr", "cat", "global", "rel"}`.
+
+STILL UNRESOLVED, pod-side investigation required (`inspect_raw_schema()` below, or the
+`prepare_gqa_capability_filters.py` CLI's own printed report) before trusting the filter for
+real: the EXACT shape/argument-encoding of `semantic`'s "relate" operation steps
+(`_extract_relation_name`) was not independently confirmed at the individual-value level
+(only the field names and semantic-category value set were) -- run
+`prepare_gqa_capability_filters.py --config configs/gqa_repro.yaml` on the pod and inspect
+its printed counts before treating the resulting ID files as final.
 
 SCIENTIFIC NOTE on spatial vs. relational (per explicit instruction -- do not pretend these
 are naturally disjoint): GQA's own "relation" semantic-type category is a single category
@@ -39,10 +45,20 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Sequence, Set, Tuple
 
-# --- ASSUMED schema (see module docstring) -- confirm against real data before trusting ---
+# --- Field NAMES confirmed live this session (see module docstring); the exact "relate"
+# argument shape is still pod-side-unconfirmed. ---
 SEMANTIC_TYPE_FIELD = "types.semantic"
 STRUCTURAL_TYPE_FIELD = "types.structural"
-RELATION_SEMANTIC_VALUE = "relation"
+RELATION_SEMANTIC_VALUE = "rel"  # CORRECTED from an initial "relation" guess -- confirmed via live HF viewer inspection
+
+# GQAHandler's own output records expose the question id under the key "question_id"
+# (see eval_base_image_aware.py's own usage: d["question_id"]), but the RAW row (and
+# prepare_gqa_data.py's parquet) uses the key "id" -- both trace back to the identical
+# underlying GQA question-id string, just under different key names at different pipeline
+# stages. build_spatial_relational_filters()'s default question_id_field matches the RAW
+# row's own key ("id"), NOT GQAHandler's renamed "question_id" -- do not conflate the two
+# key names, only their values are expected to match.
+RAW_QUESTION_ID_FIELD = "id"
 
 # Closed, explicit, documented spatial-relation keyword list -- classifies a "relation"-type
 # question as spatial iff its extracted relation name contains one of these. Not "every
@@ -114,12 +130,14 @@ def is_spatial_relation(relation_name: "str | None") -> bool:
 
 
 def build_spatial_relational_filters(
-    raw_rows: Sequence[Dict[str, Any]], question_id_field: str = "question_id",
+    raw_rows: Sequence[Dict[str, Any]], question_id_field: str = RAW_QUESTION_ID_FIELD,
 ) -> Tuple[Set[str], Set[str], Dict[str, Any]]:
     """Returns (spatial_ids, experimental_relational_ids, stats). See module docstring's
     SCIENTIFIC NOTE: stats reports BOTH the natural containment (spatial is a subset of GQA's
-    own "relation" category) and the final experimental exclusion, so the disjointness of the
-    two returned ID sets is never mistaken for something GQA itself provides.
+    own "rel" category) and the final experimental exclusion, so the disjointness of the two
+    returned ID sets is never mistaken for something GQA itself provides. Also reports the
+    literal spatial/relational/intersection/neither breakdown against the FULL row set (not
+    just relation-type rows), so "neither" (attr/cat/global/object questions) is visible too.
     """
     natural_relational_ids: Set[str] = set()
     spatial_ids: Set[str] = set()
@@ -136,18 +154,27 @@ def build_spatial_relational_filters(
     natural_intersection = spatial_ids & natural_relational_ids
     experimental_intersection = spatial_ids & experimental_relational_ids
 
+    n_total_rows = len(raw_rows)
+    n_neither = n_total_rows - len(natural_relational_ids)  # not a "rel"-type question at all (attr/cat/global/object)
+
     stats = {
+        "n_total_rows": n_total_rows,
         "n_spatial": len(spatial_ids),
+        "n_relational": len(experimental_relational_ids),
+        "n_intersection": len(experimental_intersection),  # spatial vs. the FINAL relational set -- 0 by explicit construction
+        "n_spatial_only": len(spatial_ids - experimental_relational_ids),
+        "n_relational_only": len(experimental_relational_ids - spatial_ids),
+        "n_neither": n_neither,
         "n_natural_relational_category": len(natural_relational_ids),
-        "n_natural_intersection": len(natural_intersection),
+        "n_natural_intersection": len(natural_intersection),  # spatial vs. GQA's OWN "rel" category -- equals n_spatial, by GQA's real structure
         "natural_intersection_over_spatial": (len(natural_intersection) / len(spatial_ids)) if spatial_ids else 0.0,
         "natural_relational_note": (
-            "GQA's own 'relation' semantic-type category naturally CONTAINS the spatial "
+            "GQA's own 'rel' semantic-type category naturally CONTAINS the spatial "
             "subset (every spatial question IS a relation-type question) -- this is GQA's "
-            "actual category structure, not an artifact of this filter."
+            "actual category structure, not an artifact of this filter. n_intersection above "
+            "(0 by construction) describes the two DISJOINT capability sets actually used; "
+            "n_natural_intersection (== n_spatial) describes GQA's real, non-disjoint structure."
         ),
-        "n_experimental_relational": len(experimental_relational_ids),
-        "n_experimental_intersection": len(experimental_intersection),
         "experimental_relational_definition": (
             "The relational_reasoning capability benchmark = natural relation-type questions "
             "EXCLUDING the spatial subset -- an explicit experimental choice made so the two "

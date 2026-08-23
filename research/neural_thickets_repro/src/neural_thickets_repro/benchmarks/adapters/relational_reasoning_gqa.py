@@ -18,6 +18,7 @@ from ._gqa_filtered_base import GQAFilteredBenchmark
 class GQARelationalReasoningBenchmark(GQAFilteredBenchmark):
     capability = "relational_reasoning"
     name = "gqa_testdev_relational"
+    DEFAULT_FILTER_IDS_FILENAME = "gqa_relational_ids.json"
 
     def dataset_source(self) -> str:
         return (

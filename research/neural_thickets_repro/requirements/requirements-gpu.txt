@@ -1,13 +1,28 @@
-# Gates 1-3: real model/dataset execution. Requires a CUDA GPU.
-# Mirrors the pins used by the external RandOpt repo (see external/EXTERNAL_COMMIT.txt)
-# plus the extras needed for the VLM/GQA path specifically.
+# Gates 1-3 + Capability Benchmark Gate: real model/dataset execution. Requires a CUDA GPU.
+# Mirrors the pins used by the external RandOpt repo (see external/EXTERNAL_COMMIT.txt) plus
+# the extras needed for the VLM/GQA path specifically.
+#
+# PINNED to the known-good combination confirmed on a real fresh RunPod this session
+# (521 passed / 0 failed, Qwen2.5-VL-3B-Instruct reached MODEL_LOAD_OK): an unpinned
+# `pip install vllm==0.11.0` on that same pod pulled in transformers 5.15.1 by default,
+# which broke vllm 0.11.0 + Qwen2.5-VL with an mrope/rope_type configuration conflict --
+# transformers/tokenizers must be pinned explicitly here, not left to whatever vllm's own
+# dependency resolver happens to pick on a given day. Do NOT loosen these three back to
+# unpinned/>= ranges without re-confirming compatibility on a real pod first.
+#
+# torch is intentionally left at the existing >=2.6.0 floor (requirements-cpu.txt) rather
+# than pinned to an exact build -- RunPod GPU templates typically ship a CUDA-matched torch
+# wheel already; forcing a specific torch==X.Y.Z+cuNNN here would risk an unnecessary,
+# possibly-incompatible reinstall on templates that already provide a compatible build.
 -r requirements-cpu.txt
-vllm>=0.10.0
+vllm==0.11.0
+transformers==4.57.1
+tokenizers==0.22.1
+hf_transfer            # required when HF_HUB_ENABLE_HF_TRANSFER=1 is set (this RunPod template's own default) -- model loading failed without it
 ray[default]>=2.0.0
 accelerate
 qwen-vl-utils
-pillow
-datasets
+datasets==5.0.1
 huggingface-hub
 pandas
 pyarrow

@@ -34,33 +34,55 @@ New abstractions (all in `src/neural_thickets_repro/benchmarks/`): `base.py` (`C
 | `visual_grounding` | `lmms-lab-encoder/RefCOCO` | **Confirmed live** this session (HF viewer: val=8.81k/test=5k/testA=1.98k/testB=1.81k, schema `image`/`question`/`bbox`[xywh]/`question_id`, ungated) |
 | `ocr_text_recognition` | `lmms-lab-encoder/textvqa` | **Confirmed live** this session (train=34.6k/val=5k/test=5.73k, `answers`: list of 10, ungated) |
 | `counting` | `HuggingFaceM4/the_cauldron`, config `tallyqa` | **Confirmed live** this session (schema `images:[image]`, `texts:[{"user","assistant","source"}]`, multi-turn per image, ~98.7k rows, single split) |
-| `attribute_recognition` | `ranjaykrishna/visual_genome`, config `attributes_v1.2.0` | Resolved-by-assumption — canonical authors' repo confirmed to exist with an `attributes` config family (region/object/attribute annotations, WordNet-canonicalized); **exact version-suffix string and split name UNCONFIRMED**, `config_name` is a constructor param specifically so this is correctable without touching adapter logic |
+| `attribute_recognition` | `mikewang/vaw` (annotations) + Visual Genome's own images (fetched separately) | **Source changed this session** — the original `ranjaykrishna/visual_genome` (config `attributes_v1.2.0`) FAILS on `datasets==5.0.1` ("Dataset scripts are no longer supported", confirmed on a real RunPod). Replaced with VAW (script-free, Parquet, CVPR 2019 peer-reviewed), see "Visual Genome" section below. Image-archive URLs UNCONFIRMED by an actual download from this environment. |
 | `object_recognition` | `ILSVRC/imagenet-1k`, split `validation` | **Confirmed live** this session — dataset exists, splits/schema/`int2str` class-name mapping confirmed; **GATED**, requires an HF token with accepted ImageNet license (user's explicit decision: build for gated access, hard-fail clearly, never substitute) |
 | `fine_grained_recognition` | `bentrevett/caltech-ucsd-birds-200-2011` | Resolved-by-assumption — one of several community mirrors (`randall-lab/cub200`, `galilai-group/cub200`, others also exist), none singularly canonical; adapter reads canonical species names from the mirror's own `features["label"].names` and hard-fails (`CUBSchemaError`) rather than guessing if that's absent |
-| `spatial_reasoning` / `relational_reasoning` | `external/RandOpt/data/gqa/testdev.parquet` via `GQAHandler`, filtered by `gqa_raw_schema.py` | Filter logic Confirmed-by-test against the ASSUMED public GQA schema; **the assumed field names (`types.semantic`/`types.structural`, the "semantic" reasoning-program shape) are UNCONFIRMED against the actual raw dataset** — see next section, the required first pod-side step |
+| `spatial_reasoning` / `relational_reasoning` | `external/RandOpt/data/gqa/testdev.parquet` via `GQAHandler`, filtered by `gqa_raw_schema.py` + `prepare_gqa_capability_filters.py` | Field NAMES **confirmed live** this session (see next section); the exact "relate" argument-encoding format is still pod-side-unconfirmed |
 
-## GQA spatial/relational filter — raw schema investigation (REQUIRED FIRST POD-SIDE STEP)
+## GQA capability-filter wiring bug (fixed this repair pass)
 
-`adapters/gqa_raw_schema.py`'s field-name constants (`SEMANTIC_TYPE_FIELD = "types.semantic"`,
-`STRUCTURAL_TYPE_FIELD = "types.structural"`, and the `_extract_relation_name` reasoning-
-program shape) are written against GQA's **publicly documented** official schema (Hudson &
-Manning, CVPR 2019) — **not yet verified** against whichever specific raw HF dataset/parquet
-form is actually loaded here (distinct from `GQAHandler`'s own already-prompt-formatted
-output, which does not expose this metadata at all).
+**Root cause of the reported `RuntimeError: GQASpatialReasoningBenchmark needs either
+question_ids or filter_ids_path`**: `GQAFilteredBenchmark.__init__` defaulted BOTH
+`question_ids` and `filter_ids_path` to `None` with no fallback, and
+`run_capability_benchmark_gate.py`'s `load_adapter()` always instantiates adapters with zero
+constructor args (`adapter_cls()`) — there was simply no code path, anywhere, that could ever
+supply either value in a real CLI run. This was a genuine wiring gap, not a data-availability
+problem (confirmed separately: `external/RandOpt/data/gqa/` was also empty on the same fresh
+pod, but that alone would have surfaced as a *different*, later error inside
+`GQAHandler.load_data()`, not this one).
 
-**Required first step on the pod**, before trusting the spatial/relational filter:
+**Fix**: each GQA adapter subclass now declares a `DEFAULT_FILTER_IDS_FILENAME` class
+attribute (`gqa_spatial_ids.json` / `gqa_relational_ids.json`); `GQAFilteredBenchmark.__init__`
+resolves `filter_ids_path` to `artifacts/benchmark_subsets/<DEFAULT_FILTER_IDS_FILENAME>`
+whenever it isn't explicitly passed, so the no-arg CLI instantiation now always has a real
+default path. `_resolve_question_ids()` also now gives an actionable error (naming the exact
+`prepare_gqa_capability_filters.py` command to run) if that default artifact doesn't exist
+yet, instead of a bare "needs either..." message.
 
-```python
-from neural_thickets_repro.benchmarks.adapters.gqa_raw_schema import inspect_raw_schema
-# load the raw GQA annotation rows (NOT via GQAHandler.load_data -- that returns prompt-
-# formatted records, not the raw type/semantic-program metadata) and run:
-report = inspect_raw_schema(raw_rows)
-print(report)  # report["assumed_schema_confirmed"] must be True before proceeding
-```
+**New CLI**: `prepare_gqa_capability_filters.py` — loads GQA's raw annotations independently
+of `GQAHandler`, runs `inspect_raw_schema()`, builds and persists both ID files plus a stats
+file, and prints the spatial/relational/intersection/neither counts. See the bootstrap
+sequence below.
 
-If `assumed_schema_confirmed` is `False`, update `SEMANTIC_TYPE_FIELD`/`STRUCTURAL_TYPE_FIELD`/
-`_extract_relation_name` in `gqa_raw_schema.py` to match the real field names, and update this
-row, before generating the spatial/relational subset IDs for real.
+## GQA spatial/relational filter — raw schema investigation
+
+`adapters/gqa_raw_schema.py`'s field-name constants — **CONFIRMED live** this session via
+direct HF dataset-viewer inspection of `lmms-lab-encoder/GQA`'s `testdev_balanced_instructions`
+config: the raw rows DO carry `types` (`structural`/`semantic`/`detailed`), `semantic` (a
+reasoning-program operation-step list), `semanticStr`, `groups`, `isBalanced`, `entailed`,
+`equivalent` — `prepare_gqa_data.py`'s own parquet (`id`/`imageId`/`question`/`answer`/
+`fullAnswer` only) is a deliberately NARROWED projection of these same rows for GQAHandler's
+needs, not evidence the richer fields don't exist upstream. The semantic-category value for
+relational questions is **`"rel"`**, not `"relation"` as initially guessed from public
+documentation alone — corrected in `gqa_raw_schema.RELATION_SEMANTIC_VALUE` after this live
+check.
+
+**Still pod-side-unconfirmed**: the exact argument-encoding shape of `semantic`'s "relate"
+operation steps (`_extract_relation_name`) — only the field NAMES and the semantic-category
+value set were independently confirmed, not individual "relate" argument strings at the
+row-content level. Run `prepare_gqa_capability_filters.py` (bootstrap step 7 below) and read
+its printed `inspect_raw_schema()` report plus the spatial/relational counts before trusting
+the resulting ID files as final.
 
 **Scientific note on spatial vs. relational (explicit, not hidden)**: GQA's own "relation"
 semantic-type category **naturally contains** both spatial relations (left/right/above/etc.)
@@ -103,14 +125,117 @@ per-dataset choice, not a universal rule change.
 Full decision order is documented in `card.py`'s module docstring; every card exposes the raw
 measurements regardless of the assigned Status.
 
+## Visual Genome: source migration (fixed this repair pass)
+
+**Confirmed failure on a real RunPod**: `ranjaykrishna/visual_genome` (config
+`attributes_v1.2.0`) raises `RuntimeError: Dataset scripts are no longer supported, but found
+visual_genome.py` on `datasets==5.0.1` — that repo requires `trust_remote_code` execution of a
+legacy Python loading script, which recent `datasets` versions refuse to run automatically.
+Checked and ruled out: an HF auto-converted-Parquet mirror (the usual fix for exactly this
+error) does not exist for this repo/config either — the `datasets-server` parquet API 404s
+for it, most likely because the same trust_remote_code requirement blocks HF's own
+auto-conversion pipeline too.
+
+**Resolution — two sources, kept explicitly separate**:
+- **Annotations**: `mikewang/vaw` — VAW ("Visual Attributes in the Wild", Pham et al., CVPR
+  2019/2021), confirmed live this session to be script-free/Parquet, with exactly the schema
+  needed: `image_id, instance_id, instance_bbox[x,y,w,h], object_name, positive_attributes[...],
+  negative_attributes[...]`. This is a peer-reviewed dataset built specifically for attribute
+  recognition FROM Visual Genome, not a lower-quality improvised substitute — its own standard
+  task is literally "predict an object's positive attributes," which is exactly what this
+  capability needs.
+- **Images**: VAW carries `image_id` only, no image bytes — Visual Genome's own official
+  image archives are fetched separately by `prepare_visual_genome_data.py`.
+  **UNRESOLVED / pod-side-confirm**: the exact archive URLs
+  (`cs.stanford.edu/people/rak248/VG_100K_2/images.zip` and `.../images2.zip`) are commonly
+  cited across independent sources (GitHub download scripts, HF dataset discussions, academic-
+  torrent listings) but were NOT independently verified by an actual successful download from
+  this environment. `--images-zip-url-part1`/`--images-zip-url-part2` override them if stale;
+  the script hard-fails with a clear, actionable message on a failed/404 download.
+
+`prepare_visual_genome_data.py` writes `external/RandOpt/data/visual_genome/{vg_attributes.parquet,images/}`
+(prefix-sliced to `--max-candidates` VAW rows, default 1000 — bounds the number of unique
+images fetched; a documented deviation from "load everything," same "first N" discipline
+`prepare_gqa_data.py` already uses). `verify_visual_genome_data.py` checks it (row count,
+required columns, no duplicate `instance_id`, no empty `positive_attributes`, every
+referenced image present and not corrupt) before it's trusted. The adapter
+(`attribute_recognition_visualgenome.py`) now reads ONLY this local prepared artifact —
+it never calls `datasets.load_dataset("ranjaykrishna/visual_genome", ...)` at all anymore.
+
+## Fresh RunPod bootstrap
+
+The exact command sequence to go from an empty pod to all 8 capabilities passing `--dry-run`
+integrity checks. Confirmed against a real fresh RunPod this session up through the
+environment/runtime pins (521 passed / 0 failed once `transformers`/`tokenizers`/`vllm`/
+`datasets` were pinned as below); the GQA/VG-specific steps below are new as of this repair
+pass and have not yet been re-run end-to-end on a fresh pod.
+
+```bash
+# 1. Clone repo
+git clone <this-repo-url> thickets
+cd thickets/research/neural_thickets_repro
+
+# 2. Setup external RandOpt pinned dependency (gitignored, never vendored)
+python external/setup_external_repo.py
+
+# 3. Install the known-good runtime (see requirements/requirements-gpu.txt's own comment for
+#    WHY these three are pinned exactly -- an unpinned vllm==0.11.0 install pulled in
+#    transformers 5.15.1 by default on a real pod, breaking vllm+Qwen2.5-VL with an
+#    mrope/rope_type configuration conflict)
+pip install -r requirements/requirements-gpu.txt
+
+# 4. HF login (needed for GQA/RefCOCO/TextVQA/TallyQA -- all ungated -- and REQUIRED for the
+#    gated ImageNet-1K; VG no longer touches HF's gated ranjaykrishna/visual_genome repo at
+#    all, see the Visual Genome section above)
+huggingface-cli login   # for ImageNet-1K: this account must have separately accepted the
+                         # license at https://huggingface.co/datasets/ILSVRC/imagenet-1k
+
+# 5. Prepare GQA evaluation data (GQAHandler's own parquet + images -- historical semantics
+#    unchanged; this is source A, see "Fresh-pod GQA data preparation" above)
+python -m neural_thickets_repro.prepare_gqa_data --config configs/gqa_repro.yaml
+
+# 6. Verify GQA evaluation data
+python -m neural_thickets_repro.verify_gqa_data --config configs/gqa_repro.yaml
+
+# 7. Prepare GQA spatial/relational capability filters (source B -- raw annotation metadata,
+#    loaded independently of step 5/6; writes artifacts/benchmark_subsets/gqa_spatial_ids.json
+#    + gqa_relational_ids.json + gqa_spatial_relational_stats.json). Inspect the printed
+#    schema-confirmation report and the spatial/relational/intersection/neither counts before
+#    trusting the result -- do not skip reading this output.
+python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml
+
+# 8. Prepare Visual Genome attribute-recognition data (mikewang/vaw annotations + Visual
+#    Genome's own images, see "Visual Genome" section above -- one-time, several-GB image
+#    archive download; --images-zip-url-part1/--images-zip-url-part2 override the default
+#    URLs if they've moved)
+python -m neural_thickets_repro.prepare_visual_genome_data
+
+# 9. Verify Visual Genome data
+python -m neural_thickets_repro.verify_visual_genome_data
+
+# 10. Dry-run every capability (data loading + integrity only, no GPU/model call)
+for cfg in object_recognition visual_grounding counting spatial_reasoning relational_reasoning ocr_text_recognition attribute_recognition fine_grained_recognition; do
+    python -m neural_thickets_repro.run_capability_benchmark_gate --config configs/benchmarks/$cfg.yaml --dry-run
+done
+
+# 11. GPU model smoke (confirms the pinned runtime actually loads Qwen2.5-VL-3B-Instruct
+#     under vLLM before spending time on any real benchmark run)
+python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro.yaml --max-examples 1
+```
+
 ## Open items (UNRESOLVED, tracked here, not silently resolved)
 
-- GQA raw schema field names (see above) — first pod-side step.
+- GQA raw "relate" operation argument-encoding shape (field NAMES are now confirmed; the
+  individual argument STRING format at the row-content level is not) — run
+  `prepare_gqa_capability_filters.py` and read its printed report.
 - `lmms-lab-encoder/RefCOCO+`'s exact repo id — assumed analogous to the confirmed RefCOCO
   repo, not independently verified.
-- Visual Genome `attributes` config's exact version suffix and split name.
+- Visual Genome image-archive URLs (`prepare_visual_genome_data.py`'s
+  `DEFAULT_IMAGES_ZIP_URL_PART1`/`PART2`) — commonly cited but not independently verified by
+  an actual successful download from this environment.
 - CUB-200-2011 mirror choice — `bentrevett/caltech-ucsd-birds-200-2011` is a documented,
   revisable pick among several community mirrors.
 - ImageNet-1K gated access — requires an HF token with accepted license configured on
   whichever machine actually runs `load_examples()`; the adapter hard-fails with a clear
-  message (`ImageNetGatedAccessError`) if this isn't set up, never substitutes anything else.
+  message (`ImageNetGatedAccessError`) if this isn't set up, never substitutes anything else
+  (confirmed as a real, expected user-access blocker on the RunPod this session, not a bug).

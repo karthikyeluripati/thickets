@@ -1,6 +1,8 @@
 # Capability Benchmark Gate: attribute_recognition (Visual Genome attributes). Base-model,
 # ZERO perturbation evaluation only -- see CAPABILITY_BENCHMARK_GATE.md for the full design
-# log, including why a drawn bounding-box marker is part of this benchmark's own protocol.
+# log, including why a drawn bounding-box marker is part of this benchmark's own protocol,
+# and the ranjaykrishna/visual_genome -> mikewang/vaw source migration (the original repo's
+# script-based loading fails on modern `datasets`, confirmed on a real RunPod this session).
 
 experiment: capability_benchmark_gate_attribute_recognition
 
@@ -23,9 +25,16 @@ generation:
 dataset:
   capability: attribute_recognition
   adapter: neural_thickets_repro.benchmarks.adapters.attribute_recognition_visualgenome.VisualGenomeAttributeBenchmark
-  source: ranjaykrishna/visual_genome                   # canonical, original-authors repo (config name is the adapter's own config_name param, default attributes_v1.2.0 -- UNCONFIRMED, see adapter known_caveats())
-  revision: null
-  split: train                                          # UNRESOLVED -- confirm the correct split name for the "attributes" config on the pod
+  # NOTE: unlike the HF-repo-id "source" fields in most other capability configs, this
+  # adapter reads a LOCALLY PREPARED artifact (see prepare_visual_genome_data.py) -- this is
+  # a DIRECTORY PATH (external/RandOpt/data/visual_genome), relative to the repo root when
+  # run via `python -m ...` from there, matching the GQA configs' own path-not-repo-id
+  # convention. Annotations come from mikewang/vaw; images from Visual Genome's own official
+  # archives (fetched by the prepare script) -- see that script's module docstring for the
+  # UNCONFIRMED archive-URL caveat.
+  source: external/RandOpt/data/visual_genome
+  revision: null                                        # not applicable -- see prepare_visual_genome_data.py for provenance instead
+  split: train                                           # mikewang/vaw split the prepare script draws its candidate pool from
   subset_size: 200
   deviation_reason: null
   subset_selection_rule: shuffled_prefix
