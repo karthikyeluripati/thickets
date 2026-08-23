@@ -122,3 +122,44 @@ def test_default_repeatability_verdict_false_when_no_common_ids(fake_capability_
 
     repeatable, _ = bench.repeatability_verdict(base, repeat)
     assert repeatable is False
+
+
+# ---------------------------------------------------------------------------------------
+# default make_shuffled_image_variant() -- this repair pass
+# ---------------------------------------------------------------------------------------
+
+def test_default_make_shuffled_image_variant_swaps_whole_image(tiny_image_factory, fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    own_image = tiny_image_factory(color=(1, 0, 0))
+    source_image = tiny_image_factory(color=(0, 1, 0))
+    example = Example(example_id="own", image=own_image, image_ref="own.jpg", prompt_input={"q": "own question"}, target="own target", metadata={"m": 1})
+    source = Example(example_id="source", image=source_image, image_ref="source.jpg", prompt_input={"q": "source question"}, target="source target", metadata={"m": 2})
+
+    shuffled = bench.make_shuffled_image_variant(example, source)
+
+    assert shuffled.example_id == "own"
+    assert shuffled.image is source_image
+    assert shuffled.prompt_input == {"q": "own question"}  # own prompt, not source's
+    assert shuffled.target == "own target"  # own target, not source's
+    assert shuffled.metadata["sanity_shuffle_source_id"] == "source"
+    assert shuffled.metadata["m"] == 1  # own metadata otherwise preserved (default has no bbox concept)
+
+
+def test_default_make_shuffled_image_variant_never_mutates_either_input(tiny_image_factory, fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    example = Example(example_id="own", image=tiny_image_factory(), prompt_input={}, target="x", metadata={"m": 1})
+    source = Example(example_id="source", image=tiny_image_factory(), prompt_input={}, target="y", metadata={"m": 2})
+
+    bench.make_shuffled_image_variant(example, source)
+
+    assert example.metadata == {"m": 1}
+    assert source.metadata == {"m": 2}
+
+
+def test_default_make_shuffled_image_variant_image_ref_documents_the_swap(tiny_image_factory, fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    example = Example(example_id="own", image=tiny_image_factory(), image_ref="own.jpg", prompt_input={}, target="x", metadata={})
+    source = Example(example_id="source", image=tiny_image_factory(), image_ref="source.jpg", prompt_input={}, target="y", metadata={})
+
+    shuffled = bench.make_shuffled_image_variant(example, source)
+    assert shuffled.image_ref == "shuffled_from:source.jpg"

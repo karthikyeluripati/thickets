@@ -150,3 +150,30 @@ class CapabilityBenchmark(ABC):
         metrics_match = base_result.aggregate_metrics.get("primary_metric") == repeat_result.aggregate_metrics.get("primary_metric")
         repeatable = metrics_match and bool(common_ids) and exact_matches == len(common_ids)
         return repeatable, {}
+
+    def make_shuffled_image_variant(self, example: "Example", source_example: "Example") -> "Example":
+        """Builds ONE shuffled-image-condition Example for the image-dependence sanity check:
+        `example`'s own prompt/target, but the VISUAL INPUT drawn from `source_example`
+        instead (image_sanity.make_shuffled_variant() calls this once per example, pairing
+        each with a different example via a true derangement).
+
+        DEFAULT: swaps in `source_example.image` wholesale, keeping `example`'s own metadata
+        otherwise unchanged -- correct whenever prepare_image() operates on the whole
+        attached image with no other per-example localization metadata involved (true for
+        most capabilities).
+
+        Override when prepare_image() derives the actual visual input from BOTH `image` AND
+        capability-specific metadata (e.g. a bounding-box crop) -- the override must ALSO
+        carry over whatever of `source_example`'s OWN metadata is needed to correctly
+        reproduce THAT image's own localized region. Swapping only `image` while keeping
+        `example`'s own localization metadata would silently apply one example's box to a
+        DIFFERENT photo, producing a misaligned/meaningless crop rather than a genuine
+        "different but valid" visual distractor -- see
+        VisualGenomeAttributeBenchmark.make_shuffled_image_variant() for the real fix.
+        """
+        new_metadata = dict(example.metadata)
+        new_metadata["sanity_shuffle_source_id"] = source_example.example_id
+        return Example(
+            example_id=example.example_id, image=source_example.image, image_ref=f"shuffled_from:{source_example.image_ref}",
+            prompt_input=example.prompt_input, target=example.target, metadata=new_metadata,
+        )

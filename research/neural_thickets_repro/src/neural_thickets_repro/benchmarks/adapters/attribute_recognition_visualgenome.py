@@ -16,14 +16,25 @@ local artifact, mirroring GQAHandler's own "prepare offline, adapter reads local
 labor.
 
 To keep scoring automatic and unambiguous without reducing this to unrestricted captioning:
-one Example = one (image, object) pair. The queried object is made unambiguous by drawing a
-deterministic bounding-box marker around it (prepare_image() below, PIL ImageDraw, on a COPY
-of the image -- the original is preserved separately, never mutated, and the bbox itself is
-recorded in Example.metadata) -- an outline only, never filled, so the object itself is not
-obscured. The `positive_attributes` list is preserved in FULL as Example.target (never
-collapsed to one answer) -- a prediction is scored correct if it matches ANY of them (see
-score_example), the same "preserve the valid target set" discipline TextVQA's 10-answer list
-already uses in this package.
+one Example = one (image, object) pair. The `positive_attributes` list is preserved in FULL
+as Example.target (never collapsed to one answer) -- a prediction is scored correct if it
+matches ANY of them (see score_example), the same "preserve the valid target set" discipline
+TextVQA's 10-answer list already uses in this package.
+
+LOCALIZED-CROP PROTOCOL (this repair pass, replacing the earlier full-image + red-marker
+protocol): a real N=50 image-sanity run on the marker-overlay protocol found ZERO visual
+dependence -- correct=0.15, shuffled=0.10, text-only=0.15 (text-only EXACTLY matched
+correct-image). Root cause: the full scene image (plus the object's own NAME, always spoken
+in the prompt) gave the model enough of a prior to guess a plausible attribute for that
+object category without ever needing to look at the marked region -- "wooden"/"brown" are
+generic, high-prior guesses for "chair" regardless of which chair is actually pictured, and a
+drawn rectangle competing with a whole busy scene is a weak localization signal. Fixed by
+cropping the image down to the annotated ground-truth bbox (see benchmarks/image_crop.py) --
+prepare_image() below now returns ONLY the object's own (padded) region, not the full scene,
+so there is no remaining scene content left for the model to answer from without attending to
+the crop itself. The bbox is used ONLY for localization (WHERE to crop) -- it is never
+inferred, altered, or treated as attribute/target information, and the dataset/subset
+sampling/scoring are all otherwise unchanged.
 
 PROMPT FIX (this repair pass): a real N=5 manual inspection found the model sometimes
 answering with the attribute's CATEGORY name ("Material", "Color: Brown") instead of its
@@ -52,19 +63,21 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from ..base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
+from ..image_crop import CROP_CONTEXT_PADDING_FRACTION, CropError, compute_padded_crop_box, crop_to_bbox
 from ..normalization import normalize_answer
 from ..prompting import build_image_text_messages
 
-INSTRUCTION = (
-    "Look at the object outlined in red in the image. State ONE visible attribute VALUE of "
-    "that object -- for example a specific color such as 'brown', a material such as "
-    "'wooden', a texture, or a visible state. Answer with the attribute VALUE itself, never "
-    "the attribute's category name (do not answer with a bare category word like 'Color', "
-    "'Material', or 'Texture'). Answer with a single word or short phrase giving the actual "
-    "attribute, and nothing else -- do not describe the whole scene."
+# {object_name} filled from the row's own object_name -- NOT a ground-truth attribute value,
+# just the (already-known, pre-generation) object category, matching the LOCALIZED-CROP
+# PROTOCOL note above. Never mentions bbox coordinates or the accepted attribute values.
+INSTRUCTION_TEMPLATE = (
+    "The image shows a close-up crop centered on a single {object_name}. State ONE visible "
+    "attribute VALUE of this {object_name} -- for example a specific color such as 'brown', "
+    "a material such as 'wooden', a texture, or a visible state. Answer with the attribute "
+    "VALUE itself, never the attribute's category name (do not answer with a bare category "
+    "word like 'Color', 'Material', or 'Texture'). Answer with a single word or short phrase "
+    "giving the actual attribute, and nothing else."
 )
-MARKER_COLOR = (255, 0, 0)
-MARKER_WIDTH = 3
 PREPARE_COMMAND = "python -m neural_thickets_repro.prepare_visual_genome_data"
 
 # Small, EXPLICITLY non-exhaustive watchlist of VG attribute values that describe an
@@ -127,11 +140,19 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
             "Target attribute values are whitespace-stripped (e.g. 'wooden ' -> 'wooden'); "
             "the exact, unmodified raw values are preserved in "
             "Example.metadata['raw_positive_attributes'].",
-            "A bounding-box marker overlay is drawn on every image as part of this benchmark's "
-            "own protocol (to make the queried object unambiguous) -- it is not naturally "
-            "occurring VG data. The shuffled-image sanity condition keeps the same fixed "
-            "marker coordinates on a swapped photo; this is still a valid distractor for that "
-            "check, not a bug.",
+            "The model is shown a CROP of the annotated bbox (with a fixed "
+            f"{CROP_CONTEXT_PADDING_FRACTION:.0%} context padding, see benchmarks/image_crop.py), "
+            "not the full scene image -- replaces an earlier full-image + red-bbox-marker "
+            "protocol that a real N=50 image-sanity run showed had NO measurable visual "
+            "dependence (correct=0.15, shuffled=0.10, text-only=0.15 -- text-only exactly "
+            "matched correct-image). The bbox is used ONLY to localize the crop -- it is "
+            "never inferred, altered, or treated as attribute/target information. A row whose "
+            "bbox cannot produce a valid (non-degenerate) crop is excluded from the candidate "
+            "pool at load_examples() time, not silently cropped to garbage.",
+            "The shuffled-image sanity condition swaps in a DIFFERENT example's own "
+            "(image, bbox) pair together -- never this example's own bbox applied to a "
+            "different photo, which would produce a misaligned/meaningless crop rather than a "
+            "genuine 'different but valid' visual distractor.",
             "The full positive_attributes list is preserved as the target set; a prediction "
             "is scored correct if it matches ANY of them.",
             "Example.example_id is derived from (image_id, object_id, bbox) via "
@@ -165,6 +186,20 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
         for _, row in df.iterrows():
             image_path = images_dir / f"{row['image_id']}.jpg"
             image = Image.open(image_path).convert("RGB") if image_path.exists() else None
+            bbox_xywh = [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]]
+
+            # LOCALIZED-CROP PROTOCOL: a row whose bbox cannot produce a valid, non-degenerate
+            # crop against its OWN real image dimensions is excluded from the candidate pool
+            # here, deterministically -- never silently cropped to a garbage/empty region.
+            # image.size is used (not a possibly-stale recorded image_width/height column) so
+            # this always reflects the actual downloaded image file.
+            crop_box_xyxy = None
+            if image is not None:
+                try:
+                    crop_box_xyxy = list(compute_padded_crop_box(bbox_xywh, image.size[0], image.size[1]))
+                except CropError:
+                    continue
+
             raw_attributes = list(json.loads(row["positive_attributes"]))
             # target: whitespace-normalized (scoring already tolerates stray whitespace via
             # normalize_answer's own .strip(), but the stored target itself should be clean --
@@ -172,7 +207,8 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
             # unmodified raw values separately.
             normalized_attributes = [a.strip() for a in raw_attributes if a.strip()]
             metadata: Dict[str, Any] = {
-                "bbox_xywh": [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]],
+                "bbox_xywh": bbox_xywh,
+                "crop_box_xyxy": crop_box_xyxy,  # the ACTUAL padded+clipped crop bounds -- input localization metadata only, never a target
                 "image_id": str(row["image_id"]),
                 # source VG object_id, preserved distinctly from example_id -- NOT unique on
                 # its own in this repackaged dataset (see prepare_visual_genome_data.py's
@@ -195,17 +231,40 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
         return examples
 
     def prepare_image(self, example: Example):
+        """Returns the LOCALIZED CROP (never the full scene) -- see this module's
+        LOCALIZED-CROP PROTOCOL docstring note. `crop_to_bbox` never mutates
+        `example.image` (PIL's own `.crop()` always returns a new Image) and derives the
+        crop bounds from the image's own real `.size`, so this is correct for the
+        shuffled-image sanity condition too (a different image, with a different real size,
+        paired with its OWN bbox via make_shuffled_image_variant() below).
+        """
         if example.image is None:
             return None
-        from PIL import ImageDraw
+        cropped, _ = crop_to_bbox(example.image, example.metadata["bbox_xywh"], CROP_CONTEXT_PADDING_FRACTION)
+        return cropped
 
-        marked = example.image.copy()  # never mutate the original -- preserved separately
-        x, y, w, h = example.metadata["bbox_xywh"]
-        ImageDraw.Draw(marked).rectangle([x, y, x + w, y + h], outline=MARKER_COLOR, width=MARKER_WIDTH)
-        return marked
+    def make_shuffled_image_variant(self, example: Example, source_example: Example) -> Example:
+        """Overrides CapabilityBenchmark's default (which would swap in `source_example`'s
+        image while keeping `example`'s own bbox metadata -- silently applying one example's
+        localization box to a DIFFERENT photo, producing a misaligned/meaningless crop, not a
+        genuine "different but valid" visual distractor). The shuffled condition here is
+        `source_example`'s own (image, bbox) pair -- a real, validly-localized crop of a
+        different object -- paired with `example`'s own prompt/target, exactly as the
+        LOCALIZED ATTRIBUTE RECOGNITION protocol requires. `source_example` is guaranteed to
+        already have a valid crop (or it would have been excluded at load_examples() time).
+        """
+        new_metadata = dict(example.metadata)
+        new_metadata["sanity_shuffle_source_id"] = source_example.example_id
+        new_metadata["bbox_xywh"] = source_example.metadata["bbox_xywh"]
+        new_metadata["crop_box_xyxy"] = source_example.metadata.get("crop_box_xyxy")
+        return Example(
+            example_id=example.example_id, image=source_example.image, image_ref=f"shuffled_from:{source_example.image_ref}",
+            prompt_input=example.prompt_input, target=example.target, metadata=new_metadata,
+        )
 
     def build_prompt(self, example: Example) -> List[dict]:
-        return build_image_text_messages(INSTRUCTION)
+        instruction = INSTRUCTION_TEMPLATE.format(object_name=example.prompt_input["object_name"])
+        return build_image_text_messages(instruction)
 
     def parse_prediction(self, raw_generation: str, example: Example) -> ParsedPrediction:
         stripped = raw_generation.strip()

@@ -551,6 +551,83 @@ exit code (`EXIT_CODE_CAPABILITY_CRASHED = 2`, vs. `1` for an ordinary reported 
 failed integrity check) without attempting to continue or auto-restart the (possibly now
 dead) shared engine -- no auto-restart logic was added, per explicit instruction.
 
+## N=50 diagnostics: CUB noise characterization, VG localized-crop repair, summary fix (this session)
+
+**CUB fine-grained recognition — confirmed as measurement noise, NOT a benchmark bug.** N=50
+`--repeat`: base=0.34, repeat=0.32, absolute delta=0.02, prediction_disagreement_rate=0.04
+(2/50 predictions differed: one flipped correct→incorrect, one stayed incorrect under a
+different wrong guess). This is genuine small GPU/model inference variability, not a parser
+or protocol defect. No CUB code was changed. The global repeatability gate is NOT loosened to
+force this specific run to PASS — the observed base/repeat delta and disagreement rate are
+preserved as-is in `repeatability.json` as a measurement-noise characterization a later
+perturbation/expert analysis can compare against when deciding whether a perturbation
+represents a real improvement or falls within this baseline's own noise floor.
+
+**Visual Genome attribute recognition — a real visual-dependence failure, fixed via a
+localized-crop protocol.** N=50 image-sanity (n=40): correct=0.15, shuffled=0.10,
+text-only=0.15 -- text-only EXACTLY matched correct-image (correct-minus-text-only = 0.00).
+The full-scene-image + red-bbox-marker protocol gave the model enough of an object-NAME prior
+("chair" → guess "wooden"/"brown") to answer without ever needing to look at the marked
+region. Repaired by converting the task into LOCALIZED attribute recognition: `prepare_image()`
+now returns a CROP of the annotated ground-truth bbox (10% fixed context padding, see
+`benchmarks/image_crop.py`) instead of the full image — see the "REQUIRED ATTRIBUTE PROTOCOL
+REPAIR" details below. Dataset, subset sampling, attribute targets, and scoring are
+unchanged; the bbox is used ONLY for localization, never as attribute/target information.
+
+**Crop/padding rule** (`benchmarks/image_crop.py`): `compute_padded_crop_box(bbox_xywh,
+image_width, image_height, padding_fraction=0.10)` expands the bbox by 10% of its OWN
+width/height on each side (proportional to the object's own size, not the image's, and not a
+fixed pixel count), then clips to the image's real bounds; raises `CropError` for a
+non-positive source box or a degenerate (zero/negative-area) clipped result. 10% is FIXED,
+chosen before looking at any model output (not tuned against accuracy) -- a small margin
+absorbs VG's tight annotation boxes potentially clipping an informative edge cue (a chair's
+leg, a collar) without reintroducing enough surrounding scene to resurrect the object-name
+prior that caused the original failure. A row whose bbox cannot produce a valid crop against
+its own real image dimensions is excluded from the candidate pool at `load_examples()` time
+(adapter-level filtering, not a dataset/subset-sampling change) -- never silently cropped to
+garbage. `crop_to_bbox()` reads `image.size` directly (never a possibly-stale recorded
+`image_width`/`image_height`), and never mutates the original image.
+
+**Sanity-control behavior, capability-aware (this repair pass, `CapabilityBenchmark.
+make_shuffled_image_variant()`).** A real bug in the GENERIC shuffled-image builder would
+have swapped in a DIFFERENT example's image while keeping THIS example's own bbox metadata --
+applying one example's localization box to a different photo, producing a
+misaligned/meaningless crop rather than a fair "different but valid visual content" test.
+Fixed via a new overridable hook: the default (used by every other capability, unchanged
+behavior) swaps in the source example's whole image; `VisualGenomeAttributeBenchmark`
+overrides it to swap in the source example's `(image, bbox)` PAIR together, still paired with
+THIS example's own prompt/target — exactly "another example's localized crop, paired with the
+ORIGINAL example's prompt/target." Text-only continues to mean "no crop, no image at all"
+(prepare_image() already returns None whenever `example.image is None`, no special-casing
+needed). Per-example predictions for all three conditions are now persisted (see below).
+
+**New artifact: `image_sanity_predictions.jsonl`** (every capability, via `image_sanity.
+write_image_sanity_predictions_jsonl()`) — one line per (example, condition), condition in
+{correct, shuffled, text_only} (text_only lines omitted entirely when unsupported, e.g.
+`visual_grounding`), with raw_generation/parsed_prediction/score/detail for each.
+`ImageSanityResult` now also carries the three full per-condition `RunResult` objects
+(`correct_result`/`shuffled_result`/`text_only_result`); `to_dict()` (and `image_sanity.json`)
+stays unchanged/compact — aggregate scores only.
+
+**Expected scientific property, NOT hardcoded**: the repaired benchmark should show
+correct-image > shuffled-image AND correct-image > text-only on a larger sanity sample --
+this is a property to CONFIRM on the pod (N=50+), not a number baked into the code or tests.
+Crop padding/prompt wording are not to be repeatedly tuned to maximize this gap once
+confirmed; a documented fixed rule is meant to stay fixed.
+
+**Summary.md missing-capability bug.** A real multi-capability run was observed with a
+capability's row silently absent from `summary.md`. Static re-inspection of the CURRENT
+`build_summary_table`/`build_summary_json` found no code path that could silently drop a
+row while `cards` (the list both functions iterate) still contained it -- so rather than
+assert a specific, unverifiable original root cause, the fix makes the INVARIANT itself
+robustly guaranteed regardless of cause: `write_summary()` now accepts
+`expected_capabilities` (the full list of capabilities a caller actually attempted, e.g.
+`run_baseline_characterization.py`'s own config list); any expected capability with no
+discovered `card.json` gets an explicit `MISSING` row in the table and is listed in
+`summary.json`'s new `missing_capabilities` field (which also forces `all_pass=False`) --
+never simply absent. All PASS/FAIL/NEEDS_REVIEW capabilities (and now MISSING ones too)
+always appear as a row.
+
 ## Fresh RunPod bootstrap
 
 The exact command sequence to go from an empty pod to all 8 capabilities passing `--dry-run`

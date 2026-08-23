@@ -182,8 +182,16 @@ def main(argv=None) -> int:
         print("\n--dry-run: skipping summary generation (no cards were written).")
         return 0
 
-    summary = write_summary(out_dir)
-    print(f"\n=== Baseline characterization summary: {summary['n_capabilities']} capabilities, {summary['status_counts']} ===")
+    # expected_capabilities = every capability THIS run actually attempted (not just the
+    # ones with rc==0) -- guarantees every one of them gets a summary.md row, either with
+    # real data or an explicit "MISSING" marker, rather than an attempted capability's row
+    # silently vanishing if its card.json somehow wasn't written (see summary.py's own
+    # MISSING-CAPABILITY ROBUSTNESS docstring note for the real incident this fixes).
+    expected_capabilities = [cfg.dataset.capability for cfg in configs]
+    summary = write_summary(out_dir, expected_capabilities=expected_capabilities)
+    print(f"\n=== Baseline characterization summary: {summary['n_capabilities']}/{summary['n_expected_capabilities']} capabilities, {summary['status_counts']} ===")
+    if summary["missing_capabilities"]:
+        print(f"WARNING: missing capabilities (attempted but no card.json found): {summary['missing_capabilities']}", file=sys.stderr)
     print(f"Wrote {out_dir}/summary.md and {out_dir}/summary.json")
     return 0
 

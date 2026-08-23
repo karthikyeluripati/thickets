@@ -150,6 +150,43 @@ def test_main_fails_clearly_and_preserves_completed_outputs_when_a_capability_cr
     assert "IndexError" in captured.err
 
 
+def test_main_summary_flags_a_capability_whose_card_was_never_written(tmp_path, monkeypatch):
+    """The real observed bug this repair pass fixes: a capability can report rc==0 (success)
+    without ever having written a card.json (e.g. some future silent failure inside
+    run_one_capability's own card-writing step) -- the FINAL summary must surface this as an
+    explicit MISSING row/entry, never silently show fewer rows than capabilities attempted.
+    """
+    def _fake_run_one_capability(cfg, **kwargs):
+        out_dir = kwargs["out_dir"]
+        out_dir.mkdir(parents=True, exist_ok=True)
+        if cfg.dataset.capability == "counting":
+            (out_dir / "card.json").write_text(json.dumps({
+                "capability": "counting", "dataset": "tallyqa", "subset_size": 5,
+                "base_metrics": {"primary_metric": 0.8, "parser_failure_rate": 0.0},
+                "repeat_metrics": None, "integrity": {"n_valid_images": 5, "n_loaded": 5},
+                "image_sanity": None, "status": "NEEDS_REVIEW",
+            }))
+        # fine_grained_recognition: reports success but never writes a card.json.
+        return 0, "fake_llm", "fake_tokenizer"
+
+    monkeypatch.setattr(m, "run_one_capability", _fake_run_one_capability)
+
+    output_dir = tmp_path / "results"
+    rc = m.main(["--configs", "counting.yaml,fine_grained_recognition.yaml", "--output-dir", str(output_dir)])
+
+    assert rc == 0
+    summary = json.loads((output_dir / "summary.json").read_text())
+    assert summary["missing_capabilities"] == ["fine_grained_recognition"]
+    assert summary["n_capabilities"] == 1
+    assert summary["n_expected_capabilities"] == 2
+    assert summary["all_pass"] is False
+
+    table = (output_dir / "summary.md").read_text()
+    assert "counting" in table
+    assert "fine_grained_recognition" in table
+    assert "MISSING" in table
+
+
 def test_main_stops_at_first_capability_that_fails_integrity(tmp_path, monkeypatch):
     import neural_thickets_repro.run_capability_benchmark_gate as gate_module
     monkeypatch.setattr(gate_module, "REPO_ROOT", tmp_path)

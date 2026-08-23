@@ -48,7 +48,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from .benchmarks.base import CapabilityBenchmark
 from .benchmarks.card import BenchmarkCardData, write_card
-from .benchmarks.image_sanity import run_image_sanity_check
+from .benchmarks.image_sanity import run_image_sanity_check, write_image_sanity_predictions_jsonl
 from .benchmarks.integrity import validate_examples
 from .benchmarks.runner import (
     bounded_disagreement_examples,
@@ -278,6 +278,7 @@ def run_one_capability(
             adapter, subset[:sanity_n], llm, tokenizer, sampling_params, seed=cfg.reproducibility.global_seed,
         )
         (out_dir / "image_sanity.json").write_text(json.dumps(image_sanity_result.to_dict(), indent=2))
+        write_image_sanity_predictions_jsonl(image_sanity_result, out_dir / "image_sanity_predictions.jsonl")
         print(
             f"  correct={image_sanity_result.correct_image_primary_metric:.4f}  "
             f"shuffled={image_sanity_result.shuffled_image_primary_metric:.4f}  "
