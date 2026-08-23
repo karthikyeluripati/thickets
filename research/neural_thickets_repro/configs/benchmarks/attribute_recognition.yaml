@@ -1,0 +1,40 @@
+# Capability Benchmark Gate: attribute_recognition (Visual Genome attributes). Base-model,
+# ZERO perturbation evaluation only -- see CAPABILITY_BENCHMARK_GATE.md for the full design
+# log, including why a drawn bounding-box marker is part of this benchmark's own protocol.
+
+experiment: capability_benchmark_gate_attribute_recognition
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 16                                        # a single word/short phrase attribute
+
+dataset:
+  capability: attribute_recognition
+  adapter: neural_thickets_repro.benchmarks.adapters.attribute_recognition_visualgenome.VisualGenomeAttributeBenchmark
+  source: ranjaykrishna/visual_genome                   # canonical, original-authors repo (config name is the adapter's own config_name param, default attributes_v1.2.0 -- UNCONFIRMED, see adapter known_caveats())
+  revision: null
+  split: train                                          # UNRESOLVED -- confirm the correct split name for the "attributes" config on the pod
+  subset_size: 200
+  deviation_reason: null
+  subset_selection_rule: shuffled_prefix
+  subset_seed: 42
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

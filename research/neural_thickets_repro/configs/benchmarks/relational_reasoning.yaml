@@ -1,0 +1,43 @@
+# Capability Benchmark Gate: relational_reasoning (GQA relational subset). Base-model, ZERO
+# perturbation evaluation only. Reuses GQAHandler's known-good pipeline unchanged (see
+# adapters/_gqa_filtered_base.py). relational_reasoning = GQA's own "relation" semantic-type
+# questions EXCLUDING the spatial_reasoning subset -- an EXPLICIT experimental choice, not a
+# claim GQA itself provides two naturally disjoint categories (see
+# adapters/gqa_raw_schema.py's module docstring and CAPABILITY_BENCHMARK_GATE.md).
+
+experiment: capability_benchmark_gate_relational_reasoning
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 256
+
+dataset:
+  capability: relational_reasoning
+  adapter: neural_thickets_repro.benchmarks.adapters.relational_reasoning_gqa.GQARelationalReasoningBenchmark
+  source: external/RandOpt/data/gqa/testdev.parquet     # see spatial_reasoning.yaml's note -- this is a parquet path, not an HF repo id
+  revision: a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8
+  split: test
+  subset_size: 200
+  deviation_reason: null
+  subset_selection_rule: prefix
+  subset_seed: null
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

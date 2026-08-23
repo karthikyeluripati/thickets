@@ -130,7 +130,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
 
 # transformers class to use instead of AutoModelForCausalLM when reconstructing a saved
 # Qwen2.5-VL-3B-Instruct expert from a (seed, sigma) pair.
@@ -296,6 +296,27 @@ def build_image_aware_requests(task_datas: List[Dict], tokenizer) -> List[dict]:
         text = format_chat_prompt(tokenizer, d["messages"])
         image = Image.open(d["image_path"]).convert("RGB")
         requests.append({"prompt": text, "multi_modal_data": {"image": image}})
+    return requests
+
+
+def build_multimodal_requests(
+    prompts_and_images: List[Tuple[List[dict], Optional["Image.Image"]]], tokenizer,
+) -> List[dict]:
+    """Generalizes build_image_aware_requests() above for the Capability Benchmark Gate
+    (benchmarks/runner.py) -- arbitrary (already-built chat "messages" list, optional PIL
+    image) pairs, no GQAHandler-shaped dict keys assumed (build_image_aware_requests itself
+    is untouched, still used byte-for-byte by Gate 1/2). Supports image=None (the
+    image-dependence sanity check's text-only condition) by omitting multi_modal_data
+    entirely from that request, matching vLLM's own convention for a text-only prompt,
+    rather than passing a null/placeholder image.
+    """
+    requests: List[dict] = []
+    for messages, image in prompts_and_images:
+        text = format_chat_prompt(tokenizer, messages)
+        request: Dict[str, object] = {"prompt": text}
+        if image is not None:
+            request["multi_modal_data"] = {"image": image}
+        requests.append(request)
     return requests
 
 

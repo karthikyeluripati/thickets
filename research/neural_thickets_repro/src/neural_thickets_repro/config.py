@@ -110,6 +110,89 @@ class ExperimentConfig:
                 )
 
 
+@dataclasses.dataclass
+class GenerationConfig:
+    decoding: str
+    max_tokens: int
+
+
+@dataclasses.dataclass
+class CapabilityDatasetConfig:
+    capability: str                  # must equal the adapter class's `capability` ClassVar
+    adapter: str                     # dotted class path, e.g. "neural_thickets_repro.benchmarks.adapters.visual_grounding_refcoco.RefCOCOGroundingBenchmark"
+    source: str                      # HF dataset repo id
+    revision: Optional[str]
+    split: str
+    subset_size: int                 # default 200; a documented deviation (e.g. TallyQA's single-split situation) sets deviation_reason
+    deviation_reason: Optional[str]  # required non-null iff subset_size != 200 or the split has no held-out test counterpart
+    subset_selection_rule: str       # "prefix" | "shuffled_prefix"
+    subset_seed: Optional[int]       # null iff rule == "prefix" (no RNG involved)
+
+
+@dataclasses.dataclass
+class BenchmarkGatesConfig:
+    max_parser_failure_rate_pass: float
+    max_parser_failure_rate_needs_review: float
+    # image-sanity gap (correct - shuffled, or correct - text_only) thresholds: gap <= 0 is
+    # always a forced FAIL (the image isn't detectably reaching the model) regardless of this
+    # value; a gap in [0, image_sanity_min_gap_pass) is NEEDS_REVIEW (see card.py's
+    # decide_status -- at a ~40-example sanity subset a small positive gap isn't yet
+    # distinguishable from a proportion metric's own noise floor); only >= this value is clean.
+    image_sanity_min_gap_pass: float
+    image_sanity_subset_size: int
+    floor_ceiling_low: float
+    floor_ceiling_high: float
+
+
+def _check_resolved(root: Any, field_paths) -> None:
+    """Shared by CapabilityBenchmarkConfig.require_resolved() only -- ExperimentConfig's own
+    require_resolved() above is left untouched (frozen Gate 0-2 dependency).
+    """
+    for path in field_paths:
+        obj: Any = root
+        for part in path.split("."):
+            obj = getattr(obj, part)
+        if obj is None:
+            raise UnresolvedFieldError(
+                f"Config field '{path}' is an UNRESOLVED value and cannot be used for a "
+                f"real run without being explicitly resolved first."
+            )
+
+
+@dataclasses.dataclass
+class CapabilityBenchmarkConfig:
+    """One capability per config file (mirrors DatasetConfig's existing singular convention
+    -- not a multi-benchmark registry). Deliberately does NOT reuse EvaluationConfig: its
+    voting/tie_break fields are RandOpt-ensemble-specific and don't generalize to a
+    single-pass, zero-perturbation evaluation; ModelConfig/ReproducibilityConfig/
+    HardwareConfig ARE reused as-is since model/repro/hardware concerns are genuinely
+    dataset-independent already.
+    """
+    experiment: str
+    model: ModelConfig
+    reproducibility: ReproducibilityConfig
+    hardware: HardwareConfig
+    generation: GenerationConfig
+    dataset: CapabilityDatasetConfig
+    gates: BenchmarkGatesConfig
+
+    def require_resolved(self, *field_paths: str) -> None:
+        _check_resolved(self, field_paths)
+
+
+def load_capability_benchmark_config(path: "str | Path") -> CapabilityBenchmarkConfig:
+    raw = yaml.safe_load(Path(path).read_text())
+    return CapabilityBenchmarkConfig(
+        experiment=raw["experiment"],
+        model=ModelConfig(**raw["model"]),
+        reproducibility=ReproducibilityConfig(**raw["reproducibility"]),
+        hardware=HardwareConfig(**raw["hardware"]),
+        generation=GenerationConfig(**raw["generation"]),
+        dataset=CapabilityDatasetConfig(**raw["dataset"]),
+        gates=BenchmarkGatesConfig(**raw["gates"]),
+    )
+
+
 def load_config(path: "str | Path") -> ExperimentConfig:
     raw = yaml.safe_load(Path(path).read_text())
 

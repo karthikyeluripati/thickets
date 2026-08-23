@@ -204,3 +204,85 @@ def runtime_wrapped_vlm_32vision_factory():
         return RuntimeWrappedVLM32Vision()
 
     return _make
+
+
+# --- Capability Benchmark Gate fixtures (tests/test_benchmarks_*.py, tests/test_adapter_*.py) ---
+# Small synthetic PIL images and a minimal concrete CapabilityBenchmark, so benchmark-gate
+# logic (subset selection, integrity, the runner, card/summary generation, every adapter's
+# prompt/parse/score/aggregate logic) is testable without any real dataset download, GPU, or
+# ray/vllm -- same no-GPU-needed philosophy as the scope/perturbation fixtures above.
+
+
+@pytest.fixture
+def tiny_image_factory():
+    """Factory so tests can build multiple distinct small real PIL.Image objects (distinct
+    fill color = distinct pixel content, useful for image-sanity/shuffle tests that need to
+    tell "this example's own image" apart from "some other example's image").
+    """
+    from PIL import Image
+
+    def _make(size=(4, 4), color=(255, 0, 0)):
+        return Image.new("RGB", size, color=color)
+
+    return _make
+
+
+@pytest.fixture
+def fake_capability_benchmark_factory():
+    """A minimal, concrete CapabilityBenchmark subclass for testing base.py/runner.py/
+    card.py/summary.py generically, independent of any real capability's own logic.
+    parse_prediction expects the raw generation to literally equal the (string) target;
+    score_example gives 1.0/0.0 accordingly; aggregate_metrics reports mean accuracy as
+    "primary_metric" plus the required "parser_failure_rate" key.
+    """
+    from neural_thickets_repro.benchmarks.base import CapabilityBenchmark, ExampleScore, ParsedPrediction
+
+    class FakeCapabilityBenchmark(CapabilityBenchmark):
+        capability = "fake_capability"
+        name = "fake_dataset"
+
+        def load_examples(self, cfg):
+            raise NotImplementedError("not needed by these tests -- examples are hand-built")
+
+        def build_prompt(self, example):
+            return [{"role": "user", "content": [{"type": "text", "text": str(example.prompt_input.get("question", ""))}]}]
+
+        def parse_prediction(self, raw_generation, example):
+            ok = bool(raw_generation.strip())
+            return ParsedPrediction(parsed=raw_generation.strip(), parse_ok=ok, parse_error=None if ok else "empty generation")
+
+        def score_example(self, parsed, example):
+            if not parsed.parse_ok:
+                return ExampleScore(score=0.0, correct=False, detail={"reason": "parse_failure"})
+            correct = parsed.parsed == example.target
+            return ExampleScore(score=1.0 if correct else 0.0, correct=correct)
+
+        def aggregate_metrics(self, scores):
+            n = len(scores)
+            accuracy = sum(s.score for s in scores) / n if n else 0.0
+            failures = sum(1 for s in scores if s.detail.get("reason") == "parse_failure")
+            return {"accuracy": accuracy, "primary_metric": accuracy, "parser_failure_rate": failures / n if n else 0.0}
+
+    def _make():
+        return FakeCapabilityBenchmark()
+
+    return _make
+
+
+@pytest.fixture
+def fake_gqa_handler_factory():
+    """SimpleNamespace-based double for GQAHandler, matching this project's existing
+    fake-worker/fake-module convention -- lets the GQA-derived benchmark adapters be tested
+    without the real external/RandOpt clone present.
+    """
+    from types import SimpleNamespace
+
+    def _make(records, reward_fn=None, extract_fn=None, is_correct_fn=None):
+        return SimpleNamespace(
+            load_data=lambda parquet_path, split, max_samples=None: list(records)[:max_samples] if max_samples else list(records),
+            compute_reward=reward_fn or (lambda response, ground_truth: 1.0 if response.strip() == ground_truth.get("answer") else 0.0),
+            extract_answer_for_voting=extract_fn or (lambda response: response.strip() or None),
+            is_voted_answer_correct=is_correct_fn or (lambda voted_answer, ground_truth: voted_answer == ground_truth.get("answer")),
+        )
+
+    return _make

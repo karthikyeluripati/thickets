@@ -1,0 +1,39 @@
+# Capability Benchmark Gate: counting (TallyQA). Base-model, ZERO perturbation evaluation
+# only -- see CAPABILITY_BENCHMARK_GATE.md for the full design log.
+
+experiment: capability_benchmark_gate_counting
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 16                                        # a single number
+
+dataset:
+  capability: counting
+  adapter: neural_thickets_repro.benchmarks.adapters.counting_tallyqa.TallyQACountingBenchmark
+  source: HuggingFaceM4/the_cauldron                    # CONFIRMED live (this session): config "tallyqa", ~98.7k rows, multi-turn per image
+  revision: null
+  split: train                                          # RESOLVED BY DOCUMENTED ASSUMPTION -- this repackaging exposes only one split, see adapter's known_caveats()
+  subset_size: 200
+  deviation_reason: "HuggingFaceM4/the_cauldron's tallyqa config exposes only one split (no separate held-out test/val) -- the fixed subset is drawn from that single split, documented, not a silent protocol change."
+  subset_selection_rule: shuffled_prefix
+  subset_seed: 42
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

@@ -1,0 +1,48 @@
+# Capability Benchmark Gate: spatial_reasoning (GQA spatial subset). Base-model, ZERO
+# perturbation evaluation only. Reuses GQAHandler's known-good load_data/compute_reward/
+# extract_answer_for_voting pipeline unchanged (see adapters/_gqa_filtered_base.py) -- the
+# only new logic is the spatial-question-ID filter (adapters/gqa_raw_schema.py). See
+# CAPABILITY_BENCHMARK_GATE.md for the full design log and the required first pod-side step
+# (gqa_raw_schema.inspect_raw_schema() against the real raw GQA annotations).
+
+experiment: capability_benchmark_gate_spatial_reasoning
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 256                                       # matches configs/gqa_repro.yaml -- same prompt/scoring pipeline (GQAHandler), same generation budget
+
+dataset:
+  capability: spatial_reasoning
+  adapter: neural_thickets_repro.benchmarks.adapters.spatial_reasoning_gqa.GQASpatialReasoningBenchmark
+  # NOTE: unlike the HF-repo-id "source" fields in the other 7 capability configs, GQA's
+  # adapter passes this string straight to GQAHandler.load_data(parquet_path, ...) -- it is a
+  # PARQUET FILE PATH, relative to the repo root when run via `python -m ...` from there
+  # (matches eval_base_image_aware.py's own --data-dir convention). Use an absolute path if
+  # invoking from elsewhere.
+  source: external/RandOpt/data/gqa/testdev.parquet
+  revision: a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8    # same pinned GQA dataset revision as configs/gqa_repro.yaml
+  split: test
+  subset_size: 200
+  deviation_reason: null
+  subset_selection_rule: prefix                          # matches the existing GQA-pilot convention (prepare_gqa_data.py's dataset.select(range(n)))
+  subset_seed: null                                       # no RNG involved in the prefix rule
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

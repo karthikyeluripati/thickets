@@ -1,0 +1,39 @@
+# Capability Benchmark Gate: visual_grounding (RefCOCO). Base-model, ZERO perturbation
+# evaluation only -- see CAPABILITY_BENCHMARK_GATE.md for the full design log.
+
+experiment: capability_benchmark_gate_visual_grounding
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 64                                        # room for "[x1, y1, x2, y2]" plus a little surrounding text
+
+dataset:
+  capability: visual_grounding
+  adapter: neural_thickets_repro.benchmarks.adapters.visual_grounding_refcoco.RefCOCOGroundingBenchmark
+  source: lmms-lab-encoder/RefCOCO                      # CONFIRMED live (this session): val=8.81k, ungated
+  revision: null
+  split: val
+  subset_size: 200
+  deviation_reason: null
+  subset_selection_rule: shuffled_prefix
+  subset_seed: 42
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

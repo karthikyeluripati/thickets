@@ -1,0 +1,97 @@
+"""Tests for adapters/ocr_text_recognition_textvqa.py -- synthetic textvqa-shaped rows, no
+real dataset download / GPU / ray / vllm needed.
+"""
+import sys
+import types
+from types import SimpleNamespace
+
+import pytest
+
+from neural_thickets_repro.benchmarks.adapters.ocr_text_recognition_textvqa import TextVQAOCRBenchmark
+from neural_thickets_repro.benchmarks.base import Example
+
+
+def _bench():
+    return TextVQAOCRBenchmark()
+
+
+def test_capability_and_name():
+    bench = _bench()
+    assert bench.capability == "ocr_text_recognition"
+    assert bench.name == "textvqa_validation"
+
+
+def test_end_to_end_vqa_soft_accuracy_against_10_answer_list():
+    bench = _bench()
+    answers = ["stop"] * 8 + ["halt"] * 2
+    example = Example(example_id="1", prompt_input={"question": "What does the sign say?"}, target=answers)
+
+    parsed = bench.parse_prediction("stop", example)
+    assert parsed.parse_ok is True
+
+    score = bench.score_example(parsed, example)
+    assert score.score == pytest.approx(1.0)
+    assert score.correct is True
+
+
+def test_partial_match_scores_below_one():
+    bench = _bench()
+    answers = ["stop"] * 3 + ["halt"] * 7
+    example = Example(example_id="1", target=answers)
+    parsed = bench.parse_prediction("stop", example)
+    score = bench.score_example(parsed, example)
+    assert 0.0 < score.score < 1.0
+
+
+def test_empty_generation_is_parse_failure():
+    bench = _bench()
+    example = Example(example_id="1", target=["stop"] * 10)
+    parsed = bench.parse_prediction("   ", example)
+    assert parsed.parse_ok is False
+    score = bench.score_example(parsed, example)
+    assert score.score == 0.0
+    assert score.detail["reason"] == "parse_failure"
+
+
+def test_does_not_reduce_target_to_a_single_answer():
+    example = Example(example_id="1", target=["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"])
+    assert isinstance(example.target, list)
+    assert len(example.target) == 10
+
+
+def test_aggregate_metrics_reports_primary_metric_and_parser_failure_rate():
+    bench = _bench()
+    examples = [Example(example_id=str(i), target=["stop"] * 10) for i in range(3)]
+    parsed_ok = bench.parse_prediction("stop", examples[0])
+    parsed_wrong = bench.parse_prediction("go", examples[1])
+    parsed_empty = bench.parse_prediction("", examples[2])
+
+    scores = [
+        bench.score_example(parsed_ok, examples[0]),
+        bench.score_example(parsed_wrong, examples[1]),
+        bench.score_example(parsed_empty, examples[2]),
+    ]
+    metrics = bench.aggregate_metrics(scores)
+    assert metrics["primary_metric"] == pytest.approx((1.0 + 0.0 + 0.0) / 3)
+    assert metrics["parser_failure_rate"] == pytest.approx(1 / 3)
+
+
+def test_load_examples_maps_schema_fields(tiny_image_factory, monkeypatch):
+    image = tiny_image_factory()
+    fake_rows = [
+        {"question_id": "q1", "question": "What does the sign say?", "image": image,
+         "image_id": "img1", "answers": ["stop"] * 10, "ocr_tokens": ["STOP"]},
+    ]
+    fake_module = types.ModuleType("datasets")
+    fake_module.load_dataset = lambda source, split, revision: fake_rows
+    monkeypatch.setitem(sys.modules, "datasets", fake_module)
+
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source="lmms-lab-encoder/textvqa", split="validation", revision=None))
+    examples = bench.load_examples(cfg)
+
+    assert len(examples) == 1
+    assert examples[0].example_id == "q1"
+    assert examples[0].image is image
+    assert examples[0].target == ["stop"] * 10
+    assert examples[0].prompt_input["question"] == "What does the sign say?"

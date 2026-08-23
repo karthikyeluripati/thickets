@@ -1,0 +1,42 @@
+# Capability Benchmark Gate: object_recognition (ImageNet-1K). Base-model, ZERO perturbation
+# evaluation only -- see CAPABILITY_BENCHMARK_GATE.md for the full design log.
+# Same model/revision/global_seed as every other capability config, per the "same model,
+# same seeds, across every visual capability" requirement for the future multi-capability
+# sweep this gate is validating instruments for.
+
+experiment: capability_benchmark_gate_object_recognition
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3   # same pinned revision as configs/gqa_repro.yaml
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42                                       # same seed as every other capability config
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 32                                        # short single-object-name answers
+
+dataset:
+  capability: object_recognition
+  adapter: neural_thickets_repro.benchmarks.adapters.object_recognition_imagenet.ImageNetObjectRecognitionBenchmark
+  source: ILSVRC/imagenet-1k                            # CONFIRMED live (this session) -- GATED, requires an HF token with accepted license, see adapter's known_caveats()
+  revision: null                                        # UNRESOLVED -- pin once confirmed on the pod
+  split: validation                                     # 50,000 images, has real labels (unlike test, which is label=-1)
+  subset_size: 200
+  deviation_reason: null                                # standard N=200, no deviation
+  subset_selection_rule: shuffled_prefix                # validation split is ordered by class -- a plain prefix would sample ~1-4 classes only
+  subset_seed: 42
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

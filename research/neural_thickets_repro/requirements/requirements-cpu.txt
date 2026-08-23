@@ -4,3 +4,5 @@ transformers>=4.41.2
 numpy
 pyyaml
 pytest>=7.0
+pillow  # CPU-only, no CUDA dependency -- needed for synthetic-image fixtures in the
+        # Capability Benchmark Gate's tests (box-IoU/image-sanity/VG-overlay checks)
