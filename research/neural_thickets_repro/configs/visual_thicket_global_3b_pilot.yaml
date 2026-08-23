@@ -1,0 +1,45 @@
+# =============================================================================================
+# STAGE 6 -- 3B GLOBAL VISUAL-THICKET PILOT (the first real paper experiment)
+# =============================================================================================
+# Answers RQ1 / produces raw material for Figure 2. See
+# src/neural_thickets_repro/run_global_visual_thicket_pilot.py's module docstring for the full
+# upstream-reconciliation record (sigma grid, perturb/restore behavior, Spectral Discordance).
+# This is a PAPER PILOT config -- --perturbations-per-sigma / --subset-size CLI overrides exist
+# for smoke-testing without editing this file (see runner --dry-run).
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  family: qwen2_5_vl
+  scale: "3B"
+
+pilot:
+  # Exactly these three -- do not add a fourth (spec section 3).
+  capabilities:
+    - visual_grounding
+    - ocr_text_recognition_grounded
+    - spatial_reasoning
+
+  # The EXACT upstream CLI default sigma grid, confirmed directly against pinned commit
+  # 536df0a308f3990b6270c991fbb96bd0b779a58e's randopt.py this stage -- never invented.
+  sigma_grid: [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01]
+
+  # 64 perturbations PER sigma (spec section 5) -- 6 sigmas * 64 = 384 unique perturbations,
+  # each evaluated on all 3 capabilities (D1 shared-population alignment).
+  perturbations_per_sigma: 64
+
+  # D_map subset size per capability (spec section 4). No D_confirm/D_select/D_test in this pilot.
+  examples_per_capability: 50
+
+  # Root seed for D_map construction AND perturbation-population seed derivation (via
+  # thicket.seeds.derive_seed) -- every actual seed used anywhere in this pilot traces back to
+  # this one value plus an explicit namespace tag.
+  base_seed: 20260823
+
+  # Restoration-safety tolerance (spec section 7): max abs per-parameter difference from the
+  # stored base snapshot after undo_global_gaussian_upstream, in the model's native precision
+  # (bfloat16 on the real pod run). A failed check aborts the experiment immediately.
+  restoration_atol: 0.001
+
+outputs:
+  root: results/visual_thicket_global_3b_pilot

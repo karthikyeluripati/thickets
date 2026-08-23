@@ -358,12 +358,13 @@ where `P in [0,1]^(N x M)` is the percentile-rank matrix (N perturbations, M tas
 correlated tasks give `D ≈ 0`, and perfectly anti-correlated `M=2` tasks give `D ≈ 2 =
 M/(M-1)`, the paper's own reported upper-bound case.
 
-> **UNRESOLVED**: this definition is ported from the paper, not verified against the actual
-> upstream RandOpt *implementation* (never inspected directly here). If the pod-side clone of
-> `external/RandOpt` implements a materially different rank-normalization convention (e.g. a
-> different percentile-rank tie-break, or Kendall's tau instead of Pearson-of-ranks), that
-> difference must be reconciled and this row updated **before** Spectral Discordance is treated
-> as frozen for the paper's Figure 4.
+> **RESOLVED (Stage 6)**: the pinned upstream commit (`536df0a308f3990b6270c991fbb96bd0b779a58e`)
+> was cloned and grepped directly (`spectral|discordance|spearman|rank.?corr`, case-insensitive,
+> across the entire checkout) — **zero matches anywhere in upstream source**. There is no
+> upstream *implementation* of Spectral Discordance to reconcile against; the published paper's
+> Definition 2.2 (already ported above) is therefore the sole authoritative definition, and
+> nothing needed changing. This status will only be revisited if a later upstream commit adds
+> an implementation that contradicts the paper text.
 
 ### H3. Expert overlap
 
@@ -564,8 +565,68 @@ for the specific test names.
 | `thicket_metrics.py` | No | `thicket.metrics` reuses `wilson_confidence_interval` directly for proportion CIs |
 | `ledger.py`, `topk_voting.py`, `candidate_sampling.py` | No | Not needed by any Stage-5 CPU code path |
 | `benchmarks/` (Capability Benchmark Gate) | No | Assumed as a trustworthy, external capability-scoring oracle; not modified, not re-validated |
-| `external/RandOpt` | Not checked out / not modified | Read indirectly via the published paper for Spectral Discordance's definition only (see section H2's UNRESOLVED note); no code inspected or transcribed |
+| `external/RandOpt` | Not modified (cloned+read directly, Stage 6) | See Stage 6 addendum below — read directly at the pinned commit, never vendored/transcribed |
 
-`external/RandOpt` is not present in this checkout (cloned dynamically at a pinned commit on the
-pod, per `external/setup_external_repo.py`) — this is stated plainly rather than assumed
-available, since it directly affects section H2's confidence level.
+---
+
+## Stage 6 addendum: upstream reconciliation + the Global Visual-Thicket Pilot
+
+**Code:** `src/neural_thickets_repro/run_global_visual_thicket_pilot.py`,
+`configs/visual_thicket_global_3b_pilot.yaml`
+
+Stage 5's section H2 above stated `external/RandOpt` was "not checked out in this repository."
+Stage 6 cloned it directly (`python external/setup_external_repo.py`, pinned commit
+`536df0a308f3990b6270c991fbb96bd0b779a58e`, gitignored per `.gitignore` — never committed) and
+read the actual source. Findings:
+
+- **Exact sigma grid**: `randopt.py`'s CLI default `--sigma_values
+  0.0001,0.0005,0.001,0.002,0.005,0.01` — confirmed to be exactly `sigma_default` as already
+  recorded (from static inspection alone) in `REPRO_SPEC.md`'s "Sigma — resolution plan" row.
+  This is `UPSTREAM_SIGMA_GRID` in the new pilot runner, used verbatim, never invented.
+- **Perturb/restore behavior**: `utils/worker_extn.py`'s `WorkerExtension.perturb_self_weights`/
+  `restore_self_weights` confirm `perturb_cpu.py`'s existing reimplementation is exact: a fresh
+  `torch.Generator(device=p.device).manual_seed(int(seed))` per named parameter, every
+  parameter visited but only non-`visual.`/`model.visual.`-prefixed ones modified
+  (`_should_perturb`, overridable via `PERTURB_VISUAL=1`), restoration via regenerating the
+  identical noise and subtracting (never a stored-copy restore). No code change was needed —
+  `thicket.perturbation`'s `global_gaussian_upstream` mode already wraps these functions
+  unmodified.
+- **Candidate seed/sigma handling**: `randopt.py:run_sampling` draws `population_size` unique
+  seeds without replacement, then draws ONE sigma per candidate independently, WITH
+  replacement, via `rng.choice(sigma_list, size=population_size)` — i.e. upstream does *not*
+  evaluate a fixed count per sigma bucket. The pilot deliberately departs from this one detail
+  (a fixed `perturbations_per_sigma=64` per sigma, this stage's own task requirement) to get a
+  clean per-sigma breakdown for Figure 2's radius-dependence panel; every other mechanic (the
+  sigma values, the noise generation, the per-candidate perturb→evaluate→restore sequence) is
+  unchanged and reused verbatim.
+- **Population-evaluation / execution order**: `run_sampling`'s loop is exactly
+  perturb → generate → restore per candidate (batched across Ray engines, but logically
+  identical per candidate) — matches this stage's required execution order precisely; no
+  scientifically different shortcut was needed to keep the model loaded once for the whole
+  pilot, since `benchmarks/runner.run_benchmark` was already designed (Stage 5, its own
+  docstring) for exactly this reuse pattern.
+- **Spectral Discordance**: see the updated section H2 status above — no upstream
+  implementation exists at all; nothing to reconcile beyond confirming its absence.
+
+**Pilot design** (`run_global_visual_thicket_pilot.py`): `PilotPlan` is a pure-arithmetic
+dataclass (model/capabilities/sigma grid/counts → total unique perturbations, total
+perturbation×capability evaluations, baseline evaluations, total model-example evaluations),
+printed in full by `--dry-run` before any GPU code path is reached. `build_pilot_plan` hard
+-fails (`PilotConfigError`) if the loaded config's capability set isn't exactly
+`PILOT_CAPABILITIES` (`visual_grounding`, `ocr_text_recognition_grounded`, `spatial_reasoning`)
+or its sigma grid isn't exactly `UPSTREAM_SIGMA_GRID` (as a set, order-independent) — a config
+typo can never silently substitute a different capability or an invented sigma value.
+`evaluate_one_perturbation` applies one `global_gaussian_upstream` perturbation, evaluates every
+capability's fixed D_map subset (via the unmodified `run_benchmark`) in a fixed dict-order, then
+restores and calls `verify_restoration` against a `snapshot_state` taken once before the whole
+sweep — a failed check raises `RestorationFailedError`, aborting rather than continuing with
+possibly-drifted base weights (spec section 7). D_map subsets are built via the EXISTING
+`benchmarks/subset_selection.build_or_load_subset` (unchanged) and then labeled via
+`thicket.data_roles.partition_data_roles(ids, sizes={"map": n})` — the entire persisted subset
+IS the `map` role, satisfying "persist IDs/hashes" through already-established infrastructure
+rather than a new mechanism. `compute_figure2_summary`/`compute_diversity_summary` operate
+purely on the collected `ExperimentResultRecord` list — reused directly from Stage 5's
+`thicket.metrics`/`thicket.diversity`, no new statistics were implemented for this pilot.
+
+`external/RandOpt` is gitignored and not committed; a future session must re-run
+`python external/setup_external_repo.py` to re-inspect it (it is not assumed present).
