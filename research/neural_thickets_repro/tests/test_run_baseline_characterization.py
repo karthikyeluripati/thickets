@@ -116,6 +116,40 @@ def test_main_dry_run_across_two_capabilities_writes_integrity_reports(tmp_path,
     assert (output_dir / "runtime_versions.json").exists()
 
 
+def test_main_fails_clearly_and_preserves_completed_outputs_when_a_capability_crashes(tmp_path, monkeypatch, capsys):
+    """Simulates a fatal exception raised mid-generation for the SECOND capability (e.g. the
+    real vLLM EngineCore IndexError this repair pass fixed) -- the first capability's already
+    -written output directory must remain intact, and main() must return a distinct, clearly
+    -reported exit code rather than letting a bare traceback propagate with no context.
+    """
+    call_log = []
+
+    def _fake_run_one_capability(cfg, **kwargs):
+        call_log.append(cfg.dataset.capability)
+        out_dir = kwargs["out_dir"]
+        out_dir.mkdir(parents=True, exist_ok=True)
+        if cfg.dataset.capability == "counting":
+            (out_dir / "metrics.json").write_text('{"primary_metric": 0.8}')
+            return 0, "fake_llm", "fake_tokenizer"
+        raise IndexError("list index out of range")  # simulates the real EngineCore crash
+
+    monkeypatch.setattr(m, "run_one_capability", _fake_run_one_capability)
+
+    output_dir = tmp_path / "results"
+    rc = m.main(["--configs", "counting.yaml,fine_grained_recognition.yaml", "--output-dir", str(output_dir)])
+
+    assert rc == m.EXIT_CODE_CAPABILITY_CRASHED
+    assert call_log == ["counting", "fine_grained_recognition"]
+    # counting's already-written output must remain intact.
+    assert (output_dir / "counting" / "metrics.json").exists()
+    assert json.loads((output_dir / "counting" / "metrics.json").read_text())["primary_metric"] == 0.8
+
+    captured = capsys.readouterr()
+    assert "FATAL" in captured.err
+    assert "fine_grained_recognition" in captured.err
+    assert "IndexError" in captured.err
+
+
 def test_main_stops_at_first_capability_that_fails_integrity(tmp_path, monkeypatch):
     import neural_thickets_repro.run_capability_benchmark_gate as gate_module
     monkeypatch.setattr(gate_module, "REPO_ROOT", tmp_path)

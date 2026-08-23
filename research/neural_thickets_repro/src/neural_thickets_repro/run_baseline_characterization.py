@@ -43,6 +43,16 @@ from .run_capability_benchmark_gate import build_output_dir, run_one_capability,
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
+# Distinct from rc=1 (an ORDINARY, already-clearly-reported failure inside run_one_capability
+# -- integrity check failed, or env_check.assert_feasible blocked the run) -- rc=2 means the
+# shared engine or a generation call itself raised an uncaught exception (e.g. a fatal vLLM
+# EngineCore error) partway through a capability. No auto-restart is attempted: the process
+# stops here, and every capability directory already written before the crash is left
+# untouched on disk (each capability's own outputs are fully written before the loop moves
+# on to the next one, so a crash mid-capability never partially corrupts a PRIOR capability's
+# already-completed results).
+EXIT_CODE_CAPABILITY_CRASHED = 2
+
 # The 7 capabilities currently accessible for baseline characterization (see module
 # docstring for why object_recognition/ocr_text_recognition are excluded from this default
 # set -- both remain independently runnable via run_capability_benchmark_gate.py).
@@ -137,11 +147,27 @@ def main(argv=None) -> int:
         print(f"\n{'=' * 80}\n{cfg.dataset.capability} ({cfg_path.name})\n{'=' * 80}")
 
         engine_was_already_loaded = llm is not None
-        rc, llm, tokenizer = run_one_capability(
-            cfg, subset_size=args.subset_size, out_dir=capability_out_dir,
-            repeat=args.repeat, image_sanity=args.image_sanity, dry_run=args.dry_run,
-            llm=llm, tokenizer=tokenizer,
-        )
+        try:
+            rc, llm, tokenizer = run_one_capability(
+                cfg, subset_size=args.subset_size, out_dir=capability_out_dir,
+                repeat=args.repeat, image_sanity=args.image_sanity, dry_run=args.dry_run,
+                llm=llm, tokenizer=tokenizer,
+            )
+        except Exception as exc:  # noqa: BLE001 -- deliberately broad: any uncaught exception
+            # (a fatal vLLM EngineCore error, or anything else) must fail CLEARLY here rather
+            # than propagate as a bare traceback with no indication of which capability was
+            # running or that earlier capabilities' results are still intact. No auto-restart
+            # of the (now possibly dead) shared engine is attempted -- see EXIT_CODE_CAPABILITY_CRASHED.
+            completed = sorted(c for c, code in results.items() if code == 0)
+            print(
+                f"\nFATAL: capability {cfg.dataset.capability!r} ({cfg_path.name}) crashed during "
+                f"generation: {type(exc).__name__}: {exc}\n"
+                f"Previously completed capabilities ({len(completed)}: {completed}) remain intact "
+                f"under {out_dir} -- stopping here, not attempting to continue or auto-restart "
+                f"the shared engine.",
+                file=sys.stderr,
+            )
+            return EXIT_CODE_CAPABILITY_CRASHED
         if engine_was_already_loaded and llm is not None:
             engine_reused_count += 1
         results[cfg.dataset.capability] = rc

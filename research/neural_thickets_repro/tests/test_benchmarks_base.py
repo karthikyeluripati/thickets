@@ -70,3 +70,55 @@ def test_parsed_prediction_and_example_score_defaults():
     score = ExampleScore(score=0.5)
     assert score.correct is None
     assert score.detail == {}
+
+
+# ---------------------------------------------------------------------------------------
+# default repeatability_verdict() -- discrete exact-match criterion, this repair pass
+# ---------------------------------------------------------------------------------------
+
+def _run_result(pairs, primary_metric):
+    """pairs: [(example_id, parsed_value), ...] -- builds a minimal RunResult for these tests."""
+    from neural_thickets_repro.benchmarks.runner import PerExampleResult, RunResult
+
+    per_example = [
+        PerExampleResult(example_id, "img", "raw", ParsedPrediction(parsed_value, True), ExampleScore(1.0))
+        for example_id, parsed_value in pairs
+    ]
+    return RunResult(per_example=per_example, aggregate_metrics={"primary_metric": primary_metric})
+
+
+def test_default_repeatability_verdict_true_when_exact_match_and_metric_match(fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    base = _run_result([("1", "left"), ("2", "right")], primary_metric=0.5)
+    repeat = _run_result([("1", "left"), ("2", "right")], primary_metric=0.5)
+
+    repeatable, diagnostics = bench.repeatability_verdict(base, repeat)
+    assert repeatable is True
+    assert diagnostics == {}
+
+
+def test_default_repeatability_verdict_false_on_any_parsed_prediction_difference(fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    base = _run_result([("1", "left"), ("2", "right")], primary_metric=0.5)
+    repeat = _run_result([("1", "left"), ("2", "WRONG")], primary_metric=0.5)
+
+    repeatable, _ = bench.repeatability_verdict(base, repeat)
+    assert repeatable is False
+
+
+def test_default_repeatability_verdict_false_on_metric_mismatch_even_if_predictions_match(fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    base = _run_result([("1", "left")], primary_metric=0.5)
+    repeat = _run_result([("1", "left")], primary_metric=0.6)
+
+    repeatable, _ = bench.repeatability_verdict(base, repeat)
+    assert repeatable is False
+
+
+def test_default_repeatability_verdict_false_when_no_common_ids(fake_capability_benchmark_factory):
+    bench = fake_capability_benchmark_factory()
+    base = _run_result([("1", "left")], primary_metric=0.5)
+    repeat = _run_result([("2", "left")], primary_metric=0.5)
+
+    repeatable, _ = bench.repeatability_verdict(base, repeat)
+    assert repeatable is False

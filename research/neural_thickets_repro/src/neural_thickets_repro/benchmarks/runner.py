@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from .base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
+from .box_iou import box_iou
 from ..vlm_adapter import build_multimodal_requests
 
 
@@ -73,6 +74,68 @@ def prediction_disagreement_rate(result_a: "RunResult", result_b: "RunResult") -
         raise ValueError("prediction_disagreement_rate: the two RunResults share no example_ids")
     disagreements = sum(1 for eid in common_ids if repr(a_by_id[eid]) != repr(b_by_id[eid]))
     return disagreements / len(common_ids)
+
+
+def write_repeat_comparison_jsonl(result_a: "RunResult", result_b: "RunResult", path: "str | Path") -> None:
+    """Persists enough PER-EXAMPLE evidence to distinguish meaningless jitter from genuine
+    instability between two identical-input runs (baseline-characterization repeatability,
+    this repair pass) -- one line per example (matched by ID), with raw generation, parsed
+    prediction, and score from BOTH runs, plus each run's own capability-specific
+    ExampleScore.detail (e.g. grounding's canonical_prediction_box/iou) so nothing
+    capability-specific needs to be special-cased here. Adds "box_to_box_iou" (the
+    prediction-vs-itself agreement across runs, distinct from either run's own
+    prediction-vs-target IoU) whenever both sides carry a "canonical_prediction_box" in
+    their detail dict -- None otherwise, never fabricated for a non-grounding capability.
+    """
+    a_by_id = {r.example_id: r for r in result_a.per_example}
+    b_by_id = {r.example_id: r for r in result_b.per_example}
+    common_ids = sorted(set(a_by_id) & set(b_by_id))
+
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as f:
+        for eid in common_ids:
+            a, b = a_by_id[eid], b_by_id[eid]
+            base_box = a.score.detail.get("canonical_prediction_box")
+            repeat_box = b.score.detail.get("canonical_prediction_box")
+            box_to_box_iou = box_iou(tuple(base_box), tuple(repeat_box)) if base_box is not None and repeat_box is not None else None
+            f.write(json.dumps({
+                "example_id": eid,
+                "base_raw_generation": a.raw_generation,
+                "repeat_raw_generation": b.raw_generation,
+                "base_parsed_prediction": a.parsed.parsed,
+                "repeat_parsed_prediction": b.parsed.parsed,
+                "base_score": a.score.score,
+                "repeat_score": b.score.score,
+                "base_detail": a.score.detail,
+                "repeat_detail": b.score.detail,
+                "box_to_box_iou": box_to_box_iou,
+                "parsed_prediction_agrees": repr(a.parsed.parsed) == repr(b.parsed.parsed),
+            }, default=str) + "\n")
+
+
+def bounded_disagreement_examples(result_a: "RunResult", result_b: "RunResult", limit: int = 10) -> List[Dict[str, Any]]:
+    """Returns up to `limit` examples (matched by ID) whose parsed prediction differs between
+    two runs -- a compact, bounded sample for embedding directly in repeatability.json so it
+    stays a quick-glance file even when many examples disagree; the FULL per-example
+    comparison always lives separately (see write_repeat_comparison_jsonl), never only here.
+    """
+    a_by_id = {r.example_id: r for r in result_a.per_example}
+    b_by_id = {r.example_id: r for r in result_b.per_example}
+    examples: List[Dict[str, Any]] = []
+    for eid in sorted(set(a_by_id) & set(b_by_id)):
+        a, b = a_by_id[eid], b_by_id[eid]
+        if repr(a.parsed.parsed) != repr(b.parsed.parsed):
+            examples.append({
+                "example_id": eid,
+                "base_parsed_prediction": a.parsed.parsed,
+                "repeat_parsed_prediction": b.parsed.parsed,
+                "base_score": a.score.score,
+                "repeat_score": b.score.score,
+            })
+        if len(examples) >= limit:
+            break
+    return examples
 
 
 def run_benchmark(

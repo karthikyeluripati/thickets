@@ -475,6 +475,82 @@ python -m neural_thickets_repro.run_baseline_characterization --subset-size 5 --
 python -m neural_thickets_repro.run_baseline_characterization --repeat --image-sanity
 ```
 
+## Baseline characterization: N=5 shared-engine smoke-test fixes (this session)
+
+The real N=5 shared-engine smoke test surfaced two infrastructure issues -- both fixed here,
+no benchmark/capability definitions touched.
+
+**1. Text-only image-sanity crash (root cause + fix).** `counting`'s text-only condition
+crashed vLLM: `IndexError: list index out of range` inside
+`MRotaryEmbedding._vl_get_input_positions_tensor`'s `image_grid_thw[image_index][0]`, with
+the scheduler showing `mm_features=[]`. Root cause: every adapter's `build_prompt()`
+unconditionally includes an `{"type": "image"}` content item (see
+`prompting.build_image_text_messages`) -- build_prompt() has no opinion on whether an image
+is actually attached, that's `vlm_adapter.build_multimodal_requests()`'s job. Previously,
+when `image=None` (the text-only condition), `messages` was rendered AS-IS via
+`tokenizer.apply_chat_template` -- which renders `{"type": "image"}` into the literal
+`<|vision_start|><|image_pad|><|vision_end|>` placeholder token REGARDLESS of whether
+`multi_modal_data` is attached (confirmed divergence #4 behavior, see
+GATE1_DIAGNOSIS.md/REPRO_SPEC.md) -- so the rendered prompt still contained an unresolved
+image token while the scheduler correctly saw zero attached images, and Qwen2.5-VL's
+multimodal rotary-embedding code crashed indexing an empty `image_grid_thw` list. Fix:
+`build_multimodal_requests()` now strips every `{"type": "image", ...}` content item from
+`messages` (via the new `_strip_image_content_items()`, never mutating the input) BEFORE
+rendering, whenever `image is None`. A pre-generation invariant check
+(`TextOnlyRequestInvariantError`) additionally hard-fails if a zero-image request's rendered
+prompt still somehow contains `IMAGE_PLACEHOLDER_TOKEN` (`<|image_pad|>`) -- refusing to send
+a request that would crash the engine, rather than letting the crash happen deep inside it.
+Correct-image and shuffled-image requests are completely unaffected (an image IS attached in
+both, so the placeholder is legitimately present); `visual_grounding` remains opted out of
+the text-only condition entirely (`supports_text_only_condition() == False`, unchanged).
+
+**2. Grounding repeatability gate semantics (diagnosis + fix).** A real N=5 `--repeat` run on
+`visual_grounding` showed `parsed_prediction_hash_match=False` (`prediction_disagreement_rate
+=0.6` -- 3/5 boxes differed by a few pixels between two IDENTICAL greedy-decoded runs) while
+`primary_metric` (Acc@IoU>=0.5) stayed EXACTLY equal (1.0 both times). Diagnosis: `temperature
+=0` guarantees deterministic SAMPLING, not bitwise-identical floating-point GPU/kernel output
+-- exact coordinate-STRING equality is the wrong repeatability criterion for a CONTINUOUS box
+prediction (it is the right criterion for a discrete answer -- a class label, yes/no, a count,
+a short phrase -- where "the parser extracted a different token" IS a genuine instability).
+Fix, via a new overridable `CapabilityBenchmark.repeatability_verdict(base_result,
+repeat_result) -> (bool, diagnostics_dict)` hook (default: exact parsed-prediction equality +
+exact primary-metric equality, unchanged behavior for every discrete-answer capability --
+counting/GQA spatial/GQA relational/OCR-grounded/attributes/CUB):
+`RefCOCOGroundingBenchmark.repeatability_verdict()` instead requires (a)
+`primary_metric` delta == 0 exactly (a discrete, threshold-based accuracy over many examples,
+expected to be exactly stable), (b) `mean_iou` delta <= `GROUNDING_REPEAT_MEAN_IOU_DELTA_
+TOLERANCE` (0.01, a small FIXED absolute tolerance for the aggregate measurement), and (c)
+EVERY example's own repeated box overlaps itself (base run's box vs. repeat run's box, NOT
+either box vs. the ground truth) with IoU >= `GROUNDING_REPEAT_BOX_IOU_THRESHOLD` (0.95, a
+standard interpretable detection-literature threshold). Both thresholds are fixed and
+documented BEFORE looking at any run's own numbers -- never tuned to make this specific N=5
+disagreement rate pass. The raw diagnostics (`raw_generation_hash_match`,
+`parsed_prediction_hash_match`, `prediction_disagreement_rate`, `metric_match`) are NEVER
+hidden -- `repeatability.json` always records them regardless of which verdict decided PASS/
+FAIL, so "was anything at all different" remains visible even when the capability-aware
+verdict is PASS.
+
+**New artifacts.** `repeat_predictions.jsonl` (every capability, via
+`runner.write_repeat_comparison_jsonl()`): one line per example with
+base/repeat raw_generation, parsed_prediction, score, and each run's own `ExampleScore.detail`
+(for grounding: `canonical_prediction_box`, per-run GT `iou`) plus a computed `box_to_box_iou`
+(the repeated boxes' agreement with EACH OTHER, distinct from either box's own IoU against the
+target). `repeatability.json` additionally carries a bounded (<=10) `disagreement_examples`
+list for a quick-glance view, and, for grounding specifically: `base_mean_iou`/
+`repeat_mean_iou`/`mean_iou_absolute_difference`, `mean_repeat_box_iou`, `min_repeat_box_iou`,
+`repeat_box_equivalence_rate`, and the two fixed thresholds used.
+
+**3. Shared engine — preserved, crash handling added.** Model reuse across capabilities
+(`run_baseline_characterization.py`) is unchanged and still the default. Added: the
+per-capability call is now wrapped in a try/except that, on ANY uncaught exception (a fatal
+vLLM EngineCore error, or anything else), prints a clear `FATAL:` message naming which
+capability crashed and confirming which earlier capabilities' outputs remain intact on disk
+(each capability's own directory is fully written before the loop advances, so a mid-run
+crash never corrupts a prior capability's already-completed results), then returns a distinct
+exit code (`EXIT_CODE_CAPABILITY_CRASHED = 2`, vs. `1` for an ordinary reported failure like a
+failed integrity check) without attempting to continue or auto-restart the (possibly now
+dead) shared engine -- no auto-restart logic was added, per explicit instruction.
+
 ## Fresh RunPod bootstrap
 
 The exact command sequence to go from an empty pod to all 8 capabilities passing `--dry-run`

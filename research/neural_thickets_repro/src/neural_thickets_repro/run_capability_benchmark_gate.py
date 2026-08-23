@@ -50,7 +50,13 @@ from .benchmarks.base import CapabilityBenchmark
 from .benchmarks.card import BenchmarkCardData, write_card
 from .benchmarks.image_sanity import run_image_sanity_check
 from .benchmarks.integrity import validate_examples
-from .benchmarks.runner import prediction_disagreement_rate, run_benchmark, write_predictions_jsonl
+from .benchmarks.runner import (
+    bounded_disagreement_examples,
+    prediction_disagreement_rate,
+    run_benchmark,
+    write_predictions_jsonl,
+    write_repeat_comparison_jsonl,
+)
 from .benchmarks.subset_selection import build_or_load_subset
 from .config import CapabilityBenchmarkConfig, load_capability_benchmark_config
 from .env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
@@ -227,12 +233,23 @@ def run_one_capability(
         metrics_match = base_result.aggregate_metrics["primary_metric"] == repeat_result.aggregate_metrics["primary_metric"]
         repeat_absolute_difference = abs(base_result.aggregate_metrics["primary_metric"] - repeat_result.aggregate_metrics["primary_metric"])
         disagreement_rate = prediction_disagreement_rate(base_result, repeat_result)
-        # A raw-wording change with an identical parsed/scored answer is NOT itself a
-        # repeatability failure -- both facts are recorded separately (see docstring/card.py),
-        # never collapsed into one pass/fail bit that would hide the distinction.
-        repeatability_status = "PASS" if (parsed_prediction_hash_match and metrics_match) else "FAIL"
-        (out_dir / "repeatability.json").write_text(json.dumps({
+
+        # CAPABILITY-AWARE repeatability verdict (this repair pass): exact parsed-prediction
+        # equality (parsed_prediction_hash_match, still computed and recorded above/below AS
+        # A DIAGNOSTIC, never hidden) is the right criterion for a discrete answer, but the
+        # wrong one for a continuous measurement like a grounding box under real-hardware
+        # greedy decoding -- see CapabilityBenchmark.repeatability_verdict()'s own docstring
+        # and RefCOCOGroundingBenchmark's override. The PASS/FAIL decision below comes from
+        # this capability-aware verdict, not from parsed_prediction_hash_match directly.
+        repeatable, capability_repeat_diagnostics = adapter.repeatability_verdict(base_result, repeat_result)
+        repeatability_status = "PASS" if repeatable else "FAIL"
+
+        repeat_predictions_path = out_dir / "repeat_predictions.jsonl"
+        write_repeat_comparison_jsonl(base_result, repeat_result, repeat_predictions_path)
+
+        repeatability_report: Dict[str, Any] = {
             "repeatability_status": repeatability_status,
+            # Raw diagnostics -- NEVER hidden, regardless of the capability-aware verdict above.
             "raw_generation_hash_match": generation_hash_match,
             "parsed_prediction_hash_match": parsed_prediction_hash_match,
             "metric_match": metrics_match,
@@ -242,7 +259,12 @@ def run_one_capability(
             "base_parser_failure_rate": base_result.aggregate_metrics["parser_failure_rate"],
             "repeat_parser_failure_rate": repeat_result.aggregate_metrics["parser_failure_rate"],
             "prediction_disagreement_rate": disagreement_rate,
-        }, indent=2))
+            "repeat_predictions_path": str(repeat_predictions_path),
+        }
+        repeatability_report.update(capability_repeat_diagnostics)  # e.g. grounding's mean_repeat_box_iou/etc.
+        repeatability_report["disagreement_examples"] = bounded_disagreement_examples(base_result, repeat_result, limit=10)
+
+        (out_dir / "repeatability.json").write_text(json.dumps(repeatability_report, indent=2, default=str))
         print(
             f"  repeatability={repeatability_status}  raw_generation_hash_match={generation_hash_match}  "
             f"parsed_prediction_hash_match={parsed_prediction_hash_match}  prediction_disagreement_rate={disagreement_rate:.4f}"

@@ -122,3 +122,31 @@ class CapabilityBenchmark(ABC):
 
     def known_caveats(self) -> List[str]:
         return []
+
+    def repeatability_verdict(self, base_result: Any, repeat_result: Any) -> "tuple[bool, Dict[str, Any]]":
+        """Decides whether two identical-input runs (same fixed subset, same greedy
+        SamplingParams) count as "repeatable" for THIS capability, and returns any
+        capability-specific diagnostics to merge into repeatability.json (empty dict if
+        none). `base_result`/`repeat_result` are `runner.RunResult` instances -- typed as
+        `Any` here to avoid base.py importing runner.py (runner.py already imports base.py).
+
+        DEFAULT (appropriate for a DISCRETE-answer capability -- a class label, yes/no, a
+        count, a short phrase): every example's parsed prediction must be EXACTLY identical
+        (repr-equal) between runs, AND the primary metric must match exactly. For a discrete
+        answer, "the parser extracted a different token on an identical greedy run" IS a
+        genuine instability worth failing on.
+
+        Greedy decoding (temperature=0) guarantees deterministic SAMPLING, not necessarily
+        bitwise-identical floating-point kernel output on real GPU hardware -- a capability
+        whose parsed prediction is a CONTINUOUS measurement (e.g. a bounding box) should
+        override this with a measurement-stability criterion instead of byte-identical-token
+        equality, which is the wrong scientific question for a continuous value. See
+        RefCOCOGroundingBenchmark.repeatability_verdict() for that override.
+        """
+        base_by_id = {r.example_id: r for r in base_result.per_example}
+        repeat_by_id = {r.example_id: r for r in repeat_result.per_example}
+        common_ids = set(base_by_id) & set(repeat_by_id)
+        exact_matches = sum(1 for eid in common_ids if repr(base_by_id[eid].parsed.parsed) == repr(repeat_by_id[eid].parsed.parsed))
+        metrics_match = base_result.aggregate_metrics.get("primary_metric") == repeat_result.aggregate_metrics.get("primary_metric")
+        repeatable = metrics_match and bool(common_ids) and exact_matches == len(common_ids)
+        return repeatable, {}

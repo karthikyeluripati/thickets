@@ -299,6 +299,43 @@ def build_image_aware_requests(task_datas: List[Dict], tokenizer) -> List[dict]:
     return requests
 
 
+# Qwen2-VL/2.5-VL's own special image-content token (confirmed via live GPU investigation,
+# see GATE1_DIAGNOSIS.md/REPRO_SPEC.md's divergence #4: apply_chat_template renders an
+# {"type": "image"} content item into `<|vision_start|><|image_pad|><|vision_end|>`
+# regardless of whether an actual image is attached via multi_modal_data). A rendered prompt
+# with no attached image must never contain this token -- see TextOnlyRequestInvariantError.
+IMAGE_PLACEHOLDER_TOKEN = "<|image_pad|>"
+
+
+class TextOnlyRequestInvariantError(RuntimeError):
+    """A request has no attached image (no multi_modal_data) but its rendered prompt text
+    still contains an unresolved image placeholder token -- this is the exact real vLLM
+    crash this check exists to prevent (IndexError inside
+    MRotaryEmbedding._vl_get_input_positions_tensor's `image_grid_thw[image_index][0]`,
+    because the scheduler sees mm_features=[] for this request while the tokenized prompt
+    still expects an image). Refuses to hand vLLM a request that would crash it deep inside
+    the engine, rather than letting that crash happen.
+    """
+
+
+def _strip_image_content_items(messages: List[dict]) -> List[dict]:
+    """Returns a NEW messages list (never mutates the input) with every
+    `{"type": "image", ...}` content block removed from every message -- used for the
+    text-only sanity condition so the rendered chat template contains NO image placeholder
+    token when no image is actually attached, matching image=None having no multi_modal_data.
+    Text content blocks (and any other content type) are preserved unchanged, in order.
+    """
+    stripped: List[dict] = []
+    for message in messages:
+        content = message.get("content")
+        if isinstance(content, list):
+            new_content = [item for item in content if not (isinstance(item, dict) and item.get("type") == "image")]
+            stripped.append({**message, "content": new_content})
+        else:
+            stripped.append(message)
+    return stripped
+
+
 def build_multimodal_requests(
     prompts_and_images: List[Tuple[List[dict], Optional["Image.Image"]]], tokenizer,
 ) -> List[dict]:
@@ -309,13 +346,35 @@ def build_multimodal_requests(
     image-dependence sanity check's text-only condition) by omitting multi_modal_data
     entirely from that request, matching vLLM's own convention for a text-only prompt,
     rather than passing a null/placeholder image.
+
+    TEXT-ONLY CRASH FIX (this repair pass): every adapter's build_prompt() unconditionally
+    includes an `{"type": "image"}` content item (see prompting.build_image_text_messages) --
+    build_prompt() has no opinion on whether an image is actually attached; that's this
+    function's job. Previously, when image=None, `messages` was rendered AS-IS (still
+    containing the image content item), so apply_chat_template still emitted the
+    IMAGE_PLACEHOLDER_TOKEN into the prompt text even though multi_modal_data was correctly
+    omitted -- a real GPU crash (IndexError deep in vLLM's multimodal rotary-embedding code,
+    since the scheduler's mm_features=[] disagreed with the tokenized prompt's own
+    expectation of an image). Fixed by stripping image content items from `messages` BEFORE
+    rendering whenever image is None, then asserting (never silently trusting) that the
+    rendered text is genuinely clean of the placeholder token.
     """
     requests: List[dict] = []
     for messages, image in prompts_and_images:
+        if image is None:
+            messages = _strip_image_content_items(messages)
         text = format_chat_prompt(tokenizer, messages)
         request: Dict[str, object] = {"prompt": text}
         if image is not None:
             request["multi_modal_data"] = {"image": image}
+        elif IMAGE_PLACEHOLDER_TOKEN in text:
+            raise TextOnlyRequestInvariantError(
+                f"A request with no attached image still contains the unresolved image "
+                f"placeholder token {IMAGE_PLACEHOLDER_TOKEN!r} in its rendered prompt: "
+                f"{text!r}. This would crash vLLM's multimodal rotary-embedding code -- "
+                f"refusing to send it. The chat messages must have their image content "
+                f"item(s) stripped before rendering when no image is attached."
+            )
         requests.append(request)
     return requests
 

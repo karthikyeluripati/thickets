@@ -10,9 +10,11 @@ import pytest
 from neural_thickets_repro.benchmarks.base import Example
 from neural_thickets_repro.benchmarks.runner import (
     MissingImageError,
+    bounded_disagreement_examples,
     prediction_disagreement_rate,
     run_benchmark,
     write_predictions_jsonl,
+    write_repeat_comparison_jsonl,
 )
 
 
@@ -171,6 +173,85 @@ def test_prediction_disagreement_rate_raises_on_no_common_ids():
     b = _result([("2", "right")])
     with pytest.raises(ValueError, match="no example_ids"):
         prediction_disagreement_rate(a, b)
+
+
+# ---------------------------------------------------------------------------------------
+# write_repeat_comparison_jsonl / bounded_disagreement_examples (baseline-characterization
+# repeatability, this repair pass)
+# ---------------------------------------------------------------------------------------
+
+def test_write_repeat_comparison_jsonl_contains_base_and_repeat_fields(tmp_path):
+    a = _result([("1", "left")])
+    b = _result([("1", "right")])
+
+    out_path = tmp_path / "repeat_predictions.jsonl"
+    write_repeat_comparison_jsonl(a, b, out_path)
+
+    lines = out_path.read_text().strip().splitlines()
+    assert len(lines) == 1
+    record = json.loads(lines[0])
+    assert record["example_id"] == "1"
+    assert record["base_raw_generation"] == "raw"
+    assert record["base_parsed_prediction"] == "left"
+    assert record["repeat_parsed_prediction"] == "right"
+    assert record["base_score"] == 1.0
+    assert record["repeat_score"] == 1.0
+    assert record["parsed_prediction_agrees"] is False
+
+
+def test_write_repeat_comparison_jsonl_computes_box_to_box_iou_when_present(tmp_path):
+    from neural_thickets_repro.benchmarks.runner import PerExampleResult, RunResult
+    from neural_thickets_repro.benchmarks.base import ExampleScore, ParsedPrediction
+
+    a = RunResult(per_example=[PerExampleResult("1", "img", "raw", ParsedPrediction((0, 0, 100, 100), True), ExampleScore(1.0, detail={"canonical_prediction_box": [0, 0, 100, 100]}))], aggregate_metrics={})
+    b = RunResult(per_example=[PerExampleResult("1", "img", "raw", ParsedPrediction((0, 0, 100, 100), True), ExampleScore(1.0, detail={"canonical_prediction_box": [0, 0, 100, 100]}))], aggregate_metrics={})
+
+    out_path = tmp_path / "repeat_predictions.jsonl"
+    write_repeat_comparison_jsonl(a, b, out_path)
+    record = json.loads(out_path.read_text().strip())
+    assert record["box_to_box_iou"] == pytest.approx(1.0)
+
+
+def test_write_repeat_comparison_jsonl_box_to_box_iou_none_when_no_boxes(tmp_path):
+    a = _result([("1", "left")])
+    b = _result([("1", "left")])
+    out_path = tmp_path / "repeat_predictions.jsonl"
+    write_repeat_comparison_jsonl(a, b, out_path)
+    record = json.loads(out_path.read_text().strip())
+    assert record["box_to_box_iou"] is None
+
+
+def test_write_repeat_comparison_jsonl_only_common_ids(tmp_path):
+    a = _result([("1", "left"), ("extra_a", "x")])
+    b = _result([("1", "left"), ("extra_b", "y")])
+    out_path = tmp_path / "repeat_predictions.jsonl"
+    write_repeat_comparison_jsonl(a, b, out_path)
+    lines = out_path.read_text().strip().splitlines()
+    assert len(lines) == 1
+    assert json.loads(lines[0])["example_id"] == "1"
+
+
+def test_bounded_disagreement_examples_returns_only_disagreements():
+    a = _result([("1", "left"), ("2", "right"), ("3", "up")])
+    b = _result([("1", "left"), ("2", "WRONG"), ("3", "up")])
+    examples = bounded_disagreement_examples(a, b)
+    assert len(examples) == 1
+    assert examples[0]["example_id"] == "2"
+    assert examples[0]["base_parsed_prediction"] == "right"
+    assert examples[0]["repeat_parsed_prediction"] == "WRONG"
+
+
+def test_bounded_disagreement_examples_empty_when_all_agree():
+    a = _result([("1", "left")])
+    b = _result([("1", "left")])
+    assert bounded_disagreement_examples(a, b) == []
+
+
+def test_bounded_disagreement_examples_respects_limit():
+    a = _result([(str(i), "left") for i in range(20)])
+    b = _result([(str(i), "different") for i in range(20)])
+    examples = bounded_disagreement_examples(a, b, limit=5)
+    assert len(examples) == 5
 
 
 def test_write_predictions_jsonl_contains_required_fields(fake_capability_benchmark_factory, tiny_image_factory, tmp_path):
