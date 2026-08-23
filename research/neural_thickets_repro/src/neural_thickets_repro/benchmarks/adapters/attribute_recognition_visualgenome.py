@@ -1,15 +1,19 @@
 """Visual Genome attributes (attribute_recognition) adapter.
 
 Dataset source: a LOCALLY PREPARED artifact (see prepare_visual_genome_data.py), not a live
-`datasets.load_dataset()` call -- `ranjaykrishna/visual_genome` (the original config
-`attributes`) is script-based and FAILS on modern `datasets` ("Dataset scripts are no longer
-supported", confirmed on a real RunPod this session, datasets==5.0.1). Replaced with
-`mikewang/vaw` (VAW -- "Visual Attributes in the Wild", CVPR 2021; script-free, confirmed
-live this session) for annotations, joined with Visual Genome's own official images (fetched
-separately, VAW carries no image data) by `prepare_visual_genome_data.py`, which writes
-`<source>/vg_attributes.parquet` + `<source>/images/` -- this adapter reads ONLY that
-prepared local artifact, mirroring GQAHandler's own "prepare offline, adapter reads locally"
-split of labor. See CAPABILITY_BENCHMARK_GATE.md for the full source-migration record.
+`datasets.load_dataset()` call. Source history (see CAPABILITY_BENCHMARK_GATE.md for the full
+record): `ranjaykrishna/visual_genome` (original config `attributes`) and then `mikewang/vaw`
+(VAW) were BOTH tried and BOTH fail on modern `datasets` with "Dataset scripts are no longer
+supported" -- confirmed on a real RunPod, datasets==5.0.1, for each in turn. The operational
+source is now `AnnaZ1103/visual_genome_revised` (config "attributes", split "train") --
+CONFIRMED script-free Parquet on a real RunPod with datasets==5.0.1 -- a community
+repackaging of Visual Genome's own attribute annotations (not the canonical upstream VG
+distribution; documented, not claimed otherwise). Each row carries its own image `url`
+(Stanford-hosted), so `prepare_visual_genome_data.py` fetches only the images actually needed
+by the flattened examples -- never the full ~100k-image VG archive -- and writes
+`<source>/vg_attributes.parquet` + `<source>/images/`. This adapter reads ONLY that prepared
+local artifact, mirroring GQAHandler's own "prepare offline, adapter reads locally" split of
+labor.
 
 To keep scoring automatic and unambiguous without reducing this to unrestricted captioning:
 one Example = one (image, object) pair. The queried object is made unambiguous by drawing a
@@ -53,24 +57,36 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
     name = "visual_genome_attributes"
 
     def dataset_source(self) -> str:
-        return "mikewang/vaw (annotations) + Visual Genome official images, prepared locally by prepare_visual_genome_data.py"
+        return "AnnaZ1103/visual_genome_revised (attributes config, train split) + per-row image URLs, prepared locally by prepare_visual_genome_data.py"
 
     def known_caveats(self) -> List[str]:
         return [
-            "Annotation source is mikewang/vaw (VAW), not the original ranjaykrishna/"
-            "visual_genome 'attributes' config -- migrated because that repo's script-based "
-            "loading fails on modern `datasets` versions. VAW is a peer-reviewed (CVPR 2021) "
-            "derivative of Visual Genome specifically curated for attribute recognition, not "
-            "a lower-quality substitute.",
-            "Visual Genome's own image archive URLs (fetched by prepare_visual_genome_data.py) "
-            "were not independently verified by an actual successful download from this "
-            "environment -- see that script's module docstring and CAPABILITY_BENCHMARK_GATE.md.",
+            "Annotation source is AnnaZ1103/visual_genome_revised (config 'attributes'), a "
+            "community repackaging of Visual Genome's own attribute annotations -- NOT the "
+            "canonical ranjaykrishna/visual_genome upstream distribution. Migrated because "
+            "BOTH ranjaykrishna/visual_genome AND a prior mikewang/vaw replacement fail on "
+            "modern `datasets` with 'Dataset scripts are no longer supported' (each confirmed "
+            "failing on a real RunPod, datasets==5.0.1); this source was confirmed working "
+            "(script-free Parquet) on a real RunPod before being adopted.",
+            "Images are fetched individually via each row's own `url` field (Stanford-hosted "
+            "originals), only for images actually referenced by the flattened examples -- "
+            "never the full ~100k-image Visual Genome archive.",
+            "`object_name` is the FIRST entry of the object's `names` list -- VG objects can "
+            "carry multiple synonym names; only the first is used as the single-noun prompt "
+            "target. This is separate from the attribute TARGET set, which is always kept in "
+            "full (see below).",
+            "No appearance-vs-state semantic filtering is applied to VG's raw attribute "
+            "vocabulary -- e.g. 'walking' is a real observed VG attribute value that arguably "
+            "describes an action/state rather than a visual appearance attribute. There is no "
+            "existing, defensible criterion in this codebase for that distinction yet, and one "
+            "is deliberately NOT invented here. Flagged as a scientific-review item for the "
+            "upcoming N=5 manual inspection pass, not silently resolved.",
             "A bounding-box marker overlay is drawn on every image as part of this benchmark's "
             "own protocol (to make the queried object unambiguous) -- it is not naturally "
-            "occurring VG/VAW data. The shuffled-image sanity condition keeps the same fixed "
+            "occurring VG data. The shuffled-image sanity condition keeps the same fixed "
             "marker coordinates on a swapped photo; this is still a valid distractor for that "
             "check, not a bug.",
-            "VAW's full positive_attributes list is preserved as the target set; a prediction "
+            "The full positive_attributes list is preserved as the target set; a prediction "
             "is scored correct if it matches ANY of them.",
         ]
 
@@ -92,21 +108,27 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
         if missing_columns:
             raise VisualGenomeSchemaError(f"{parquet_path} is missing expected column(s) {sorted(missing_columns)} -- refusing to guess a different schema.")
 
+        has_image_dims = {"image_width", "image_height"} <= set(df.columns)
+
         examples: List[Example] = []
         for _, row in df.iterrows():
             image_path = images_dir / f"{row['image_id']}.jpg"
             image = Image.open(image_path).convert("RGB") if image_path.exists() else None
             attributes = json.loads(row["positive_attributes"])
+            metadata: Dict[str, Any] = {
+                "bbox_xywh": [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]],
+                "image_id": str(row["image_id"]),
+            }
+            if has_image_dims:
+                metadata["image_width"] = row["image_width"]
+                metadata["image_height"] = row["image_height"]
             examples.append(Example(
                 example_id=str(row["instance_id"]),
                 image=image,
                 image_ref=str(image_path),
                 prompt_input={"object_name": row["object_name"]},
                 target=list(attributes),
-                metadata={
-                    "bbox_xywh": [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]],
-                    "image_id": str(row["image_id"]),
-                },
+                metadata=metadata,
             ))
         return examples
 

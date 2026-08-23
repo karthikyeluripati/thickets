@@ -34,7 +34,7 @@ New abstractions (all in `src/neural_thickets_repro/benchmarks/`): `base.py` (`C
 | `visual_grounding` | `lmms-lab-encoder/RefCOCO` | **Confirmed live** this session (HF viewer: val=8.81k/test=5k/testA=1.98k/testB=1.81k, schema `image`/`question`/`bbox`[xywh]/`question_id`, ungated) |
 | `ocr_text_recognition` | `lmms-lab-encoder/textvqa` | **Confirmed live** this session (train=34.6k/val=5k/test=5.73k, `answers`: list of 10, ungated) |
 | `counting` | `HuggingFaceM4/the_cauldron`, config `tallyqa` | **Confirmed live** this session (schema `images:[image]`, `texts:[{"user","assistant","source"}]`, multi-turn per image, ~98.7k rows, single split) |
-| `attribute_recognition` | `mikewang/vaw` (annotations) + Visual Genome's own images (fetched separately) | **Source changed this session** — the original `ranjaykrishna/visual_genome` (config `attributes_v1.2.0`) FAILS on `datasets==5.0.1` ("Dataset scripts are no longer supported", confirmed on a real RunPod). Replaced with VAW (script-free, Parquet, CVPR 2019 peer-reviewed), see "Visual Genome" section below. Image-archive URLs UNCONFIRMED by an actual download from this environment. |
+| `attribute_recognition` | `AnnaZ1103/visual_genome_revised` (config `attributes`, split `train`) — annotations + per-row image URLs, both from the same source | **Source changed again this repair pass** — both the original `ranjaykrishna/visual_genome` (config `attributes_v1.2.0`) AND a prior `mikewang/vaw` replacement FAIL on `datasets==5.0.1` ("Dataset scripts are no longer supported", each confirmed on a real RunPod in turn). `AnnaZ1103/visual_genome_revised` was directly tested on a real RunPod with `datasets==5.0.1` and confirmed working as script-free Parquet — see "Visual Genome" section below. A community repackaging of VG's own annotations, not the canonical upstream distribution — documented, not claimed otherwise. |
 | `object_recognition` | `ILSVRC/imagenet-1k`, split `validation` | **Confirmed live** this session — dataset exists, splits/schema/`int2str` class-name mapping confirmed; **GATED**, requires an HF token with accepted ImageNet license (user's explicit decision: build for gated access, hard-fail clearly, never substitute) |
 | `fine_grained_recognition` | `bentrevett/caltech-ucsd-birds-200-2011` | Resolved-by-assumption — one of several community mirrors (`randall-lab/cub200`, `galilai-group/cub200`, others also exist), none singularly canonical; adapter reads canonical species names from the mirror's own `features["label"].names` and hard-fails (`CUBSchemaError`) rather than guessing if that's absent |
 | `spatial_reasoning` / `relational_reasoning` | `external/RandOpt/data/gqa/testdev.parquet` via `GQAHandler`, filtered by `gqa_raw_schema.py` + `prepare_gqa_capability_filters.py` | Field NAMES **confirmed live** this session (see next section); the exact "relate" argument-encoding format is still pod-side-unconfirmed |
@@ -125,42 +125,76 @@ per-dataset choice, not a universal rule change.
 Full decision order is documented in `card.py`'s module docstring; every card exposes the raw
 measurements regardless of the assigned Status.
 
-## Visual Genome: source migration (fixed this repair pass)
+## Visual Genome: source migration (VAW replaced this repair pass, second migration)
 
-**Confirmed failure on a real RunPod**: `ranjaykrishna/visual_genome` (config
-`attributes_v1.2.0`) raises `RuntimeError: Dataset scripts are no longer supported, but found
-visual_genome.py` on `datasets==5.0.1` — that repo requires `trust_remote_code` execution of a
-legacy Python loading script, which recent `datasets` versions refuse to run automatically.
-Checked and ruled out: an HF auto-converted-Parquet mirror (the usual fix for exactly this
-error) does not exist for this repo/config either — the `datasets-server` parquet API 404s
-for it, most likely because the same trust_remote_code requirement blocks HF's own
-auto-conversion pipeline too.
+**Confirmed failure on a real RunPod, twice, for the same underlying reason**:
+- `ranjaykrishna/visual_genome` (config `attributes_v1.2.0`) raises `RuntimeError: Dataset
+  scripts are no longer supported, but found visual_genome.py` on `datasets==5.0.1`.
+- The first replacement, `mikewang/vaw` (VAW), was ALSO confirmed failing on a real RunPod
+  with `datasets==5.0.1` — it still ships its own `vaw.py` loading script and hits the exact
+  same "Dataset scripts are no longer supported" error. **Do not use `mikewang/vaw` — it does
+  not work with the pinned `datasets` version.**
 
-**Resolution — two sources, kept explicitly separate**:
-- **Annotations**: `mikewang/vaw` — VAW ("Visual Attributes in the Wild", Pham et al., CVPR
-  2019/2021), confirmed live this session to be script-free/Parquet, with exactly the schema
-  needed: `image_id, instance_id, instance_bbox[x,y,w,h], object_name, positive_attributes[...],
-  negative_attributes[...]`. This is a peer-reviewed dataset built specifically for attribute
-  recognition FROM Visual Genome, not a lower-quality improvised substitute — its own standard
-  task is literally "predict an object's positive attributes," which is exactly what this
-  capability needs.
-- **Images**: VAW carries `image_id` only, no image bytes — Visual Genome's own official
-  image archives are fetched separately by `prepare_visual_genome_data.py`.
-  **UNRESOLVED / pod-side-confirm**: the exact archive URLs
-  (`cs.stanford.edu/people/rak248/VG_100K_2/images.zip` and `.../images2.zip`) are commonly
-  cited across independent sources (GitHub download scripts, HF dataset discussions, academic-
-  torrent listings) but were NOT independently verified by an actual successful download from
-  this environment. `--images-zip-url-part1`/`--images-zip-url-part2` override them if stale;
-  the script hard-fails with a clear, actionable message on a failed/404 download.
+Both repos require `trust_remote_code` execution of a legacy Python loading script, which
+recent `datasets` versions refuse to run automatically. No HF auto-converted-Parquet mirror
+exists for either (the `datasets-server` parquet API 404s for both), so no configuration
+change fixes this — a genuinely different, script-free source is required.
 
-`prepare_visual_genome_data.py` writes `external/RandOpt/data/visual_genome/{vg_attributes.parquet,images/}`
-(prefix-sliced to `--max-candidates` VAW rows, default 1000 — bounds the number of unique
-images fetched; a documented deviation from "load everything," same "first N" discipline
-`prepare_gqa_data.py` already uses). `verify_visual_genome_data.py` checks it (row count,
-required columns, no duplicate `instance_id`, no empty `positive_attributes`, every
-referenced image present and not corrupt) before it's trusted. The adapter
-(`attribute_recognition_visualgenome.py`) now reads ONLY this local prepared artifact —
-it never calls `datasets.load_dataset("ranjaykrishna/visual_genome", ...)` at all anymore.
+**Resolution, confirmed on a real RunPod this repair pass**: `AnnaZ1103/visual_genome_revised`,
+config `"attributes"`, split `"train"` — loads successfully as script-free Parquet under
+`datasets==5.0.1`. This is a **community repackaging** of Visual Genome's own attribute
+annotations, not the canonical upstream `ranjaykrishna/visual_genome` distribution — documented
+here and in the adapter's `known_caveats()`, never claimed to be canonical. Real observed
+schema (105414 rows):
+
+```
+{
+    "image_id": int64, "url": string, "width": int64, "height": int64,
+    "coco_id": int64, "flickr_id": int64,
+    "attributes": [
+        {"attributes": [string], "h": int64, "names": [string], "object_id": int64,
+         "synsets": [string], "w": int64, "x": int64, "y": int64}
+    ],
+}
+```
+One row = one image; `attributes` is a list of annotated objects, each with its own bbox
+(`x, y, w, h`), a synonym-name list, and its positive visual-attribute list.
+
+**Design change: no more full image-archive download.** Unlike the VAW-era design (which
+needed to fetch VG's entire `VG_100K(_2).zip` image archives separately, since VAW carries no
+image bytes), this source's own rows already carry each image's canonical `url` — so
+`prepare_visual_genome_data.py` now fetches images **one at a time, by URL**, only for images
+actually referenced by the flattened examples it selects. The old
+`DEFAULT_IMAGES_ZIP_URL_PART1`/`PART2` zip-archive URLs and `extract_needed_images_from_zip`
+logic are removed entirely — there is no longer an "UNRESOLVED archive URL" caveat, because
+there is no archive.
+
+**Flattening and filtering** (`flatten_attribute_examples`, deterministic, documented, never
+model-performance-driven): one flattened example per (image, object) pair; excludes objects
+with an empty `attributes` list (no target), an empty `names` list (no queryable object name),
+or a bbox failing `validate_bbox()` (`x>=0, y>=0, w>0, h>0`, plus `x+w<=width` / `y+h<=height`
+with a documented ±1px tolerance for VG's known annotation-rounding quirk). `object_name` is
+the object's FIRST `names` entry (a documented simplification, separate from the multi-
+attribute target, which is always preserved in full — never collapsed to one answer).
+
+**Not done in this pass — flagged, not silently resolved**: no appearance-vs-state semantic
+filtering exists on the raw attribute vocabulary (e.g. `"walking"` is a real observed VG
+attribute value that arguably describes an action/state, not a visual appearance). There is no
+existing, defensible criterion in this codebase for that distinction; inventing one now would
+be silent ontology engineering. This is a scientific-review item for the upcoming N=5 manual
+inspection pass.
+
+`prepare_visual_genome_data.py` writes `external/RandOpt/data/visual_genome/{vg_attributes.parquet,images/,vg_prepare_stats.json}`
+(prefix-sliced to `--max-candidates` image ROWS, default 500 — bounds dataset-load size and
+the number of images fetched; a documented deviation from "load everything," same "first N"
+discipline `prepare_gqa_data.py` already uses; NOT the final N=200 benchmark subset, which is
+drawn later from this larger candidate pool). `vg_prepare_stats.json` persists candidate/
+flattened/skip counts for reproducibility. `verify_visual_genome_data.py` re-derives (never
+trusts prepare's own exit status) row count, unique images, duplicate `instance_id`, empty
+`positive_attributes`/`object_name`, invalid bboxes, the accepted-attribute cardinality
+distribution, and every referenced image present/not-corrupt, before the artifact is trusted.
+The adapter (`attribute_recognition_visualgenome.py`) reads ONLY this local prepared artifact
+— it never calls `datasets.load_dataset(...)` at all.
 
 ## Fresh RunPod bootstrap
 
@@ -185,8 +219,8 @@ python external/setup_external_repo.py
 pip install -r requirements/requirements-gpu.txt
 
 # 4. HF login (needed for GQA/RefCOCO/TextVQA/TallyQA -- all ungated -- and REQUIRED for the
-#    gated ImageNet-1K; VG no longer touches HF's gated ranjaykrishna/visual_genome repo at
-#    all, see the Visual Genome section above)
+#    gated ImageNet-1K; VG no longer touches HF's gated ranjaykrishna/visual_genome repo, or
+#    mikewang/vaw, at all -- see the Visual Genome section above)
 huggingface-cli login   # for ImageNet-1K: this account must have separately accepted the
                          # license at https://huggingface.co/datasets/ILSVRC/imagenet-1k
 
@@ -204,10 +238,9 @@ python -m neural_thickets_repro.verify_gqa_data --config configs/gqa_repro.yaml
 #    trusting the result -- do not skip reading this output.
 python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml
 
-# 8. Prepare Visual Genome attribute-recognition data (mikewang/vaw annotations + Visual
-#    Genome's own images, see "Visual Genome" section above -- one-time, several-GB image
-#    archive download; --images-zip-url-part1/--images-zip-url-part2 override the default
-#    URLs if they've moved)
+# 8. Prepare Visual Genome attribute-recognition data (AnnaZ1103/visual_genome_revised, see
+#    "Visual Genome" section above -- fetches only the individual images actually needed, by
+#    URL, no full archive download)
 python -m neural_thickets_repro.prepare_visual_genome_data
 
 # 9. Verify Visual Genome data
@@ -230,9 +263,14 @@ python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro
   `prepare_gqa_capability_filters.py` and read its printed report.
 - `lmms-lab-encoder/RefCOCO+`'s exact repo id — assumed analogous to the confirmed RefCOCO
   repo, not independently verified.
-- Visual Genome image-archive URLs (`prepare_visual_genome_data.py`'s
-  `DEFAULT_IMAGES_ZIP_URL_PART1`/`PART2`) — commonly cited but not independently verified by
-  an actual successful download from this environment.
+- `AnnaZ1103/visual_genome_revised`'s own long-term stability/maintenance as a community
+  repackaging (as opposed to a maintained canonical distribution) is not something this
+  project controls — confirmed working on a real RunPod at the time of this repair pass, but
+  not guaranteed to remain so indefinitely; the earlier `mikewang/vaw` failure is a concrete
+  precedent for a script-free-Parquet source silently reverting to script-based loading.
+- Visual Genome attribute vocabulary is not filtered for appearance-vs-state terms (e.g.
+  `"walking"`) — flagged as a scientific-review item for the N=5 manual inspection pass, not
+  resolved here (see "Visual Genome" section above).
 - CUB-200-2011 mirror choice — `bentrevett/caltech-ucsd-birds-200-2011` is a documented,
   revisable pick among several community mirrors.
 - ImageNet-1K gated access — requires an HF token with accepted license configured on

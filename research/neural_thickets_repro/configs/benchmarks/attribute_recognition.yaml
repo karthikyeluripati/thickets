@@ -1,8 +1,10 @@
 # Capability Benchmark Gate: attribute_recognition (Visual Genome attributes). Base-model,
 # ZERO perturbation evaluation only -- see CAPABILITY_BENCHMARK_GATE.md for the full design
 # log, including why a drawn bounding-box marker is part of this benchmark's own protocol,
-# and the ranjaykrishna/visual_genome -> mikewang/vaw source migration (the original repo's
-# script-based loading fails on modern `datasets`, confirmed on a real RunPod this session).
+# and the source migration to AnnaZ1103/visual_genome_revised: both ranjaykrishna/visual_genome
+# and a prior mikewang/vaw replacement fail on modern `datasets` with "Dataset scripts are no
+# longer supported" (each confirmed failing on a real RunPod, datasets==5.0.1); the current
+# source was confirmed working (script-free Parquet) on a real RunPod before being adopted.
 
 experiment: capability_benchmark_gate_attribute_recognition
 
@@ -29,12 +31,13 @@ dataset:
   # adapter reads a LOCALLY PREPARED artifact (see prepare_visual_genome_data.py) -- this is
   # a DIRECTORY PATH (external/RandOpt/data/visual_genome), relative to the repo root when
   # run via `python -m ...` from there, matching the GQA configs' own path-not-repo-id
-  # convention. Annotations come from mikewang/vaw; images from Visual Genome's own official
-  # archives (fetched by the prepare script) -- see that script's module docstring for the
-  # UNCONFIRMED archive-URL caveat.
+  # convention. Annotations come from AnnaZ1103/visual_genome_revised (config "attributes");
+  # images are fetched individually via each row's own `url` field, not a full archive
+  # download -- see prepare_visual_genome_data.py's module docstring for the full source
+  # history and the community-repackaging caveat.
   source: external/RandOpt/data/visual_genome
   revision: null                                        # not applicable -- see prepare_visual_genome_data.py for provenance instead
-  split: train                                           # mikewang/vaw split the prepare script draws its candidate pool from
+  split: train                                           # AnnaZ1103/visual_genome_revised split the prepare script draws its candidate pool from
   subset_size: 200
   deviation_reason: null
   subset_selection_rule: shuffled_prefix

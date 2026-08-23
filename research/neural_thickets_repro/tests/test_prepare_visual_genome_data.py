@@ -1,12 +1,12 @@
-"""Tests for prepare_visual_genome_data.py's pure logic -- zip-member extraction is tested
-against a real synthetic in-memory zip (no network), the VAW-row-shaping logic against
-synthetic rows, and load_vaw_rows/download_file's actual network calls are exercised only via
-fake modules / monkeypatched functions. No real dataset download / GPU / ray / vllm needed.
+"""Tests for prepare_visual_genome_data.py's pure logic against the REAL observed
+AnnaZ1103/visual_genome_revised schema (confirmed on a real RunPod this session) -- flatten
+logic, bbox validation, image-fetch-by-url logic, and parquet round-trip against synthetic
+rows. load_attribute_rows/download_file's actual network calls are exercised only via fake
+modules / monkeypatched functions. No real dataset download / GPU / ray / vllm needed.
 """
 import json
 import types
-import zipfile
-from io import BytesIO
+from pathlib import Path
 
 import pytest
 
@@ -16,32 +16,122 @@ import neural_thickets_repro.prepare_visual_genome_data as m  # noqa: E402
 from neural_thickets_repro.prepare_visual_genome_data import VisualGenomeDataError  # noqa: E402
 
 
-def _row(image_id, instance_id, object_name="chair", positive_attributes=("red",), bbox=(1, 2, 3, 4)):
+def _object(object_id=1, names=("chair",), attributes=("red",), x=10, y=10, w=20, h=20):
     return {
-        "image_id": image_id, "instance_id": instance_id, "object_name": object_name,
-        "positive_attributes": list(positive_attributes), "instance_bbox": list(bbox),
+        "object_id": object_id, "names": list(names), "attributes": list(attributes),
+        "synsets": ["chair.n.01"], "x": x, "y": y, "w": w, "h": h,
     }
 
 
-def test_rows_with_positive_attributes_filters_empty_attribute_rows():
-    rows = [_row("1", "a", positive_attributes=["red"]), _row("2", "b", positive_attributes=[])]
-    kept = m.rows_with_positive_attributes(rows)
-    assert [r["instance_id"] for r in kept] == ["a"]
+def _image_row(image_id=1, url="https://example.com/1.jpg", width=800, height=800, objects=None):
+    return {
+        "image_id": image_id, "url": url, "width": width, "height": height,
+        "coco_id": -1, "flickr_id": -1,
+        "attributes": objects if objects is not None else [_object()],
+    }
 
 
-def test_rows_with_positive_attributes_raises_on_malformed_bbox():
-    rows = [_row("1", "a", bbox=(1, 2, 3))]  # only 3 elements, not 4
-    with pytest.raises(VisualGenomeDataError, match="malformed instance_bbox"):
-        m.rows_with_positive_attributes(rows)
+# ---------------------------------------------------------------------------------------
+# validate_bbox
+# ---------------------------------------------------------------------------------------
+
+def test_validate_bbox_accepts_well_formed_box():
+    assert m.validate_bbox(x=10, y=10, w=20, h=20, image_width=100, image_height=100) is True
 
 
-def test_needed_image_ids_deduplicates():
-    rows = [_row("1", "a"), _row("1", "b"), _row("2", "c")]
-    assert m.needed_image_ids(rows) == {"1", "2"}
+@pytest.mark.parametrize("x,y,w,h", [(-1, 0, 10, 10), (0, -1, 10, 10), (0, 0, 0, 10), (0, 0, 10, 0)])
+def test_validate_bbox_rejects_negative_or_nonpositive(x, y, w, h):
+    assert m.validate_bbox(x, y, w, h, image_width=100, image_height=100) is False
+
+
+def test_validate_bbox_rejects_box_extending_past_image_bounds():
+    assert m.validate_bbox(x=90, y=0, w=20, h=10, image_width=100, image_height=100) is False  # x+w=110
+    assert m.validate_bbox(x=0, y=90, w=10, h=20, image_width=100, image_height=100) is False  # y+h=110
+
+
+def test_validate_bbox_allows_the_documented_one_pixel_upper_bound_tolerance():
+    assert m.validate_bbox(x=0, y=0, w=101, h=100, image_width=100, image_height=100) is True  # x+w=101, tolerance=1
+    assert m.validate_bbox(x=0, y=0, w=102, h=100, image_width=100, image_height=100) is False  # x+w=102, exceeds tolerance
+
+
+# ---------------------------------------------------------------------------------------
+# flatten_attribute_examples
+# ---------------------------------------------------------------------------------------
+
+def test_flatten_keeps_objects_with_attributes_and_names_and_valid_bbox():
+    rows = [_image_row(image_id=2, objects=[
+        _object(object_id=114, names=["sidewalk"], attributes=["brick", "white"], x=204, y=221, w=306, h=162),
+        _object(object_id=22, names=["building"], attributes=["brown", "red"], x=363, y=0, w=146, h=265),
+    ])]
+
+    flattened, stats = m.flatten_attribute_examples(rows)
+
+    assert len(flattened) == 2
+    assert stats == {"n_image_rows": 1, "n_objects_seen": 2, "skipped_no_attributes": 0, "skipped_empty_name": 0, "skipped_invalid_bbox": 0}
+    first = flattened[0]
+    assert first["instance_id"] == "114"
+    assert first["image_id"] == "2"
+    assert first["object_name"] == "sidewalk"
+    assert first["positive_attributes"] == ["brick", "white"]  # full multi-attribute set preserved
+    assert first["bbox_x"] == 204 and first["bbox_w"] == 306
+
+
+def test_flatten_skips_objects_with_no_positive_attributes():
+    rows = [_image_row(objects=[_object(object_id=1, attributes=[])])]
+    flattened, stats = m.flatten_attribute_examples(rows)
+    assert flattened == []
+    assert stats["skipped_no_attributes"] == 1
+
+
+def test_flatten_skips_objects_with_empty_names():
+    rows = [_image_row(objects=[_object(object_id=1, names=[])])]
+    flattened, stats = m.flatten_attribute_examples(rows)
+    assert flattened == []
+    assert stats["skipped_empty_name"] == 1
+
+
+def test_flatten_skips_objects_with_invalid_bbox():
+    rows = [_image_row(width=100, height=100, objects=[_object(object_id=1, x=90, y=0, w=50, h=10)])]
+    flattened, stats = m.flatten_attribute_examples(rows)
+    assert flattened == []
+    assert stats["skipped_invalid_bbox"] == 1
+
+
+def test_flatten_raises_on_object_missing_required_field():
+    bad_object = {"object_id": 1, "names": ["chair"], "attributes": ["red"], "x": 0, "y": 0, "w": 10}  # no "h"
+    rows = [_image_row(objects=[bad_object])]
+    with pytest.raises(VisualGenomeDataError, match="missing expected field"):
+        m.flatten_attribute_examples(rows)
+
+
+def test_flatten_multiple_objects_can_share_one_image():
+    rows = [_image_row(image_id=5, objects=[_object(object_id=1), _object(object_id=2, names=["table"])])]
+    flattened, stats = m.flatten_attribute_examples(rows)
+    assert {r["image_id"] for r in flattened} == {"5"}
+    assert stats["n_image_rows"] == 1
+    assert stats["n_objects_seen"] == 2
+
+
+# ---------------------------------------------------------------------------------------
+# needed_images_with_urls / write_attributes_parquet
+# ---------------------------------------------------------------------------------------
+
+def test_needed_images_with_urls_deduplicates_by_image_id():
+    rows = [
+        {"image_id": "1", "url": "http://x/1.jpg"},
+        {"image_id": "1", "url": "http://x/1.jpg"},
+        {"image_id": "2", "url": "http://x/2.jpg"},
+    ]
+    assert m.needed_images_with_urls(rows) == {"1": "http://x/1.jpg", "2": "http://x/2.jpg"}
 
 
 def test_write_attributes_parquet_round_trip(tmp_path):
-    rows = [_row("1", "a", positive_attributes=["red", "wooden"], bbox=(1, 2, 3, 4))]
+    rows = [{
+        "image_id": "1", "instance_id": "10", "object_name": "chair",
+        "positive_attributes": ["red", "wooden"],
+        "bbox_x": 1, "bbox_y": 2, "bbox_w": 3, "bbox_h": 4,
+        "image_width": 100, "image_height": 100, "url": "http://x/1.jpg",
+    }]
     out_path = tmp_path / "vg_attributes.parquet"
     m.write_attributes_parquet(rows, out_path)
 
@@ -50,40 +140,19 @@ def test_write_attributes_parquet_round_trip(tmp_path):
     assert df.iloc[0]["image_id"] == "1"
     assert json.loads(df.iloc[0]["positive_attributes"]) == ["red", "wooden"]
     assert df.iloc[0]["bbox_x"] == 1 and df.iloc[0]["bbox_w"] == 3
+    assert df.iloc[0]["url"] == "http://x/1.jpg"
 
 
-def _make_zip_bytes(members: dict) -> BytesIO:
-    buf = BytesIO()
-    with zipfile.ZipFile(buf, "w") as zf:
-        for name, content in members.items():
-            zf.writestr(name, content)
-    buf.seek(0)
-    return buf
+def test_write_prepare_stats_round_trip(tmp_path):
+    stats = {"n_flattened_examples": 3, "dataset_source": m.VG_DATASET_NAME}
+    out_path = tmp_path / "vg_prepare_stats.json"
+    m.write_prepare_stats(stats, out_path)
+    assert json.loads(out_path.read_text()) == stats
 
 
-def test_extract_needed_images_from_zip_extracts_only_needed_members(tmp_path):
-    zip_bytes = _make_zip_bytes({
-        "VG_100K/1.jpg": b"fake-jpg-bytes-1",
-        "VG_100K/2.jpg": b"fake-jpg-bytes-2",
-        "VG_100K/3.jpg": b"fake-jpg-bytes-3",
-    })
-    images_dir = tmp_path / "images"
-
-    found = m.extract_needed_images_from_zip(zip_bytes, {"1", "3", "99"}, images_dir)
-
-    assert found == {"1", "3"}  # "99" genuinely isn't in this zip
-    assert (images_dir / "1.jpg").read_bytes() == b"fake-jpg-bytes-1"
-    assert (images_dir / "3.jpg").read_bytes() == b"fake-jpg-bytes-3"
-    assert not (images_dir / "2.jpg").exists()  # not needed -- never extracted
-
-
-def test_extract_needed_images_from_zip_empty_needed_set_extracts_nothing(tmp_path):
-    zip_bytes = _make_zip_bytes({"VG_100K/1.jpg": b"x"})
-    images_dir = tmp_path / "images"
-    found = m.extract_needed_images_from_zip(zip_bytes, set(), images_dir)
-    assert found == set()
-    assert list(images_dir.glob("*.jpg")) == []
-
+# ---------------------------------------------------------------------------------------
+# fetch_needed_images (per-image-URL download, no zip archive)
+# ---------------------------------------------------------------------------------------
 
 def test_fetch_needed_images_skips_download_when_all_already_present(tmp_path, monkeypatch):
     images_dir = tmp_path / "images"
@@ -94,44 +163,36 @@ def test_fetch_needed_images_skips_download_when_all_already_present(tmp_path, m
         raise AssertionError("download_file should not be called when nothing is missing")
 
     monkeypatch.setattr(m, "download_file", _fail_download)
-    m.fetch_needed_images({"1"}, images_dir, tmp_path / "cache", "http://part1", "http://part2")
+    m.fetch_needed_images({"1": "http://x/1.jpg"}, images_dir)
 
 
-def test_fetch_needed_images_tries_part2_for_what_part1_lacks(tmp_path, monkeypatch):
+def test_fetch_needed_images_downloads_only_missing_ones(tmp_path, monkeypatch):
     images_dir = tmp_path / "images"
-    cache_dir = tmp_path / "cache"
-    part1_zip = _make_zip_bytes({"VG_100K/1.jpg": b"one"})
-    part2_zip = _make_zip_bytes({"VG_100K_2/2.jpg": b"two"})
+    images_dir.mkdir(parents=True)
+    (images_dir / "1.jpg").write_bytes(b"already here")
 
-    call_log = []
+    calls = []
 
     def _fake_download(url, dest_path):
-        call_log.append(url)
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        content = part1_zip.getvalue() if "part1" in url else part2_zip.getvalue()
-        dest_path.write_bytes(content)
+        calls.append((url, dest_path))
+        dest_path.write_bytes(b"fetched")
 
     monkeypatch.setattr(m, "download_file", _fake_download)
-    m.fetch_needed_images({"1", "2"}, images_dir, cache_dir, "http://example/part1.zip", "http://example/part2.zip")
+    m.fetch_needed_images({"1": "http://x/1.jpg", "2": "http://x/2.jpg"}, images_dir)
 
-    assert (images_dir / "1.jpg").exists()
-    assert (images_dir / "2.jpg").exists()
-    assert call_log == ["http://example/part1.zip", "http://example/part2.zip"]
+    assert calls == [("http://x/2.jpg", images_dir / "2.jpg")]
+    assert (images_dir / "2.jpg").read_bytes() == b"fetched"
 
 
-def test_fetch_needed_images_raises_if_still_missing_after_both_archives(tmp_path, monkeypatch):
+def test_fetch_needed_images_raises_with_details_when_downloads_fail(tmp_path, monkeypatch):
     images_dir = tmp_path / "images"
-    part1_zip = _make_zip_bytes({"VG_100K/1.jpg": b"one"})
-    part2_zip = _make_zip_bytes({})
 
     def _fake_download(url, dest_path):
-        dest_path.parent.mkdir(parents=True, exist_ok=True)
-        content = part1_zip.getvalue() if "part1" in url else part2_zip.getvalue()
-        dest_path.write_bytes(content)
+        raise VisualGenomeDataError(f"boom: {url}")
 
     monkeypatch.setattr(m, "download_file", _fake_download)
-    with pytest.raises(VisualGenomeDataError, match="not found in either archive"):
-        m.fetch_needed_images({"1", "999"}, images_dir, tmp_path / "cache", "http://example/part1.zip", "http://example/part2.zip")
+    with pytest.raises(VisualGenomeDataError, match="failed to download"):
+        m.fetch_needed_images({"1": "http://x/1.jpg"}, images_dir)
 
 
 def test_download_file_wraps_failure_with_actionable_message(tmp_path, monkeypatch):
@@ -139,9 +200,13 @@ def test_download_file_wraps_failure_with_actionable_message(tmp_path, monkeypat
         raise OSError("HTTP Error 404")
 
     monkeypatch.setattr("urllib.request.urlretrieve", _raising_urlretrieve)
-    with pytest.raises(VisualGenomeDataError, match="images-zip-url"):
-        m.download_file("http://example/missing.zip", tmp_path / "out.zip")
+    with pytest.raises(VisualGenomeDataError, match="Failed to download image"):
+        m.download_file("http://example/1.jpg", tmp_path / "out.jpg")
 
+
+# ---------------------------------------------------------------------------------------
+# load_attribute_rows (fake `datasets` module -- no network)
+# ---------------------------------------------------------------------------------------
 
 def _install_fake_datasets_module(monkeypatch, rows, columns):
     class _FakeHFDataset:
@@ -159,19 +224,19 @@ def _install_fake_datasets_module(monkeypatch, rows, columns):
             return _FakeHFDataset([self._data[i] for i in indices])
 
     fake_module = types.ModuleType("datasets")
-    fake_module.load_dataset = lambda name, split: _FakeHFDataset(rows)
+    fake_module.load_dataset = lambda name, config, split: _FakeHFDataset(rows)
     import sys as _sys
     monkeypatch.setitem(_sys.modules, "datasets", fake_module)
 
 
-def test_load_vaw_rows_hard_fails_on_missing_columns(monkeypatch):
-    _install_fake_datasets_module(monkeypatch, [_row("1", "a")], columns=["image_id", "instance_id"])  # missing object_name/positive_attributes/instance_bbox
+def test_load_attribute_rows_hard_fails_on_missing_columns(monkeypatch):
+    _install_fake_datasets_module(monkeypatch, [_image_row()], columns=["image_id", "url"])  # missing width/height/attributes
     with pytest.raises(VisualGenomeDataError, match="missing expected column"):
-        m.load_vaw_rows("train", None)
+        m.load_attribute_rows("train", None)
 
 
-def test_load_vaw_rows_respects_max_candidates(monkeypatch):
-    rows = [_row(str(i), str(i)) for i in range(20)]
-    _install_fake_datasets_module(monkeypatch, rows, columns=list(m.REQUIRED_VAW_COLUMNS))
-    result = m.load_vaw_rows("train", max_candidates=5)
+def test_load_attribute_rows_respects_max_candidates(monkeypatch):
+    rows = [_image_row(image_id=i) for i in range(20)]
+    _install_fake_datasets_module(monkeypatch, rows, columns=list(m.REQUIRED_ROW_COLUMNS))
+    result = m.load_attribute_rows("train", max_candidates=5)
     assert len(result) == 5
