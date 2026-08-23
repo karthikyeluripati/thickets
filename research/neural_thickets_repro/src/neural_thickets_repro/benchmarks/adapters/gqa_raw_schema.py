@@ -38,12 +38,27 @@ to spatial, by GQA's own structure) and ALSO reports the final, disjoint sets ac
 the two adapters -- which are disjoint only because of an explicit experimental choice
 (relational_reasoning = natural-relational MINUS spatial, so the two capability benchmarks
 measure distinct skills), not because GQA itself hands us two separate categories.
+
+WORD-BOUNDARY MATCHING FIX (this repair pass): a manual N=5 audit flagged possible semantic
+leakage between the two capability sets and asked for real-record verification (see
+describe_question_classification() below and CAPABILITY_BENCHMARK_GATE.md's audit section) --
+that audit surfaced a real, SCHEMA-INDEPENDENT bug in `is_spatial_relation` that is fixed here
+regardless of what the real relation-argument values turn out to be: the previous
+implementation used bare substring matching (`keyword in lowered`), which could silently
+false-positive on a keyword like "on" appearing inside an unrelated word (e.g. "person",
+"along", "onion") rather than as its own token. `is_spatial_relation`/`_spatial_match_detail`
+now match each keyword with `\b`-bounded regex, requiring an actual token boundary on both
+sides. The SPATIAL_RELATION_KEYWORDS list itself, and the actual persisted filter ID files
+under artifacts/benchmark_subsets/, are UNCHANGED in this commit -- per explicit instruction,
+those are only to be regenerated after the real relation-argument values are inspected on the
+pod via describe_question_classification() / `--audit-question-ids`, not fabricated here.
 """
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
-from typing import Any, Dict, List, Sequence, Set, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
 
 # --- Field NAMES confirmed live this session (see module docstring); the exact "relate"
 # argument shape is still pod-side-unconfirmed. ---
@@ -66,6 +81,13 @@ RAW_QUESTION_ID_FIELD = "id"
 SPATIAL_RELATION_KEYWORDS = (
     "left", "right", "above", "below", "behind", "front", "near", "next to", "on", "under",
     "underneath", "inside", "outside", "between", "beside", "atop", "over", "top of", "bottom of",
+)
+
+# \b-bounded so a keyword must appear as its own token (or the first/last word of a multi-word
+# phrase like "next to"), never as a bare substring of an unrelated word -- see this module's
+# "WORD-BOUNDARY MATCHING FIX" docstring note (e.g. "on" must not match inside "person").
+_SPATIAL_KEYWORD_PATTERNS: Tuple[Tuple[str, "re.Pattern[str]"], ...] = tuple(
+    (keyword, re.compile(r"\b" + re.escape(keyword) + r"\b")) for keyword in SPATIAL_RELATION_KEYWORDS
 )
 
 
@@ -122,11 +144,23 @@ def _extract_relation_name(row: Dict[str, Any]) -> "str | None":
     return None
 
 
-def is_spatial_relation(relation_name: "str | None") -> bool:
+def _spatial_match_detail(relation_name: "str | None") -> Tuple[bool, Optional[str]]:
+    """Returns (is_spatial, matched_keyword) -- the keyword is exposed separately so
+    describe_question_classification() can report the exact reason/rule behind a decision,
+    not just the boolean outcome.
+    """
     if not relation_name:
-        return False
+        return False, None
     lowered = relation_name.lower()
-    return any(keyword in lowered for keyword in SPATIAL_RELATION_KEYWORDS)
+    for keyword, pattern in _SPATIAL_KEYWORD_PATTERNS:
+        if pattern.search(lowered):
+            return True, keyword
+    return False, None
+
+
+def is_spatial_relation(relation_name: "str | None") -> bool:
+    matched, _ = _spatial_match_detail(relation_name)
+    return matched
 
 
 def build_spatial_relational_filters(
@@ -183,6 +217,49 @@ def build_spatial_relational_filters(
         ),
     }
     return spatial_ids, experimental_relational_ids, stats
+
+
+def describe_question_classification(
+    raw_rows: Sequence[Dict[str, Any]], question_id: Any, question_id_field: str = RAW_QUESTION_ID_FIELD,
+) -> Dict[str, Any]:
+    """CPU-side manual-audit utility (Task: GQA capability taxonomy audit): for ONE question
+    ID, returns the full real raw record plus this module's classification decision and the
+    exact reason for it -- question, types.semantic/types.structural, the raw `semantic`
+    reasoning program, `semanticStr`, the extracted relation name, whether it's classified
+    "spatial"/"relational_non_spatial"/"neither", and which keyword (if any) drove that
+    decision. Never fabricates or guesses a record: {"found": False} if the ID isn't present
+    in `raw_rows`. Used by prepare_gqa_capability_filters.py's `--audit-question-ids` flag so
+    real classification decisions can be verified against real data on the pod, rather than
+    guessed from the English question text alone.
+    """
+    qid = str(question_id)
+    for row in raw_rows:
+        if str(row.get(question_id_field)) != qid:
+            continue
+        semantic_type = _get_nested(row, SEMANTIC_TYPE_FIELD)
+        structural_type = _get_nested(row, STRUCTURAL_TYPE_FIELD)
+        relation_name = _extract_relation_name(row)
+        is_relation_type = semantic_type == RELATION_SEMANTIC_VALUE
+        if is_relation_type:
+            is_spatial, matched_keyword = _spatial_match_detail(relation_name)
+            classification = "spatial" if is_spatial else "relational_non_spatial"
+        else:
+            matched_keyword = None
+            classification = "neither"
+        return {
+            "question_id": qid,
+            "found": True,
+            "question": row.get("question"),
+            "types_semantic": semantic_type,
+            "types_structural": structural_type,
+            "semantic_program": row.get("semantic"),
+            "semantic_str": row.get("semanticStr"),
+            "extracted_relation_name": relation_name,
+            "is_relation_type_question": is_relation_type,
+            "classification": classification,
+            "matched_spatial_keyword": matched_keyword,
+        }
+    return {"question_id": qid, "found": False}
 
 
 def persist_filter_ids(

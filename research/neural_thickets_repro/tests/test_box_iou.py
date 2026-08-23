@@ -2,9 +2,15 @@
 import pytest
 
 from neural_thickets_repro.benchmarks.box_iou import (
+    COORD_MODE_NORMALIZED_0_1,
+    COORD_MODE_PIXEL,
+    COORD_MODE_QWEN_0_1000,
+    COORD_MODE_UNRECOGNIZED,
     accuracy_at_iou,
     box_iou,
+    canonicalize_prediction_box,
     denormalize_xyxy,
+    detect_coordinate_mode,
     mean_iou,
     normalize_xyxy,
     xywh_to_xyxy,
@@ -80,3 +86,108 @@ def test_mean_iou_known_pairs():
         ((0, 0, 10, 10), (20, 20, 30, 30)),  # iou=0.0
     ]
     assert mean_iou(pairs) == pytest.approx(0.5)
+
+
+# ---------------------------------------------------------------------------------------
+# detect_coordinate_mode / canonicalize_prediction_box (this repair pass -- a real N=5
+# Qwen2.5-VL smoke test found the model reliably emitting PIXEL-space boxes despite the
+# prompt asking for [0,1]-normalized coordinates, scoring near-zero IoU on predictions that
+# were actually ~0.9+ IoU once correctly interpreted).
+# ---------------------------------------------------------------------------------------
+
+def test_detect_coordinate_mode_normalized_0_1():
+    assert detect_coordinate_mode((0.1, 0.2, 0.5, 0.6), image_width=640, image_height=425) == COORD_MODE_NORMALIZED_0_1
+
+
+def test_detect_coordinate_mode_pixel_when_it_fits_the_real_image_bounds():
+    # values are >1 (not normalized) but comfortably fit a 640x425 image -- must not be
+    # misclassified as anything else.
+    assert detect_coordinate_mode((112, 189, 444, 362), image_width=640, image_height=425) == COORD_MODE_PIXEL
+
+
+def test_detect_coordinate_mode_qwen_0_1000_when_it_does_not_fit_pixel_bounds():
+    # exceeds the real 300x200 image's pixel bounds but fits within [0, 1000] -- classified
+    # as the Qwen-VL-v1-style 0..1000 normalized convention, never silently as pixel space.
+    assert detect_coordinate_mode((500, 100, 800, 150), image_width=300, image_height=200) == COORD_MODE_QWEN_0_1000
+
+
+def test_detect_coordinate_mode_unrecognized_when_nothing_fits():
+    assert detect_coordinate_mode((5000, 100, 8000, 150), image_width=300, image_height=200) == COORD_MODE_UNRECOGNIZED
+
+
+def test_detect_coordinate_mode_never_uses_accuracy_only_range_and_dimensions():
+    """Same numeric box, two different image sizes -- must classify purely from the
+    deterministic range/dimension rule, never from "which interpretation would score better
+    against some target" (which detect_coordinate_mode doesn't even receive).
+    """
+    box = (10, 20, 90, 80)
+    assert detect_coordinate_mode(box, image_width=100, image_height=100) == COORD_MODE_PIXEL
+    assert detect_coordinate_mode(box, image_width=1, image_height=1) == COORD_MODE_QWEN_0_1000
+
+
+def test_canonicalize_prediction_box_normalized_denormalizes():
+    canonical, mode = canonicalize_prediction_box((0.1, 0.2, 0.5, 0.6), image_width=100, image_height=200)
+    assert mode == COORD_MODE_NORMALIZED_0_1
+    assert canonical == pytest.approx((10, 40, 50, 120))
+
+
+def test_canonicalize_prediction_box_pixel_passes_through():
+    canonical, mode = canonicalize_prediction_box((112, 189, 444, 362), image_width=640, image_height=425)
+    assert mode == COORD_MODE_PIXEL
+    assert canonical == pytest.approx((112, 189, 444, 362))
+
+
+def test_canonicalize_prediction_box_qwen_0_1000_scales_by_image_dims():
+    canonical, mode = canonicalize_prediction_box((500, 100, 800, 150), image_width=300, image_height=200)
+    assert mode == COORD_MODE_QWEN_0_1000
+    # x*width/1000, y*height/1000 for each coordinate: (500*300/1000, 100*200/1000, 800*300/1000, 150*200/1000)
+    assert canonical == pytest.approx((150, 20, 240, 30))
+
+
+def test_canonicalize_prediction_box_unrecognized_returns_none():
+    canonical, mode = canonicalize_prediction_box((5000, 100, 8000, 150), image_width=300, image_height=200)
+    assert canonical is None
+    assert mode == COORD_MODE_UNRECOGNIZED
+
+
+# Real examples from the N=5 Qwen2.5-VL smoke test (see the task's own bug report) -- GT
+# source xywh converted to pixel xyxy, Qwen's raw (pixel-space) prediction, expected IoU.
+
+def test_real_example_2_pixel_prediction_scores_high_iou_once_canonicalized():
+    image_width, image_height = 640, 425
+    gt_xywh = (105.70, 196.11, 333.61, 169.56)
+    gt_pixel_xyxy = xywh_to_xyxy(gt_xywh)
+    qwen_prediction = (112, 189, 444, 362)
+
+    canonical, mode = canonicalize_prediction_box(qwen_prediction, image_width, image_height)
+    assert mode == COORD_MODE_PIXEL
+    iou = box_iou(canonical, gt_pixel_xyxy)
+    assert iou == pytest.approx(0.91, abs=0.02)
+
+
+def test_real_example_3_pixel_prediction_scores_high_iou_once_canonicalized():
+    # Image dimensions weren't stated for this example -- large enough to comfortably contain
+    # both boxes, which is all detect_coordinate_mode's pixel-fit rule needs.
+    image_width, image_height = 1000, 1000
+    gt_xywh = (297.04, 96.10, 198.60, 237.72)
+    gt_pixel_xyxy = xywh_to_xyxy(gt_xywh)
+    qwen_prediction = (297, 98, 497, 338)
+
+    canonical, mode = canonicalize_prediction_box(qwen_prediction, image_width, image_height)
+    assert mode == COORD_MODE_PIXEL
+    iou = box_iou(canonical, gt_pixel_xyxy)
+    assert iou == pytest.approx(0.97, abs=0.02)
+
+
+def test_the_old_broken_behavior_would_have_scored_near_zero():
+    """Documents WHY this fix matters: comparing the raw pixel-space prediction directly
+    against the NORMALIZED target (the old behavior) gives near-zero IoU for the same
+    genuinely-good prediction from test_real_example_2 above.
+    """
+    image_width, image_height = 640, 425
+    gt_xywh = (105.70, 196.11, 333.61, 169.56)
+    gt_normalized = normalize_xyxy(xywh_to_xyxy(gt_xywh), image_width, image_height)
+    qwen_prediction = (112, 189, 444, 362)  # pixel-space, NOT normalized
+
+    broken_iou = box_iou(qwen_prediction, gt_normalized)
+    assert broken_iou < 0.01

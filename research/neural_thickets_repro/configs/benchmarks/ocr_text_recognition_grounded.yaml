@@ -1,0 +1,44 @@
+# Capability Benchmark Gate: ocr_text_recognition_grounded -- an EXPERIMENTAL, deterministically
+# OCR-grounded subset of TextVQA validation, NOT an official TextVQA category. See
+# CAPABILITY_BENCHMARK_GATE.md and benchmarks/ocr_grounding.py: a real N=5 manual inspection of
+# the full ocr_text_recognition capability (configs/benchmarks/ocr_text_recognition.yaml) found
+# questions ("how many wheels does this van have?") that are not OCR reading questions at all.
+# This variant narrows to examples where at least one reference answer is recoverable from the
+# dataset's own OCR tokens -- prepare_textvqa_ocr_filter.py must be run first.
+
+experiment: capability_benchmark_gate_ocr_text_recognition_grounded
+
+model:
+  name: Qwen/Qwen2.5-VL-3B-Instruct
+  revision: 66285546d2b821cf421d4f5eb2576359d3770cd3
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+reproducibility:
+  global_seed: 42
+
+hardware:
+  min_free_disk_gb: 25
+
+generation:
+  decoding: greedy
+  max_tokens: 32                                        # short phrase answers
+
+dataset:
+  capability: ocr_text_recognition_grounded
+  adapter: neural_thickets_repro.benchmarks.adapters.ocr_text_recognition_textvqa.TextVQAOCRGroundedBenchmark
+  source: lmms-lab-encoder/textvqa                      # same underlying source as ocr_text_recognition.yaml, additionally filtered to the persisted OCR-grounded ID set (artifacts/benchmark_subsets/textvqa_ocr_grounded_ids.json)
+  revision: null
+  split: validation
+  subset_size: 200
+  deviation_reason: "Experimental OCR-grounded subset (see benchmarks/ocr_grounding.py) -- narrower than full TextVQA validation by design, not a data-availability limitation."
+  subset_selection_rule: shuffled_prefix
+  subset_seed: 42
+
+gates:
+  max_parser_failure_rate_pass: 0.02
+  max_parser_failure_rate_needs_review: 0.10
+  image_sanity_min_gap_pass: 0.05
+  image_sanity_subset_size: 40
+  floor_ceiling_low: 0.05
+  floor_ceiling_high: 0.95

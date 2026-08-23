@@ -7,11 +7,26 @@ confirmed -- see CAPABILITY_BENCHMARK_GATE.md, to be verified on the pod before 
 is treated as ready. One class handles both via the `dataset_repo_id`/`variant_name`
 constructor params, since RefCOCO and RefCOCO+ share an identical schema.
 
-Confirmed schema: `image`, `question` (the referring expression text), `bbox` in
-`[x_min, y_min, width, height]` COCO convention, `question_id`. Coordinate convention used
-throughout this adapter (and by box_iou.py): [x1, y1, x2, y2], normalized to [0, 1] by image
-width/height -- xywh_to_xyxy() converts the raw annotation, normalize_xyxy() divides by the
-image's own actual pixel size (loaded once per example, not assumed).
+REFERRING-EXPRESSION FIELD BUG (fixed this repair pass): a real N=5 smoke test showed
+`row["question"]` was, in every example, the literal fixed string "Please carefully observe
+the area circled in the image and come up with a caption for the area." -- a region-captioning
+INSTRUCTION, not a referring expression. Confirmed via live schema re-inspection this session:
+this HF repo repackages RefCOCO as an instruction-tuned region-captioning dataset. The real
+schema is `image`, `question` (the fixed circling instruction -- NOT usable as a referring
+expression), `answer` (a LIST of independent human-written descriptions of the circled
+region -- these ARE RefCOCO's real referring expressions), `bbox` in
+`[x_min, y_min, width, height]` COCO convention, `segmentation`, `iscrowd`, `file_name`,
+`question_id`. This adapter now reads `row["answer"][0]` (the first of possibly several
+annotations, a documented deterministic choice) as the referring expression -- see
+`load_examples()` below and `known_caveats()`. All annotations are preserved in
+`Example.metadata["all_referring_expressions"]` for audit; only the first is ever prompted.
+
+Coordinate convention used throughout this adapter (and by box_iou.py): [x1, y1, x2, y2].
+`Example.target` is normalized to [0, 1] by image width/height -- xywh_to_xyxy() converts the
+raw annotation, normalize_xyxy() divides by the image's own actual pixel size (loaded once per
+example, not assumed). See score_example()'s own docstring for the separate coordinate-
+CONTRACT fix (canonicalizing the model's raw prediction, which is not guaranteed to actually
+be normalized despite what the prompt asks for).
 
 Grounding has no well-defined text-only condition (the image IS the query target) --
 supports_text_only_condition() is False, reported honestly rather than scoring a meaningless
@@ -23,7 +38,7 @@ import re
 from typing import Any, Dict, List, Optional, Tuple
 
 from ..base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
-from ..box_iou import box_iou, normalize_xyxy, xywh_to_xyxy
+from ..box_iou import box_iou, canonicalize_prediction_box, denormalize_xyxy, normalize_xyxy, xywh_to_xyxy
 from ..prompting import build_image_text_messages
 
 IOU_THRESHOLD = 0.5
@@ -57,6 +72,14 @@ def _extract_four_floats(text: str) -> Optional[Tuple[float, float, float, float
         return None
 
 
+class RefCOCOSchemaError(RuntimeError):
+    """A row's real schema doesn't match what this adapter expects (e.g. an empty `answer`
+    list -- the referring expression has nowhere to come from) -- refuses to guess a
+    substitute expression or silently fall back to the misleading `question` instruction
+    field.
+    """
+
+
 class RefCOCOGroundingBenchmark(CapabilityBenchmark):
     capability = "visual_grounding"
 
@@ -74,7 +97,16 @@ class RefCOCOGroundingBenchmark(CapabilityBenchmark):
         return "Visual grounding's query IS the image -- a text-only condition has no well-defined target box to predict against."
 
     def known_caveats(self) -> List[str]:
-        caveats = []
+        caveats = [
+            "This HF repackaging exposes a region-captioning INSTRUCTION under the field "
+            "name 'question' ('Please carefully observe the area circled in the image and "
+            "come up with a caption for the area.') -- confirmed via live schema inspection "
+            "this session NOT to be a referring expression. The real referring expression(s) "
+            "are recovered from the 'answer' field (a list of independent human-written "
+            "region descriptions); this adapter uses the FIRST one deterministically. All "
+            "annotations are preserved in Example.metadata['all_referring_expressions'] for "
+            "audit, never used for scoring.",
+        ]
         if "refcoco+" in self.dataset_repo_id.lower():
             caveats.append(f"{self.dataset_repo_id!r} is assumed analogous to the confirmed lmms-lab-encoder/RefCOCO repo id, not independently verified.")
         return caveats
@@ -88,15 +120,27 @@ class RefCOCOGroundingBenchmark(CapabilityBenchmark):
         for row in hf_dataset:
             image = row["image"]
             width, height = image.size
+            answers = list(row.get("answer") or [])
+            if not answers:
+                raise RefCOCOSchemaError(
+                    f"question_id={row.get('question_id')!r} has an empty 'answer' list -- "
+                    f"this is where the real RefCOCO referring expression(s) live in this "
+                    f"repackaged dataset (NOT the 'question' field, which is a fixed "
+                    f"region-captioning instruction) -- refusing to guess a substitute."
+                )
+            referring_expression = answers[0]  # documented, deterministic: first of possibly several human annotations
             xyxy_pixels = xywh_to_xyxy(tuple(row["bbox"]))
             target_normalized = normalize_xyxy(xyxy_pixels, width, height)
             examples.append(Example(
                 example_id=str(row["question_id"]),
                 image=image,
                 image_ref=str(row.get("file_name", row["question_id"])),
-                prompt_input={"referring_expression": row["question"]},
+                prompt_input={"referring_expression": referring_expression},
                 target=target_normalized,
-                metadata={"bbox_pixels_xywh": list(row["bbox"]), "image_width": width, "image_height": height},
+                metadata={
+                    "bbox_pixels_xywh": list(row["bbox"]), "image_width": width, "image_height": height,
+                    "all_referring_expressions": answers,
+                },
             ))
         return examples
 
@@ -111,18 +155,51 @@ class RefCOCOGroundingBenchmark(CapabilityBenchmark):
         return ParsedPrediction(parsed=box, parse_ok=True)
 
     def score_example(self, parsed: ParsedPrediction, example: Example) -> ExampleScore:
+        """COORDINATE-CONTRACT FIX (this repair pass): a real N=5 Qwen2.5-VL smoke test found
+        the model reliably emitting PIXEL-space boxes despite the prompt asking for
+        [0,1]-normalized coordinates (e.g. predicting [112,189,444,362] for a 640x425 image
+        against a target of ~[0.165,0.461,0.686,0.860] -- a genuine ~0.91 IoU match, scored as
+        ~0 by directly comparing the raw numbers). Both the prediction and the target are now
+        converted into ONE canonical representation (pixel-space xyxy, via
+        box_iou.canonicalize_prediction_box / denormalize_xyxy) before computing IoU, using
+        deterministic value-range + this example's real image-dimension rules -- never by
+        checking which interpretation scores better, and never special-cased to Qwen: any
+        model emitting normalized-[0,1], pixel, or Qwen-style 0..1000-normalized coordinates
+        is handled by the same rule.
+        """
         if not parsed.parse_ok:
-            return ExampleScore(score=0.0, correct=False, detail={"reason": "parse_failure", "iou": 0.0})
-        iou = box_iou(parsed.parsed, example.target)
+            return ExampleScore(score=0.0, correct=False, detail={
+                "reason": "parse_failure", "iou": 0.0,
+                "raw_prediction_box": None, "canonical_prediction_box": None, "coordinate_mode": None,
+            })
+
+        image_width = example.metadata["image_width"]
+        image_height = example.metadata["image_height"]
+        target_pixel_xyxy = denormalize_xyxy(example.target, image_width, image_height)
+
+        raw_box = parsed.parsed
+        canonical_box, mode = canonicalize_prediction_box(raw_box, image_width, image_height)
+        if canonical_box is None:
+            return ExampleScore(score=0.0, correct=False, detail={
+                "reason": "unrecognized_coordinate_convention", "iou": 0.0,
+                "raw_prediction_box": list(raw_box), "canonical_prediction_box": None, "coordinate_mode": mode,
+            })
+
+        iou = box_iou(canonical_box, target_pixel_xyxy)
         correct = iou >= IOU_THRESHOLD
-        return ExampleScore(score=iou, correct=correct, detail={"iou": iou})
+        return ExampleScore(score=iou, correct=correct, detail={
+            "iou": iou,
+            "raw_prediction_box": list(raw_box),
+            "canonical_prediction_box": list(canonical_box),
+            "coordinate_mode": mode,
+        })
 
     def aggregate_metrics(self, scores: List[ExampleScore]) -> Dict[str, float]:
         n = len(scores)
         if n == 0:
             return {"accuracy_at_iou_0.5": 0.0, "mean_iou": 0.0, "primary_metric": 0.0, "parser_failure_rate": 0.0}
 
-        parser_failures = sum(1 for s in scores if s.detail.get("reason") == "parse_failure")
+        parser_failures = sum(1 for s in scores if s.detail.get("reason") in ("parse_failure", "unrecognized_coordinate_convention"))
         acc_at_iou = sum(1 for s in scores if s.correct) / n
         mean_iou_value = sum(s.detail.get("iou", 0.0) for s in scores) / n
 

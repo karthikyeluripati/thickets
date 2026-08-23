@@ -35,10 +35,27 @@ def test_known_caveats_documents_marker_protocol_and_multi_attribute_targets():
     assert "AnnaZ1103/visual_genome_revised" in caveats
 
 
-def test_known_caveats_flags_attribute_filtering_as_a_scientific_review_item():
+def test_known_caveats_flags_state_action_attributes_for_later_ontology_review():
     caveats = " ".join(_bench().known_caveats())
     assert "walking" in caveats
-    assert "scientific-review item" in caveats
+    assert "hanging" in caveats
+    assert "manual ontology review" in caveats
+    assert "never filtered, dropped, or reweighted" in caveats
+
+
+def test_known_caveats_documents_the_value_vs_category_prompt_fix():
+    caveats = " ".join(_bench().known_caveats())
+    assert "attribute VALUE" in caveats
+    assert "bare category label" in caveats
+
+
+def test_build_prompt_asks_for_value_not_category():
+    bench = _bench()
+    example = Example(example_id="1", prompt_input={"object_name": "chair"})
+    text = bench.build_prompt(example)[0]["content"][1]["text"]
+    assert "VALUE" in text
+    assert "category" in text
+    assert "Material" in text  # explicit counter-example of what NOT to answer with
 
 
 def test_prepare_image_draws_marker_and_preserves_original(tiny_image_factory):
@@ -181,6 +198,45 @@ def test_load_examples_carries_image_dims_into_metadata_when_present(tmp_path, t
 
     assert examples[0].metadata["image_width"] == 640
     assert examples[0].metadata["image_height"] == 480
+
+
+def test_load_examples_strips_target_whitespace_but_preserves_raw_in_metadata(tmp_path, tiny_image_factory):
+    """Real N=5 finding: a raw target value had stray trailing whitespace ("wooden "). The
+    stored target (used for scoring) must be clean; the exact raw values must still be
+    available in metadata for audit.
+    """
+    rows = [{"image_id": "1", "example_id": "vg:1:10:1:2:3:4", "object_id": "10", "object_name": "chair", "positive_attributes": ["wooden ", "brown"], "bbox": [1, 2, 3, 4]}]
+    _write_prepared_artifact(tmp_path, rows, tiny_image_factory)
+
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    examples = bench.load_examples(cfg)
+
+    assert examples[0].target == ["wooden", "brown"]  # stripped
+    assert examples[0].metadata["raw_positive_attributes"] == ["wooden ", "brown"]  # exact, unmodified
+
+
+def test_load_examples_flags_state_action_attributes_without_dropping_them(tmp_path, tiny_image_factory):
+    rows = [{"image_id": "1", "example_id": "vg:1:10:1:2:3:4", "object_id": "10", "object_name": "board", "positive_attributes": ["cork", "hanging"], "bbox": [1, 2, 3, 4]}]
+    _write_prepared_artifact(tmp_path, rows, tiny_image_factory)
+
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    examples = bench.load_examples(cfg)
+
+    assert examples[0].target == ["cork", "hanging"]  # never dropped
+    assert examples[0].metadata["flagged_state_action_attributes"] == ["hanging"]
+
+
+def test_load_examples_no_flagged_attributes_gives_empty_list(tmp_path, tiny_image_factory):
+    rows = [{"image_id": "1", "example_id": "vg:1:10:1:2:3:4", "object_id": "10", "object_name": "chair", "positive_attributes": ["red", "wooden"], "bbox": [1, 2, 3, 4]}]
+    _write_prepared_artifact(tmp_path, rows, tiny_image_factory)
+
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    examples = bench.load_examples(cfg)
+
+    assert examples[0].metadata["flagged_state_action_attributes"] == []
 
 
 def test_load_examples_hard_fails_when_parquet_missing(tmp_path):

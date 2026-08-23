@@ -1,16 +1,34 @@
 """Shared base for the two GQA-derived capability adapters (spatial_reasoning_gqa.py,
-relational_reasoning_gqa.py). Both reuse GQAHandler's own load_data/compute_reward/
-extract_answer_for_voting pipeline UNCHANGED -- no second, incompatible GQA scoring path is
-introduced. The only thing each subclass adds is which question-ID filter (built by
-gqa_raw_schema.py) selects its examples out of the records GQAHandler.load_data() returns.
+relational_reasoning_gqa.py). Both reuse GQAHandler's own load_data/compute_reward pipeline
+UNCHANGED for data loading and actual reward scoring -- no second, incompatible GQA scoring
+path is introduced. The only things each subclass adds are (a) which question-ID filter
+(built by gqa_raw_schema.py) selects its examples out of the records GQAHandler.load_data()
+returns, and (b) capability-benchmark-only parsing/prompt behavior described below, which
+never touches GQAHandler or the historical Gate-1 reproduction evaluator.
 
 GQAHandler.compute_reward(raw_response, ground_truth) does its OWN internal answer
-extraction/normalization -- it needs the RAW generation text, not whatever
-extract_answer_for_voting() already extracted. Since CapabilityBenchmark.score_example()'s
-signature only receives the already-parsed ParsedPrediction (not the raw text directly), the
-raw generation is carried through inside ParsedPrediction.parsed (an opaque, adapter-owned
-payload) as {"raw": ..., "extracted": ...} specifically so score_example can still call
-compute_reward on the untouched original text.
+extraction/normalization -- it needs the RAW generation text, not whatever this module's own
+parser already extracted. Since CapabilityBenchmark.score_example()'s signature only receives
+the already-parsed ParsedPrediction (not the raw text directly), the raw generation is
+carried through inside ParsedPrediction.parsed (an opaque, adapter-owned payload) as
+{"raw": ..., "extracted": ...} specifically so score_example can still call compute_reward on
+the untouched original text.
+
+PARSER FIX (this repair pass): parse_prediction() no longer calls GQAHandler's own
+extract_answer_for_voting() at all -- a real RunPod run showed it mis-extracting a nested
+`\\boxed{\\text{...}}` answer via (presumably) a non-balanced-brace regex, and fabricating the
+nonsense string "step step" for a generation truncated before any `\\boxed{}` appeared, with
+parser_failure_rate staying 0 throughout. gqa_boxed_answer.extract_boxed_answer() (this
+package's own code, balanced-brace-correct) now decides parse_ok/parser_failure_rate instead;
+compute_reward's own scoring behavior is untouched (still called on the raw generation).
+
+PROMPT FIX (this repair pass): build_prompt() appends a short, capability-benchmark-ONLY
+instruction on top of GQAHandler's own historical messages (never mutated in place) asking
+for brief reasoning -- a real RunPod run showed the historical "reason step by step" wording
+causing at least one generation to hit the token ceiling before ever producing a `\\boxed{}`
+answer. Gate 1's own scripts call GQAHandler directly and never see this addition; the
+historical prompt text itself is not modified, since we cannot and should not touch
+GQAHandler (external/RandOpt).
 """
 from __future__ import annotations
 
@@ -18,7 +36,21 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from ..base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
+from .gqa_boxed_answer import extract_boxed_answer
 from .gqa_raw_schema import GQASchemaError, load_persisted_filter_ids
+
+# Appended as an EXTRA text block on GQAHandler's own last message turn -- never replaces or
+# edits GQAHandler's own instruction text (which we do not have access to modify or fully
+# know the exact wording of). Keeps the \boxed{...} answer contract intact (both this
+# module's own extract_boxed_answer() and, presumably, GQAHandler.compute_reward's own
+# internal extraction depend on it) while directly addressing the observed truncation cause:
+# long, unconstrained step-by-step reasoning eating the token budget before an answer appears.
+CAPABILITY_BENCHMARK_ANSWER_STYLE_OVERRIDE = (
+    "For this evaluation specifically, do not write out long step-by-step reasoning -- keep "
+    "any reasoning brief (at most one short sentence) so your final answer is not cut off. "
+    "Still give your final answer as a short phrase inside \\boxed{...}, exactly as "
+    "instructed above."
+)
 
 # src/neural_thickets_repro/benchmarks/adapters/_gqa_filtered_base.py -> research/neural_thickets_repro
 REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -123,17 +155,33 @@ class GQAFilteredBenchmark(CapabilityBenchmark):
         return examples
 
     def build_prompt(self, example: Example) -> List[dict]:
-        return example.prompt_input["messages"]
+        """Returns GQAHandler's own historical messages with CAPABILITY_BENCHMARK_ANSWER_STYLE_
+        OVERRIDE appended to the last turn's content list (see module docstring's PROMPT FIX
+        note) -- a new list/dicts are built rather than mutating example.prompt_input["messages"]
+        in place, so the original GQAHandler-provided structure is never altered.
+        """
+        historical_messages = example.prompt_input["messages"]
+        messages = [dict(m) for m in historical_messages]
+        if messages:
+            last = messages[-1]
+            content = list(last.get("content", [])) + [{"type": "text", "text": CAPABILITY_BENCHMARK_ANSWER_STYLE_OVERRIDE}]
+            messages[-1] = {**last, "content": content}
+        return messages
 
     def parse_prediction(self, raw_generation: str, example: Example) -> ParsedPrediction:
-        extracted = self._resolve_handler().extract_answer_for_voting(raw_generation)
-        ok = bool(extracted)
+        """See module docstring's PARSER FIX note: uses this package's own balanced-brace
+        \\boxed{} extractor, NOT GQAHandler.extract_answer_for_voting(), to decide parse_ok.
+        """
+        extracted = extract_boxed_answer(raw_generation)
+        ok = extracted is not None
         return ParsedPrediction(
             parsed={"raw": raw_generation, "extracted": extracted},
-            parse_ok=ok, parse_error=None if ok else "no answer extracted (extract_answer_for_voting)",
+            parse_ok=ok, parse_error=None if ok else "no \\boxed{...} final answer found (balanced-brace extraction)",
         )
 
     def score_example(self, parsed: ParsedPrediction, example: Example) -> ExampleScore:
+        if not parsed.parse_ok:
+            return ExampleScore(score=0.0, correct=False, detail={"extracted": None, "reason": "parse_failure"})
         reward = self._resolve_handler().compute_reward(parsed.parsed["raw"], example.target)
         return ExampleScore(score=float(reward), correct=reward > 0, detail={"extracted": parsed.parsed["extracted"]})
 
@@ -141,6 +189,6 @@ class GQAFilteredBenchmark(CapabilityBenchmark):
         n = len(scores)
         if n == 0:
             return {"accuracy": 0.0, "primary_metric": 0.0, "parser_failure_rate": 0.0}
-        parser_failures = sum(1 for s in scores if not s.detail.get("extracted"))
+        parser_failures = sum(1 for s in scores if s.detail.get("reason") == "parse_failure")
         accuracy = sum(s.score for s in scores) / n
         return {"accuracy": accuracy, "primary_metric": accuracy, "parser_failure_rate": parser_failures / n}

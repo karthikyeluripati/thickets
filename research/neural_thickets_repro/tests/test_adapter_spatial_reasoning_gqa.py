@@ -44,26 +44,68 @@ def test_load_examples_filters_to_spatial_ids_only(fake_gqa_handler_factory, tin
     assert examples[0].target == {"answer": "left"}
 
 
-def test_build_prompt_passes_through_gqahandler_messages(fake_gqa_handler_factory):
+def test_build_prompt_appends_capability_benchmark_override_without_mutating_original(fake_gqa_handler_factory):
+    """PROMPT FIX (this repair pass): build_prompt() no longer passes GQAHandler's messages
+    through unchanged -- it appends a brief-reasoning override instruction to the last turn's
+    content, addressing a real RunPod token-ceiling truncation, while leaving GQAHandler's own
+    messages object untouched (a new list/dicts are returned).
+    """
     bench = GQASpatialReasoningBenchmark(gqa_handler=fake_gqa_handler_factory([]), question_ids=set())
     from neural_thickets_repro.benchmarks.base import Example
-    messages = [{"role": "user", "content": [{"type": "text", "text": "is it left?"}]}]
+    original_content = [{"type": "text", "text": "is it left?"}]
+    messages = [{"role": "user", "content": original_content}]
     example = Example(example_id="1", prompt_input={"messages": messages})
-    assert bench.build_prompt(example) is messages
+
+    result = bench.build_prompt(example)
+
+    assert result is not messages  # a new list, GQAHandler's own object never mutated
+    assert messages[0]["content"] is original_content  # original untouched
+    assert len(original_content) == 1  # original content list untouched
+    result_texts = [block["text"] for block in result[-1]["content"] if block.get("type") == "text"]
+    assert "is it left?" in result_texts
+    assert any("boxed" in t and "brief" in t for t in result_texts)
 
 
-def test_parse_prediction_uses_extract_answer_for_voting(fake_gqa_handler_factory):
-    handler = fake_gqa_handler_factory([], extract_fn=lambda response: "left" if "left" in response else None)
+def test_parse_prediction_uses_balanced_brace_boxed_extraction_not_extract_answer_for_voting(fake_gqa_handler_factory):
+    """PARSER FIX (this repair pass): parse_prediction() uses this package's own
+    gqa_boxed_answer.extract_boxed_answer(), never GQAHandler.extract_answer_for_voting --
+    proven here by giving extract_answer_for_voting a fake that would behave differently.
+    """
+    handler = fake_gqa_handler_factory([], extract_fn=lambda response: "SHOULD NOT BE USED")
     bench = GQASpatialReasoningBenchmark(gqa_handler=handler, question_ids=set())
     from neural_thickets_repro.benchmarks.base import Example
     example = Example(example_id="1")
 
-    parsed_ok = bench.parse_prediction("The answer is left.", example)
+    parsed_ok = bench.parse_prediction("The final answer is \\boxed{left}.", example)
     assert parsed_ok.parse_ok is True
     assert parsed_ok.parsed["extracted"] == "left"
 
     parsed_fail = bench.parse_prediction("I don't know", example)
     assert parsed_fail.parse_ok is False
+    assert parsed_fail.parsed["extracted"] is None
+
+
+def test_parse_prediction_handles_the_real_nested_brace_case(fake_gqa_handler_factory):
+    bench = GQASpatialReasoningBenchmark(gqa_handler=fake_gqa_handler_factory([]), question_ids=set())
+    from neural_thickets_repro.benchmarks.base import Example
+    example = Example(example_id="1")
+
+    parsed = bench.parse_prediction("\\boxed{\\text{the person in the blue shirt}}", example)
+    assert parsed.parse_ok is True
+    assert parsed.parsed["extracted"] == "the person in the blue shirt"
+
+
+def test_parse_prediction_truncated_generation_is_a_real_failure_not_step_step(fake_gqa_handler_factory):
+    """The other real RunPod bug: a generation truncated before any \\boxed{} appeared must
+    be a genuine parser failure, never a fabricated answer like the observed "step step".
+    """
+    bench = GQASpatialReasoningBenchmark(gqa_handler=fake_gqa_handler_factory([]), question_ids=set())
+    from neural_thickets_repro.benchmarks.base import Example
+    example = Example(example_id="1")
+
+    parsed = bench.parse_prediction("Let me think step by step. First I will look at the", example)
+    assert parsed.parse_ok is False
+    assert parsed.parsed["extracted"] is None
 
 
 def test_score_example_calls_compute_reward_with_raw_generation_not_extracted(fake_gqa_handler_factory):
@@ -71,28 +113,43 @@ def test_score_example_calls_compute_reward_with_raw_generation_not_extracted(fa
 
     def _reward(response, ground_truth):
         calls.append(response)
-        return 1.0 if response == "The answer is left." else 0.0
+        return 1.0 if response == "The answer is \\boxed{left}." else 0.0
 
-    handler = fake_gqa_handler_factory([], reward_fn=_reward, extract_fn=lambda r: "left")
+    handler = fake_gqa_handler_factory([], reward_fn=_reward)
     bench = GQASpatialReasoningBenchmark(gqa_handler=handler, question_ids=set())
     from neural_thickets_repro.benchmarks.base import Example
     example = Example(example_id="1", target={"answer": "left"})
 
-    parsed = bench.parse_prediction("The answer is left.", example)
+    parsed = bench.parse_prediction("The answer is \\boxed{left}.", example)
     score = bench.score_example(parsed, example)
 
-    assert calls == ["The answer is left."]  # RAW text reached compute_reward, not "left"
+    assert calls == ["The answer is \\boxed{left}."]  # RAW text reached compute_reward, not "left"
     assert score.score == 1.0
     assert score.correct is True
 
 
-def test_aggregate_metrics_accuracy_and_parser_failure_rate(fake_gqa_handler_factory):
-    handler = fake_gqa_handler_factory([], extract_fn=lambda r: r if r else None)
+def test_score_example_skips_compute_reward_entirely_on_parse_failure(fake_gqa_handler_factory):
+    def _reward(response, ground_truth):
+        raise AssertionError("compute_reward must not be called when there's no extractable answer")
+
+    handler = fake_gqa_handler_factory([], reward_fn=_reward)
     bench = GQASpatialReasoningBenchmark(gqa_handler=handler, question_ids=set())
+    from neural_thickets_repro.benchmarks.base import Example
+    example = Example(example_id="1", target={"answer": "left"})
+
+    parsed = bench.parse_prediction("no boxed answer here", example)
+    score = bench.score_example(parsed, example)
+    assert score.score == 0.0
+    assert score.correct is False
+    assert score.detail["reason"] == "parse_failure"
+
+
+def test_aggregate_metrics_accuracy_and_parser_failure_rate():
     from neural_thickets_repro.benchmarks.base import ExampleScore
 
     scores = [ExampleScore(score=1.0, correct=True, detail={"extracted": "left"}),
-              ExampleScore(score=0.0, correct=False, detail={"extracted": None})]
+              ExampleScore(score=0.0, correct=False, detail={"extracted": None, "reason": "parse_failure"})]
+    bench = GQASpatialReasoningBenchmark(question_ids=set())
     metrics = bench.aggregate_metrics(scores)
     assert metrics["accuracy"] == pytest.approx(0.5)
     assert metrics["primary_metric"] == metrics["accuracy"]

@@ -25,4 +25,9 @@ class GQASpatialReasoningBenchmark(GQAFilteredBenchmark):
             "field names, not yet confirmed against the real raw dataset -- see "
             "CAPABILITY_BENCHMARK_GATE.md's first pod-side investigation step "
             "(gqa_raw_schema.inspect_raw_schema()).",
+            "build_prompt()/parse_prediction() are capability-benchmark-ONLY additions on top "
+            "of GQAHandler's own historical messages/scoring (a brief-reasoning instruction "
+            "appended, and this package's own balanced-brace \\boxed{} extractor deciding "
+            "parse_ok) -- see _gqa_filtered_base.py's module docstring for the real RunPod "
+            "parser/truncation bugs this fixed. GQAHandler and Gate 1 are untouched.",
         ]

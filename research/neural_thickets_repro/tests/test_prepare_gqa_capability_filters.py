@@ -95,6 +95,31 @@ def test_main_inspect_only_does_not_persist_files(monkeypatch, tmp_path):
     assert not output_dir.exists()
 
 
+def test_main_audit_question_ids_prints_detail_and_does_not_persist(monkeypatch, tmp_path, capsys):
+    rows = [
+        _relation_row("s1", "to the left of,s"),
+        _relation_row("r1", "holding,o"),
+    ]
+    _install_fake_datasets_module(monkeypatch, rows)
+
+    config_path = tmp_path / "gqa_repro.yaml"
+    config_path.write_text(_MINIMAL_VALID_GQA_CONFIG)
+    output_dir = tmp_path / "artifacts"
+
+    rc = m.main(["--config", str(config_path), "--output-dir", str(output_dir), "--audit-question-ids", "s1,r1,does-not-exist"])
+
+    assert rc == 0
+    assert not output_dir.exists()  # audit is read-only -- never persists or regenerates filters
+
+    captured = capsys.readouterr()
+    assert '"question_id": "s1"' in captured.out
+    assert '"classification": "spatial"' in captured.out
+    assert '"question_id": "r1"' in captured.out
+    assert '"classification": "relational_non_spatial"' in captured.out
+    assert '"question_id": "does-not-exist"' in captured.out
+    assert '"found": false' in captured.out
+
+
 def test_main_stops_with_exit_1_when_schema_not_confirmed(monkeypatch, tmp_path):
     rows = [{"id": "1", "no_type_fields_at_all": True}]
     _install_fake_datasets_module(monkeypatch, rows)

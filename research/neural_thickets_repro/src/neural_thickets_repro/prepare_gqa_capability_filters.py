@@ -24,6 +24,14 @@ GQAHandler's own loaded records by these same IDs.
 Usage:
     python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml
     python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml --inspect-only
+    python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml --audit-question-ids 201640614,201902997
+
+`--audit-question-ids` (added this repair pass, for the GQA capability taxonomy audit): prints
+the full real raw record + classification decision for each given question ID (see
+gqa_raw_schema.describe_question_classification()) and exits WITHOUT persisting or even
+building the aggregate spatial/relational filters -- a pure read-only diagnostic, used to
+verify real semantic-program values (e.g. whether "around"/"on" actually appear as spatial
+relation arguments) before trusting or regenerating the persisted filter ID files.
 """
 from __future__ import annotations
 
@@ -35,6 +43,7 @@ from typing import List, Optional
 
 from .benchmarks.adapters.gqa_raw_schema import (
     build_spatial_relational_filters,
+    describe_question_classification,
     inspect_raw_schema,
     persist_filter_ids,
 )
@@ -71,6 +80,13 @@ def main(argv=None) -> int:
         "--sample-size", type=int, default=None,
         help="load only the first N raw rows (for a quick schema check); default loads the full testdev split",
     )
+    parser.add_argument(
+        "--audit-question-ids", default=None,
+        help="comma-separated GQA question IDs to print full raw-record classification detail "
+        "for (question, types.semantic/structural, semantic program, semanticStr, extracted "
+        "relation name, and the spatial/relational decision + matched keyword) -- read-only, "
+        "never persists or regenerates any filter file",
+    )
     args = parser.parse_args(argv)
 
     load_config(args.config)  # confirms the config loads cleanly; not otherwise used here
@@ -78,6 +94,14 @@ def main(argv=None) -> int:
     print(f"Loading raw GQA annotations (source={DATASET_NAME}, config={TEST_INSTRUCTIONS_CONFIG}) ...")
     raw_rows = load_raw_testdev_rows(args.sample_size)
     print(f"  loaded {len(raw_rows)} raw rows")
+
+    if args.audit_question_ids:
+        ids = [s.strip() for s in args.audit_question_ids.split(",") if s.strip()]
+        print(f"\n=== Auditing {len(ids)} question ID(s) (read-only -- no filters persisted) ===")
+        for qid in ids:
+            detail = describe_question_classification(raw_rows, qid)
+            print(json.dumps(detail, indent=2, default=str))
+        return 0
 
     print("\n=== Step 1: raw schema inspection (required before trusting the filter) ===")
     schema_report = inspect_raw_schema(raw_rows)

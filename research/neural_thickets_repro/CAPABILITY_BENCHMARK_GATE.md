@@ -31,8 +31,9 @@ New abstractions (all in `src/neural_thickets_repro/benchmarks/`): `base.py` (`C
 
 | Capability | Source | Confidence |
 |---|---|---|
-| `visual_grounding` | `lmms-lab-encoder/RefCOCO` | **Confirmed live** this session (HF viewer: val=8.81k/test=5k/testA=1.98k/testB=1.81k, schema `image`/`question`/`bbox`[xywh]/`question_id`, ungated) |
+| `visual_grounding` | `lmms-lab-encoder/RefCOCO` | **Schema corrected this repair pass**: `question` is a fixed region-captioning instruction, NOT the referring expression (confirmed via real N=5 Qwen output + live re-inspection this session) — the real referring expression(s) live in `answer` (a list); this adapter uses `answer[0]`. Otherwise as before: val=8.81k/test=5k/testA=1.98k/testB=1.81k, `bbox`[xywh]/`question_id`, ungated. |
 | `ocr_text_recognition` | `lmms-lab-encoder/textvqa` | **Confirmed live** this session (train=34.6k/val=5k/test=5.73k, `answers`: list of 10, ungated) |
+| `ocr_text_recognition_grounded` (NEW, this repair pass) | Same source, filtered by `prepare_textvqa_ocr_filter.py` | EXPERIMENTAL, not an official TextVQA category — see "N=5 repair pass" section below, item 4 |
 | `counting` | `HuggingFaceM4/the_cauldron`, config `tallyqa` | **Confirmed live** this session (schema `images:[image]`, `texts:[{"user","assistant","source"}]`, multi-turn per image, ~98.7k rows, single split) |
 | `attribute_recognition` | `AnnaZ1103/visual_genome_revised` (config `attributes`, split `train`) — annotations + per-row image URLs, both from the same source | **Source changed again this repair pass** — both the original `ranjaykrishna/visual_genome` (config `attributes_v1.2.0`) AND a prior `mikewang/vaw` replacement FAIL on `datasets==5.0.1` ("Dataset scripts are no longer supported", each confirmed on a real RunPod in turn). `AnnaZ1103/visual_genome_revised` was directly tested on a real RunPod with `datasets==5.0.1` and confirmed working as script-free Parquet — see "Visual Genome" section below. A community repackaging of VG's own annotations, not the canonical upstream distribution — documented, not claimed otherwise. |
 | `object_recognition` | `ILSVRC/imagenet-1k`, split `validation` | **Confirmed live** this session — dataset exists, splits/schema/`int2str` class-name mapping confirmed; **GATED**, requires an HF token with accepted ImageNet license (user's explicit decision: build for gated access, hard-fail clearly, never substitute) |
@@ -215,6 +216,99 @@ manufacture uniqueness; `example_id` and `object_id` are different concepts thro
 package. `verify_visual_genome_data.py`'s duplicate check now keys on `example_id`, not
 `object_id`.
 
+## N=5 repair pass: real Qwen2.5-VL findings (this session)
+
+The first real N=5 smoke test (7 of 8 capabilities, commit `0ffa06e`) surfaced several
+protocol defects invisible to `parser_failure_rate` (reported as 0 throughout). Fixed here,
+each narrowly scoped, none touching RandOpt/perturbation/CUB/TallyQA/ImageNet:
+
+**1. Visual grounding — coordinate contract.** Qwen reliably emitted PIXEL-space boxes
+despite the prompt asking for `[0,1]`-normalized ones (e.g. predicting `[112,189,444,362]` for
+a 640x425 image against a target of `~[0.165,0.461,0.686,0.860]` — a real ~0.91 IoU match,
+scored as ~0 by comparing the raw numbers directly). Fixed at the evaluator layer, never by
+special-casing Qwen or changing the prompt: `box_iou.detect_coordinate_mode()`/
+`canonicalize_prediction_box()` classify a prediction as `normalized_xyxy_0_1` /
+`pixel_xyxy` / `qwen_normalized_0_1000` / `unrecognized` using ONLY deterministic value-range +
+this example's real image dimensions (never accuracy), and `score_example()` converts both
+prediction and target into one canonical pixel-space representation before IoU. Per-example
+`raw_prediction_box`/`canonical_prediction_box`/`coordinate_mode` are now recorded in
+`ExampleScore.detail`. An `unrecognized` box counts toward `parser_failure_rate`.
+
+**1b. Visual grounding — RefCOCO field mixup.** `row["question"]` was, in every N=5 example,
+the fixed instruction "Please carefully observe the area circled in the image and come up
+with a caption for the area." — confirmed via live schema re-inspection this session that
+`lmms-lab-encoder/RefCOCO` repackages RefCOCO as an instruction-tuned region-captioning
+dataset, NOT a faithful referring-expression representation. The real referring expression(s)
+live in `row["answer"]` (a list of independent human-written region descriptions, e.g.
+`["bowl behind the others can only see part", "Dish in top right corner"]`). Fixed via Option
+A (recover from available fields): `load_examples()` now uses `answer[0]` deterministically;
+all annotations are kept in `Example.metadata["all_referring_expressions"]` for audit. Hard-
+fails (`RefCOCOSchemaError`) on an empty `answer` list rather than falling back to the
+misleading `question` field.
+
+**2. GQA parser + prompt.** GQAHandler's own `extract_answer_for_voting` (external, frozen)
+mis-extracted `\boxed{\text{the person in the blue shirt}}` as `\text{the person` (a
+non-balanced-brace bug), and fabricated `"step step"` for a generation truncated by the token
+ceiling before any `\boxed{}` appeared — `parser_failure_rate` stayed 0 throughout. Fixed by a
+NEW capability-benchmark-only module, `adapters/gqa_boxed_answer.py`
+(`extract_boxed_answer()`): balanced-brace matching (correctly handles nesting), unwraps
+simple LaTeX wrappers (`\text{}`/`\mathrm{}`/etc.), returns `None` — a real parser failure,
+never a fabricated fallback — for a missing/truncated `\boxed{}`. `_gqa_filtered_base.py`'s
+`parse_prediction()` now uses this instead of `extract_answer_for_voting()`; actual reward
+scoring is UNCHANGED (`compute_reward()` still runs on the raw generation). Separately,
+`build_prompt()` now appends a capability-benchmark-ONLY "keep reasoning brief, still use
+`\boxed{}`" instruction to GQAHandler's own last message turn (never mutating it, never
+editing GQAHandler's own historical text) — addressing the observed truncation cause without
+touching GQAHandler or Gate 1's own scripts, which never see this addition.
+
+**3. GQA capability taxonomy audit.** A manual N=5 sample raised the concern that "around"/"on"
+might be spatial relations misclassified as non-spatial. Two things were done, per explicit
+instruction NOT to fabricate a correction until real data is inspected: (a) a real,
+schema-independent bug was fixed regardless of what the real values turn out to be —
+`is_spatial_relation` used bare substring matching (`"on" in lowered`), which could
+false-positive inside an unrelated word (e.g. "person", "along", "onion"); it now matches each
+keyword with `\b`-bounded regex. (b) a new CPU-side audit utility,
+`gqa_raw_schema.describe_question_classification()` (exposed via
+`prepare_gqa_capability_filters.py --audit-question-ids`), prints the full real raw record —
+question, `types.semantic`/`types.structural`, the raw `semantic` program, `semanticStr`, the
+extracted relation name, and the classification decision + matched keyword — for a given
+question ID. `SPATIAL_RELATION_KEYWORDS` and the persisted `gqa_spatial_ids.json`/
+`gqa_relational_ids.json` filter files are UNCHANGED in this commit; regenerate only after
+running the audit command below on real data.
+
+**4. OCR/text-recognition — capability leakage.** A real N=5 sample showed TextVQA questions
+("how many wheels does this van have?" → "4", not OCR-supported; "is this book material?", not
+an OCR reading question) mixed in with genuine OCR questions ("what type of laptop is this?" →
+"macbook air", supported by OCR tokens "MacBook Air"). `ocr_text_recognition`
+(`TextVQAOCRBenchmark`) is UNCHANGED — it remains full TextVQA. A NEW, separate, EXPERIMENTAL
+capability `ocr_text_recognition_grounded` (`TextVQAOCRGroundedBenchmark`) narrows to examples
+where at least one reference answer's word sequence is recoverable from the row's own OCR
+token sequence (`benchmarks/ocr_grounding.py`, supporting multi-token answers like "macbook
+air"/"chicken noodle"), using target answers + provided OCR tokens ONLY — never model
+predictions. `prepare_textvqa_ocr_filter.py` persists the ID filter (same prepare-then-filter
+pattern as GQA) and reports total/retained/rejected/percent. Every TextVQA `Example` (both
+variants) now also carries `metadata["ocr_grounded"]` for audit.
+
+**5. Visual Genome attribute prompt.** A real N=5 sample showed the model sometimes answering
+with the attribute's CATEGORY ("Material", "Color: Brown") instead of its VALUE ("wooden",
+"brown"). `INSTRUCTION` now explicitly asks for the VALUE and explicitly rules out a bare
+category word, without ever revealing the ground-truth attribute. The same sample showed a
+target with stray whitespace (`"wooden "`); `load_examples()` now strips target attribute
+values (the value actually scored against) while `Example.metadata["raw_positive_attributes"]`
+keeps the exact, unmodified values. VG's raw vocabulary mixing colors/materials with
+action/state words (`"hanging"`, `"walking"`) is now surfaced via
+`Example.metadata["flagged_state_action_attributes"]` against a small, explicitly
+non-exhaustive watchlist (`STATE_ACTION_ATTRIBUTE_WATCHLIST`) — for later manual ontology
+review only; nothing is filtered, dropped, or reweighted.
+
+**6/7. Clean tasks untouched; new audit tooling.** Counting (TallyQA) and fine-grained (CUB)
+adapters are unmodified. A new CPU-side utility, `inspect_capability_predictions.py`, reads a
+`predictions.jsonl` and prints a compact per-example report (query/target/raw_generation/
+parsed_prediction/score, plus capability-specific detail/metadata fields — grounding's
+IoU/boxes/coordinate_mode, GQA's `extracted`, OCR's `ocr_grounded`, attributes' bbox/object_id/
+raw attributes) — every real bug in this section was originally found by exactly this kind of
+manual side-by-side read, not by any aggregate metric.
+
 ## Fresh RunPod bootstrap
 
 The exact command sequence to go from an empty pod to all 8 capabilities passing `--dry-run`
@@ -265,14 +359,28 @@ python -m neural_thickets_repro.prepare_visual_genome_data
 # 9. Verify Visual Genome data
 python -m neural_thickets_repro.verify_visual_genome_data
 
-# 10. Dry-run every capability (data loading + integrity only, no GPU/model call)
-for cfg in object_recognition visual_grounding counting spatial_reasoning relational_reasoning ocr_text_recognition attribute_recognition fine_grained_recognition; do
+# 10. (optional, this repair pass) Audit real GQA relation-argument values for specific
+#     question IDs before trusting/regenerating the spatial/relational filters -- read-only,
+#     never persists anything. See "N=5 repair pass" section above, item 3.
+python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml --audit-question-ids <comma-separated-question-ids>
+
+# 11. (this repair pass) Prepare the EXPERIMENTAL OCR-grounded TextVQA subset -- read the
+#     printed total/retained/rejected/percent_retained before trusting it. See item 4 above.
+python -m neural_thickets_repro.prepare_textvqa_ocr_filter
+
+# 12. Dry-run every capability (data loading + integrity only, no GPU/model call)
+for cfg in object_recognition visual_grounding counting spatial_reasoning relational_reasoning ocr_text_recognition ocr_text_recognition_grounded attribute_recognition fine_grained_recognition; do
     python -m neural_thickets_repro.run_capability_benchmark_gate --config configs/benchmarks/$cfg.yaml --dry-run
 done
 
-# 11. GPU model smoke (confirms the pinned runtime actually loads Qwen2.5-VL-3B-Instruct
+# 13. GPU model smoke (confirms the pinned runtime actually loads Qwen2.5-VL-3B-Instruct
 #     under vLLM before spending time on any real benchmark run)
 python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro.yaml --max-examples 1
+
+# 14. (this repair pass) Manually audit N=5 predictions before trusting aggregate metrics --
+#     see "N=5 repair pass" section above, item 6/7. `--capability` selects the extra
+#     grounding/GQA/OCR/attribute fields to surface.
+python -m neural_thickets_repro.inspect_capability_predictions --predictions <results-dir>/visual_grounding/predictions.jsonl --capability visual_grounding
 ```
 
 ## Open items (UNRESOLVED, tracked here, not silently resolved)
@@ -288,8 +396,17 @@ python -m neural_thickets_repro.eval_base_image_aware --config configs/gqa_repro
   not guaranteed to remain so indefinitely; the earlier `mikewang/vaw` failure is a concrete
   precedent for a script-free-Parquet source silently reverting to script-based loading.
 - Visual Genome attribute vocabulary is not filtered for appearance-vs-state terms (e.g.
-  `"walking"`) — flagged as a scientific-review item for the N=5 manual inspection pass, not
-  resolved here (see "Visual Genome" section above).
+  `"walking"`, `"hanging"`) — a real N=5 manual inspection confirmed both occur in the wild;
+  `Example.metadata["flagged_state_action_attributes"]` now surfaces matches against a small,
+  explicitly non-exhaustive watchlist for later manual ontology review, but nothing is
+  filtered/dropped/reweighted (see "N=5 repair pass" section below).
+- GQA raw relation-argument values for the 10 audited question IDs (see "N=5 repair pass"
+  section below) — the word-boundary substring-matching bug is fixed regardless of these
+  values, but the persisted `gqa_spatial_ids.json`/`gqa_relational_ids.json` filters
+  themselves are UNCHANGED pending that real-data audit; do not regenerate them until it runs.
+- TextVQA OCR-groundedness real retained/rejected counts and percentage — the filter logic is
+  tested against synthetic data here; the real numbers come only from actually running
+  `prepare_textvqa_ocr_filter.py` on the pod (see "N=5 repair pass" section below).
 - CUB-200-2011 mirror choice — `bentrevett/caltech-ucsd-birds-200-2011` is a documented,
   revisable pick among several community mirrors.
 - ImageNet-1K gated access — requires an HF token with accepted license configured on

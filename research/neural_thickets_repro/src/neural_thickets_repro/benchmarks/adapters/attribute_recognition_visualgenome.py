@@ -20,10 +20,30 @@ one Example = one (image, object) pair. The queried object is made unambiguous b
 deterministic bounding-box marker around it (prepare_image() below, PIL ImageDraw, on a COPY
 of the image -- the original is preserved separately, never mutated, and the bbox itself is
 recorded in Example.metadata) -- an outline only, never filled, so the object itself is not
-obscured. VAW's `positive_attributes` list is preserved in FULL as Example.target (never
+obscured. The `positive_attributes` list is preserved in FULL as Example.target (never
 collapsed to one answer) -- a prediction is scored correct if it matches ANY of them (see
 score_example), the same "preserve the valid target set" discipline TextVQA's 10-answer list
 already uses in this package.
+
+PROMPT FIX (this repair pass): a real N=5 manual inspection found the model sometimes
+answering with the attribute's CATEGORY name ("Material", "Color: Brown") instead of its
+VALUE ("wooden", "brown") -- the previous instruction asked for "ONE visual attribute"
+without ever clarifying that a category name is not itself an answer. INSTRUCTION below now
+explicitly asks for the attribute VALUE and explicitly rules out answering with a bare
+category word. The prompt never reveals the ground-truth category or value.
+
+TARGET WHITESPACE / RAW-ATTRIBUTE PRESERVATION (this repair pass): the same N=5 inspection
+found a raw target value with stray trailing whitespace ("wooden "). load_examples() now
+strips whitespace from each attribute value going into Example.target (the value actually
+used for scoring), while Example.metadata["raw_positive_attributes"] keeps the exact,
+unmodified values as read from the parquet, so nothing is silently discarded.
+
+STATE/ACTION ATTRIBUTE FLAGGING (this repair pass, reporting only, no filtering): VG's raw
+attribute vocabulary mixes colors/materials with action/state words (e.g. "hanging",
+"walking") observed in the same N=5 sample. Example.metadata["flagged_state_action_attributes"]
+surfaces these against a small, explicitly non-exhaustive watchlist (STATE_ACTION_ATTRIBUTE_
+WATCHLIST below) for later manual ontology review -- examples are NEVER filtered, dropped, or
+reweighted based on this flag, since no principled inclusion/exclusion rule exists yet.
 """
 from __future__ import annotations
 
@@ -36,13 +56,30 @@ from ..normalization import normalize_answer
 from ..prompting import build_image_text_messages
 
 INSTRUCTION = (
-    "Look at the object outlined in red in the image. Name ONE visual attribute of that "
-    "object (for example its color, material, size, or texture). Answer with a single word "
-    "or short phrase -- do not describe the whole scene."
+    "Look at the object outlined in red in the image. State ONE visible attribute VALUE of "
+    "that object -- for example a specific color such as 'brown', a material such as "
+    "'wooden', a texture, or a visible state. Answer with the attribute VALUE itself, never "
+    "the attribute's category name (do not answer with a bare category word like 'Color', "
+    "'Material', or 'Texture'). Answer with a single word or short phrase giving the actual "
+    "attribute, and nothing else -- do not describe the whole scene."
 )
 MARKER_COLOR = (255, 0, 0)
 MARKER_WIDTH = 3
 PREPARE_COMMAND = "python -m neural_thickets_repro.prepare_visual_genome_data"
+
+# Small, EXPLICITLY non-exhaustive watchlist of VG attribute values that describe an
+# action/state rather than a lasting visual-appearance property -- for later manual ontology
+# review ONLY (see Example.metadata["flagged_state_action_attributes"]). Never used to filter,
+# drop, or reweight examples: no principled inclusion/exclusion rule exists yet, and inventing
+# one here would be silent ontology engineering.
+STATE_ACTION_ATTRIBUTE_WATCHLIST = frozenset({
+    "hanging", "walking", "running", "standing", "sitting", "sleeping", "flying",
+    "swimming", "jumping", "riding",
+})
+
+
+def _flagged_state_action_attributes(attributes: List[str]) -> List[str]:
+    return [a for a in attributes if a.strip().lower() in STATE_ACTION_ATTRIBUTE_WATCHLIST]
 
 
 class VisualGenomeSchemaError(RuntimeError):
@@ -76,11 +113,20 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
             "target. This is separate from the attribute TARGET set, which is always kept in "
             "full (see below).",
             "No appearance-vs-state semantic filtering is applied to VG's raw attribute "
-            "vocabulary -- e.g. 'walking' is a real observed VG attribute value that arguably "
-            "describes an action/state rather than a visual appearance attribute. There is no "
-            "existing, defensible criterion in this codebase for that distinction yet, and one "
-            "is deliberately NOT invented here. Flagged as a scientific-review item for the "
-            "upcoming N=5 manual inspection pass, not silently resolved.",
+            "vocabulary -- e.g. 'walking' and 'hanging' are real observed VG attribute values "
+            "(confirmed via a real N=5 manual inspection) that arguably describe an "
+            "action/state rather than a visual appearance attribute. There is no existing, "
+            "defensible criterion in this codebase for that distinction, and one is "
+            "deliberately NOT invented here. Example.metadata['flagged_state_action_"
+            "attributes'] surfaces matches against STATE_ACTION_ATTRIBUTE_WATCHLIST (a small, "
+            "explicitly non-exhaustive list) for later manual ontology review only -- examples "
+            "are never filtered, dropped, or reweighted based on this flag.",
+            "The prompt explicitly asks for the attribute VALUE, not its category name (e.g. "
+            "not 'Material') -- a real N=5 manual inspection found the model sometimes "
+            "answering with a bare category label instead of a value.",
+            "Target attribute values are whitespace-stripped (e.g. 'wooden ' -> 'wooden'); "
+            "the exact, unmodified raw values are preserved in "
+            "Example.metadata['raw_positive_attributes'].",
             "A bounding-box marker overlay is drawn on every image as part of this benchmark's "
             "own protocol (to make the queried object unambiguous) -- it is not naturally "
             "occurring VG data. The shuffled-image sanity condition keeps the same fixed "
@@ -119,7 +165,12 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
         for _, row in df.iterrows():
             image_path = images_dir / f"{row['image_id']}.jpg"
             image = Image.open(image_path).convert("RGB") if image_path.exists() else None
-            attributes = json.loads(row["positive_attributes"])
+            raw_attributes = list(json.loads(row["positive_attributes"]))
+            # target: whitespace-normalized (scoring already tolerates stray whitespace via
+            # normalize_answer's own .strip(), but the stored target itself should be clean --
+            # see this module's TARGET WHITESPACE docstring note). metadata keeps the exact,
+            # unmodified raw values separately.
+            normalized_attributes = [a.strip() for a in raw_attributes if a.strip()]
             metadata: Dict[str, Any] = {
                 "bbox_xywh": [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]],
                 "image_id": str(row["image_id"]),
@@ -127,6 +178,8 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
                 # its own in this repackaged dataset (see prepare_visual_genome_data.py's
                 # "BENCHMARK EXAMPLE IDENTITY" docstring section), so never used as the identity.
                 "object_id": str(row["object_id"]),
+                "raw_positive_attributes": raw_attributes,
+                "flagged_state_action_attributes": _flagged_state_action_attributes(raw_attributes),
             }
             if has_image_dims:
                 metadata["image_width"] = row["image_width"]
@@ -136,7 +189,7 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
                 image=image,
                 image_ref=str(image_path),
                 prompt_input={"object_name": row["object_name"]},
-                target=list(attributes),
+                target=normalized_attributes,
                 metadata=metadata,
             ))
         return examples

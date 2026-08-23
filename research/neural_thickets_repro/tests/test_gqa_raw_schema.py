@@ -8,6 +8,7 @@ import pytest
 from neural_thickets_repro.benchmarks.adapters.gqa_raw_schema import (
     RELATION_SEMANTIC_VALUE,
     build_spatial_relational_filters,
+    describe_question_classification,
     inspect_raw_schema,
     is_spatial_relation,
     load_persisted_filter_ids,
@@ -55,6 +56,25 @@ def test_inspect_raw_schema_reports_unconfirmed_when_fields_absent():
 ])
 def test_is_spatial_relation_classification(relation_name, expected):
     assert is_spatial_relation(relation_name) == expected
+
+
+@pytest.mark.parametrize("relation_name", [
+    "person,o",       # contains "on" as a bare substring of "person" -- must NOT match
+    "along,s",        # contains "on" as a bare substring of "along" -- must NOT match
+    "onion,o",        # contains "on" as a bare substring of "onion" -- must NOT match
+])
+def test_is_spatial_relation_does_not_false_positive_on_substring_matches(relation_name):
+    """WORD-BOUNDARY MATCHING FIX (this repair pass): the previous implementation used bare
+    substring matching (`"on" in lowered`), which would incorrectly classify these as spatial
+    purely because they happen to contain the letters "o" and "n" adjacently inside an
+    unrelated word -- a schema-independent bug, provable without any real pod data.
+    """
+    assert is_spatial_relation(relation_name) is False
+
+
+@pytest.mark.parametrize("relation_name", ["on,s", "sitting on,o", "cake on platter,s"])
+def test_is_spatial_relation_still_matches_on_as_its_own_token(relation_name):
+    assert is_spatial_relation(relation_name) is True
 
 
 def test_spatial_and_experimental_relational_are_disjoint_by_explicit_construction():
@@ -112,6 +132,54 @@ def test_no_relation_questions_at_all_gives_empty_sets_no_crash():
     assert relational_ids == set()
     assert stats["natural_intersection_over_spatial"] == 0.0
     assert stats["n_neither"] == 2
+
+
+def test_describe_question_classification_spatial_case():
+    rows = [_relation_row("s1", "to the left of,s"), _non_relation_row("a1")]
+    detail = describe_question_classification(rows, "s1")
+
+    assert detail["found"] is True
+    assert detail["question_id"] == "s1"
+    assert detail["types_semantic"] == RELATION_SEMANTIC_VALUE
+    assert detail["types_structural"] == "query"
+    assert detail["extracted_relation_name"] == "to the left of,s"
+    assert detail["is_relation_type_question"] is True
+    assert detail["classification"] == "spatial"
+    assert detail["matched_spatial_keyword"] == "left"
+
+
+def test_describe_question_classification_relational_non_spatial_case():
+    rows = [_relation_row("r1", "holding,o")]
+    detail = describe_question_classification(rows, "r1")
+
+    assert detail["classification"] == "relational_non_spatial"
+    assert detail["matched_spatial_keyword"] is None
+    assert detail["is_relation_type_question"] is True
+
+
+def test_describe_question_classification_neither_case():
+    rows = [_non_relation_row("a1", semantic_type="attr")]
+    detail = describe_question_classification(rows, "a1")
+
+    assert detail["classification"] == "neither"
+    assert detail["is_relation_type_question"] is False
+    assert detail["matched_spatial_keyword"] is None
+
+
+def test_describe_question_classification_not_found():
+    rows = [_relation_row("s1", "left,s")]
+    detail = describe_question_classification(rows, "does-not-exist")
+    assert detail == {"question_id": "does-not-exist", "found": False}
+
+
+def test_describe_question_classification_exposes_question_and_semantic_str():
+    row = _relation_row("s1", "above,s")
+    row["question"] = "Who is above the table?"
+    row["semanticStr"] = "relate(above,s)"
+    detail = describe_question_classification([row], "s1")
+    assert detail["question"] == "Who is above the table?"
+    assert detail["semantic_str"] == "relate(above,s)"
+    assert detail["semantic_program"] == row["semantic"]
 
 
 def test_persist_and_load_filter_ids_round_trip(tmp_path):
