@@ -183,7 +183,7 @@ def test_missing_filter_artifact_gives_actionable_error(monkeypatch, tmp_path):
 def test_explicit_filter_ids_path_overrides_default(tmp_path):
     from neural_thickets_repro.benchmarks.adapters.gqa_raw_schema import persist_filter_ids
     custom_path = tmp_path / "custom_spatial.json"
-    persist_filter_ids({"1", "2"}, set(), {}, custom_path, tmp_path / "unused_relational.json", tmp_path / "unused_stats.json")
+    persist_filter_ids({"1", "2"}, set(), set(), {}, custom_path, tmp_path / "unused_relational.json", tmp_path / "unused_mixed.json", tmp_path / "unused_stats.json")
 
     bench = GQASpatialReasoningBenchmark(filter_ids_path=custom_path)
     assert bench._resolve_question_ids() == {"1", "2"}

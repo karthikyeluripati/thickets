@@ -26,12 +26,14 @@ Usage:
     python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml --inspect-only
     python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml --audit-question-ids 201640614,201902997
 
-`--audit-question-ids` (added this repair pass, for the GQA capability taxonomy audit): prints
-the full real raw record + classification decision for each given question ID (see
-gqa_raw_schema.describe_question_classification()) and exits WITHOUT persisting or even
-building the aggregate spatial/relational filters -- a pure read-only diagnostic, used to
-verify real semantic-program values (e.g. whether "around"/"on" actually appear as spatial
-relation arguments) before trusting or regenerating the persisted filter ID files.
+`--audit-question-ids`: prints the full real raw record -- question, types.semantic/
+structural, the raw `semantic` program, `semanticStr`, every extracted predicate with its
+individual spatial/non-spatial classification, and the overall question classification
+("spatial"/"relational"/"mixed"/"no_extractable_predicate"/"neither") -- for each given
+question ID (see gqa_raw_schema.describe_question_classification()), and exits WITHOUT
+persisting or even building the aggregate filters. A pure read-only diagnostic, used to
+verify real semantic-program predicate values before trusting or regenerating the persisted
+filter ID files.
 """
 from __future__ import annotations
 
@@ -116,9 +118,16 @@ def main(argv=None) -> int:
         )
         return 1
 
-    print("\n=== Step 2: building spatial/relational filters ===")
-    spatial_ids, relational_ids, stats = build_spatial_relational_filters(raw_rows)
+    print("\n=== Step 2: building the high-purity spatial/relational/mixed partition ===")
+    spatial_ids, relational_ids, mixed_ids, stats = build_spatial_relational_filters(raw_rows)
     print(json.dumps(stats, indent=2))
+    if not stats["sum_check_ok"]:
+        print(
+            "\nWARNING: sum_check_ok is False -- n_not_relation_type + n_pure_spatial + "
+            "n_pure_relational + n_mixed_excluded + n_no_extractable_predicate does not equal "
+            "n_total_rows. Investigate before trusting this run's counts.",
+            file=sys.stderr,
+        )
 
     if args.inspect_only:
         print("\n--inspect-only: not persisting any filter files.")
@@ -127,12 +136,14 @@ def main(argv=None) -> int:
     output_dir = Path(args.output_dir)
     spatial_path = output_dir / "gqa_spatial_ids.json"
     relational_path = output_dir / "gqa_relational_ids.json"
+    mixed_path = output_dir / "gqa_mixed_ids.json"
     stats_path = output_dir / "gqa_spatial_relational_stats.json"
 
-    persist_filter_ids(spatial_ids, relational_ids, stats, spatial_path, relational_path, stats_path)
+    persist_filter_ids(spatial_ids, relational_ids, mixed_ids, stats, spatial_path, relational_path, mixed_path, stats_path)
 
     print(f"\nWrote {spatial_path} ({len(spatial_ids)} IDs)")
     print(f"Wrote {relational_path} ({len(relational_ids)} IDs)")
+    print(f"Wrote {mixed_path} ({len(mixed_ids)} IDs -- excluded from both capabilities, persisted for auditability)")
     print(f"Wrote {stats_path}")
     return 0
 

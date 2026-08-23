@@ -9,6 +9,7 @@ from neural_thickets_repro.benchmarks.box_iou import (
     accuracy_at_iou,
     box_iou,
     canonicalize_prediction_box,
+    clip_box_to_image,
     denormalize_xyxy,
     detect_coordinate_mode,
     mean_iou,
@@ -177,6 +178,55 @@ def test_real_example_3_pixel_prediction_scores_high_iou_once_canonicalized():
     assert mode == COORD_MODE_PIXEL
     iou = box_iou(canonical, gt_pixel_xyxy)
     assert iou == pytest.approx(0.97, abs=0.02)
+
+
+# ---------------------------------------------------------------------------------------
+# clip_box_to_image / the explicit pixel-space output contract + tolerance (this repair pass)
+# ---------------------------------------------------------------------------------------
+
+def test_clip_box_to_image_clips_each_coordinate_independently():
+    clipped = clip_box_to_image((-5, -3, 510, 400), image_width=500, image_height=375)
+    assert clipped == (0, 0, 500, 375)
+
+
+def test_clip_box_to_image_leaves_an_in_bounds_box_unchanged():
+    box = (10, 20, 100, 200)
+    assert clip_box_to_image(box, image_width=500, image_height=375) == box
+
+
+def test_real_final_example_pixel_prediction_slightly_overshooting_the_edge():
+    """The real remaining N=5 grounding failure this pass fixes: example_id=471277, a
+    500x375 image. Qwen's raw pixel prediction [386,0,504,364] overshoots the image width by
+    only 4px -- the OLD tolerance (2px) misclassified this as qwen_normalized_0_1000,
+    converting it to a tiny box near the top-left corner and scoring IoU=0. Must now be
+    recognized as pixel_xyxy, clipped to [386,0,500,364], and score a high IoU.
+    """
+    image_width, image_height = 500, 375
+    gt_xywh = (384.2300, 0.0, 115.7700, 375.0)
+    gt_pixel_xyxy = xywh_to_xyxy(gt_xywh)
+    qwen_prediction = (386, 0, 504, 364)
+
+    canonical, mode = canonicalize_prediction_box(qwen_prediction, image_width, image_height)
+
+    assert mode == COORD_MODE_PIXEL  # must NEVER become qwen_normalized_0_1000 again
+    assert canonical == pytest.approx((386, 0, 500, 364))  # clipped at x2
+    iou = box_iou(canonical, gt_pixel_xyxy)
+    assert iou > 0.9
+
+
+def test_canonicalize_prediction_box_clips_a_normalized_box_slightly_past_one():
+    canonical, mode = canonicalize_prediction_box((0.0, 0.0, 1.02, 0.5), image_width=100, image_height=100)
+    assert mode == COORD_MODE_NORMALIZED_0_1
+    assert canonical == pytest.approx((0.0, 0.0, 100.0, 50.0))  # 102 clipped down to 100
+
+
+def test_pixel_tolerance_does_not_swallow_a_genuinely_too_large_box_on_a_small_image():
+    """A guard against over-correcting: a box that is genuinely far outside a SMALL image's
+    bounds (not just a few px past the edge) must still be classified as something other than
+    pixel_xyxy -- the generous tolerance must not make every large image-space number look
+    like "pixel space".
+    """
+    assert detect_coordinate_mode((500, 100, 800, 150), image_width=300, image_height=200) != COORD_MODE_PIXEL
 
 
 def test_the_old_broken_behavior_would_have_scored_near_zero():

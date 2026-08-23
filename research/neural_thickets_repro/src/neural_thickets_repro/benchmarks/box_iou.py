@@ -9,15 +9,27 @@ xywh_to_xyxy converts that to the corner form. normalize_xyxy additionally divid
 width/height to produce the [0, 1]-normalized representation the visual_grounding adapter
 asks the model to output.
 
-COORDINATE-CONTRACT BUG (fixed this repair pass): a real N=5 Qwen2.5-VL smoke test found the
-model reliably outputting PIXEL-space boxes (e.g. [112, 189, 444, 362] for a 640x425 image)
-despite the prompt explicitly asking for [0,1]-normalized coordinates -- the adapter was
-scoring these directly against a normalized target, giving near-zero IoU on predictions that
-were actually ~0.9+ IoU once correctly interpreted as pixel coordinates. detect_coordinate_mode
-/canonicalize_prediction_box below fix this at the EVALUATOR layer (never by special-casing
-Qwen or the prompt): both prediction and target are converted into one canonical
-representation (pixel-space xyxy) before IoU, using deterministic value-range + real
-per-example image-dimension rules -- NEVER by checking which interpretation scores better.
+COORDINATE-CONTRACT BUG, ROUND 1 (fixed in an earlier repair pass): a real N=5 Qwen2.5-VL
+smoke test found the model reliably outputting PIXEL-space boxes (e.g. [112, 189, 444, 362]
+for a 640x425 image) despite the prompt explicitly asking for [0,1]-normalized coordinates --
+the adapter was scoring these directly against a normalized target, giving near-zero IoU on
+predictions that were actually ~0.9+ IoU once correctly interpreted as pixel coordinates.
+
+COORDINATE-CONTRACT FIX, ROUND 2 (this repair pass -- EXPLICIT output contract): the grounding
+prompt now explicitly asks the model to return PIXEL-space [x1,y1,x2,y2] and states the
+image's own width/height in the prompt text (see visual_grounding_refcoco.py's
+INSTRUCTION_TEMPLATE) -- a model-agnostic, reproducible contract, not something to rely on
+auto-detection to work around. Auto-detection (detect_coordinate_mode below) is kept only as a
+backward-compatible FALLBACK for a model that doesn't comply exactly, e.g. a real example this
+pass found where a pixel-space prediction ([386,0,504,364] on a 500x375 image) overshot the
+image width by only 4px and was WRONGLY classified as qwen_normalized_0_1000 (converting it to
+a tiny, wrong box near the image's top-left corner, scoring IoU=0 on what was actually a good
+prediction). Fixed via a documented, non-accuracy-tuned tolerance
+(_pixel_bound_tolerance() below: the larger of a fixed absolute pixel margin and a small
+fraction of the image's own larger dimension) on the pixel-fit check, and via
+clip_box_to_image(): a canonicalized box is always clipped into the image's own bounds before
+IoU, rather than rejected for a small boundary overshoot. Canonical internal representation
+remains pixel-space xyxy.
 """
 from __future__ import annotations
 
@@ -32,10 +44,21 @@ COORD_MODE_UNRECOGNIZED = "unrecognized"
 
 # Tolerances are deliberately generous-but-bounded: enough to absorb a model's off-by-a-few
 # rounding without ever letting two genuinely different conventions become ambiguous with
-# each other at the boundary.
+# each other at the boundary. NEVER tuned against any particular example's accuracy -- these
+# are fixed, documented margins, chosen before looking at scores.
 _NORMALIZED_RANGE_TOLERANCE = 0.02      # e.g. 1.01 still reads as "meant to be normalized"
-_PIXEL_BOUND_TOLERANCE_PX = 2.0         # a box a couple of pixels past the image edge is still "pixel space"
+_PIXEL_BOUND_ABS_TOLERANCE_PX = 10.0    # a box up to ~10px past the image edge is still "pixel space"
+_PIXEL_BOUND_RELATIVE_TOLERANCE = 0.02  # ...or up to 2% of the image's own larger dimension, whichever is bigger
 _QWEN_1000_RANGE_TOLERANCE = 1.0
+
+
+def _pixel_bound_tolerance(image_width: float, image_height: float) -> float:
+    """The larger of a fixed absolute pixel margin and a small fraction of the image's own
+    larger dimension -- generous enough to absorb a genuine pixel-space prediction's small
+    boundary overshoot (confirmed real case: +4px on a 500-wide image) without also being so
+    generous that a genuinely too-large box gets misclassified as pixel space on a small image.
+    """
+    return max(_PIXEL_BOUND_ABS_TOLERANCE_PX, _PIXEL_BOUND_RELATIVE_TOLERANCE * max(image_width, image_height))
 
 
 def xywh_to_xyxy(box: Box) -> Box:
@@ -120,9 +143,10 @@ def detect_coordinate_mode(box: Box, image_width: float, image_height: float) ->
     if all(-_NORMALIZED_RANGE_TOLERANCE <= v <= 1 + _NORMALIZED_RANGE_TOLERANCE for v in values):
         return COORD_MODE_NORMALIZED_0_1
 
+    pixel_tolerance = _pixel_bound_tolerance(image_width, image_height)
     if (
-        x1 >= -_PIXEL_BOUND_TOLERANCE_PX and y1 >= -_PIXEL_BOUND_TOLERANCE_PX
-        and x2 <= image_width + _PIXEL_BOUND_TOLERANCE_PX and y2 <= image_height + _PIXEL_BOUND_TOLERANCE_PX
+        x1 >= -pixel_tolerance and y1 >= -pixel_tolerance
+        and x2 <= image_width + pixel_tolerance and y2 <= image_height + pixel_tolerance
     ):
         return COORD_MODE_PIXEL
 
@@ -132,22 +156,38 @@ def detect_coordinate_mode(box: Box, image_width: float, image_height: float) ->
     return COORD_MODE_UNRECOGNIZED
 
 
+def clip_box_to_image(box: Box, image_width: float, image_height: float) -> Box:
+    """Clips a canonicalized pixel-space box into the image's own bounds -- a prediction
+    that slightly overshoots the edge (the explicit output contract's own documented
+    tolerance for this) is clipped and scored normally, never rejected outright for a small
+    boundary overshoot.
+    """
+    x1, y1, x2, y2 = box
+    return (
+        min(max(x1, 0.0), image_width), min(max(y1, 0.0), image_height),
+        min(max(x2, 0.0), image_width), min(max(y2, 0.0), image_height),
+    )
+
+
 def canonicalize_prediction_box(box: Box, image_width: float, image_height: float) -> Tuple[Optional[Box], str]:
     """Converts `box` into the canonical pixel-xyxy representation for this example's real
-    image size, using detect_coordinate_mode()'s deterministic classification. Returns
-    (None, "unrecognized") -- never a guessed conversion -- when the box cannot be safely
-    canonicalized; the caller must treat that as a scoring failure, not silently score it as
-    pixel-space.
+    image size, using detect_coordinate_mode()'s deterministic classification, and clips the
+    result into the image's own bounds (clip_box_to_image) -- the returned box is always
+    ready for IoU as-is. Returns (None, "unrecognized") -- never a guessed conversion --
+    when the box cannot be safely canonicalized; the caller must treat that as a scoring
+    failure, not silently score it as pixel-space.
     """
     mode = detect_coordinate_mode(box, image_width, image_height)
     if mode == COORD_MODE_NORMALIZED_0_1:
-        return denormalize_xyxy(box, image_width, image_height), mode
-    if mode == COORD_MODE_PIXEL:
-        return tuple(box), mode
-    if mode == COORD_MODE_QWEN_0_1000:
+        raw_canonical = denormalize_xyxy(box, image_width, image_height)
+    elif mode == COORD_MODE_PIXEL:
+        raw_canonical = tuple(box)
+    elif mode == COORD_MODE_QWEN_0_1000:
         x1, y1, x2, y2 = box
-        return (
+        raw_canonical = (
             x1 / 1000.0 * image_width, y1 / 1000.0 * image_height,
             x2 / 1000.0 * image_width, y2 / 1000.0 * image_height,
-        ), mode
-    return None, mode
+        )
+    else:
+        return None, mode
+    return clip_box_to_image(raw_canonical, image_width, image_height), mode

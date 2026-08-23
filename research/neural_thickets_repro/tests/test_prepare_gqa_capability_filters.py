@@ -32,23 +32,26 @@ class _FakeHFDataset:
         return _FakeHFDataset([self._rows[i] for i in indices])
 
 
-def _relation_row(qid, argument):
+def _relation_row(qid, argument, operation="relate"):
+    """`argument` uses the REAL confirmed 3-field shape:
+    "<object_or_placeholder>,<predicate>,<flag>", e.g. "chair,to the left of,s".
+    """
     return {
         "id": qid,
         "types": {"semantic": "rel", "structural": "query"},
-        "semantic": [{"operation": "relate", "argument": argument}],
+        "semantic": [{"operation": operation, "argument": argument}],
     }
 
 
 def test_load_raw_testdev_rows_returns_all_rows(monkeypatch):
-    rows = [_relation_row("1", "left,s"), _relation_row("2", "holding,o")]
+    rows = [_relation_row("1", "chair,left,s"), _relation_row("2", "person,holding,o")]
     _install_fake_datasets_module(monkeypatch, rows)
     result = m.load_raw_testdev_rows()
     assert len(result) == 2
 
 
 def test_load_raw_testdev_rows_respects_sample_size(monkeypatch):
-    rows = [_relation_row(str(i), "left,s") for i in range(10)]
+    rows = [_relation_row(str(i), "chair,left,s") for i in range(10)]
     _install_fake_datasets_module(monkeypatch, rows)
     result = m.load_raw_testdev_rows(sample_size=3)
     assert len(result) == 3
@@ -56,8 +59,8 @@ def test_load_raw_testdev_rows_respects_sample_size(monkeypatch):
 
 def test_main_writes_filter_files_and_prints_counts(monkeypatch, tmp_path, capsys):
     rows = [
-        _relation_row("s1", "to the left of,s"),
-        _relation_row("r1", "holding,o"),
+        _relation_row("s1", "drapes,to the left of,s"),
+        _relation_row("r1", "person,holding,o"),
         {"id": "a1", "types": {"semantic": "attr", "structural": "query"}, "semantic": []},
     ]
     _install_fake_datasets_module(monkeypatch, rows)
@@ -71,18 +74,21 @@ def test_main_writes_filter_files_and_prints_counts(monkeypatch, tmp_path, capsy
     assert rc == 0
     spatial = json.loads((output_dir / "gqa_spatial_ids.json").read_text())
     relational = json.loads((output_dir / "gqa_relational_ids.json").read_text())
+    mixed = json.loads((output_dir / "gqa_mixed_ids.json").read_text())
     stats = json.loads((output_dir / "gqa_spatial_relational_stats.json").read_text())
 
     assert spatial == ["s1"]
     assert relational == ["r1"]
-    assert stats["n_neither"] == 1
+    assert mixed == []
+    assert stats["n_not_relation_type"] == 1
+    assert stats["sum_check_ok"] is True
 
     captured = capsys.readouterr()
-    assert "n_spatial" in captured.out
+    assert "n_pure_spatial" in captured.out
 
 
 def test_main_inspect_only_does_not_persist_files(monkeypatch, tmp_path):
-    rows = [_relation_row("s1", "left,s")]
+    rows = [_relation_row("s1", "chair,left,s")]
     _install_fake_datasets_module(monkeypatch, rows)
 
     config_path = tmp_path / "gqa_repro.yaml"
@@ -97,8 +103,8 @@ def test_main_inspect_only_does_not_persist_files(monkeypatch, tmp_path):
 
 def test_main_audit_question_ids_prints_detail_and_does_not_persist(monkeypatch, tmp_path, capsys):
     rows = [
-        _relation_row("s1", "to the left of,s"),
-        _relation_row("r1", "holding,o"),
+        _relation_row("s1", "drapes,to the left of,s"),
+        _relation_row("r1", "person,holding,o"),
     ]
     _install_fake_datasets_module(monkeypatch, rows)
 
@@ -115,7 +121,7 @@ def test_main_audit_question_ids_prints_detail_and_does_not_persist(monkeypatch,
     assert '"question_id": "s1"' in captured.out
     assert '"classification": "spatial"' in captured.out
     assert '"question_id": "r1"' in captured.out
-    assert '"classification": "relational_non_spatial"' in captured.out
+    assert '"classification": "relational"' in captured.out
     assert '"question_id": "does-not-exist"' in captured.out
     assert '"found": false' in captured.out
 

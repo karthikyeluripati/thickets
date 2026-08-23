@@ -2,66 +2,81 @@
 shared by spatial_reasoning_gqa.py and relational_reasoning_gqa.py.
 
 GQAHandler.load_data()'s own output (question_id, image_path, messages, ground_truth) does
-NOT expose GQA's own question-type metadata (semantic/structural type, relation name) needed
-to build a defensible spatial-vs-relational filter -- that metadata lives only in the RAW GQA
-annotation file, which must be loaded a SECOND time, independently of GQAHandler, purely to
-read it. This module operates on that already-loaded raw row list; it does not itself call
-datasets.load_dataset (that stays in each adapter's own load_examples(), consistent with
-every other adapter's lazy-import convention).
+NOT expose GQA's own question-type metadata (semantic/structural type, relation predicate)
+needed to build a defensible spatial-vs-relational filter -- that metadata lives only in the
+RAW GQA annotation file, which must be loaded a SECOND time, independently of GQAHandler,
+purely to read it. This module operates on that already-loaded raw row list; it does not
+itself call datasets.load_dataset (that stays in each adapter's own load_examples(),
+consistent with every other adapter's lazy-import convention).
 
 FIELD NAMES CONFIRMED (live HF dataset-viewer inspection of `lmms-lab-encoder/GQA`,
-`testdev_balanced_instructions` config, this session -- see CAPABILITY_BENCHMARK_GATE.md):
-the raw rows DO carry `types` (nested `structural`/`semantic`/`detailed`), `semantic` (a list
-of reasoning-program operation steps), `semanticStr`, `groups`, `isBalanced`, `entailed`,
-`equivalent` -- i.e. `prepare_gqa_data.py`'s parquet (`id`/`imageId`/`question`/`answer`/
-`fullAnswer` only) is a deliberately NARROWED projection of these same rows for GQAHandler's
-own needs, not evidence the richer fields don't exist upstream. `types.semantic`'s actual
-value for relational questions is **`"rel"`, not `"relation"`** (corrected from the initial
-public-documentation-based guess after this live check) -- GQA's semantic categories are
+`testdev_balanced_instructions` config): the raw rows carry `types` (nested
+`structural`/`semantic`/`detailed`), `semantic` (a list of reasoning-program operation
+steps), `semanticStr`, `groups`, `isBalanced`, `entailed`, `equivalent` -- i.e.
+`prepare_gqa_data.py`'s parquet (`id`/`imageId`/`question`/`answer`/`fullAnswer` only) is a
+deliberately NARROWED projection of these same rows for GQAHandler's own needs, not evidence
+the richer fields don't exist upstream. `types.semantic`'s value for relational questions is
+`"rel"`, not `"relation"` -- GQA's semantic categories are
 `{"object", "attr", "cat", "global", "rel"}`.
 
-STILL UNRESOLVED, pod-side investigation required (`inspect_raw_schema()` below, or the
-`prepare_gqa_capability_filters.py` CLI's own printed report) before trusting the filter for
-real: the EXACT shape/argument-encoding of `semantic`'s "relate" operation steps
-(`_extract_relation_name`) was not independently confirmed at the individual-value level
-(only the field names and semantic-category value set were) -- run
-`prepare_gqa_capability_filters.py --config configs/gqa_repro.yaml` on the pod and inspect
-its printed counts before treating the resulting ID files as final.
+HIGH-PURITY PARTITION (this repair pass, FINAL definition, superseding the previous
+substring/single-predicate-based version): a REAL full predicate inventory over GQA
+testdev-balanced (12578 rows; 7270 not relation-type; 5308 relation-type = 2862 pure
+spatial + 2028 pure non-spatial relational + 418 mixed + 0 with no extractable predicate)
+was used to freeze this EXPLICIT, EXPERIMENTAL high-purity capability partition -- it is NOT
+claimed to be an official GQA taxonomy:
 
-SCIENTIFIC NOTE on spatial vs. relational (per explicit instruction -- do not pretend these
-are naturally disjoint): GQA's own "relation" semantic-type category is a single category
-that NATURALLY CONTAINS both spatial relations (left/right/above/etc.) and non-spatial
-relations (holding/wearing/riding/etc.) -- spatial is a SUB-FILTER of it, not a separate
-GQA-provided category. build_spatial_relational_filters() reports this natural containment
-explicitly (spatial ⊆ natural-relational, so their natural intersection ratio is 1.0 relative
-to spatial, by GQA's own structure) and ALSO reports the final, disjoint sets actually used by
-the two adapters -- which are disjoint only because of an explicit experimental choice
-(relational_reasoning = natural-relational MINUS spatial, so the two capability benchmarks
-measure distinct skills), not because GQA itself hands us two separate categories.
+  - SPATIAL: every extracted relation predicate in the question is in
+    SPATIAL_PREDICATE_WHITELIST below, via EXACT normalized-string matching -- NEVER
+    substring matching (e.g. the compound predicate "flying above" is NOT spatial just
+    because "above" is a substring/suffix of it -- see the ACTION-MODIFIED RELATIONS note).
+  - RELATIONAL (non-spatial): none of the question's extracted predicates is in the
+    whitelist.
+  - MIXED: the question has at least one whitelisted AND at least one non-whitelisted
+    predicate (e.g. "person to the right of cup wearing jeans") -- EXCLUDED from both
+    benchmark capabilities (never assigned to either), but its ID is still persisted
+    (gqa_mixed_ids.json) for auditability, not silently dropped.
+  - NO_EXTRACTABLE_PREDICATE: a relation-type row whose semantic program yields zero
+    predicates the extractor can parse -- real inventory found zero of these; the bucket
+    exists so a nonzero count on a different data snapshot is visible, not silently ignored.
 
-WORD-BOUNDARY MATCHING FIX (this repair pass): a manual N=5 audit flagged possible semantic
-leakage between the two capability sets and asked for real-record verification (see
-describe_question_classification() below and CAPABILITY_BENCHMARK_GATE.md's audit section) --
-that audit surfaced a real, SCHEMA-INDEPENDENT bug in `is_spatial_relation` that is fixed here
-regardless of what the real relation-argument values turn out to be: the previous
-implementation used bare substring matching (`keyword in lowered`), which could silently
-false-positive on a keyword like "on" appearing inside an unrelated word (e.g. "person",
-"along", "onion") rather than as its own token. `is_spatial_relation`/`_spatial_match_detail`
-now match each keyword with `\b`-bounded regex, requiring an actual token boundary on both
-sides. The SPATIAL_RELATION_KEYWORDS list itself, and the actual persisted filter ID files
-under artifacts/benchmark_subsets/, are UNCHANGED in this commit -- per explicit instruction,
-those are only to be regenerated after the real relation-argument values are inspected on the
-pod via describe_question_classification() / `--audit-question-ids`, not fabricated here.
+ACTION-MODIFIED RELATIONS ARE NOT PROMOTED TO SPATIAL (explicit high-purity decision, not an
+oversight): predicates like "sitting on", "standing on", "flying above", "riding on", "walking
+on", "resting on", "mounted on" conflate an action/pose/interaction with a spatial relation.
+Promoting them to spatial by matching a spatial WORD inside them (e.g. treating "flying above"
+as spatial because it contains "above") would blur the very distinction this partition exists
+to draw. They are classified NON-SPATIAL unless the exact compound string is itself
+explicitly added to SPATIAL_PREDICATE_WHITELIST -- which it is not, by design, in this pass.
+
+RELATION OPERATION FORMS (all three must be inspected, not just "relate" -- a real inventory
+found `relate`: 6201, `verify rel`: 769, `choose rel`: 211 occurrences): the argument string
+for all three follows the same `<object_or_placeholder>,<predicate>,<flag>` shape (commas
+separate exactly 3 fields; a `verify rel` argument's flag field may carry a trailing
+`" (12)"`/`" (-)"` annotation, which is simply part of the ignored 3rd field). Examples
+(all real, confirmed): `relate` "device,on top of,s" -> predicate "on top of"; `verify rel`
+"platter,on,o (-)" -> predicate "on"; `verify rel` "wetsuit,wearing,o (12)" -> predicate
+"wearing"; `choose rel` alternatives are pipe-separated within the same middle field (e.g.
+"to the left of|to the right of") and classified spatial only if ALL alternatives are
+individually whitelisted. `_extract_predicates_from_row()` inspects every step whose
+`operation` is exactly one of these three names (RELATION_OPERATION_NAMES, exact match, not
+`"relate" in operation` -- the old check silently never matched `verify rel`/`choose rel` at
+all, since "relate" is not a substring of "verify rel").
+
+CANNOT INDEPENDENTLY VERIFY THE AGGREGATE 2862/2028/418 COUNTS FROM THIS ENVIRONMENT: this
+module implements the rule exactly as specified and is tested against the individually-audited
+real question IDs given in the task (including the "flying above" non-spatial case, verified
+NOT to match the whitelist under exact matching). If a fresh real-data run of
+`prepare_gqa_capability_filters.py` produces different aggregate counts than 2862/2028/418,
+that discrepancy must be investigated and explained (e.g. a difference in the original
+inventory script's own normalization), never silently forced to match by adjusting the rule.
 """
 from __future__ import annotations
 
 import json
-import re
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
+from typing import Any, Dict, List, Sequence, Set, Tuple
 
-# --- Field NAMES confirmed live this session (see module docstring); the exact "relate"
-# argument shape is still pod-side-unconfirmed. ---
+# --- Field NAMES confirmed live this session ---
 SEMANTIC_TYPE_FIELD = "types.semantic"
 STRUCTURAL_TYPE_FIELD = "types.structural"
 RELATION_SEMANTIC_VALUE = "rel"  # CORRECTED from an initial "relation" guess -- confirmed via live HF viewer inspection
@@ -75,20 +90,22 @@ RELATION_SEMANTIC_VALUE = "rel"  # CORRECTED from an initial "relation" guess --
 # key names, only their values are expected to match.
 RAW_QUESTION_ID_FIELD = "id"
 
-# Closed, explicit, documented spatial-relation keyword list -- classifies a "relation"-type
-# question as spatial iff its extracted relation name contains one of these. Not "every
-# relation," and not silently expanded later without updating this list and this docstring.
-SPATIAL_RELATION_KEYWORDS = (
-    "left", "right", "above", "below", "behind", "front", "near", "next to", "on", "under",
-    "underneath", "inside", "outside", "between", "beside", "atop", "over", "top of", "bottom of",
-)
+# The three GQA semantic-program operation names that carry a relation predicate -- EXACT
+# match against this set (never `"relate" in operation`, which silently never matches
+# "verify rel"/"choose rel" -- see module docstring's RELATION OPERATION FORMS section).
+RELATION_OPERATION_NAMES: frozenset = frozenset({"relate", "verify rel", "choose rel"})
 
-# \b-bounded so a keyword must appear as its own token (or the first/last word of a multi-word
-# phrase like "next to"), never as a bare substring of an unrelated word -- see this module's
-# "WORD-BOUNDARY MATCHING FIX" docstring note (e.g. "on" must not match inside "person").
-_SPATIAL_KEYWORD_PATTERNS: Tuple[Tuple[str, "re.Pattern[str]"], ...] = tuple(
-    (keyword, re.compile(r"\b" + re.escape(keyword) + r"\b")) for keyword in SPATIAL_RELATION_KEYWORDS
-)
+# FROZEN, real-data-audited spatial predicate whitelist (this repair pass) -- EXACT
+# normalized-string matching only, never substring. Not "every possible spatial-sounding
+# word" -- deliberately excludes action-modified compounds like "sitting on"/"flying above"
+# (see module docstring's ACTION-MODIFIED RELATIONS note). Expanding this list is a real
+# scientific decision requiring a documented reason, not a casual edit.
+SPATIAL_PREDICATE_WHITELIST: frozenset = frozenset({
+    "in front of", "to the right of", "to the left of", "on", "behind", "on top of", "near",
+    "above", "below", "next to", "inside", "in", "underneath", "under", "beside", "beneath",
+    "around", "surrounding", "surrounded by", "in between", "over", "across from",
+    "on the edge of", "on the front of", "on the bottom of", "touching", "higher than",
+})
 
 
 class GQASchemaError(RuntimeError):
@@ -128,109 +145,142 @@ def inspect_raw_schema(raw_rows: Sequence[Dict[str, Any]], sample_size: int = 5)
     }
 
 
-def _extract_relation_name(row: Dict[str, Any]) -> "str | None":
-    """Extracts the specific relation name (e.g. "to the left of", "holding") from the
-    question's semantic reasoning program's "relate" operation step. Exact field/shape TBD
-    against real data (see module docstring) -- this reads the publicly documented shape (a
-    list of {"operation": ..., "argument": ...} steps under "semantic").
+def _normalize_predicate(predicate: str) -> str:
+    """Minimal, deterministic normalization -- lowercase + strip whitespace only. No
+    stemming, no punctuation stripping, no substring reduction: EXACT matching against
+    SPATIAL_PREDICATE_WHITELIST depends on this staying minimal (see module docstring).
+    """
+    return predicate.strip().lower()
+
+
+def _extract_predicates_from_row(row: Dict[str, Any]) -> List[str]:
+    """Returns every relation predicate string found in the row's semantic program, across
+    ALL relation-bearing operation steps (relate/verify rel/choose rel) -- a question can
+    have more than one (e.g. "person to the right of cup wearing jeans" has two). A step
+    whose argument doesn't parse into the expected 3-field
+    `<object_or_placeholder>,<predicate>,<flag>` shape is skipped, not guessed at. A
+    `choose rel` predicate field may itself contain pipe-separated alternatives (e.g.
+    "to the left of|to the right of") -- returned here as a single un-split string; splitting
+    into alternatives is _is_spatial_predicate()'s job, so this function's output always
+    means "one semantic-program relation step", not "one predicate word".
     """
     program = row.get("semantic") or row.get("semantic_program") or []
+    predicates: List[str] = []
     for step in program:
         if not isinstance(step, dict):
             continue
-        if "relate" in str(step.get("operation", "")):
-            argument = step.get("argument")
-            return str(argument) if argument else None
-    return None
+        if step.get("operation") not in RELATION_OPERATION_NAMES:
+            continue
+        argument = step.get("argument")
+        if not argument:
+            continue
+        parts = str(argument).split(",")
+        if len(parts) < 3:
+            continue  # malformed/unexpected shape -- not guessed at
+        predicate = parts[1].strip()
+        if predicate:
+            predicates.append(predicate)
+    return predicates
 
 
-def _spatial_match_detail(relation_name: "str | None") -> Tuple[bool, Optional[str]]:
-    """Returns (is_spatial, matched_keyword) -- the keyword is exposed separately so
-    describe_question_classification() can report the exact reason/rule behind a decision,
-    not just the boolean outcome.
+def _is_spatial_predicate(predicate: str) -> bool:
+    """EXACT normalized matching only -- never substring (see module docstring). A
+    `choose rel` multi-choice predicate (pipe-separated alternatives, e.g. "to the left
+    of|to the right of") is spatial iff ALL alternatives are individually whitelisted.
     """
-    if not relation_name:
-        return False, None
-    lowered = relation_name.lower()
-    for keyword, pattern in _SPATIAL_KEYWORD_PATTERNS:
-        if pattern.search(lowered):
-            return True, keyword
-    return False, None
+    alternatives = [_normalize_predicate(p) for p in predicate.split("|")]
+    return bool(alternatives) and all(alt in SPATIAL_PREDICATE_WHITELIST for alt in alternatives)
 
 
-def is_spatial_relation(relation_name: "str | None") -> bool:
-    matched, _ = _spatial_match_detail(relation_name)
-    return matched
+def classify_relation_question_predicates(row: Dict[str, Any]) -> str:
+    """Returns one of "spatial" / "relational" / "mixed" / "no_extractable_predicate" for a
+    single relation-type ("rel") row, based on EVERY extracted predicate (not just the
+    first) -- see module docstring's HIGH-PURITY PARTITION section for the exact rule.
+    """
+    predicates = _extract_predicates_from_row(row)
+    if not predicates:
+        return "no_extractable_predicate"
+    flags = [_is_spatial_predicate(p) for p in predicates]
+    if all(flags):
+        return "spatial"
+    if not any(flags):
+        return "relational"
+    return "mixed"
 
 
 def build_spatial_relational_filters(
     raw_rows: Sequence[Dict[str, Any]], question_id_field: str = RAW_QUESTION_ID_FIELD,
-) -> Tuple[Set[str], Set[str], Dict[str, Any]]:
-    """Returns (spatial_ids, experimental_relational_ids, stats). See module docstring's
-    SCIENTIFIC NOTE: stats reports BOTH the natural containment (spatial is a subset of GQA's
-    own "rel" category) and the final experimental exclusion, so the disjointness of the two
-    returned ID sets is never mistaken for something GQA itself provides. Also reports the
-    literal spatial/relational/intersection/neither breakdown against the FULL row set (not
-    just relation-type rows), so "neither" (attr/cat/global/object questions) is visible too.
+) -> Tuple[Set[str], Set[str], Set[str], Dict[str, Any]]:
+    """Returns (spatial_ids, relational_ids, mixed_ids, stats) -- the FINAL high-purity
+    partition (see module docstring). spatial_ids and relational_ids are disjoint BY
+    CONSTRUCTION (classify_relation_question_predicates() assigns each relation-type question
+    to exactly one of "spatial"/"relational"/"mixed"/"no_extractable_predicate", never more
+    than one bucket) -- never merely by set subtraction. mixed_ids is real, non-empty in
+    practice, and persisted for auditability, not silently discarded.
     """
-    natural_relational_ids: Set[str] = set()
     spatial_ids: Set[str] = set()
+    relational_ids: Set[str] = set()
+    mixed_ids: Set[str] = set()
+    n_no_extractable_predicate = 0
+    n_not_relation_type = 0
 
     for row in raw_rows:
         if _get_nested(row, SEMANTIC_TYPE_FIELD) != RELATION_SEMANTIC_VALUE:
+            n_not_relation_type += 1
             continue
         qid = str(row[question_id_field])
-        natural_relational_ids.add(qid)
-        if is_spatial_relation(_extract_relation_name(row)):
+        classification = classify_relation_question_predicates(row)
+        if classification == "spatial":
             spatial_ids.add(qid)
-
-    experimental_relational_ids = natural_relational_ids - spatial_ids
-    natural_intersection = spatial_ids & natural_relational_ids
-    experimental_intersection = spatial_ids & experimental_relational_ids
+        elif classification == "relational":
+            relational_ids.add(qid)
+        elif classification == "mixed":
+            mixed_ids.add(qid)
+        else:
+            n_no_extractable_predicate += 1
 
     n_total_rows = len(raw_rows)
-    n_neither = n_total_rows - len(natural_relational_ids)  # not a "rel"-type question at all (attr/cat/global/object)
+    n_relation_type_rows = n_total_rows - n_not_relation_type
 
     stats = {
         "n_total_rows": n_total_rows,
-        "n_spatial": len(spatial_ids),
-        "n_relational": len(experimental_relational_ids),
-        "n_intersection": len(experimental_intersection),  # spatial vs. the FINAL relational set -- 0 by explicit construction
-        "n_spatial_only": len(spatial_ids - experimental_relational_ids),
-        "n_relational_only": len(experimental_relational_ids - spatial_ids),
-        "n_neither": n_neither,
-        "n_natural_relational_category": len(natural_relational_ids),
-        "n_natural_intersection": len(natural_intersection),  # spatial vs. GQA's OWN "rel" category -- equals n_spatial, by GQA's real structure
-        "natural_intersection_over_spatial": (len(natural_intersection) / len(spatial_ids)) if spatial_ids else 0.0,
-        "natural_relational_note": (
-            "GQA's own 'rel' semantic-type category naturally CONTAINS the spatial "
-            "subset (every spatial question IS a relation-type question) -- this is GQA's "
-            "actual category structure, not an artifact of this filter. n_intersection above "
-            "(0 by construction) describes the two DISJOINT capability sets actually used; "
-            "n_natural_intersection (== n_spatial) describes GQA's real, non-disjoint structure."
+        "n_not_relation_type": n_not_relation_type,
+        "n_relation_type_rows": n_relation_type_rows,
+        "n_pure_spatial": len(spatial_ids),
+        "n_pure_relational": len(relational_ids),
+        "n_mixed_excluded": len(mixed_ids),
+        "n_no_extractable_predicate": n_no_extractable_predicate,
+        "sum_check_ok": (
+            n_not_relation_type + len(spatial_ids) + len(relational_ids) + len(mixed_ids) + n_no_extractable_predicate
+        ) == n_total_rows,
+        "spatial_predicate_whitelist_size": len(SPATIAL_PREDICATE_WHITELIST),
+        "partition_definition_note": (
+            "EXPLICIT high-purity EXPERIMENTAL partition of GQA relation-type questions, NOT "
+            "an official GQA taxonomy: spatial = every extracted predicate exactly matches "
+            "SPATIAL_PREDICATE_WHITELIST; relational = none do; mixed = both -- excluded from "
+            "BOTH benchmark capabilities, not assigned to either. Exact normalized-string "
+            "matching only, never substring matching."
         ),
-        "experimental_relational_definition": (
-            "The relational_reasoning capability benchmark = natural relation-type questions "
-            "EXCLUDING the spatial subset -- an explicit experimental choice made so the two "
-            "capability benchmarks measure distinct skills, not a claim that GQA itself "
-            "provides these as naturally disjoint categories."
+        "action_modified_relation_note": (
+            "Action-modified relations (e.g. 'sitting on', 'flying above', 'riding on') are "
+            "NOT automatically promoted to spatial by matching a spatial word inside them -- "
+            "classified non-spatial unless the exact compound predicate string is itself in "
+            "SPATIAL_PREDICATE_WHITELIST, which it is not by design in this pass."
         ),
     }
-    return spatial_ids, experimental_relational_ids, stats
+    return spatial_ids, relational_ids, mixed_ids, stats
 
 
 def describe_question_classification(
     raw_rows: Sequence[Dict[str, Any]], question_id: Any, question_id_field: str = RAW_QUESTION_ID_FIELD,
 ) -> Dict[str, Any]:
     """CPU-side manual-audit utility (Task: GQA capability taxonomy audit): for ONE question
-    ID, returns the full real raw record plus this module's classification decision and the
-    exact reason for it -- question, types.semantic/types.structural, the raw `semantic`
-    reasoning program, `semanticStr`, the extracted relation name, whether it's classified
-    "spatial"/"relational_non_spatial"/"neither", and which keyword (if any) drove that
-    decision. Never fabricates or guesses a record: {"found": False} if the ID isn't present
-    in `raw_rows`. Used by prepare_gqa_capability_filters.py's `--audit-question-ids` flag so
-    real classification decisions can be verified against real data on the pod, rather than
-    guessed from the English question text alone.
+    ID, returns the full real raw record plus every extracted predicate, each predicate's
+    individual spatial/non-spatial classification, and the overall question classification
+    ("spatial"/"relational"/"mixed"/"no_extractable_predicate"/"neither") -- so a decision can
+    be verified against the real record rather than guessed from the English question text.
+    Never fabricates or guesses a record: {"found": False} if the ID isn't present in
+    `raw_rows`. Used by prepare_gqa_capability_filters.py's `--audit-question-ids` flag.
     """
     qid = str(question_id)
     for row in raw_rows:
@@ -238,14 +288,17 @@ def describe_question_classification(
             continue
         semantic_type = _get_nested(row, SEMANTIC_TYPE_FIELD)
         structural_type = _get_nested(row, STRUCTURAL_TYPE_FIELD)
-        relation_name = _extract_relation_name(row)
         is_relation_type = semantic_type == RELATION_SEMANTIC_VALUE
+
         if is_relation_type:
-            is_spatial, matched_keyword = _spatial_match_detail(relation_name)
-            classification = "spatial" if is_spatial else "relational_non_spatial"
+            predicates = _extract_predicates_from_row(row)
+            predicate_detail = [{"predicate": p, "is_spatial": _is_spatial_predicate(p)} for p in predicates]
+            classification = classify_relation_question_predicates(row)
         else:
-            matched_keyword = None
+            predicates = []
+            predicate_detail = []
             classification = "neither"
+
         return {
             "question_id": qid,
             "found": True,
@@ -254,22 +307,26 @@ def describe_question_classification(
             "types_structural": structural_type,
             "semantic_program": row.get("semantic"),
             "semantic_str": row.get("semanticStr"),
-            "extracted_relation_name": relation_name,
             "is_relation_type_question": is_relation_type,
+            "extracted_predicates": predicates,
+            "predicate_classification_detail": predicate_detail,
             "classification": classification,
-            "matched_spatial_keyword": matched_keyword,
         }
     return {"question_id": qid, "found": False}
 
 
 def persist_filter_ids(
-    spatial_ids: Set[str], relational_ids: Set[str], stats: Dict[str, Any],
-    spatial_path: "str | Path", relational_path: "str | Path", stats_path: "str | Path",
+    spatial_ids: Set[str], relational_ids: Set[str], mixed_ids: Set[str], stats: Dict[str, Any],
+    spatial_path: "str | Path", relational_path: "str | Path", mixed_path: "str | Path", stats_path: "str | Path",
 ) -> None:
-    for path in (spatial_path, relational_path, stats_path):
+    """Persists all four artifacts -- including mixed_ids, for auditability, even though
+    mixed questions are never evaluated by either benchmark capability.
+    """
+    for path in (spatial_path, relational_path, mixed_path, stats_path):
         Path(path).parent.mkdir(parents=True, exist_ok=True)
     Path(spatial_path).write_text(json.dumps(sorted(spatial_ids), indent=2))
     Path(relational_path).write_text(json.dumps(sorted(relational_ids), indent=2))
+    Path(mixed_path).write_text(json.dumps(sorted(mixed_ids), indent=2))
     Path(stats_path).write_text(json.dumps(stats, indent=2))
 
 

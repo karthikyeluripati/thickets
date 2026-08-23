@@ -31,14 +31,14 @@ New abstractions (all in `src/neural_thickets_repro/benchmarks/`): `base.py` (`C
 
 | Capability | Source | Confidence |
 |---|---|---|
-| `visual_grounding` | `lmms-lab-encoder/RefCOCO` | **Schema corrected this repair pass**: `question` is a fixed region-captioning instruction, NOT the referring expression (confirmed via real N=5 Qwen output + live re-inspection this session) — the real referring expression(s) live in `answer` (a list); this adapter uses `answer[0]`. Otherwise as before: val=8.81k/test=5k/testA=1.98k/testB=1.81k, `bbox`[xywh]/`question_id`, ungated. |
+| `visual_grounding` | `lmms-lab-encoder/RefCOCO` | **Referring expression → bbox**, referring expression recovered from `answer[0]` (`question` is a fixed region-captioning instruction, NOT the referring expression — confirmed via real N=5 Qwen output + live re-inspection). **Output contract (finalized this repair pass, round 2)**: explicit pixel-space `[x1,y1,x2,y2]` with the image's own width/height stated in the prompt; predictions clipped into image bounds before IoU; canonical representation is pixel xyxy; primary metric Acc@IoU≥0.5, secondary mean IoU. val=8.81k/test=5k/testA=1.98k/testB=1.81k, `bbox`[xywh]/`question_id`, ungated. |
 | `ocr_text_recognition` | `lmms-lab-encoder/textvqa` | **Confirmed live** this session (train=34.6k/val=5k/test=5.73k, `answers`: list of 10, ungated) |
 | `ocr_text_recognition_grounded` (NEW, this repair pass) | Same source, filtered by `prepare_textvqa_ocr_filter.py` | EXPERIMENTAL, not an official TextVQA category — see "N=5 repair pass" section below, item 4 |
 | `counting` | `HuggingFaceM4/the_cauldron`, config `tallyqa` | **Confirmed live** this session (schema `images:[image]`, `texts:[{"user","assistant","source"}]`, multi-turn per image, ~98.7k rows, single split) |
 | `attribute_recognition` | `AnnaZ1103/visual_genome_revised` (config `attributes`, split `train`) — annotations + per-row image URLs, both from the same source | **Source changed again this repair pass** — both the original `ranjaykrishna/visual_genome` (config `attributes_v1.2.0`) AND a prior `mikewang/vaw` replacement FAIL on `datasets==5.0.1` ("Dataset scripts are no longer supported", each confirmed on a real RunPod in turn). `AnnaZ1103/visual_genome_revised` was directly tested on a real RunPod with `datasets==5.0.1` and confirmed working as script-free Parquet — see "Visual Genome" section below. A community repackaging of VG's own annotations, not the canonical upstream distribution — documented, not claimed otherwise. |
 | `object_recognition` | `ILSVRC/imagenet-1k`, split `validation` | **Confirmed live** this session — dataset exists, splits/schema/`int2str` class-name mapping confirmed; **GATED**, requires an HF token with accepted ImageNet license (user's explicit decision: build for gated access, hard-fail clearly, never substitute) |
 | `fine_grained_recognition` | `bentrevett/caltech-ucsd-birds-200-2011` | Resolved-by-assumption — one of several community mirrors (`randall-lab/cub200`, `galilai-group/cub200`, others also exist), none singularly canonical; adapter reads canonical species names from the mirror's own `features["label"].names` and hard-fails (`CUBSchemaError`) rather than guessing if that's absent |
-| `spatial_reasoning` / `relational_reasoning` | `external/RandOpt/data/gqa/testdev.parquet` via `GQAHandler`, filtered by `gqa_raw_schema.py` + `prepare_gqa_capability_filters.py` | Field NAMES **confirmed live** this session (see next section); the exact "relate" argument-encoding format is still pod-side-unconfirmed |
+| `spatial_reasoning` / `relational_reasoning` | `external/RandOpt/data/gqa/testdev.parquet` via `GQAHandler`, filtered by `gqa_raw_schema.py` + `prepare_gqa_capability_filters.py` | **FINAL high-purity partition frozen this repair pass** (see next section) — a real full predicate inventory (12578 rows: 7270 not relation-type, 2862 pure spatial, 2028 pure non-spatial relational, 418 mixed/excluded) confirmed the exact-predicate-matching rule and the frozen `SPATIAL_PREDICATE_WHITELIST` |
 
 ## GQA capability-filter wiring bug (fixed this repair pass)
 
@@ -61,44 +61,80 @@ default path. `_resolve_question_ids()` also now gives an actionable error (nami
 yet, instead of a bare "needs either..." message.
 
 **New CLI**: `prepare_gqa_capability_filters.py` — loads GQA's raw annotations independently
-of `GQAHandler`, runs `inspect_raw_schema()`, builds and persists both ID files plus a stats
-file, and prints the spatial/relational/intersection/neither counts. See the bootstrap
-sequence below.
+of `GQAHandler`, runs `inspect_raw_schema()`, builds and persists the spatial/relational/mixed
+ID files plus a stats file, and prints the counts. See the bootstrap sequence below.
 
-## GQA spatial/relational filter — raw schema investigation
+## GQA spatial/relational filter — FINAL high-purity partition (this repair pass)
 
-`adapters/gqa_raw_schema.py`'s field-name constants — **CONFIRMED live** this session via
-direct HF dataset-viewer inspection of `lmms-lab-encoder/GQA`'s `testdev_balanced_instructions`
-config: the raw rows DO carry `types` (`structural`/`semantic`/`detailed`), `semantic` (a
+`adapters/gqa_raw_schema.py`'s field-name constants — **CONFIRMED live** via direct HF
+dataset-viewer inspection of `lmms-lab-encoder/GQA`'s `testdev_balanced_instructions` config:
+the raw rows carry `types` (`structural`/`semantic`/`detailed`), `semantic` (a
 reasoning-program operation-step list), `semanticStr`, `groups`, `isBalanced`, `entailed`,
 `equivalent` — `prepare_gqa_data.py`'s own parquet (`id`/`imageId`/`question`/`answer`/
 `fullAnswer` only) is a deliberately NARROWED projection of these same rows for GQAHandler's
-needs, not evidence the richer fields don't exist upstream. The semantic-category value for
-relational questions is **`"rel"`**, not `"relation"` as initially guessed from public
-documentation alone — corrected in `gqa_raw_schema.RELATION_SEMANTIC_VALUE` after this live
-check.
+needs. `types.semantic`'s value for relational questions is **`"rel"`**, not `"relation"`.
 
-**Still pod-side-unconfirmed**: the exact argument-encoding shape of `semantic`'s "relate"
-operation steps (`_extract_relation_name`) — only the field NAMES and the semantic-category
-value set were independently confirmed, not individual "relate" argument strings at the
-row-content level. Run `prepare_gqa_capability_filters.py` (bootstrap step 7 below) and read
-its printed `inspect_raw_schema()` report plus the spatial/relational counts before trusting
-the resulting ID files as final.
+**A real full predicate inventory over GQA testdev-balanced** (12578 rows) produced the counts
+that froze the definition below:
 
-**Scientific note on spatial vs. relational (explicit, not hidden)**: GQA's own "relation"
-semantic-type category **naturally contains** both spatial relations (left/right/above/etc.)
-and non-spatial relations (holding/wearing/riding/etc.) — spatial is a sub-filter of it, not
-a category GQA hands us separately. `relational_reasoning` is defined as
-`natural-relational MINUS spatial` — an **explicit experimental choice** made so the two
-capability benchmarks measure distinct skills, not a claim that GQA itself provides two
-naturally disjoint categories. `build_spatial_relational_filters()` reports both the natural
-containment (spatial ⊆ natural-relational, `natural_intersection_over_spatial` = 1.0 by
-construction) and the final experimental exclusion (`n_experimental_intersection` = 0, by
-this explicit choice) — never one without the other.
+| | count |
+|---|---|
+| not relation-type | 7270 |
+| pure spatial | 2862 |
+| pure non-spatial relational | 2028 |
+| mixed (both spatial and non-spatial predicates) | 418 |
+| no extractable predicate | 0 |
+| **total** | **12578** |
 
-Spatial-relation keyword list (`SPATIAL_RELATION_KEYWORDS`, closed and explicit): left, right,
-above, below, behind, front, near, next to, on, under, underneath, inside, outside, between,
-beside, atop, over, top of, bottom of.
+**Definition (EXPLICIT, high-purity, EXPERIMENTAL — not an official GQA taxonomy)**: a
+relation-type ("rel") GQA question is classified by inspecting EVERY extracted relation
+predicate in its semantic program:
+- **spatial**: every extracted predicate is in `SPATIAL_PREDICATE_WHITELIST` (EXACT
+  normalized-string matching — never substring matching);
+- **relational** (non-spatial): none of its predicates is in the whitelist;
+- **mixed**: it has both a whitelisted and a non-whitelisted predicate — **excluded from
+  BOTH benchmark capabilities**, never assigned to either, but persisted
+  (`gqa_mixed_ids.json`) for auditability rather than silently dropped.
+
+**Relation operation forms — all three must be inspected** (a real inventory found `relate`:
+6201, `verify rel`: 769, `choose rel`: 211): the argument string for all three is
+`<object_or_placeholder>,<predicate>,<flag>` (3 comma-separated fields; a `verify rel`
+argument's flag field may carry a trailing `" (12)"`/`" (-)"`, simply part of the ignored 3rd
+field). Real confirmed examples: `relate` `"device,on top of,s"` → predicate `"on top of"`;
+`verify rel` `"platter,on,o (-)"` → predicate `"on"`; `verify rel`
+`"wetsuit,wearing,o (12)"` → predicate `"wearing"`. `choose rel` alternatives are
+pipe-separated within the same middle field (e.g. `"to the left of|to the right of"`) —
+classified spatial only if ALL alternatives are individually whitelisted. The old
+`_extract_relation_name`'s `"relate" in operation` check silently never matched `verify
+rel`/`choose rel` at all (the substring `"relate"` does not appear in `"verify rel"`) — fixed
+by exact-matching `RELATION_OPERATION_NAMES = {"relate", "verify rel", "choose rel"}`.
+
+**Action-modified relations are explicitly NOT promoted to spatial** — `"sitting on"`,
+`"standing on"`, `"flying above"`, `"riding on"`, `"walking on"`, `"resting on"`, `"mounted
+on"`, etc. conflate an action/pose/interaction with a spatial relation, and would silently
+blur this partition's own purity goal if a spatial WORD inside them (e.g. "above" inside
+"flying above") were allowed to promote the whole compound predicate to spatial. Classified
+non-spatial unless the exact compound string is itself added to the whitelist — which it is
+not, by design, in this pass. Confirmed real example: `20567512` (`_,flying above,o`) is
+non-spatial, NOT spatial, under this exact-matching rule.
+
+**Frozen, real-data-audited `SPATIAL_PREDICATE_WHITELIST`**: `in front of`, `to the right of`,
+`to the left of`, `on`, `behind`, `on top of`, `near`, `above`, `below`, `next to`, `inside`,
+`in`, `underneath`, `under`, `beside`, `beneath`, `around`, `surrounding`, `surrounded by`,
+`in between`, `over`, `across from`, `on the edge of`, `on the front of`, `on the bottom of`,
+`touching`, `higher than`.
+
+**Cannot independently verify the aggregate 2862/2028/418 counts from this environment**: the
+rule above is implemented and unit-tested against the individually-audited real question IDs
+given for this task (including the `20567512` "flying above" trap case). If a fresh real-data
+run of `prepare_gqa_capability_filters.py` produces different aggregate counts, that
+discrepancy must be investigated and explained (e.g. a difference from the original inventory
+script's own normalization) — never silently forced to match by adjusting the rule.
+
+**CPU-side audit tool**: `gqa_raw_schema.describe_question_classification()` (exposed via
+`prepare_gqa_capability_filters.py --audit-question-ids`) prints, for a given question ID, the
+full raw record, every extracted predicate with its individual spatial/non-spatial
+classification, and the overall question classification.
 
 ## Subset selection rule
 
@@ -309,6 +345,49 @@ IoU/boxes/coordinate_mode, GQA's `extracted`, OCR's `ocr_grounded`, attributes' 
 raw attributes) — every real bug in this section was originally found by exactly this kind of
 manual side-by-side read, not by any aggregate metric.
 
+## N=5 repair pass, round 2: FINAL GQA split + FINAL grounding coordinate contract (this session)
+
+A real full GQA predicate inventory and a corrected-metric grounding N=5 (0.80) narrowed this
+round to exactly two remaining protocol defects — this is intended as the final
+benchmark-definition repair before any N=200 run.
+
+**GQA — the item 3 audit above is now SUPERSEDED and finalized.** The word-boundary fix from
+round 1 is still correct and still in place, but the classification mechanism itself has been
+replaced: `is_spatial_relation`/`SPATIAL_RELATION_KEYWORDS`/single-predicate substring
+matching are gone, replaced by the exact-predicate, multi-operation-form, mixed-exclusion
+partition described in full in the "GQA spatial/relational filter — FINAL high-purity
+partition" section above (frozen `SPATIAL_PREDICATE_WHITELIST`, `relate`/`verify rel`/
+`choose rel` all inspected, action-modified relations never promoted to spatial, mixed
+questions excluded from both capabilities and persisted separately). The persisted filter
+files (previously left unchanged pending this audit) should now be regenerated with the new
+logic — see the bootstrap command below.
+
+**Grounding — round 2 coordinate-contract fix.** The round-1 fix corrected 4/5 N=5 examples
+(0.00 → 0.80 mean primary metric); manual audit of the one remaining "failure" showed it
+wasn't a real miss: `example_id=471277`, a 500x375 image, Qwen's prediction `[386,0,504,364]`
+is obviously pixel-space with a 4px overshoot past the image width, but the old 2px
+`_PIXEL_BOUND_TOLERANCE_PX` misclassified it as `qwen_normalized_0_1000`, converting it to
+`[193,0,252,136.5]` and scoring IoU=0. Two changes:
+1. **Explicit output contract** (primary mechanism, not auto-detection): the prompt now
+   states the image's own real width/height and explicitly asks for PIXEL-space
+   `[x1,y1,x2,y2]` — model-agnostic and reproducible, not something to lean on
+   post-hoc guessing to work around.
+2. **Wider, still non-accuracy-tuned tolerance + clipping**: `box_iou._pixel_bound_tolerance()`
+   is now `max(10px, 2% of the image's larger dimension)` (was a flat 2px) — generous enough
+   for the confirmed real overshoot, still tight enough that a genuinely too-large box on a
+   small image is not misclassified (tested explicitly). `canonicalize_prediction_box()` now
+   always clips its result into the image's own bounds
+   (`box_iou.clip_box_to_image()`) rather than rejecting a small overshoot — `raw_prediction_box`
+   (unclipped) and `canonical_prediction_box` (clipped) are both kept in `ExampleScore.detail`.
+   Auto-detection (normalized-[0,1] and Qwen-style 0..1000) remains as a documented
+   backward-compatible fallback, explicitly secondary to the stated contract.
+
+**Unchanged this pass, per explicit instruction**: OCR-grounded subset (structurally healthy,
+53.1% retained, corrected N=5 = 0.80), Visual Genome attributes (corrected N=5 = 0.20, prompt
+confirmed behaving correctly, remaining misses attributed to model/data difficulty), Counting
+(N=5 = 0.80), CUB (N=5 = 0.60), ImageNet, RandOpt, perturbation code, the historical Gate-1 GQA
+evaluator, model weights, and the vLLM runtime.
+
 ## Fresh RunPod bootstrap
 
 The exact command sequence to go from an empty pod to all 8 capabilities passing `--dry-run`
@@ -344,11 +423,13 @@ python -m neural_thickets_repro.prepare_gqa_data --config configs/gqa_repro.yaml
 # 6. Verify GQA evaluation data
 python -m neural_thickets_repro.verify_gqa_data --config configs/gqa_repro.yaml
 
-# 7. Prepare GQA spatial/relational capability filters (source B -- raw annotation metadata,
-#    loaded independently of step 5/6; writes artifacts/benchmark_subsets/gqa_spatial_ids.json
-#    + gqa_relational_ids.json + gqa_spatial_relational_stats.json). Inspect the printed
-#    schema-confirmation report and the spatial/relational/intersection/neither counts before
-#    trusting the result -- do not skip reading this output.
+# 7. Prepare GQA spatial/relational/mixed capability filters using the FINAL high-purity
+#    partition (source B -- raw annotation metadata, loaded independently of step 5/6; writes
+#    artifacts/benchmark_subsets/gqa_spatial_ids.json + gqa_relational_ids.json +
+#    gqa_mixed_ids.json + gqa_spatial_relational_stats.json). Inspect the printed
+#    schema-confirmation report and the pure-spatial/pure-relational/mixed-excluded counts
+#    before trusting the result -- if they differ materially from 2862/2028/418, investigate
+#    and explain rather than treating either number as authoritative.
 python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml
 
 # 8. Prepare Visual Genome attribute-recognition data (AnnaZ1103/visual_genome_revised, see
@@ -359,9 +440,8 @@ python -m neural_thickets_repro.prepare_visual_genome_data
 # 9. Verify Visual Genome data
 python -m neural_thickets_repro.verify_visual_genome_data
 
-# 10. (optional, this repair pass) Audit real GQA relation-argument values for specific
-#     question IDs before trusting/regenerating the spatial/relational filters -- read-only,
-#     never persists anything. See "N=5 repair pass" section above, item 3.
+# 10. (optional) Audit the real raw record + predicate classification for specific question
+#     IDs -- read-only, never persists anything. Useful to spot-check step 7's real counts.
 python -m neural_thickets_repro.prepare_gqa_capability_filters --config configs/gqa_repro.yaml --audit-question-ids <comma-separated-question-ids>
 
 # 11. (this repair pass) Prepare the EXPERIMENTAL OCR-grounded TextVQA subset -- read the
@@ -385,9 +465,12 @@ python -m neural_thickets_repro.inspect_capability_predictions --predictions <re
 
 ## Open items (UNRESOLVED, tracked here, not silently resolved)
 
-- GQA raw "relate" operation argument-encoding shape (field NAMES are now confirmed; the
-  individual argument STRING format at the row-content level is not) — run
-  `prepare_gqa_capability_filters.py` and read its printed report.
+- GQA raw `relate`/`verify rel`/`choose rel` argument-encoding shape — RESOLVED this repair
+  pass: a real full predicate inventory confirmed the `<object_or_placeholder>,<predicate>,
+  <flag>` shape for all three operation forms (see the "FINAL high-purity partition" section
+  above). The aggregate 2862/2028/418 counts could not be independently re-verified from this
+  environment; re-running `prepare_gqa_capability_filters.py` on the real pod and comparing
+  its printed counts is the way to confirm them, not something to trust blind.
 - `lmms-lab-encoder/RefCOCO+`'s exact repo id — assumed analogous to the confirmed RefCOCO
   repo, not independently verified.
 - `AnnaZ1103/visual_genome_revised`'s own long-term stability/maintenance as a community
@@ -400,13 +483,11 @@ python -m neural_thickets_repro.inspect_capability_predictions --predictions <re
   `Example.metadata["flagged_state_action_attributes"]` now surfaces matches against a small,
   explicitly non-exhaustive watchlist for later manual ontology review, but nothing is
   filtered/dropped/reweighted (see "N=5 repair pass" section below).
-- GQA raw relation-argument values for the 10 audited question IDs (see "N=5 repair pass"
-  section below) — the word-boundary substring-matching bug is fixed regardless of these
-  values, but the persisted `gqa_spatial_ids.json`/`gqa_relational_ids.json` filters
-  themselves are UNCHANGED pending that real-data audit; do not regenerate them until it runs.
-- TextVQA OCR-groundedness real retained/rejected counts and percentage — the filter logic is
-  tested against synthetic data here; the real numbers come only from actually running
-  `prepare_textvqa_ocr_filter.py` on the pod (see "N=5 repair pass" section below).
+- The persisted `gqa_spatial_ids.json`/`gqa_relational_ids.json`/`gqa_mixed_ids.json` filters
+  must be REGENERATED on the pod with the new high-purity partition logic (step 7 above) —
+  anything persisted under the previous (round-1, word-boundary-only) logic is stale.
+- TextVQA OCR-groundedness real retained/rejected counts and percentage were confirmed this
+  session: 2655/5000 retained (53.1%) on a real pod run — structurally healthy, left unchanged.
 - CUB-200-2011 mirror choice — `bentrevett/caltech-ucsd-birds-200-2011` is a documented,
   revisable pick among several community mirrors.
 - ImageNet-1K gated access — requires an HF token with accepted license configured on

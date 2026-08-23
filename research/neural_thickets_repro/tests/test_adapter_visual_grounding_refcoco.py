@@ -143,6 +143,30 @@ def test_score_example_pixel_space_prediction_matches_normalized_target_real_exa
     assert score.correct is True
 
 
+def test_score_example_real_example_471277_pixel_overshoot_is_clipped_not_misclassified():
+    """The final real remaining N=5 grounding failure (this repair pass): example_id=471277,
+    a 500x375 image. Qwen's pixel prediction [386,0,504,364] overshoots the image width by
+    only 4px -- must be recognized as pixel_xyxy (never qwen_normalized_0_1000), clipped to
+    [386,0,500,364], and score a high IoU, not the previously-observed IoU=0.
+    """
+    from neural_thickets_repro.benchmarks.box_iou import normalize_xyxy, xywh_to_xyxy
+
+    image_width, image_height = 500, 375
+    gt_xywh = (384.2300, 0.0, 115.7700, 375.0)
+    target_normalized = normalize_xyxy(xywh_to_xyxy(gt_xywh), image_width, image_height)
+    example = Example(example_id="471277", target=target_normalized, metadata={"image_width": image_width, "image_height": image_height})
+
+    bench = _bench()
+    parsed = bench.parse_prediction("[386,0,504,364]", example)
+    score = bench.score_example(parsed, example)
+
+    assert score.detail["coordinate_mode"] == "pixel_xyxy"
+    assert score.detail["canonical_prediction_box"] == pytest.approx([386, 0, 500, 364])
+    assert score.detail["raw_prediction_box"] == pytest.approx([386, 0, 504, 364])  # raw kept unclipped
+    assert score.score > 0.9
+    assert score.correct is True
+
+
 class _FakeImage:
     def __init__(self, size):
         self.size = size
@@ -206,11 +230,20 @@ def test_known_caveats_documents_the_question_field_correction():
     assert "'answer' field" in caveats
 
 
-def test_build_prompt_documents_coordinate_convention():
+def test_build_prompt_documents_the_explicit_pixel_space_contract():
+    """This repair pass: the prompt now explicitly asks for PIXEL coordinates and states the
+    image's own real dimensions -- a model-agnostic, reproducible contract, not [0,1]-normalized.
+    """
     bench = _bench()
-    example = Example(example_id="1", prompt_input={"referring_expression": "the red car"})
+    example = Example(
+        example_id="1",
+        prompt_input={"referring_expression": "the red car"},
+        metadata={"image_width": 640, "image_height": 425},
+    )
     messages = bench.build_prompt(example)
     text = messages[0]["content"][1]["text"]
     assert "the red car" in text
     assert "x1" in text and "y1" in text and "x2" in text and "y2" in text
-    assert "0 and 1" in text
+    assert "PIXEL" in text
+    assert "640" in text and "425" in text
+    assert "0 and 1" not in text

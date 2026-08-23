@@ -21,12 +21,18 @@ annotations, a documented deterministic choice) as the referring expression -- s
 `load_examples()` below and `known_caveats()`. All annotations are preserved in
 `Example.metadata["all_referring_expressions"]` for audit; only the first is ever prompted.
 
-Coordinate convention used throughout this adapter (and by box_iou.py): [x1, y1, x2, y2].
-`Example.target` is normalized to [0, 1] by image width/height -- xywh_to_xyxy() converts the
-raw annotation, normalize_xyxy() divides by the image's own actual pixel size (loaded once per
-example, not assumed). See score_example()'s own docstring for the separate coordinate-
-CONTRACT fix (canonicalizing the model's raw prediction, which is not guaranteed to actually
-be normalized despite what the prompt asks for).
+EXPLICIT OUTPUT CONTRACT (this repair pass, round 2): the prompt now explicitly asks the model
+to return PIXEL-space [x1,y1,x2,y2] and states the image's own width/height directly in the
+prompt text (INSTRUCTION_TEMPLATE below) -- a model-agnostic, reproducible contract, rather
+than relying primarily on post-hoc auto-detection to guess what a model actually returned.
+`Example.target` is still stored normalized to [0, 1] internally (xywh_to_xyxy() converts the
+raw annotation, normalize_xyxy() divides by the image's own actual pixel size) -- that's just
+this adapter's own internal storage format; score_example() denormalizes it back to pixel
+space (the canonical representation for IoU) before scoring. Auto-detection
+(box_iou.detect_coordinate_mode/canonicalize_prediction_box) is kept as a documented,
+backward-compatible FALLBACK for a model that doesn't comply exactly, and now also CLIPS a
+prediction that slightly overshoots the image edge into bounds before IoU, rather than
+rejecting it -- see score_example()'s own docstring for the real example this fixed.
 
 Grounding has no well-defined text-only condition (the image IS the query target) --
 supports_text_only_condition() is False, reported honestly rather than scoring a meaningless
@@ -42,11 +48,14 @@ from ..box_iou import box_iou, canonicalize_prediction_box, denormalize_xyxy, no
 from ..prompting import build_image_text_messages
 
 IOU_THRESHOLD = 0.5
+# EXPLICIT pixel-space output contract (this repair pass) -- states the image's own real
+# dimensions directly in the prompt text so "pixel coordinates" is unambiguous per example,
+# and is model-agnostic (never assumes/relies on Qwen-specific behavior).
 INSTRUCTION_TEMPLATE = (
-    'Locate "{referring_expression}" in the image. Respond with ONLY its bounding box as '
-    "[x1, y1, x2, y2], where each coordinate is a number between 0 and 1 representing the "
-    "fraction of the image width (for x1/x2) or height (for y1/y2) -- x1,y1 is the top-left "
-    "corner and x2,y2 is the bottom-right corner."
+    'Locate "{referring_expression}" in the image. The image is {image_width} pixels wide '
+    "and {image_height} pixels tall. Respond with ONLY its bounding box as PIXEL coordinates "
+    "[x1, y1, x2, y2], where x1,y1 is the top-left corner and x2,y2 is the bottom-right "
+    "corner, with x in [0, {image_width}] and y in [0, {image_height}]."
 )
 # Preferred: the exact "[x1, y1, x2, y2]" format the prompt asks for.
 _BRACKET_BOX_PATTERN = re.compile(
@@ -106,6 +115,11 @@ class RefCOCOGroundingBenchmark(CapabilityBenchmark):
             "region descriptions); this adapter uses the FIRST one deterministically. All "
             "annotations are preserved in Example.metadata['all_referring_expressions'] for "
             "audit, never used for scoring.",
+            "The prompt explicitly asks for PIXEL-space [x1,y1,x2,y2] coordinates and states "
+            "the image's own real width/height -- an explicit, model-agnostic output "
+            "contract, not something left to post-hoc auto-detection. A prediction that "
+            "slightly overshoots the image edge is clipped into bounds (never rejected) "
+            "before IoU -- see box_iou.clip_box_to_image().",
         ]
         if "refcoco+" in self.dataset_repo_id.lower():
             caveats.append(f"{self.dataset_repo_id!r} is assumed analogous to the confirmed lmms-lab-encoder/RefCOCO repo id, not independently verified.")
@@ -145,7 +159,11 @@ class RefCOCOGroundingBenchmark(CapabilityBenchmark):
         return examples
 
     def build_prompt(self, example: Example) -> List[dict]:
-        instruction = INSTRUCTION_TEMPLATE.format(referring_expression=example.prompt_input["referring_expression"])
+        instruction = INSTRUCTION_TEMPLATE.format(
+            referring_expression=example.prompt_input["referring_expression"],
+            image_width=example.metadata["image_width"],
+            image_height=example.metadata["image_height"],
+        )
         return build_image_text_messages(instruction)
 
     def parse_prediction(self, raw_generation: str, example: Example) -> ParsedPrediction:
@@ -155,17 +173,25 @@ class RefCOCOGroundingBenchmark(CapabilityBenchmark):
         return ParsedPrediction(parsed=box, parse_ok=True)
 
     def score_example(self, parsed: ParsedPrediction, example: Example) -> ExampleScore:
-        """COORDINATE-CONTRACT FIX (this repair pass): a real N=5 Qwen2.5-VL smoke test found
-        the model reliably emitting PIXEL-space boxes despite the prompt asking for
-        [0,1]-normalized coordinates (e.g. predicting [112,189,444,362] for a 640x425 image
-        against a target of ~[0.165,0.461,0.686,0.860] -- a genuine ~0.91 IoU match, scored as
-        ~0 by directly comparing the raw numbers). Both the prediction and the target are now
-        converted into ONE canonical representation (pixel-space xyxy, via
-        box_iou.canonicalize_prediction_box / denormalize_xyxy) before computing IoU, using
-        deterministic value-range + this example's real image-dimension rules -- never by
-        checking which interpretation scores better, and never special-cased to Qwen: any
-        model emitting normalized-[0,1], pixel, or Qwen-style 0..1000-normalized coordinates
-        is handled by the same rule.
+        """COORDINATE-CONTRACT FIX, round 1 (earlier repair pass): a real N=5 Qwen2.5-VL smoke
+        test found the model reliably emitting PIXEL-space boxes despite the prompt asking for
+        [0,1]-normalized coordinates. Both the prediction and the target are converted into
+        ONE canonical representation (pixel-space xyxy, via box_iou.canonicalize_prediction_box
+        / denormalize_xyxy) before computing IoU, using deterministic value-range + this
+        example's real image-dimension rules -- never by checking which interpretation scores
+        better, and never special-cased to Qwen.
+
+        COORDINATE-CONTRACT FIX, round 2 (this repair pass): the corrected N=5 metric still had
+        one real failure -- example_id=471277, a 500x375 image, prediction [386,0,504,364]
+        (clearly pixel-space, overshooting the image width by only 4px) was misclassified as
+        qwen_normalized_0_1000 by the old 2px tolerance, converting it to a tiny wrong box and
+        scoring IoU=0. The prompt now explicitly asks for pixel coordinates with the image's
+        own dimensions stated (see INSTRUCTION_TEMPLATE) -- the EXPLICIT contract, not
+        auto-detection, is the primary mechanism. Auto-detection remains as a documented
+        backward-compatible fallback with a wider, non-accuracy-tuned tolerance
+        (box_iou._pixel_bound_tolerance), and canonicalize_prediction_box now CLIPS the result
+        into the image's own bounds (box_iou.clip_box_to_image) rather than rejecting a small
+        boundary overshoot.
         """
         if not parsed.parse_ok:
             return ExampleScore(score=0.0, correct=False, detail={
