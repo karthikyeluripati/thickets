@@ -1,0 +1,115 @@
+# =============================================================================================
+# VISUAL THICKET EXPERIMENT MANIFEST -- PILOT / NOT PAPER-FINAL
+# =============================================================================================
+# See VISUAL_THICKET_EXPERIMENT_SPEC.md for the frozen scientific protocol this manifest
+# configures. This file is a PLACEHOLDER PILOT configuration only, deliberately small (see
+# `thicket.experiment_size.estimate_experiment_size` for the arithmetic this pilot implies) --
+# it exists to exercise the full config-parsing / manifest-generation path end-to-end, NOT to
+# define the paper's actual final sweep. Radii below are CALIBRATION radii (spec E), chosen to
+# discover the three qualitative regimes (near-zero, useful-thicket, destructive), not
+# maximized-against-benchmark-results final paper radii. No GPU inference has been run against
+# this file as of Stage 5 -- it is CPU-only infrastructure config.
+
+experiment:
+  name: visual_thicket_pilot
+  status: "PILOT / NOT PAPER-FINAL"
+  stage: 5
+  description: >
+    Smallest end-to-end exercise of the anatomy x perturbation-mode x radius x capability
+    grid, purely to validate the experiment-manifest schema and the size estimator's
+    arithmetic before any real GPU run is authorized. Not a claim about final paper scope.
+
+models:
+  # Primary same-family ladder (spec J) -- only the 3B entry is currently accessible; 7B/72B
+  # are LISTED (so the schema is exercised for a multi-scale run) but NOT executed by anything
+  # in Stage 5. Anatomy discovery (thicket.anatomy) makes no code-level assumption about which
+  # of these actually gets used -- it discovers layer/block counts from the live model.
+  - model_family: qwen2_5_vl
+    model_scale: "3B"
+    model_name: Qwen/Qwen2.5-VL-3B-Instruct
+    model_revision: null  # UNRESOLVED -- pin the exact revision used, same discipline as configs/gqa_repro.yaml
+    status: accessible
+  - model_family: qwen2_5_vl
+    model_scale: "7B"
+    model_name: Qwen/Qwen2.5-VL-7B-Instruct
+    model_revision: null
+    status: not_yet_run
+  - model_family: qwen2_5_vl
+    model_scale: "72B"
+    model_name: Qwen/Qwen2.5-VL-72B-Instruct
+    model_revision: null
+    status: not_yet_run
+
+# The 6 currently frozen, usable capability probes (spec section M). ImageNet is pending
+# gated HF access; Visual Genome attribute recognition is explicitly NOT part of the core
+# suite. Do not add/modify capability adapters as part of this experiment framework -- see
+# ../CAPABILITY_BENCHMARK_GATE.md for that (separate, frozen-for-this-stage) infrastructure.
+capabilities:
+  - visual_grounding
+  - counting
+  - spatial_reasoning
+  - ocr_text_recognition_grounded
+  - relational_reasoning
+  - fine_grained_recognition
+
+# LEVEL 0/1/2 anatomy regions (spec B) this pilot exercises. Level 3 (attention/mlp) is
+# supported structurally by thicket.anatomy.classify_attention_or_mlp but not swept here.
+anatomy:
+  regions:
+    - full_model
+    - vision
+    - multimodal_connector_or_merger
+    - language
+    - vision_early
+    - vision_middle
+    - vision_late
+    - language_early
+    - language_middle
+    - language_late
+  pilot_regions_used: [vision_early, vision_middle, vision_late]  # the actual pilot cells below
+
+perturbation_modes:
+  # C1: historical, upstream-compatible global mode -- reused unchanged from perturb_cpu.py.
+  - mode: global_gaussian_upstream
+    sigmas: [0.001, 0.005, 0.01]  # historical upstream sigma values, kept available for comparison
+  # C2: new anatomy-controlled exact relative-L2 mode -- see thicket.perturbation.
+  - mode: anatomical_relative_l2
+    radii: [0.01, 0.05, 0.1]  # CALIBRATION radii (spec E) -- not final paper radii
+
+radii:
+  calibration: [0.01, 0.05, 0.1]
+  final_paper: null  # UNRESOLVED -- not selected in Stage 5; must not be chosen by maximizing benchmark results (spec E)
+
+population:
+  n_perturbations_per_condition: 8  # deliberately small PILOT count -- see experiment_size below
+  n_examples_per_capability: 50     # PILOT subset size, distinct from the Capability Benchmark Gate's own N=200 baseline
+
+seeds:
+  base_seed: 20260823  # root seed; every actual seed is derived via thicket.seeds.derive_seed with an explicit namespace
+  namespaces:
+    - perturbation_population
+    - data_roles
+    - bootstrap
+
+data_roles:
+  sizes:
+    map: 20
+    confirm: 15
+    select: 10
+    test: 5
+  # sizes are PER CAPABILITY's own example-ID pool (each capability partitions its own pool
+  # independently -- data roles are not shared/aligned ACROSS capabilities, unlike perturbation
+  # IDs, which explicitly are, per spec D1).
+
+metrics:
+  margins_for_solution_density: [0.0, 0.02, 0.05, 0.1]
+  catastrophic_degradation_margin: 0.1  # PILOT value, not a frozen paper threshold
+  expert_overlap_top_q_fraction: 0.1
+  transfer_matrix_top_q_fraction: 0.1
+  bootstrap:
+    n_resamples: 2000
+    confidence: 0.95
+
+outputs:
+  root: results/visual_thicket_pilot
+  result_record_schema: neural_thickets_repro.thicket.schema.ExperimentResultRecord
