@@ -54,6 +54,20 @@ revisable simplification for building an unambiguous single-noun prompt, entirel
 from (and not to be confused with) the multi-attribute TARGET set, which is always preserved
 in full (see rows_with_positive_attributes-equivalent logic in flatten_attribute_examples).
 
+BENCHMARK EXAMPLE IDENTITY (fixed this repair pass -- see CAPABILITY_BENCHMARK_GATE.md):
+confirmed on a real RunPod that this repackaged dataset can contain multiple DISTINCT object
+records sharing the same `object_id` within the same image (e.g. image_id=2 has two separate
+"building" records both with object_id=22, but different bboxes) -- so `object_id` alone, and
+even `(image_id, object_id)`, is NOT a safe benchmark-example identity. `example_id` is instead
+derived from `(image_id, object_id, x, y, w, h)` -- see build_example_id() -- with a
+deterministic per-base-key occurrence counter appended ONLY when that full tuple repeats
+(a still-possible malformed-duplicate-record case), making it provably collision-free rather
+than merely "collision-free in the cases observed so far". The raw source `object_id` is never
+overwritten -- it is preserved as its own separate column/metadata field alongside the new
+`example_id`; they are different concepts (one is Visual Genome's own object identity, which
+this dataset does not guarantee is unique; the other is this benchmark's own example identity,
+which must be).
+
 Usage:
     python -m neural_thickets_repro.prepare_visual_genome_data
     python -m neural_thickets_repro.prepare_visual_genome_data --max-candidates 500 --split train
@@ -109,6 +123,20 @@ def validate_bbox(x: float, y: float, w: float, h: float, image_width: float, im
     return True
 
 
+def build_example_id(image_id: str, object_id: str, x, y, w, h, occurrence_index: int) -> str:
+    """Deterministic benchmark-example identity, distinct from the source VG `object_id` (see
+    module docstring's "BENCHMARK EXAMPLE IDENTITY" section for why `object_id` alone, and
+    even `(image_id, object_id)`, is not safe here). `occurrence_index` is the count of prior
+    kept records sharing this exact (image_id, object_id, x, y, w, h) tuple seen so far in this
+    preparation run -- 0 for the first (no suffix, keeping the common-case ID readable), 1+ for
+    any further exact duplicates, which provably cannot collide with each other or with any
+    other example's base id (different `image_id`, `object_id`, or bbox always yields a
+    different base string).
+    """
+    base = f"vg:{image_id}:{object_id}:{x}:{y}:{w}:{h}"
+    return base if occurrence_index == 0 else f"{base}:{occurrence_index}"
+
+
 def load_attribute_rows(split: str, max_candidates: "int | None") -> List[dict]:
     """Loads AnnaZ1103/visual_genome_revised (config "attributes", script-free Parquet) -- a
     documented prefix slice of `split`, same "first N rows" convention prepare_gqa_data.py
@@ -139,9 +167,14 @@ def flatten_attribute_examples(image_rows: Iterable[dict]) -> Tuple[List[dict], 
     """
     kept: List[dict] = []
     stats = {"n_image_rows": 0, "n_objects_seen": 0, "skipped_no_attributes": 0, "skipped_empty_name": 0, "skipped_invalid_bbox": 0}
+    # Tracks how many kept records have already produced each exact (image_id, object_id,
+    # x, y, w, h) base id -- see build_example_id()'s docstring for why this is provably
+    # collision-free rather than merely "collision-free in the cases observed so far".
+    seen_base_id_counts: Dict[str, int] = {}
 
     for image_row in image_rows:
         stats["n_image_rows"] += 1
+        image_id_str = str(image_row["image_id"])
         objects = image_row.get("attributes") or []
         for obj in objects:
             stats["n_objects_seen"] += 1
@@ -167,12 +200,19 @@ def flatten_attribute_examples(image_rows: Iterable[dict]) -> Tuple[List[dict], 
                 stats["skipped_invalid_bbox"] += 1
                 continue
 
+            object_id_str = str(obj["object_id"])
+            base_id = f"vg:{image_id_str}:{object_id_str}:{x}:{y}:{w}:{h}"
+            occurrence_index = seen_base_id_counts.get(base_id, 0)
+            seen_base_id_counts[base_id] = occurrence_index + 1
+            example_id = build_example_id(image_id_str, object_id_str, x, y, w, h, occurrence_index)
+
             kept.append({
-                "image_id": str(image_row["image_id"]),
+                "example_id": example_id,
+                "image_id": image_id_str,
+                "object_id": object_id_str,  # source VG object_id, preserved as its own field -- never overwritten to manufacture uniqueness
                 "url": image_row["url"],
                 "image_width": image_row["width"],
                 "image_height": image_row["height"],
-                "instance_id": str(obj["object_id"]),
                 "object_name": names[0],  # documented simplification -- see module docstring
                 "positive_attributes": positive_attributes,  # FULL set preserved, never collapsed
                 "bbox_x": x, "bbox_y": y, "bbox_w": w, "bbox_h": h,
@@ -194,8 +234,9 @@ def write_attributes_parquet(rows: List[dict], out_path: Path) -> None:
 
     records = [
         {
+            "example_id": row["example_id"],
             "image_id": row["image_id"],
-            "instance_id": row["instance_id"],
+            "object_id": row["object_id"],
             "object_name": row["object_name"],
             "positive_attributes": json.dumps(row["positive_attributes"]),  # JSON-encoded list, decoded by the adapter
             "bbox_x": row["bbox_x"], "bbox_y": row["bbox_y"], "bbox_w": row["bbox_w"], "bbox_h": row["bbox_h"],

@@ -69,7 +69,8 @@ def test_flatten_keeps_objects_with_attributes_and_names_and_valid_bbox():
     assert len(flattened) == 2
     assert stats == {"n_image_rows": 1, "n_objects_seen": 2, "skipped_no_attributes": 0, "skipped_empty_name": 0, "skipped_invalid_bbox": 0}
     first = flattened[0]
-    assert first["instance_id"] == "114"
+    assert first["example_id"] == "vg:2:114:204:221:306:162"
+    assert first["object_id"] == "114"  # source object_id preserved separately, never overwritten
     assert first["image_id"] == "2"
     assert first["object_name"] == "sidewalk"
     assert first["positive_attributes"] == ["brick", "white"]  # full multi-attribute set preserved
@@ -113,6 +114,96 @@ def test_flatten_multiple_objects_can_share_one_image():
 
 
 # ---------------------------------------------------------------------------------------
+# build_example_id / benchmark-example identity (real RunPod finding: object_id alone, and
+# even (image_id, object_id), is not a safe identity in this repackaged dataset)
+# ---------------------------------------------------------------------------------------
+
+# The real observed case: image_id=2 has TWO distinct "building" records both with
+# object_id=22, but different bboxes -- confirmed via live inspection on a real RunPod.
+_REAL_DUPLICATE_OBJECT_ID_ROW = {
+    "image_id": 2, "width": 800, "height": 800, "url": "https://example.com/2.jpg",
+    "attributes": [
+        {"object_id": 22, "names": ["building"], "attributes": ["brown", "red"], "x": 363, "y": 0, "w": 146, "h": 265, "synsets": []},
+        {"object_id": 22, "names": ["building"], "attributes": ["brown", "red"], "x": 108, "y": 0, "w": 166, "h": 205, "synsets": []},
+    ],
+}
+
+
+def test_same_object_id_in_different_images_gets_distinct_example_ids():
+    rows = [
+        _image_row(image_id=1, objects=[_object(object_id=22, x=0, y=0, w=10, h=10)]),
+        _image_row(image_id=2, objects=[_object(object_id=22, x=0, y=0, w=10, h=10)]),
+    ]
+    flattened, _ = m.flatten_attribute_examples(rows)
+    ids = [r["example_id"] for r in flattened]
+    assert len(ids) == len(set(ids)) == 2
+    assert ids[0] != ids[1]
+
+
+def test_real_observed_duplicate_object_id_same_image_different_bbox_gets_distinct_ids():
+    flattened, stats = m.flatten_attribute_examples([_REAL_DUPLICATE_OBJECT_ID_ROW])
+
+    assert len(flattened) == 2
+    ids = [r["example_id"] for r in flattened]
+    assert len(set(ids)) == 2, "two distinct benchmark example IDs are required"
+    # Both records keep the SAME source object_id -- it is provenance, not identity.
+    assert flattened[0]["object_id"] == flattened[1]["object_id"] == "22"
+    assert flattened[0]["bbox_x"] == 363 and flattened[1]["bbox_x"] == 108
+    # Different bboxes already make the base id distinct -- no dedup suffix needed here.
+    assert ids[0] == "vg:2:22:363:0:146:265"
+    assert ids[1] == "vg:2:22:108:0:166:205"
+
+
+def test_malformed_exact_duplicate_source_record_gets_a_disambiguating_suffix_not_a_collision():
+    """A genuinely malformed case beyond the real observed one: two records with IDENTICAL
+    image_id, object_id, AND bbox. build_example_id()'s occurrence-index suffix must still
+    keep these distinct rather than silently colliding.
+    """
+    identical_object = _object(object_id=22, x=363, y=0, w=146, h=265)
+    rows = [_image_row(image_id=2, objects=[identical_object, dict(identical_object)])]
+
+    flattened, stats = m.flatten_attribute_examples(rows)
+
+    assert len(flattened) == 2
+    ids = [r["example_id"] for r in flattened]
+    assert len(set(ids)) == 2
+    assert ids[0] == "vg:2:22:363:0:146:265"
+    assert ids[1] == "vg:2:22:363:0:146:265:1"
+
+
+def test_flatten_produces_zero_duplicate_example_ids_across_a_larger_synthetic_pool():
+    rows = [
+        _image_row(image_id=1, objects=[_object(object_id=1), _object(object_id=2, x=50, y=50, w=10, h=10)]),
+        _REAL_DUPLICATE_OBJECT_ID_ROW,
+        _image_row(image_id=3, objects=[_object(object_id=1)]),  # same object_id as image 1's first object, different image
+    ]
+    flattened, _ = m.flatten_attribute_examples(rows)
+    ids = [r["example_id"] for r in flattened]
+    assert len(ids) == len(set(ids))
+
+
+def test_flatten_is_deterministic_across_repeated_preparation():
+    rows = [
+        _image_row(image_id=1, objects=[_object(object_id=1), _object(object_id=2, x=50, y=50, w=10, h=10)]),
+        _REAL_DUPLICATE_OBJECT_ID_ROW,
+    ]
+    flattened_a, stats_a = m.flatten_attribute_examples(rows)
+    flattened_b, stats_b = m.flatten_attribute_examples(rows)
+
+    assert [r["example_id"] for r in flattened_a] == [r["example_id"] for r in flattened_b]
+    assert flattened_a == flattened_b
+    assert stats_a == stats_b
+
+
+def test_build_example_id_appends_suffix_only_for_nonzero_occurrence_index():
+    base_id = m.build_example_id("2", "22", 363, 0, 146, 265, occurrence_index=0)
+    suffixed_id = m.build_example_id("2", "22", 363, 0, 146, 265, occurrence_index=1)
+    assert base_id == "vg:2:22:363:0:146:265"
+    assert suffixed_id == "vg:2:22:363:0:146:265:1"
+    assert base_id != suffixed_id
+
+
+# ---------------------------------------------------------------------------------------
 # needed_images_with_urls / write_attributes_parquet
 # ---------------------------------------------------------------------------------------
 
@@ -127,7 +218,7 @@ def test_needed_images_with_urls_deduplicates_by_image_id():
 
 def test_write_attributes_parquet_round_trip(tmp_path):
     rows = [{
-        "image_id": "1", "instance_id": "10", "object_name": "chair",
+        "example_id": "vg:1:10:1:2:3:4", "image_id": "1", "object_id": "10", "object_name": "chair",
         "positive_attributes": ["red", "wooden"],
         "bbox_x": 1, "bbox_y": 2, "bbox_w": 3, "bbox_h": 4,
         "image_width": 100, "image_height": 100, "url": "http://x/1.jpg",
@@ -137,7 +228,9 @@ def test_write_attributes_parquet_round_trip(tmp_path):
 
     df = pd.read_parquet(out_path)
     assert len(df) == 1
+    assert df.iloc[0]["example_id"] == "vg:1:10:1:2:3:4"
     assert df.iloc[0]["image_id"] == "1"
+    assert df.iloc[0]["object_id"] == "10"
     assert json.loads(df.iloc[0]["positive_attributes"]) == ["red", "wooden"]
     assert df.iloc[0]["bbox_x"] == 1 and df.iloc[0]["bbox_w"] == 3
     assert df.iloc[0]["url"] == "http://x/1.jpg"

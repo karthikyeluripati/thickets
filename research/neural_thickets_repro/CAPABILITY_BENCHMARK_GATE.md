@@ -190,11 +190,30 @@ the number of images fetched; a documented deviation from "load everything," sam
 discipline `prepare_gqa_data.py` already uses; NOT the final N=200 benchmark subset, which is
 drawn later from this larger candidate pool). `vg_prepare_stats.json` persists candidate/
 flattened/skip counts for reproducibility. `verify_visual_genome_data.py` re-derives (never
-trusts prepare's own exit status) row count, unique images, duplicate `instance_id`, empty
+trusts prepare's own exit status) row count, unique images, duplicate `example_id`, empty
 `positive_attributes`/`object_name`, invalid bboxes, the accepted-attribute cardinality
 distribution, and every referenced image present/not-corrupt, before the artifact is trusted.
 The adapter (`attribute_recognition_visualgenome.py`) reads ONLY this local prepared artifact
 — it never calls `datasets.load_dataset(...)` at all.
+
+## Visual Genome: benchmark-example identity (fixed this repair pass)
+
+**Real RunPod finding**: `verify_visual_genome_data.py` reported many `duplicate_instance_ids`
+on a real prepared artifact. Root cause: the source VG `object_id` is NOT a safe benchmark
+identity in this repackaged dataset — live inspection confirmed image_id=2 contains TWO
+distinct "building" object records both with `object_id=22`, but different bboxes (`x=363,
+y=0, w=146, h=265` vs. `x=108, y=0, w=166, h=205`). Even `(image_id, object_id)` is therefore
+not guaranteed unique.
+
+**Fix**: `build_example_id()` in `prepare_visual_genome_data.py` derives the benchmark
+`example_id` from `(image_id, object_id, x, y, w, h)`, with a deterministic per-base-key
+occurrence counter appended only when that full tuple genuinely repeats (a still-possible
+malformed-duplicate-record case) — provably collision-free rather than "collision-free in the
+cases observed so far." The source `object_id` is preserved as its own separate column
+(prepare/verify) and `Example.metadata["object_id"]` (adapter) — never overwritten to
+manufacture uniqueness; `example_id` and `object_id` are different concepts throughout this
+package. `verify_visual_genome_data.py`'s duplicate check now keys on `example_id`, not
+`object_id`.
 
 ## Fresh RunPod bootstrap
 

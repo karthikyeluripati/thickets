@@ -5,10 +5,16 @@ prepare_visual_genome_data.py's own exit status, re-derive every check from what
 landed on disk.
 
 This is defense-in-depth, not a re-implementation of prepare's filtering: the checks below
-(invalid bbox / empty object name / empty attribute set / duplicate instance id) should all
+(invalid bbox / empty object name / empty attribute set / duplicate example id) should all
 read as zero on a correctly prepared artifact, since prepare_visual_genome_data.py already
 excludes these at flatten time -- a non-zero count here means the parquet was hand-edited, or
 prepare has a bug, either of which should block the gate.
+
+Duplicate-ID note: `example_id` (the benchmark identity, from build_example_id()) is the
+column checked for duplicates here -- NOT the source `object_id`, which this repackaged
+dataset does not guarantee is unique even within a single image (confirmed on a real RunPod:
+image_id=2 has two distinct "building" records sharing object_id=22 with different bboxes).
+`object_id` is preserved separately as provenance metadata, not as an identity column.
 
 Usage:
     python -m neural_thickets_repro.verify_visual_genome_data
@@ -23,7 +29,7 @@ from typing import Dict
 
 from .prepare_visual_genome_data import DEFAULT_DATA_DIR, VG_DATASET_CONFIG, VG_DATASET_NAME, validate_bbox
 
-REQUIRED_COLUMNS = {"image_id", "instance_id", "object_name", "positive_attributes", "bbox_x", "bbox_y", "bbox_w", "bbox_h"}
+REQUIRED_COLUMNS = {"example_id", "image_id", "object_id", "object_name", "positive_attributes", "bbox_x", "bbox_y", "bbox_w", "bbox_h"}
 # Optional -- present in artifacts written by the current prepare_visual_genome_data.py, but
 # not required for an artifact to be usable (bbox-vs-image-bounds re-validation and the
 # prepare_stats cross-check are simply skipped if these aren't there).
@@ -49,7 +55,7 @@ def verify_visual_genome_data(data_dir: Path) -> Dict:
         "n_selected": None,
         "row_count": None,
         "missing_columns": [],
-        "duplicate_instance_ids": [],
+        "duplicate_example_ids": [],
         "rows_with_empty_positive_attributes": 0,
         "rows_with_empty_object_name": 0,
         "rows_with_invalid_bbox": 0,
@@ -80,8 +86,8 @@ def verify_visual_genome_data(data_dir: Path) -> Dict:
     if missing_columns:
         return result
 
-    duplicate_ids = df["instance_id"][df["instance_id"].duplicated()].unique().tolist()
-    result["duplicate_instance_ids"] = duplicate_ids
+    duplicate_ids = df["example_id"][df["example_id"].duplicated()].unique().tolist()
+    result["duplicate_example_ids"] = duplicate_ids
 
     attribute_lists = [json.loads(v) for v in df["positive_attributes"]]
     result["rows_with_empty_positive_attributes"] = sum(1 for a in attribute_lists if not a)

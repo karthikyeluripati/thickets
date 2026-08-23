@@ -117,7 +117,8 @@ def _write_prepared_artifact(data_dir, rows, tiny_image_factory, with_images=Tru
     records = []
     for row in rows:
         record = {
-            "image_id": row["image_id"], "instance_id": row["instance_id"], "object_name": row["object_name"],
+            "image_id": row["image_id"], "example_id": row["example_id"],
+            "object_id": row.get("object_id", row["example_id"]), "object_name": row["object_name"],
             "positive_attributes": json_module.dumps(row["positive_attributes"]),
             "bbox_x": row["bbox"][0], "bbox_y": row["bbox"][1], "bbox_w": row["bbox"][2], "bbox_h": row["bbox"][3],
         }
@@ -132,8 +133,8 @@ def _write_prepared_artifact(data_dir, rows, tiny_image_factory, with_images=Tru
 
 def test_load_examples_reads_prepared_local_parquet_and_images(tmp_path, tiny_image_factory):
     rows = [
-        {"image_id": "1", "instance_id": "10", "object_name": "chair", "positive_attributes": ["red", "wooden"], "bbox": [1, 2, 3, 4]},
-        {"image_id": "2", "instance_id": "11", "object_name": "table", "positive_attributes": ["blue"], "bbox": [5, 6, 7, 8]},
+        {"image_id": "1", "example_id": "vg:1:10:1:2:3:4", "object_id": "10", "object_name": "chair", "positive_attributes": ["red", "wooden"], "bbox": [1, 2, 3, 4]},
+        {"image_id": "2", "example_id": "vg:2:11:5:6:7:8", "object_id": "11", "object_name": "table", "positive_attributes": ["blue"], "bbox": [5, 6, 7, 8]},
     ]
     _write_prepared_artifact(tmp_path, rows, tiny_image_factory)
 
@@ -142,14 +143,36 @@ def test_load_examples_reads_prepared_local_parquet_and_images(tmp_path, tiny_im
     examples = bench.load_examples(cfg)
 
     assert len(examples) == 2
-    assert examples[0].example_id == "10"
+    assert examples[0].example_id == "vg:1:10:1:2:3:4"
+    assert examples[0].metadata["object_id"] == "10"  # source object_id preserved, separate from example_id
     assert examples[0].target == ["red", "wooden"]
     assert examples[0].metadata["bbox_xywh"] == [1, 2, 3, 4]
     assert examples[0].image is not None
 
 
+def test_load_examples_gives_distinct_example_ids_for_same_object_id_different_bbox(tmp_path, tiny_image_factory):
+    """Mirrors the real RunPod finding: image_id=2 has two "building" records sharing
+    object_id=22 with different bboxes -- load_examples() must surface two distinct examples,
+    both correctly tagged with the shared source object_id in metadata.
+    """
+    rows = [
+        {"image_id": "2", "example_id": "vg:2:22:363:0:146:265", "object_id": "22", "object_name": "building", "positive_attributes": ["brown", "red"], "bbox": [363, 0, 146, 265]},
+        {"image_id": "2", "example_id": "vg:2:22:108:0:166:205", "object_id": "22", "object_name": "building", "positive_attributes": ["brown", "red"], "bbox": [108, 0, 166, 205]},
+    ]
+    _write_prepared_artifact(tmp_path, rows, tiny_image_factory)
+
+    bench = _bench()
+    cfg = SimpleNamespace(dataset=SimpleNamespace(source=str(tmp_path)))
+    examples = bench.load_examples(cfg)
+
+    assert len(examples) == 2
+    example_ids = {e.example_id for e in examples}
+    assert len(example_ids) == 2, "the two records must remain distinct benchmark examples"
+    assert {e.metadata["object_id"] for e in examples} == {"22"}  # shared source object_id preserved on both
+
+
 def test_load_examples_carries_image_dims_into_metadata_when_present(tmp_path, tiny_image_factory):
-    rows = [{"image_id": "1", "instance_id": "10", "object_name": "chair", "positive_attributes": ["red"], "bbox": [1, 2, 3, 4], "image_width": 640, "image_height": 480}]
+    rows = [{"image_id": "1", "example_id": "vg:1:10:1:2:3:4", "object_id": "10", "object_name": "chair", "positive_attributes": ["red"], "bbox": [1, 2, 3, 4], "image_width": 640, "image_height": 480}]
     _write_prepared_artifact(tmp_path, rows, tiny_image_factory, with_image_dims=True)
 
     bench = _bench()
@@ -179,7 +202,7 @@ def test_load_examples_hard_fails_on_missing_expected_columns(tmp_path):
 
 
 def test_load_examples_missing_image_file_yields_none_image_not_a_crash(tmp_path, tiny_image_factory):
-    rows = [{"image_id": "1", "instance_id": "10", "object_name": "chair", "positive_attributes": ["red"], "bbox": [1, 2, 3, 4]}]
+    rows = [{"image_id": "1", "example_id": "vg:1:10:1:2:3:4", "object_id": "10", "object_name": "chair", "positive_attributes": ["red"], "bbox": [1, 2, 3, 4]}]
     _write_prepared_artifact(tmp_path, rows, tiny_image_factory, with_images=False)
 
     bench = _bench()

@@ -47,8 +47,8 @@ PREPARE_COMMAND = "python -m neural_thickets_repro.prepare_visual_genome_data"
 
 class VisualGenomeSchemaError(RuntimeError):
     """The prepared local Visual Genome artifact is missing or doesn't match the expected
-    schema (image_id/instance_id/object_name/positive_attributes/bbox_x/y/w/h) -- refuses to
-    guess a different one.
+    schema (example_id/image_id/object_id/object_name/positive_attributes/bbox_x/y/w/h) --
+    refuses to guess a different one.
     """
 
 
@@ -88,6 +88,11 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
             "check, not a bug.",
             "The full positive_attributes list is preserved as the target set; a prediction "
             "is scored correct if it matches ANY of them.",
+            "Example.example_id is derived from (image_id, object_id, bbox) via "
+            "build_example_id() in prepare_visual_genome_data.py, NOT the raw source "
+            "object_id alone -- confirmed on a real RunPod that this repackaged dataset can "
+            "contain multiple distinct object records sharing the same object_id within one "
+            "image. The source object_id is preserved separately in Example.metadata.",
         ]
 
     def load_examples(self, cfg: Any) -> List[Example]:
@@ -104,7 +109,7 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
             )
 
         df = pd.read_parquet(parquet_path)
-        missing_columns = {"image_id", "instance_id", "object_name", "positive_attributes", "bbox_x", "bbox_y", "bbox_w", "bbox_h"} - set(df.columns)
+        missing_columns = {"example_id", "image_id", "object_id", "object_name", "positive_attributes", "bbox_x", "bbox_y", "bbox_w", "bbox_h"} - set(df.columns)
         if missing_columns:
             raise VisualGenomeSchemaError(f"{parquet_path} is missing expected column(s) {sorted(missing_columns)} -- refusing to guess a different schema.")
 
@@ -118,12 +123,16 @@ class VisualGenomeAttributeBenchmark(CapabilityBenchmark):
             metadata: Dict[str, Any] = {
                 "bbox_xywh": [row["bbox_x"], row["bbox_y"], row["bbox_w"], row["bbox_h"]],
                 "image_id": str(row["image_id"]),
+                # source VG object_id, preserved distinctly from example_id -- NOT unique on
+                # its own in this repackaged dataset (see prepare_visual_genome_data.py's
+                # "BENCHMARK EXAMPLE IDENTITY" docstring section), so never used as the identity.
+                "object_id": str(row["object_id"]),
             }
             if has_image_dims:
                 metadata["image_width"] = row["image_width"]
                 metadata["image_height"] = row["image_height"]
             examples.append(Example(
-                example_id=str(row["instance_id"]),
+                example_id=str(row["example_id"]),
                 image=image,
                 image_ref=str(image_path),
                 prompt_input={"object_name": row["object_name"]},
