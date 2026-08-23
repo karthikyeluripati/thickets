@@ -14,13 +14,22 @@ carried through inside ParsedPrediction.parsed (an opaque, adapter-owned payload
 {"raw": ..., "extracted": ...} specifically so score_example can still call compute_reward on
 the untouched original text.
 
-PARSER FIX (this repair pass): parse_prediction() no longer calls GQAHandler's own
+PARSER FIX (earlier repair pass): parse_prediction() no longer calls GQAHandler's own
 extract_answer_for_voting() at all -- a real RunPod run showed it mis-extracting a nested
 `\\boxed{\\text{...}}` answer via (presumably) a non-balanced-brace regex, and fabricating the
 nonsense string "step step" for a generation truncated before any `\\boxed{}` appeared, with
 parser_failure_rate staying 0 throughout. gqa_boxed_answer.extract_boxed_answer() (this
-package's own code, balanced-brace-correct) now decides parse_ok/parser_failure_rate instead;
+package's own code, balanced-brace-correct) decided parse_ok/parser_failure_rate instead;
 compute_reward's own scoring behavior is untouched (still called on the raw generation).
+
+PARSER FIX, round 2 (this repair pass): a real N=5 spatial run showed a bare "Yes" (no
+`\\boxed{}` at all) -- a genuinely valid, common GQA answer style -- being counted as a parser
+failure. parse_prediction() now uses gqa_boxed_answer.extract_gqa_answer(), which keeps
+`\\boxed{}` extraction as the preferred path but adds a CONSERVATIVE concise-answer fallback:
+the entire generation is accepted as-is only if it structurally looks like a short answer
+(single line, <= 8 tokens, <= 60 chars) -- never a guess extracted from within longer text, so
+the original "step step"-from-truncated-prose failure mode stays fixed. The extraction mode
+("boxed" / "concise_fallback" / "failure") is recorded in ParsedPrediction.parsed["extraction_mode"].
 
 PROMPT FIX (this repair pass): build_prompt() appends a short, capability-benchmark-ONLY
 instruction on top of GQAHandler's own historical messages (never mutated in place) asking
@@ -36,7 +45,7 @@ from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Set
 
 from ..base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
-from .gqa_boxed_answer import extract_boxed_answer
+from .gqa_boxed_answer import extract_gqa_answer
 from .gqa_raw_schema import GQASchemaError, load_persisted_filter_ids
 
 # Appended as an EXTRA text block on GQAHandler's own last message turn -- never replaces or
@@ -169,21 +178,28 @@ class GQAFilteredBenchmark(CapabilityBenchmark):
         return messages
 
     def parse_prediction(self, raw_generation: str, example: Example) -> ParsedPrediction:
-        """See module docstring's PARSER FIX note: uses this package's own balanced-brace
-        \\boxed{} extractor, NOT GQAHandler.extract_answer_for_voting(), to decide parse_ok.
+        """See module docstring's PARSER FIX notes: uses this package's own
+        gqa_boxed_answer.extract_gqa_answer() (balanced-brace \\boxed{} extraction, with a
+        conservative concise-answer fallback), NOT GQAHandler.extract_answer_for_voting(), to
+        decide parse_ok.
         """
-        extracted = extract_boxed_answer(raw_generation)
+        extracted, extraction_mode = extract_gqa_answer(raw_generation)
         ok = extracted is not None
         return ParsedPrediction(
-            parsed={"raw": raw_generation, "extracted": extracted},
-            parse_ok=ok, parse_error=None if ok else "no \\boxed{...} final answer found (balanced-brace extraction)",
+            parsed={"raw": raw_generation, "extracted": extracted, "extraction_mode": extraction_mode},
+            parse_ok=ok,
+            parse_error=None if ok else "no \\boxed{...} final answer and generation is not a concise short-answer fallback",
         )
 
     def score_example(self, parsed: ParsedPrediction, example: Example) -> ExampleScore:
         if not parsed.parse_ok:
-            return ExampleScore(score=0.0, correct=False, detail={"extracted": None, "reason": "parse_failure"})
+            return ExampleScore(score=0.0, correct=False, detail={
+                "extracted": None, "reason": "parse_failure", "extraction_mode": parsed.parsed["extraction_mode"],
+            })
         reward = self._resolve_handler().compute_reward(parsed.parsed["raw"], example.target)
-        return ExampleScore(score=float(reward), correct=reward > 0, detail={"extracted": parsed.parsed["extracted"]})
+        return ExampleScore(score=float(reward), correct=reward > 0, detail={
+            "extracted": parsed.parsed["extracted"], "extraction_mode": parsed.parsed["extraction_mode"],
+        })
 
     def aggregate_metrics(self, scores: List[ExampleScore]) -> Dict[str, float]:
         n = len(scores)

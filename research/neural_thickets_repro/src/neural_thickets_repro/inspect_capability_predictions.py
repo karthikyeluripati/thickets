@@ -36,8 +36,8 @@ CAPABILITY_EXTRA_FIELDS: Dict[str, Dict[str, List[str]]] = {
         "detail": ["iou", "raw_prediction_box", "canonical_prediction_box", "coordinate_mode"],
         "metadata": ["bbox_pixels_xywh", "image_width", "image_height", "all_referring_expressions"],
     },
-    "spatial_reasoning": {"detail": ["extracted"], "metadata": []},
-    "relational_reasoning": {"detail": ["extracted"], "metadata": []},
+    "spatial_reasoning": {"detail": ["extracted", "extraction_mode"], "metadata": []},
+    "relational_reasoning": {"detail": ["extracted", "extraction_mode"], "metadata": []},
     "ocr_text_recognition": {"detail": ["vqa_soft_accuracy"], "metadata": ["ocr_tokens", "ocr_grounded"]},
     "ocr_text_recognition_grounded": {"detail": ["vqa_soft_accuracy"], "metadata": ["ocr_tokens", "ocr_grounded"]},
     "attribute_recognition": {

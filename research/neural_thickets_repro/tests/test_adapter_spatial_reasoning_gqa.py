@@ -8,6 +8,17 @@ import pytest
 
 from neural_thickets_repro.benchmarks.adapters.spatial_reasoning_gqa import GQASpatialReasoningBenchmark
 
+# A genuinely unparseable generation for these tests: too long/multi-token to pass the
+# concise-answer fallback (see gqa_boxed_answer.py's CONCISE-ANSWER FALLBACK), and with no
+# \boxed{} answer either -- a real parser failure, unlike a short "I don't know"/similar
+# phrase, which the new conservative fallback now legitimately accepts as SOME answer (to be
+# scored, likely incorrectly, by compute_reward -- not excluded from the denominator).
+_LONG_UNPARSEABLE_GENERATION = (
+    "I am not entirely sure how to determine this from the image alone, since there are "
+    "several objects near each other and it is genuinely hard to tell which one the question "
+    "is actually referring to without more context or a clearer view of the scene."
+)
+
 
 def test_capability_and_name():
     bench = GQASpatialReasoningBenchmark(question_ids={"1"})
@@ -80,7 +91,7 @@ def test_parse_prediction_uses_balanced_brace_boxed_extraction_not_extract_answe
     assert parsed_ok.parse_ok is True
     assert parsed_ok.parsed["extracted"] == "left"
 
-    parsed_fail = bench.parse_prediction("I don't know", example)
+    parsed_fail = bench.parse_prediction(_LONG_UNPARSEABLE_GENERATION, example)
     assert parsed_fail.parse_ok is False
     assert parsed_fail.parsed["extracted"] is None
 
@@ -93,6 +104,24 @@ def test_parse_prediction_handles_the_real_nested_brace_case(fake_gqa_handler_fa
     parsed = bench.parse_prediction("\\boxed{\\text{the person in the blue shirt}}", example)
     assert parsed.parse_ok is True
     assert parsed.parsed["extracted"] == "the person in the blue shirt"
+
+
+def test_parse_prediction_real_bug_case_201079958_bare_yes_no_longer_a_parser_failure(fake_gqa_handler_factory):
+    """The exact real N=5 spatial bug this repair pass fixes: example_id=201079958, question
+    "Are there drapes to the right of the bed?", raw_generation "Yes", target "yes" -- was
+    wrongly counted as a parser failure since there was no \\boxed{} at all.
+    """
+    bench = GQASpatialReasoningBenchmark(gqa_handler=fake_gqa_handler_factory([]), question_ids=set())
+    from neural_thickets_repro.benchmarks.base import Example
+    example = Example(example_id="201079958", target={"answer": "yes"})
+
+    parsed = bench.parse_prediction("Yes", example)
+    assert parsed.parse_ok is True
+    assert parsed.parsed["extracted"] == "Yes"
+    assert parsed.parsed["extraction_mode"] == "concise_fallback"
+
+    score = bench.score_example(parsed, example)
+    assert score.detail["extraction_mode"] == "concise_fallback"
 
 
 def test_parse_prediction_truncated_generation_is_a_real_failure_not_step_step(fake_gqa_handler_factory):
@@ -137,7 +166,7 @@ def test_score_example_skips_compute_reward_entirely_on_parse_failure(fake_gqa_h
     from neural_thickets_repro.benchmarks.base import Example
     example = Example(example_id="1", target={"answer": "left"})
 
-    parsed = bench.parse_prediction("no boxed answer here", example)
+    parsed = bench.parse_prediction(_LONG_UNPARSEABLE_GENERATION, example)
     score = bench.score_example(parsed, example)
     assert score.score == 0.0
     assert score.correct is False
