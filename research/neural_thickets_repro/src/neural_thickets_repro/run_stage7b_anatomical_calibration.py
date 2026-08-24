@@ -8,8 +8,8 @@ names).
 perturbation_mode = anatomical_relative_l2 (thicket.perturbation.apply_anatomical_relative_l2,
 the EXACT-rescale mode -- see that module's docstring for why this is scientifically distinct
 from scoped_perturbation.py's expectation-only relative_l2 scale mode). Dispatched via
-scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation_bf16_bracketed (v2, this
-repair pass -- see BF16 BRACKETED SOLVER v2 section below).
+scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3
+(this repair pass -- see QUANTIZATION-AWARE ACCEPTANCE v3 section below).
 
 =================================================================================================
 BF16 REALIZED-RADIUS CORRECTION -- v1 (proven root cause, not assumed): a real RunPod smoke
@@ -40,12 +40,40 @@ sequence above). Hard-fails (RadiusCorrectionFailedError) with `quantization_pla
 the nearest achievable realized values on both sides of the target when no bf16-representable
 point is actually within tolerance -- never silently accepted with a looser bound.
 
-`radius_realization_method` ("fixed_direction_bf16_bracketed_v2") is part of both the
-run_signature (for any non-"full" plan) and the checkpoint/run manifest identity, so a
-checkpoint written under a DIFFERENT method (v1's "fixed_direction_bf16_corrected_v1", or any
-earlier one-shot method) can never be silently resumed under this one -- the v1 full-run attempt
-that produced the oscillating failure above is left on disk, untouched, as provenance; v2 starts
-as a scientifically fresh run under its own run_signature/output_dir.
+`radius_realization_method` ("fixed_direction_bf16_bracketed_v2") was part of both the
+run_signature and the checkpoint/run manifest identity, so a checkpoint written under a
+DIFFERENT method (v1's "fixed_direction_bf16_corrected_v1", or any earlier one-shot method)
+could never be silently resumed under it -- the v1 full-run attempt that produced the
+oscillating failure was left on disk, untouched, as provenance.
+
+QUANTIZATION-AWARE ACCEPTANCE -- v3 (this repair pass): v2's bracketed solver was then run for
+real on the Stage-7B three-region smallest-radius numerical smoke and produced DECISIVE evidence
+that strict 1e-6 is physically unattainable for one specific cell: vision and language both
+converged strictly (abs errors 9.91e-7 and 3.46e-7), but the connector region proved a genuine
+`quantization_plateau` -- the solver observed an EXACT repeated realized value during bisection,
+with the target provably bracketed between two attainable bf16 states whose nearest RELATIVE
+error is ~3.52e-4 (0.0352%), comfortably inside a 0.1% admissibility bound. v3 does NOT change
+the solver (`solve_bf16_radius` is reused UNCHANGED -- same bisection, same plateau detection);
+it adds a strictly narrower two-tier ACCEPTANCE rule on top, implemented in
+`scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3`
+(see that module's own docstring for the full derivation):
+  - STRICT: `abs(realized - requested) <= 1e-6` -- accepted exactly as v2 did.
+  - QUANTIZATION-LIMITED FALLBACK: only when the solver has PROVEN `quantization_plateau=True`
+    (never merely "ran out of attempts"), AND the requested radius is bracketed by two
+    attainable bf16 states, AND the nearer one's RELATIVE error (a fraction of the requested
+    radius -- scale-appropriate across the six-decade-wide frozen radius grid, never an absolute
+    number) is `<= 1e-3` (0.1%) -- a NUMERICAL ADMISSIBILITY bound, never an experimental
+    hyperparameter and never chosen from any capability/task performance signal. The ACTUAL
+    realized radius (never the nominal requested value) is always what gets persisted.
+  - Otherwise: HARD FAIL (`RadiusCorrectionFailedError` / `QuantizationToleranceExceededError`).
+
+`radius_realization_method` ("fixed_direction_bf16_quantization_aware_v3") is part of both the
+run_signature (EVERY signature is method-suffixed, this repair pass -- including the full
+-calibration identity itself, e.g. `full_fixed_direction_bf16_quantization_aware_v3`, so it is
+never confused with a bare "full" from an earlier method) and the checkpoint/run manifest
+identity, so a checkpoint written under v1 or v2 can never be silently resumed under v3 -- their
+artifacts are left on disk, untouched, as provenance; v3 always starts as a scientifically fresh
+run under its own run_signature/output_dir.
 =================================================================================================
 
 =================================================================================================
@@ -94,14 +122,18 @@ explicitly, immediately after engine launch -- for both smoke and full runs.
 =================================================================================================
 
 Lifecycle per candidate (fixed-base, same restoration discipline as Stage 6):
-    [inside scoped_apply_anatomical_perturbation_bf16_bracketed, per solver trial:]
+    [inside scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3, per solver trial:]
         reset_to_base_weights() -- from the frozen theta_0 snapshot, every trial
         -> apply the SAME fixed seeded direction at the trial's scalar magnitude
         -> verify outside-region parameters are EXACTLY unchanged (max_abs_drift == 0.0)
-        -> measure the TRUE (post-BF16-add) realized relative-L2; accept, or bisect/proportion
-           -correct and retry (see solve_bf16_radius)
-    -> (accepted) evaluate all 3 capabilities' D_map subsets, in fixed order -- the accepted
-       trial's weights are exactly what remains loaded, never reconstructed afterward
+        -> measure the TRUE (post-BF16-add) realized relative-L2; accept strictly, or
+           bisect/proportion-correct and retry (see solve_bf16_radius)
+    [if strict convergence fails but a plateau is PROVEN and the nearest attainable bf16 state's
+     RELATIVE error is <= 0.1%: reset -> reapply the selected scalar -> verify EXACT reproduction
+     -> verify outside-region invariance again -- only then is the fallback state accepted]
+    -> (accepted, strict or quantization-limited) evaluate all 3 capabilities' D_map subsets, in
+       fixed order -- the accepted state's weights are exactly what remains loaded, never
+       reconstructed afterward
     -> reset_to_base_weights()
     -> verify EXACT fixed-base restoration (reused from run_global_visual_thicket_pilot)
     -> append candidate rows (checkpointed -- same append-only, resume-safe discipline as Stage 6)
@@ -165,10 +197,12 @@ from .run_global_visual_thicket_pilot import (
     verify_exact_fixed_base_restoration_via_rpc,
 )
 from .scoped_anatomical_perturbation import (
-    BF16_RADIUS_REALIZATION_METHOD_V2,
+    QUANTIZATION_AWARE_METHOD_V3,
+    QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     CorrectionOutOfRegionDriftError,
+    QuantizationToleranceExceededError,
     RadiusCorrectionFailedError,
-    scoped_apply_anatomical_perturbation_bf16_bracketed,
+    scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
 )
 from .thicket.anatomy import build_anatomy_atlas
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest, generate_perturbation_population, validate_unique_worker_seeds
@@ -203,11 +237,13 @@ SMOKE_D_MAP_N = 5
 _ALLOWED_D_MAP_SIZES: Tuple[int, ...] = (FULL_CALIBRATION_D_MAP_N, SMOKE_D_MAP_N)
 
 # The realization method this run uses -- reused BY IDENTITY from scoped_anatomical_
-# perturbation.py, never redefined here. Folded into both the run_signature (for any non-"full"
-# plan) and the checkpoint/run manifest identity, so a checkpoint written under a different
-# method (v1's proportional-only corrector, or any earlier one-shot method) is never silently
-# resumed under this one (v2, the bracketed solver -- this repair pass).
-RADIUS_REALIZATION_METHOD = BF16_RADIUS_REALIZATION_METHOD_V2
+# perturbation.py, never redefined here. Folded into the run_signature (see
+# compute_stage7b_run_signature -- EVERY signature, including the full-calibration identity, is
+# method-suffixed, this repair pass) and the checkpoint/run manifest identity, so a checkpoint
+# written under a different method (v1's proportional-only corrector, v2's bracketed-but-strict
+# -only solver, or any earlier one-shot method) is never silently resumed under this one (v3,
+# the quantization-aware two-tier acceptance rule).
+RADIUS_REALIZATION_METHOD = QUANTIZATION_AWARE_METHOD_V3
 
 # Tolerance for the exact-rescale realized-vs-requested relative-L2 check -- matches the
 # tolerance already established by tests/test_thicket_perturbation.py's
@@ -217,12 +253,14 @@ REALIZED_RADIUS_TOLERANCE = 1e-6
 
 
 class RealizedRadiusMismatchError(RuntimeError):
-    """Defensive re-check (no extra RPC round trip) on the ALREADY bf16-bracketed/converged
-    result: the realized relative-L2 norm did not match the requested radius within
-    REALIZED_RADIUS_TOLERANCE -- should never actually fire in practice, since
-    scoped_apply_anatomical_perturbation_bf16_bracketed itself already guarantees convergence
-    (RadiusCorrectionFailedError) or this exact bound before returning; kept as a second,
-    independent layer rather than trusting a single check.
+    """Defensive, mode-aware re-check (no extra RPC round trip) on the ALREADY accepted result:
+    for radius_acceptance_mode="strict", the realized relative-L2 did not match the requested
+    radius within REALIZED_RADIUS_TOLERANCE; for "quantization_limited", the RELATIVE error did
+    not stay within QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE. Should never actually fire in
+    practice, since scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 itself
+    already guarantees one of these two bounds (or raises RadiusCorrectionFailedError /
+    QuantizationToleranceExceededError) before returning; kept as a second, independent layer
+    rather than trusting a single check.
     """
 
 
@@ -245,22 +283,21 @@ def compute_stage7b_run_signature(
     regions: Sequence[str], radii: Sequence[float], n_per_cell: int, d_map_n: int,
     radius_realization_method: str = RADIUS_REALIZATION_METHOD,
 ) -> str:
-    """"full" iff EVERY dimension (including `radius_realization_method`, this repair pass)
-    exactly matches the frozen full-calibration identity; otherwise a deterministic "smoke_..."
-    descriptive string built from the ACTUAL values (never a fixed literal string), always
-    suffixed with the realization method -- structurally guarantees "full" can only ever mean
-    the one frozen identity, and any override (smoke, a different realization method, or both)
-    can never collide with it or with a run made under a different method. This is what makes
-    it impossible for a failed/partial smoke run -- OR a run made under the OLD, uncorrected
-    one-shot realization method -- to ever be resumed as (or mistaken for) this run: they always
-    live under different `output_dir`s.
+    """`f"full_{radius_realization_method}"` iff regions/radii/n_per_cell/d_map_n exactly match
+    the frozen full-calibration identity (the METHOD itself is always suffixed onto the
+    signature, this repair pass -- no bare "full" literal exists anymore, exactly so a v3 run's
+    output directory is `full_fixed_direction_bf16_quantization_aware_v3` and can never be
+    confused with, or resumed from, a v1/v2 (or any future) method's own full-run directory);
+    otherwise a deterministic "smoke_..." descriptive string built from the ACTUAL values (never
+    a fixed literal string), also suffixed with the method. This is what makes it impossible for
+    a failed/partial smoke run -- OR a run made under an OLDER realization method -- to ever be
+    resumed as (or mistaken for) this run: they always live under different `output_dir`s.
     """
     if (
         tuple(regions) == FULL_CALIBRATION_REGIONS and tuple(radii) == FULL_CALIBRATION_RADII
         and n_per_cell == FULL_CALIBRATION_N_PER_CELL and d_map_n == FULL_CALIBRATION_D_MAP_N
-        and radius_realization_method == RADIUS_REALIZATION_METHOD
     ):
-        return "full"
+        return f"full_{radius_realization_method}"
     region_label = "-".join(regions)
     radius_label = "-".join(_format_radius_for_signature(r) for r in radii)
     return f"smoke_{region_label}_r{radius_label}_n{d_map_n}_p{n_per_cell}_{radius_realization_method}"
@@ -296,7 +333,14 @@ class Stage7bPlan:
 
     @property
     def is_smoke(self) -> bool:
-        return self.run_signature != "full"
+        """Checked against the actual FIELDS, not the run_signature string (which is always
+        method-suffixed and therefore never a fixed literal to compare against) -- true iff any
+        of regions/radii/n_per_cell/d_map_n deviates from the frozen full-calibration identity.
+        """
+        return not (
+            self.regions == FULL_CALIBRATION_REGIONS and self.radii == FULL_CALIBRATION_RADII
+            and self.n_per_cell == FULL_CALIBRATION_N_PER_CELL and self.d_map_n == FULL_CALIBRATION_D_MAP_N
+        )
 
 
 def build_stage7b_plan(
@@ -574,15 +618,20 @@ def evaluate_one_calibration_candidate_rpc(
     """`run_benchmark` is injected (real callers pass benchmarks.runner.run_benchmark) so this
     function stays testable against a fake engine + fake benchmark runner with zero GPU/ray.
 
-    Dispatches scoped_apply_anatomical_perturbation_bf16_bracketed (v2) -- the ENTIRE reset ->
-    apply -> measure-TRUE-realized-radius -> accept-or-bisect/proportion-and-retry solver loop
-    happens inside THAT single RPC call, entirely before this function ever reaches the
-    capability-evaluation loop below (no capability evaluation occurs before radius
-    convergence), and the accepted trial's weights remain loaded exactly as-is (see that
-    function's own docstring). It raises RadiusCorrectionFailedError / CorrectionOutOfRegionDriftError
-    on any unrecovered violation -- this function's own RealizedRadiusMismatchError check
-    afterward is a defensive, no-extra-RPC re-verification of the already-converged result, not
-    the primary enforcement.
+    Dispatches scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 -- the ENTIRE
+    reset -> apply -> measure-TRUE-realized-radius -> accept(strict)-or-bisect/proportion-retry
+    -or-accept(quantization-limited fallback, PROVEN plateau only)-or-hard-fail sequence happens
+    inside THAT single RPC call, entirely before this function ever reaches the
+    capability-evaluation loop below (no capability evaluation occurs before radius acceptance),
+    and the accepted state's weights remain loaded exactly as-is (see that function's own
+    docstring -- including, for the fallback path, its own explicit reset/reapply/verify
+    -reproduction sequence). It raises RadiusCorrectionFailedError / QuantizationToleranceExceededError
+    / CorrectionOutOfRegionDriftError on any unrecovered violation -- this function's own
+    RealizedRadiusMismatchError check afterward is a defensive, no-extra-RPC re-verification of
+    the already-accepted result, MODE-AWARE (strict re-checks the absolute 1e-6 bound;
+    quantization_limited re-checks the relative 0.1% bound -- an absolute-1e-6 re-check would
+    incorrectly reject every legitimate quantization-limited acceptance, which by definition can
+    exceed 1e-6 absolute error), not the primary enforcement.
     """
     if manifest.perturbation_mode != PERTURBATION_MODE:
         raise ValueError(f"Stage 7B only evaluates {PERTURBATION_MODE!r} manifests, got {manifest.perturbation_mode!r}")
@@ -591,19 +640,33 @@ def evaluate_one_calibration_candidate_rpc(
     records: List[ExperimentResultRecord] = []
     try:
         apply_result = _collective_rpc_single_worker(
-            engine, scoped_apply_anatomical_perturbation_bf16_bracketed,
+            engine, scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
             args=(manifest.seed, manifest.radius, manifest.anatomy_region, tuple(region_param_names)),
-            label="scoped_apply_anatomical_perturbation_bf16_bracketed", ray_get=ray_get,
+            label="scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", ray_get=ray_get,
         )
         realized_r = apply_result["realized_relative_l2"]
-        if abs(realized_r - manifest.radius) > REALIZED_RADIUS_TOLERANCE:
-            raise RealizedRadiusMismatchError(
-                f"Perturbation {manifest.perturbation_id!r} (region={manifest.anatomy_region!r}, "
-                f"requested radius={manifest.radius}): bf16-bracketed realized relative-L2 "
-                f"{realized_r} still differs by more than {REALIZED_RADIUS_TOLERANCE} -- this "
-                f"should be unreachable, since scoped_apply_anatomical_perturbation_bf16_bracketed "
-                f"itself guarantees this bound or raises RadiusCorrectionFailedError."
-            )
+        acceptance_mode = apply_result["radius_acceptance_mode"]
+        if acceptance_mode == "strict":
+            if abs(realized_r - manifest.radius) > REALIZED_RADIUS_TOLERANCE:
+                raise RealizedRadiusMismatchError(
+                    f"Perturbation {manifest.perturbation_id!r} (region={manifest.anatomy_region!r}, "
+                    f"requested radius={manifest.radius}): strict-mode realized relative-L2 "
+                    f"{realized_r} still differs by more than {REALIZED_RADIUS_TOLERANCE} -- this "
+                    f"should be unreachable, since scoped_apply_anatomical_perturbation_bf16_"
+                    f"quantization_aware_v3 itself guarantees this bound or raises RadiusCorrectionFailedError."
+                )
+        elif acceptance_mode == "quantization_limited":
+            if apply_result["relative_radius_error"] > QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE:
+                raise RealizedRadiusMismatchError(
+                    f"Perturbation {manifest.perturbation_id!r} (region={manifest.anatomy_region!r}, "
+                    f"requested radius={manifest.radius}): quantization-limited relative error "
+                    f"{apply_result['relative_radius_error']} still exceeds "
+                    f"{QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE} -- this should be unreachable, since "
+                    f"scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 itself "
+                    f"guarantees this bound or raises QuantizationToleranceExceededError."
+                )
+        else:
+            raise RealizedRadiusMismatchError(f"Unknown radius_acceptance_mode {acceptance_mode!r} for perturbation {manifest.perturbation_id!r}.")
 
         for capability, ctx in capability_contexts.items():
             if ctx.partition.manifest_hash != ctx.subset_hash:
@@ -623,18 +686,27 @@ def evaluate_one_calibration_candidate_rpc(
                 runtime_metadata={
                     "restoration_mode": RESTORATION_MODE, "perturbation_semantics": PERTURBATION_MODE,
                     "radius_realization_method": apply_result["radius_realization_method"],
+                    "radius_acceptance_mode": apply_result["radius_acceptance_mode"],
+                    "quantization_limited": apply_result["quantization_limited"],
                     "requested_relative_l2": manifest.radius, "designed_relative_l2": apply_result["designed_relative_l2"],
                     "designed_abs_error": apply_result["designed_abs_error"],
-                    "realized_relative_l2": realized_r, "realized_abs_error": apply_result["realized_abs_error"],
+                    "realized_relative_l2": realized_r,  # the ACTUAL realized value -- never the nominal requested value
+                    "realized_abs_error": apply_result["realized_abs_error"],
+                    "absolute_radius_error": apply_result["absolute_radius_error"],
+                    "relative_radius_error": apply_result["relative_radius_error"],
                     "initial_realized_relative_l2": apply_result["initial_realized_relative_l2"],
                     "final_realized_relative_l2": apply_result["final_realized_relative_l2"],
                     "final_absolute_radius_error": apply_result["final_absolute_radius_error"],
                     "final_scale": apply_result["final_scale"],
+                    "accepted_scalar": apply_result["accepted_scalar"],
                     "correction_iterations": apply_result["correction_iterations"],
                     "solver_iterations": apply_result["solver_iterations"],
                     "quantization_plateau": apply_result["quantization_plateau"],
                     "nearest_realized_below": apply_result["nearest_realized_below"],
                     "nearest_realized_above": apply_result["nearest_realized_above"],
+                    "attainable_gap": apply_result["attainable_gap"],
+                    "strict_tolerance": apply_result["strict_tolerance"],
+                    "quantization_plateau_relative_tolerance": apply_result["quantization_plateau_relative_tolerance"],
                     "direction_seed": apply_result["direction_seed"],
                     "region_param_count": apply_result["region_param_count"],
                     "theta_region_l2_norm": apply_result["theta_l2_norm"], "epsilon_region_l2_norm": apply_result["realized_epsilon_l2_norm"],
@@ -726,11 +798,13 @@ def main(argv=None) -> int:
     print(f"radius_realization_method={plan.radius_realization_method}")
     print(f"output_dir={plan.output_dir}")
     print(
-        "Lifecycle: scoped_apply_anatomical_perturbation_bf16_bracketed (per trial: "
+        "Lifecycle: scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (per trial: "
         "reset_to_base_weights -> apply SAME fixed seeded direction at trial scale -> verify "
-        "zero out-of-region drift -> measure TRUE post-BF16-add realized radius -> accept, or "
-        "proportion/bisect-and-retry, up to 20 trials, plateau-detected if no attainable point "
-        "is within tolerance) -> evaluate visual_grounding/ocr_text_recognition_grounded/"
+        "zero out-of-region drift -> measure TRUE post-BF16-add realized radius -> accept "
+        "strictly (<=1e-6), or proportion/bisect-and-retry up to 20 trials; if a quantization "
+        "plateau is PROVEN and the nearest attainable state's relative error is <=0.1%, reset -> "
+        "reapply that scalar -> verify exact reproduction -> accept as quantization_limited; "
+        "otherwise hard-fail) -> evaluate visual_grounding/ocr_text_recognition_grounded/"
         "spatial_reasoning D_map -> reset_to_base_weights -> verify exact restoration."
     )
 

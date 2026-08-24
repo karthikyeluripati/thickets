@@ -414,6 +414,250 @@ def scoped_apply_anatomical_perturbation_bf16_bracketed(
     }
 
 
+"""
+=================================================================================================
+QUANTIZATION-AWARE ACCEPTANCE -- v3 (this repair pass): the v2 bracketed solver was then run for
+real on the Stage-7B three-region smallest-radius numerical smoke and produced DECISIVE evidence
+that strict 1e-6 is physically unattainable for one specific (region, radius) cell: vision and
+language both converged strictly (abs errors 9.91e-7 and 3.46e-7), but the connector region
+proved a genuine quantization_plateau -- the bracketed solver observed an EXACT repeated realized
+value during bisection (two distinct trial scalars producing bit-identical bf16-realized
+outcomes), with the target provably bracketed between two attainable BF16 states
+(0.0035686268537125777 below, 0.0035711468798464217 above) whose nearest relative error is
+1.256e-6 absolute / requested ~= 3.52e-4 relative (0.0352%) -- comfortably inside a 0.1% bound.
+
+v3 does NOT change the solver (solve_bf16_radius, above, is reused unchanged -- same bisection,
+same plateau detection) -- it adds a strictly narrower ACCEPTANCE layer on top:
+  - if solve_bf16_radius converges strictly (abs error <= RADIUS_REALIZATION_TOLERANCE): accept
+    exactly as v2 did (radius_acceptance_mode="strict").
+  - if it does NOT converge and quantization_plateau is NOT proven: hard-fail exactly as v2 did
+    (RadiusCorrectionFailedError) -- there is no fallback for a merely-exhausted, non-plateaued
+    search; only a PROVEN quantization floor may trigger the fallback below.
+  - if quantization_plateau IS proven: select whichever of the two bracket endpoints
+    (nearest_realized_below/above) is closer to the requested radius, compute its RELATIVE error
+    (a fraction of the requested radius, not an absolute number -- deliberately scale-appropriate
+    across the six-decade-wide frozen radius grid), and accept it (radius_acceptance_mode=
+    "quantization_limited") ONLY if that relative error is <= QUANTIZATION_PLATEAU_RELATIVE_
+    TOLERANCE (1e-3, i.e. 0.1%) -- otherwise hard-fail with QuantizationToleranceExceededError.
+    This 1e-3 bound is a NUMERICAL ADMISSIBILITY bound, never an experimental hyperparameter and
+    never chosen from any capability/task performance signal -- it exists purely to state how
+    close a bf16-representable weight state must be to the requested radius, on a request-
+    relative scale, before the pipeline accepts "this is what 'radius r' physically means on
+    this hardware" in place of the exact nominal value. The six frozen scientific radii (spanning
+    ~0.0036 to ~0.36, two orders of magnitude) are entirely unaffected: this bound only ever
+    activates for the specific (region, radius, seed) cells where the bracketed solver has
+    already PROVEN (never assumed) that no closer bf16 state exists, and the ACTUAL realized
+    radius -- never the nominal requested one -- is what gets persisted and used downstream.
+
+Accepting the selected fallback scalar is NOT simply "reuse whatever the solver happened to
+leave loaded" -- the solver's own trial history may have moved past that scalar while searching
+(bisection can revisit/pass through states after they were first observed). Section 3 of the
+task requires an explicit, separate reset -> reapply(SAME seed, SAME direction, the selected
+scalar) -> remeasure -> verify-exact-reproduction -> verify-outside-region-invariance sequence
+before any capability evaluation is allowed to see the fallback state -- implemented literally
+below, never skipped for the fallback path.
+=================================================================================================
+"""
+
+QUANTIZATION_AWARE_METHOD_V3 = "fixed_direction_bf16_quantization_aware_v3"
+QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE = 1e-3  # 0.1% -- numerical admissibility bound, frozen, never task-performance-derived
+
+
+class QuantizationToleranceExceededError(RadiusCorrectionFailedError):
+    """A quantization_plateau WAS proven, but even the nearest attainable bf16 state's relative
+    error exceeds QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE -- the fallback is refused (never
+    silently accepted at a looser bound) and this propagates as a RadiusCorrectionFailedError
+    to any caller only catching that base class.
+    """
+
+
+def select_quantization_limited_acceptance(
+    nearest_realized_below: float, nearest_realized_above: float, requested_r: float,
+    *, relative_tolerance: float = QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
+) -> Dict[str, Any]:
+    """Pure decision logic (no GPU/model access) -- given a PROVEN plateau's two bracket
+    endpoints, picks whichever is closer to the requested radius and checks its RELATIVE error
+    against `relative_tolerance`. Separated from scoped_apply_anatomical_perturbation_bf16_
+    quantization_aware_v3 so the exact acceptance arithmetic (including the real connector
+    numbers from the Stage-7B smoke) is directly unit-testable without constructing real bf16
+    tensors that happen to plateau at those exact values.
+
+    Returns {"which": "below"|"above", "nearest_realized": float, "absolute_error": float,
+    "relative_error": float, "accepted": bool}. Never raises -- callers decide what to do with
+    accepted=False (this function only computes the arithmetic and the admissibility check).
+    """
+    below_error = abs(nearest_realized_below - requested_r)
+    above_error = abs(nearest_realized_above - requested_r)
+    if below_error <= above_error:
+        which, nearest_realized, absolute_error = "below", nearest_realized_below, below_error
+    else:
+        which, nearest_realized, absolute_error = "above", nearest_realized_above, above_error
+    relative_error = absolute_error / requested_r if requested_r > 0 else 0.0
+    return {
+        "which": which, "nearest_realized": nearest_realized, "absolute_error": absolute_error,
+        "relative_error": relative_error, "accepted": relative_error <= relative_tolerance,
+    }
+
+
+def scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(
+    worker_self, seed: int, r: float, region_name: str, region_param_names: Sequence[str],
+    *, max_iterations: int = MAX_RADIUS_SOLVER_ITERATIONS, strict_tolerance: float = RADIUS_REALIZATION_TOLERANCE,
+    quantization_plateau_relative_tolerance: float = QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
+) -> Dict:
+    """v3: reuses solve_bf16_radius (v2's solver, UNCHANGED) and adds the two-tier acceptance
+    rule described in the module docstring above. Requires worker_self._base_weights, same as
+    v1/v2.
+    """
+    if not hasattr(worker_self, "_base_weights"):
+        raise RuntimeError(
+            "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 requires "
+            "store_base_weights() to have already been called on this worker (no base snapshot "
+            "to reset/measure against)."
+        )
+    model = worker_self.model_runner.model
+    base_state = worker_self._base_weights
+    region_names_set = set(region_param_names)
+    last_record: Dict[str, Any] = {"value": None}
+
+    def _evaluate(trial_r: float) -> Dict[str, float]:
+        worker_self.reset_to_base_weights()
+        record = apply_anatomical_relative_l2(model, region_name, region_param_names, seed, trial_r, base_state=base_state)
+
+        out_of_region_drift = measure_drift(model, base_state, param_filter=lambda n: n not in region_names_set)
+        if out_of_region_drift["max_abs_drift"] != 0.0:
+            raise CorrectionOutOfRegionDriftError(
+                f"BF16 quantization-aware solver trial for region {region_name!r} (seed={seed}) "
+                f"changed parameters outside the selected region: max_abs_drift="
+                f"{out_of_region_drift['max_abs_drift']}, fraction_elements_differing="
+                f"{out_of_region_drift['fraction_elements_differing']}."
+            )
+
+        last_record["value"] = record
+        return {"realized_relative_l2": record.realized_relative_l2, "designed_relative_l2": record.designed_relative_l2}
+
+    solver_result = solve_bf16_radius(_evaluate, r, max_iterations=max_iterations, tolerance=strict_tolerance)
+
+    if solver_result["converged"]:
+        record = last_record["value"]
+        return _build_quantization_aware_result(
+            region_name=region_name, seed=seed, r=r, radius_acceptance_mode="strict", quantization_limited=False,
+            accepted_scalar=solver_result["accepted_scalar"], record=record, solver_result=solver_result,
+            strict_tolerance=strict_tolerance, quantization_plateau_relative_tolerance=quantization_plateau_relative_tolerance,
+        )
+
+    if not solver_result["quantization_plateau"]:
+        raise RadiusCorrectionFailedError(
+            f"BF16 quantization-aware solver did not converge within tolerance={strict_tolerance} "
+            f"after {len(solver_result['attempts'])} attempts for region {region_name!r} "
+            f"(seed={seed}, requested r={r}), and no quantization plateau was proven -- refusing "
+            f"the quantization-limited fallback, which requires a PROVEN plateau. "
+            f"best_realized={solver_result['best_realized_relative_l2']}, "
+            f"best_absolute_error={solver_result['best_absolute_error']}. Attempts: {solver_result['attempts']}"
+        )
+
+    nearest_below = solver_result["nearest_realized_below"]
+    nearest_above = solver_result["nearest_realized_above"]
+    final_attempt = solver_result["attempts"][-1]
+    if nearest_below is None or nearest_above is None or final_attempt["bracket_low_scale"] is None or final_attempt["bracket_high_scale"] is None:
+        raise RadiusCorrectionFailedError(
+            f"Quantization plateau reported for region {region_name!r} (seed={seed}) but the "
+            f"solver's own bracket is incomplete -- refusing the fallback without a proven "
+            f"bracket on BOTH sides of the target. Attempts: {solver_result['attempts']}"
+        )
+
+    selection = select_quantization_limited_acceptance(
+        nearest_below, nearest_above, r, relative_tolerance=quantization_plateau_relative_tolerance,
+    )
+    nearest_realized = selection["nearest_realized"]
+    candidate_scalar = final_attempt["bracket_low_scale"] if selection["which"] == "below" else final_attempt["bracket_high_scale"]
+
+    if not selection["accepted"]:
+        raise QuantizationToleranceExceededError(
+            f"Quantization plateau proven for region {region_name!r} (seed={seed}, requested "
+            f"r={r}), but the nearest attainable bf16 state's relative error "
+            f"{selection['relative_error']} exceeds the {quantization_plateau_relative_tolerance} "
+            f"(0.1%) admissibility bound -- nearest_realized_below={nearest_below}, "
+            f"nearest_realized_above={nearest_above}, best_absolute_error="
+            f"{solver_result['best_absolute_error']}. Refusing to accept."
+        )
+
+    # Section 3: explicit reset -> reapply(SAME seed/direction, selected scalar) -> remeasure ->
+    # verify EXACT reproduction -> verify outside-region invariance, before returning -- never
+    # simply trusts whatever the solver's search happened to leave loaded.
+    worker_self.reset_to_base_weights()
+    reproduction_record = apply_anatomical_relative_l2(model, region_name, region_param_names, seed, candidate_scalar, base_state=base_state)
+    reproduction_drift = measure_drift(model, base_state, param_filter=lambda n: n not in region_names_set)
+    if reproduction_drift["max_abs_drift"] != 0.0:
+        raise CorrectionOutOfRegionDriftError(
+            f"Reapplying the selected quantization-limited scalar for region {region_name!r} "
+            f"(seed={seed}) changed parameters outside the selected region: max_abs_drift="
+            f"{reproduction_drift['max_abs_drift']}."
+        )
+    if reproduction_record.realized_relative_l2 != nearest_realized:
+        raise RadiusCorrectionFailedError(
+            f"Reapplying the selected quantization-limited scalar for region {region_name!r} "
+            f"(seed={seed}) did not exactly reproduce the previously observed attainable state: "
+            f"expected {nearest_realized}, got {reproduction_record.realized_relative_l2}. Noise "
+            f"generation must be deterministic -- this indicates a real bug, not a tolerance issue."
+        )
+
+    return _build_quantization_aware_result(
+        region_name=region_name, seed=seed, r=r, radius_acceptance_mode="quantization_limited", quantization_limited=True,
+        accepted_scalar=candidate_scalar, record=reproduction_record, solver_result=solver_result,
+        strict_tolerance=strict_tolerance, quantization_plateau_relative_tolerance=quantization_plateau_relative_tolerance,
+        nearest_realized_below=nearest_below, nearest_realized_above=nearest_above,
+    )
+
+
+def _build_quantization_aware_result(
+    *, region_name: str, seed: int, r: float, radius_acceptance_mode: str, quantization_limited: bool,
+    accepted_scalar: float, record: Any, solver_result: Dict[str, Any], strict_tolerance: float,
+    quantization_plateau_relative_tolerance: float, nearest_realized_below: Optional[float] = None,
+    nearest_realized_above: Optional[float] = None,
+) -> Dict[str, Any]:
+    realized_r = record.realized_relative_l2
+    designed_r = record.designed_relative_l2
+    absolute_error = abs(realized_r - r)
+    relative_error = absolute_error / r if r > 0 else 0.0
+    nb = nearest_realized_below if nearest_realized_below is not None else solver_result["nearest_realized_below"]
+    na = nearest_realized_above if nearest_realized_above is not None else solver_result["nearest_realized_above"]
+    attainable_gap = (na - nb) if (nb is not None and na is not None) else None
+
+    return {
+        "region": region_name,
+        "seed": seed,
+        "direction_seed": seed,
+        "requested_relative_l2": r,
+        "designed_relative_l2": designed_r,
+        "designed_abs_error": abs(designed_r - r),
+        "realized_relative_l2": realized_r,  # the ACTUAL realized value -- never the nominal requested value
+        "absolute_radius_error": absolute_error,
+        "relative_radius_error": relative_error,
+        "realized_abs_error": absolute_error,  # backward-compat key name (matches v1/v2's own field)
+        "radius_acceptance_mode": radius_acceptance_mode,
+        "quantization_limited": quantization_limited,
+        "nearest_realized_below": nb,
+        "nearest_realized_above": na,
+        "attainable_gap": attainable_gap,
+        "accepted_scalar": accepted_scalar,
+        "final_scale": record.scale,
+        "solver_iterations": len(solver_result["attempts"]),
+        "correction_iterations": len(solver_result["attempts"]),  # backward-compat key name
+        "quantization_plateau": solver_result["quantization_plateau"],
+        "strict_tolerance": strict_tolerance,
+        "quantization_plateau_relative_tolerance": quantization_plateau_relative_tolerance,
+        "radius_realization_method": QUANTIZATION_AWARE_METHOD_V3,
+        "theta_l2_norm": record.theta_l2_norm,
+        "raw_noise_l2_norm": record.raw_noise_l2_norm,
+        "realized_epsilon_l2_norm": record.realized_epsilon_l2_norm,
+        "region_param_count": record.param_count,
+        "initial_realized_relative_l2": solver_result["attempts"][0]["realized_relative_l2"],
+        "final_realized_relative_l2": realized_r,
+        "final_absolute_radius_error": absolute_error,
+        "attempts": solver_result["attempts"],
+    }
+
+
 def diag_snapshot_base(worker_self) -> str:
     """Diagnostic-only in-worker base snapshot for drift measurement -- same shape as
     diagnostics/scope_isolation_gpu_check.py's _diag_snapshot_base, duplicated rather than

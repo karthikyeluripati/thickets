@@ -10,9 +10,12 @@ import torch
 from neural_thickets_repro.scoped_anatomical_perturbation import (
     BF16_RADIUS_REALIZATION_METHOD,
     BF16_RADIUS_REALIZATION_METHOD_V2,
+    QUANTIZATION_AWARE_METHOD_V3,
+    QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     CorrectionOutOfRegionDriftError,
     MAX_RADIUS_CORRECTION_ITERATIONS,
     MAX_RADIUS_SOLVER_ITERATIONS,
+    QuantizationToleranceExceededError,
     RADIUS_REALIZATION_TOLERANCE,
     RadiusCorrectionFailedError,
     diag_full_model_drift,
@@ -21,6 +24,8 @@ from neural_thickets_repro.scoped_anatomical_perturbation import (
     scoped_apply_anatomical_perturbation,
     scoped_apply_anatomical_perturbation_bf16_bracketed,
     scoped_apply_anatomical_perturbation_bf16_corrected,
+    scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
+    select_quantization_limited_acceptance,
     solve_bf16_radius,
 )
 from neural_thickets_repro.thicket.anatomy import build_anatomy_atlas
@@ -637,3 +642,284 @@ def test_v1_and_v2_realization_methods_are_distinct_constants():
     assert BF16_RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_corrected_v1"
     assert BF16_RADIUS_REALIZATION_METHOD_V2 == "fixed_direction_bf16_bracketed_v2"
     assert BF16_RADIUS_REALIZATION_METHOD != BF16_RADIUS_REALIZATION_METHOD_V2
+
+
+# =================================================================================================
+# select_quantization_limited_acceptance: pure decision arithmetic -- exercised directly against
+# the REAL connector numbers from the Stage-7B three-region smallest-radius numerical smoke.
+# =================================================================================================
+
+# The exact live evidence from the v2 smoke run (region=connector, smallest frozen radius).
+CONNECTOR_REQUESTED_R = 0.0035698828543799426
+CONNECTOR_NEAREST_BELOW = 0.0035686268537125777
+CONNECTOR_NEAREST_ABOVE = 0.0035711468798464217
+
+
+def test_quantization_aware_constants_are_frozen():
+    assert QUANTIZATION_AWARE_METHOD_V3 == "fixed_direction_bf16_quantization_aware_v3"
+    assert QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE == 1e-3
+
+
+def test_select_quantization_limited_acceptance_reproduces_the_exact_connector_evidence():
+    """The exact numbers reported from the live Stage-7B connector-region smoke: nearest-below
+    is closer (abs error 1.256e-6) than nearest-above (abs error 1.264e-6), relative error
+    ~=3.52e-4 (0.0352%) -- comfortably inside the 0.1% bound, so accepted.
+    """
+    result = select_quantization_limited_acceptance(CONNECTOR_NEAREST_BELOW, CONNECTOR_NEAREST_ABOVE, CONNECTOR_REQUESTED_R)
+
+    assert result["which"] == "below"
+    assert result["nearest_realized"] == CONNECTOR_NEAREST_BELOW
+    assert result["absolute_error"] == pytest.approx(1.2560006673648615e-06)
+    assert result["relative_error"] == pytest.approx(0.00035183246022312903)
+    assert result["accepted"] is True
+
+
+def test_select_quantization_limited_acceptance_picks_the_closer_side():
+    # above closer than below
+    result = select_quantization_limited_acceptance(0.0090, 0.0101, 0.0100)
+    assert result["which"] == "above"
+    assert result["nearest_realized"] == 0.0101
+
+
+def test_select_quantization_limited_acceptance_rejects_when_relative_error_exceeds_tolerance():
+    # both 5e-3 away from a requested r=1.0 -> relative error 0.5%, well above 0.1%
+    result = select_quantization_limited_acceptance(0.995, 1.005, 1.0)
+    assert result["accepted"] is False
+    assert result["relative_error"] == pytest.approx(0.005)
+
+
+def test_select_quantization_limited_acceptance_accepts_at_exactly_the_boundary():
+    # Uses the SAME floating-point computation for the tolerance as for the relative error
+    # itself (rather than a separately-typed "1e-3" literal, which can differ from the actual
+    # computed value by a representation-level ULP) -- proves the boundary is inclusive ("<=")
+    # without floating-point-equality flakiness.
+    below, above, requested = 0.999, 1.002, 1.0
+    relative_error_at_boundary = abs(below - requested) / requested
+    result = select_quantization_limited_acceptance(below, above, requested, relative_tolerance=relative_error_at_boundary)
+    assert result["which"] == "below"
+    assert result["relative_error"] == relative_error_at_boundary
+    assert result["accepted"] is True
+
+
+# =================================================================================================
+# scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3: the GPU-facing v3 wrapper,
+# real bf16 tensors -- reuses the _bf16_worker fixture already established for v1/v2's tests.
+# =================================================================================================
+
+
+def test_v3_strict_path_accepted_normally_when_it_converges():
+    """A region large enough to converge strictly (same 500,000-element / DIRECTION_SEED case
+    v2's own tests already confirmed converges) -- v3 must accept it as "strict", not fall
+    through to the quantization-limited path at all.
+    """
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert result["radius_acceptance_mode"] == "strict"
+    assert result["quantization_limited"] is False
+    assert result["realized_abs_error"] <= RADIUS_REALIZATION_TOLERANCE
+    assert result["radius_realization_method"] == QUANTIZATION_AWARE_METHOD_V3
+    assert result["quantization_plateau"] is False
+
+
+def test_v3_quantization_limited_path_accepts_nearest_attainable_within_tolerance():
+    """A region (2,000 elements) confirmed directly to plateau with relative error ~=1.05e-4
+    (well within 0.1%) at REQUESTED_R/DIRECTION_SEED -- v2 would have hard-failed this outright;
+    v3 must accept it via the quantization-limited fallback, and the REPORTED realized value
+    must be the actual nearest attainable state, never the nominal requested value.
+    """
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert result["radius_acceptance_mode"] == "quantization_limited"
+    assert result["quantization_limited"] is True
+    assert result["quantization_plateau"] is True
+    assert result["relative_radius_error"] <= QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE
+    assert result["realized_relative_l2"] != REQUESTED_R  # the ACTUAL realized value, never the nominal requested one
+    assert result["realized_relative_l2"] in (result["nearest_realized_below"], result["nearest_realized_above"])
+    assert result["nearest_realized_below"] is not None
+    assert result["nearest_realized_above"] is not None
+    assert result["attainable_gap"] == pytest.approx(result["nearest_realized_above"] - result["nearest_realized_below"])
+
+
+def test_v3_hard_fails_when_relative_error_exceeds_tolerance_even_with_proven_plateau():
+    """A region (100 elements, a specific seed) confirmed directly to plateau with relative
+    error ~=0.28% -- exceeds the 0.1% admissibility bound, so v3 must refuse the fallback
+    (QuantizationToleranceExceededError), never silently accept a looser bound.
+    """
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=100)
+
+    with pytest.raises(QuantizationToleranceExceededError):
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, 1, REQUESTED_R, "region", ["region_layer.weight"])
+
+
+def test_v3_quantization_tolerance_exceeded_is_a_radius_correction_failed_error():
+    """QuantizationToleranceExceededError subclasses RadiusCorrectionFailedError so any caller
+    only catching the base class still sees it.
+    """
+    assert issubclass(QuantizationToleranceExceededError, RadiusCorrectionFailedError)
+
+
+def test_v3_hard_fails_when_no_plateau_is_proven_and_strict_never_converges(monkeypatch):
+    """If solve_bf16_radius neither converges NOR proves a plateau (e.g. genuinely exhausted
+    max_iterations without ever forming a bracket) -- refuses any fallback, since the
+    quantization-limited path requires a PROVEN plateau, not merely "gave up".
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    def _fake_solve(evaluate_fn, r, max_iterations, tolerance):
+        evaluate_fn(r)  # still perturbs once, so a real record exists (mirrors a genuine trial)
+        return {
+            "converged": False, "quantization_plateau": False, "attempts": [{"iteration": 1, "scalar": r, "realized_relative_l2": r * 2, "absolute_error": r}],
+            "best_iteration": 1, "best_scalar": r, "best_designed_relative_l2": r * 2, "best_realized_relative_l2": r * 2,
+            "best_absolute_error": r, "accepted_scalar": None, "nearest_realized_below": None, "nearest_realized_above": None,
+        }
+
+    monkeypatch.setattr(module, "solve_bf16_radius", _fake_solve)
+
+    with pytest.raises(RadiusCorrectionFailedError) as exc_info:
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert not isinstance(exc_info.value, QuantizationToleranceExceededError)
+
+
+def test_v3_hard_fails_when_plateau_claimed_but_bracket_incomplete(monkeypatch):
+    """A (hypothetical, monkeypatched) plateau report missing one side of the bracket must
+    refuse the fallback rather than guessing -- the real solve_bf16_radius never actually
+    produces this combination, but the acceptance layer must not trust it blindly regardless.
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    def _fake_solve(evaluate_fn, r, max_iterations, tolerance):
+        evaluate_fn(r)
+        return {
+            "converged": False, "quantization_plateau": True,
+            "attempts": [{"iteration": 1, "scalar": r, "realized_relative_l2": r * 1.5, "absolute_error": r * 0.5, "bracket_low_scale": None, "bracket_high_scale": r}],
+            "best_iteration": 1, "best_scalar": r, "best_designed_relative_l2": r * 1.5, "best_realized_relative_l2": r * 1.5,
+            "best_absolute_error": r * 0.5, "accepted_scalar": None, "nearest_realized_below": None, "nearest_realized_above": r * 1.5,
+        }
+
+    monkeypatch.setattr(module, "solve_bf16_radius", _fake_solve)
+
+    with pytest.raises(RadiusCorrectionFailedError):
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+
+def test_v3_preserves_fixed_direction_only_scale_changes():
+    from neural_thickets_repro.perturb_cpu import _generate_noise
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)  # exercises the fallback path
+    region_names = ["region_layer.weight"]
+
+    scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    noise_a = _generate_noise(base_weights["region_layer.weight"], DIRECTION_SEED)
+    noise_b = _generate_noise(base_weights["region_layer.weight"], DIRECTION_SEED)
+    assert torch.equal(noise_a, noise_b)
+
+
+def test_v3_reconstructed_accepted_state_matches_selected_plateau_state():
+    """For the quantization-limited fallback specifically: the ACTUAL final model weights
+    (re-measured independently after the call returns) correspond exactly to the selected
+    nearest-attainable state, not merely to whatever the solver's search happened to leave
+    loaded -- proves the explicit reset/reapply/remeasure sequence (section 3) actually ran.
+    """
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert result["radius_acceptance_mode"] == "quantization_limited"
+
+    theta_before = base_weights["region_layer.weight"].float()
+    theta_after = model.region_layer.weight.detach().float()
+    realized_delta_l2 = (theta_after - theta_before).pow(2).sum().sqrt().item()
+    independently_measured_ratio = realized_delta_l2 / result["theta_l2_norm"]
+
+    assert independently_measured_ratio == pytest.approx(result["realized_relative_l2"], abs=1e-9)
+
+
+def test_v3_outside_region_bitwise_unchanged_strict_path():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+    scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert torch.equal(model.outside_layer.weight.detach(), base_weights["outside_layer.weight"])
+
+
+def test_v3_outside_region_bitwise_unchanged_quantization_limited_path():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)
+    region_names = ["region_layer.weight"]
+    scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert torch.equal(model.outside_layer.weight.detach(), base_weights["outside_layer.weight"])
+
+
+def test_v3_never_evaluates_capabilities():
+    import inspect
+
+    source = inspect.getsource(scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3)
+    for forbidden in ("run_benchmark", "CapabilityContext", "aggregate_metrics", "SamplingParams"):
+        assert forbidden not in source
+
+
+def test_v3_same_seed_produces_the_same_result_strict_and_fallback():
+    for region_elements in (500_000, 2_000):
+        worker_1, model_1, base_weights_1, _ = _bf16_worker(region_elements=region_elements)
+        worker_2, model_2, base_weights_2, _ = _bf16_worker(region_elements=region_elements)
+        region_names = ["region_layer.weight"]
+
+        result_1 = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker_1, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+        result_2 = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker_2, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+        assert result_1["radius_acceptance_mode"] == result_2["radius_acceptance_mode"]
+        assert result_1["realized_relative_l2"] == result_2["realized_relative_l2"]
+        assert torch.equal(model_1.region_layer.weight.detach(), model_2.region_layer.weight.detach())
+
+
+def test_v3_requires_base_weights_stored():
+    torch.manual_seed(0)
+    model = _TwoTensorBF16Model(1000).to(torch.bfloat16)
+    worker = SimpleNamespace(model_runner=SimpleNamespace(model=model))
+    with pytest.raises(RuntimeError, match="store_base_weights"):
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", ["region_layer.weight"])
+
+
+def test_v3_hard_fails_on_out_of_region_drift_during_trials(monkeypatch):
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    def _broken_measure_drift(model_arg, base_state, param_filter=None):
+        return {"max_abs_drift": 0.5, "mean_abs_drift": 0.1, "relative_norm_drift": 0.1, "fraction_elements_differing": 0.01}
+
+    monkeypatch.setattr(module, "measure_drift", _broken_measure_drift)
+
+    with pytest.raises(CorrectionOutOfRegionDriftError):
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+
+def test_v3_hard_fails_on_out_of_region_drift_on_the_fallback_path_too(monkeypatch):
+    """Section 4's out-of-region invariant applies to the FALLBACK path (a region that would
+    otherwise take the quantization-limited route) exactly as it does to the strict path --
+    forcing measure_drift to always report a leak must still raise, whichever path is taken.
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)  # would otherwise take the fallback path
+    region_names = ["region_layer.weight"]
+
+    def _always_broken(model_arg, base_state, param_filter=None):
+        return {"max_abs_drift": 0.5, "mean_abs_drift": 0.1, "relative_norm_drift": 0.1, "fraction_elements_differing": 0.01}
+
+    monkeypatch.setattr(module, "measure_drift", _always_broken)
+
+    with pytest.raises(CorrectionOutOfRegionDriftError):
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)

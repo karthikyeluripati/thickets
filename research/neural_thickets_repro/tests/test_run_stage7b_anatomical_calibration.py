@@ -87,7 +87,7 @@ def test_default_stage7b_plan_is_the_frozen_full_identity():
     assert plan.radii == FULL_CALIBRATION_RADII
     assert plan.n_per_cell == FULL_CALIBRATION_N_PER_CELL
     assert plan.d_map_n == FULL_CALIBRATION_D_MAP_N
-    assert plan.run_signature == "full"
+    assert plan.run_signature == f"full_{RADIUS_REALIZATION_METHOD}"
     assert plan.is_smoke is False
 
 
@@ -206,13 +206,14 @@ def test_smoke_and_full_plans_never_share_an_output_directory():
     full_plan = build_stage7b_plan(model_name="m", model_revision="r", output_root="out")
     smoke_plan = build_smoke_stage7b_plan(model_name="m", model_revision="r", output_root="out")
     assert full_plan.output_dir != smoke_plan.output_dir
-    assert full_plan.run_signature == "full"
-    assert smoke_plan.run_signature != "full"
+    assert full_plan.run_signature == f"full_{RADIUS_REALIZATION_METHOD}"
+    assert smoke_plan.run_signature != full_plan.run_signature
     assert smoke_plan.run_signature.startswith("smoke_")
 
 
-def test_compute_stage7b_run_signature_is_full_only_for_the_exact_frozen_identity():
-    assert compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N) == "full"
+def test_compute_stage7b_run_signature_is_method_suffixed_full_for_the_exact_frozen_identity():
+    signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
+    assert signature == f"full_{RADIUS_REALIZATION_METHOD}" == "full_fixed_direction_bf16_quantization_aware_v3"
 
 
 @pytest.mark.parametrize(
@@ -224,9 +225,9 @@ def test_compute_stage7b_run_signature_is_full_only_for_the_exact_frozen_identit
         (("vision",), FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N),  # only regions differ
     ],
 )
-def test_compute_stage7b_run_signature_never_returns_full_for_any_deviation(regions, radii, n_per_cell, d_map_n):
+def test_compute_stage7b_run_signature_never_returns_the_current_full_signature_for_any_deviation(regions, radii, n_per_cell, d_map_n):
     signature = compute_stage7b_run_signature(regions, radii, n_per_cell, d_map_n)
-    assert signature != "full"
+    assert signature != f"full_{RADIUS_REALIZATION_METHOD}"
     assert signature.startswith("smoke_")
 
 
@@ -256,17 +257,24 @@ def test_failed_smoke_checkpoint_can_never_be_loaded_as_a_full_checkpoint(tmp_pa
 # --- radius_realization_method is part of checkpoint/run identity (this repair pass) ----------
 
 
-def test_radius_realization_method_is_frozen_to_the_bf16_bracketed_v2_method():
-    assert RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_bracketed_v2"
+def test_radius_realization_method_is_frozen_to_the_bf16_quantization_aware_v3_method():
+    assert RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_quantization_aware_v3"
 
 
-def test_a_different_realization_method_never_produces_the_full_signature():
-    signature = compute_stage7b_run_signature(
+def test_a_different_realization_method_gets_its_own_disjoint_full_signature():
+    """A DIFFERENT method for the exact frozen full dims still yields a "full_..." signature
+    (it IS a legitimate full-calibration run, just under a different, older/other method) --
+    but a DIFFERENT one from the current method's own, so v1's or v2's full run (had either
+    ever actually been run) would never collide with v3's.
+    """
+    other_signature = compute_stage7b_run_signature(
         FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N,
         radius_realization_method="one_shot_uncorrected_legacy",
     )
-    assert signature != "full"
-    assert signature.endswith("one_shot_uncorrected_legacy")
+    current_signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
+    assert other_signature.startswith("full_")
+    assert other_signature.endswith("one_shot_uncorrected_legacy")
+    assert other_signature != current_signature
 
 
 def test_a_different_realization_method_gets_a_disjoint_smoke_path(tmp_path):
@@ -384,7 +392,8 @@ def test_build_stage7b_checkpoint_manifest_fields():
     plan = build_stage7b_plan(model_name="m", model_revision="rev1", output_root="out")
     checkpoint = build_stage7b_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan))
     assert checkpoint.experiment_id == EXPERIMENT_ID
-    assert checkpoint.run_signature == "full"
+    assert checkpoint.run_signature == f"full_{RADIUS_REALIZATION_METHOD}"
+    assert checkpoint.radius_realization_method == RADIUS_REALIZATION_METHOD
     assert checkpoint.perturbation_mode == PERTURBATION_MODE
     assert checkpoint.dataset_role == "map" == DATASET_ROLE
     assert checkpoint.d_map_n == FULL_CALIBRATION_D_MAP_N
@@ -612,9 +621,9 @@ def test_evaluate_one_calibration_candidate_rpc_resets_before_and_after(runtime_
 
     assert "reset_to_base_weights" in engine.calls
     assert engine.calls.count("reset_to_base_weights") >= 1
-    assert "scoped_apply_anatomical_perturbation_bf16_bracketed" in engine.calls
+    assert "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3" in engine.calls
     # The per-attempt defensive reset-before-perturb happens INSIDE
-    # scoped_apply_anatomical_perturbation_bf16_bracketed itself (direct method calls on
+    # scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 itself (direct method calls on
     # worker_self, not separate top-level collective_rpc dispatches this fake's call log would
     # see) -- proven directly against a persistent fake worker in
     # test_scoped_anatomical_perturbation.py::test_bf16_correction_resets_base_before_every_attempt.
@@ -654,25 +663,31 @@ def test_evaluate_one_calibration_candidate_rpc_rejects_wrong_perturbation_mode(
         )
 
 
-def _broken_bf16_corrected_result(region_name, seed, r, region_param_names, *, realized_relative_l2):
+def _broken_bf16_corrected_result(region_name, seed, r, region_param_names, *, realized_relative_l2, radius_acceptance_mode="strict"):
     """Shape-complete fake result dict matching scoped_apply_anatomical_perturbation_bf16_
-    bracketed's (v2) real return contract, used to force specific failure scenarios in the caller.
+    quantization_aware_v3's real return contract, used to force specific failure scenarios in
+    the caller.
     """
+    absolute_error = abs(realized_relative_l2 - r)
     return {
         "region": region_name, "seed": seed, "direction_seed": seed, "requested_relative_l2": r,
-        "designed_relative_l2": realized_relative_l2, "designed_abs_error": abs(realized_relative_l2 - r),
-        "realized_relative_l2": realized_relative_l2, "realized_abs_error": abs(realized_relative_l2 - r),
+        "designed_relative_l2": realized_relative_l2, "designed_abs_error": absolute_error,
+        "realized_relative_l2": realized_relative_l2, "realized_abs_error": absolute_error,
+        "absolute_radius_error": absolute_error, "relative_radius_error": absolute_error / r if r > 0 else 0.0,
+        "radius_acceptance_mode": radius_acceptance_mode, "quantization_limited": radius_acceptance_mode == "quantization_limited",
+        "accepted_scalar": 1.0, "attainable_gap": None,
         "initial_realized_relative_l2": realized_relative_l2, "final_realized_relative_l2": realized_relative_l2,
-        "final_absolute_radius_error": abs(realized_relative_l2 - r), "final_scale": 1.0, "correction_iterations": 1,
+        "final_absolute_radius_error": absolute_error, "final_scale": 1.0, "correction_iterations": 1,
         "solver_iterations": 1, "quantization_plateau": False, "nearest_realized_below": None, "nearest_realized_above": None,
-        "radius_realization_method": "fixed_direction_bf16_bracketed_v2", "theta_l2_norm": 1.0,
+        "strict_tolerance": 1e-6, "quantization_plateau_relative_tolerance": 1e-3,
+        "radius_realization_method": "fixed_direction_bf16_quantization_aware_v3", "theta_l2_norm": 1.0,
         "raw_noise_l2_norm": 1.0, "realized_epsilon_l2_norm": realized_relative_l2,
         "region_param_count": len(region_param_names), "attempts": [],
     }
 
 
 def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mismatch(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """Forces a mismatch by monkeypatching scoped_apply_anatomical_perturbation_bf16_bracketed's
+    """Forces a mismatch by monkeypatching scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3's
     dispatched result to (implausibly) claim convergence with a realized radius far from what
     was requested -- proves the CALLER's own defensive re-check still fires even if the
     dispatched result were ever wrong, not just that the corrected function itself is correct.
@@ -683,7 +698,7 @@ def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mi
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         return _broken_bf16_corrected_result(region_name, seed, r, region_param_names, realized_relative_l2=r + 10.0)
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
 
     with pytest.raises(RealizedRadiusMismatchError):
         evaluate_one_calibration_candidate_rpc(
@@ -693,7 +708,7 @@ def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mi
 
 
 def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_region_drift_error(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """If scoped_apply_anatomical_perturbation_bf16_bracketed itself raises
+    """If scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 itself raises
     CorrectionOutOfRegionDriftError (its own per-attempt out-of-region check -- proven directly
     in test_scoped_anatomical_perturbation.py), the caller must propagate it, not swallow it.
     """
@@ -703,7 +718,7 @@ def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_reg
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         raise CorrectionOutOfRegionDriftError("simulated out-of-region leak")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
 
     with pytest.raises(CorrectionOutOfRegionDriftError):
         evaluate_one_calibration_candidate_rpc(
@@ -713,7 +728,7 @@ def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_reg
 
 
 def test_evaluate_one_calibration_candidate_rpc_propagates_radius_correction_failed_error(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """If scoped_apply_anatomical_perturbation_bf16_bracketed itself raises
+    """If scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 itself raises
     RadiusCorrectionFailedError (a genuine numerical plateau -- proven directly in
     test_scoped_anatomical_perturbation.py), the caller must propagate it, never silently
     accept a wider tolerance.
@@ -724,7 +739,7 @@ def test_evaluate_one_calibration_candidate_rpc_propagates_radius_correction_fai
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         raise RadiusCorrectionFailedError("simulated plateau -- did not converge")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
 
     with pytest.raises(RadiusCorrectionFailedError):
         evaluate_one_calibration_candidate_rpc(
@@ -745,7 +760,7 @@ def test_evaluate_one_calibration_candidate_rpc_resets_after_a_correction_failur
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         raise RadiusCorrectionFailedError("simulated plateau")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
 
     with pytest.raises(RadiusCorrectionFailedError):
         evaluate_one_calibration_candidate_rpc(
@@ -846,7 +861,7 @@ def test_run_stage7b_rpc_never_persists_rows_for_a_failed_candidate(tmp_path, ru
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         return _broken_bf16_corrected_result(region_name, seed, r, region_param_names, realized_relative_l2=r + 10.0)
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
 
     with pytest.raises(RealizedRadiusMismatchError):
         run_stage7b_rpc(
@@ -860,18 +875,21 @@ def test_run_stage7b_rpc_never_persists_rows_for_a_failed_candidate(tmp_path, ru
 
 
 def test_run_stage7b_rpc_never_persists_rows_on_a_genuine_bf16_convergence_failure(tmp_path):
-    """The REAL live failure mode, end to end through run_stage7b_rpc (not monkeypatched):
-    a region too small for bf16 quantization noise to average out never converges within
-    MAX_RADIUS_CORRECTION_ITERATIONS -- run_stage7b_rpc must propagate RadiusCorrectionFailedError
-    and leave zero completed rows on disk. Uses a real bf16 CPU model (torch supports bf16
-    arithmetic on CPU) so this exercises the actual rounding behavior, not a simulation.
+    """The REAL live failure mode, end to end through run_stage7b_rpc (not monkeypatched): a
+    region small enough that even the PROVEN nearest attainable bf16 state's relative error
+    exceeds the 0.1% quantization-limited admissibility bound -- confirmed directly (not
+    assumed) to plateau with relative_error~=1.4% for this exact region size/derived-seed
+    combination -- so v3's fallback is correctly refused too, not just v1/v2's strict check.
+    run_stage7b_rpc must propagate QuantizationToleranceExceededError (a RadiusCorrectionFailedError
+    subclass) and leave zero completed rows on disk. Uses a real bf16 CPU model (torch supports
+    bf16 arithmetic on CPU) so this exercises the actual rounding behavior, not a simulation.
     """
     torch.manual_seed(0)
 
     class _TinyBF16Model(torch.nn.Module):
         def __init__(self):
             super().__init__()
-            self.region_layer = torch.nn.Linear(2000, 1, bias=False)
+            self.region_layer = torch.nn.Linear(10, 1, bias=False)
             self.outside_layer = torch.nn.Linear(100, 1, bias=False)
 
     model = _TinyBF16Model().to(torch.bfloat16)
@@ -888,7 +906,7 @@ def test_run_stage7b_rpc_never_persists_rows_on_a_genuine_bf16_convergence_failu
 
     with pytest.raises(RadiusCorrectionFailedError):
         run_stage7b_rpc(
-            plan, contexts, engine, tokenizer=None, sampling_params=None, base_seed=12345,
+            plan, contexts, engine, tokenizer=None, sampling_params=None, base_seed=1,
             region_param_names_by_region=region_param_names_by_region, parameter_mask_hash_by_region=mask_hash_by_region,
             run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
         )
@@ -926,4 +944,4 @@ def test_run_stage7b_rpc_skips_already_completed_candidates(tmp_path, runtime_wr
     )
 
     assert len(records2) == 3  # resumed from the already-completed rows, no new GPU work needed
-    assert "scoped_apply_anatomical_perturbation_bf16_bracketed" not in engine2.calls
+    assert "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3" not in engine2.calls

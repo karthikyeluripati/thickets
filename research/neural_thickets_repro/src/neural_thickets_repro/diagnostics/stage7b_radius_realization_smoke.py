@@ -4,15 +4,21 @@ HARDEST calibration case -- the smallest frozen radius (FULL_CALIBRATION_RADII[0
 multimodal_connector_or_merger, language), one deterministic perturbation each.
 
 Motivation: the connector region (36,708,608 parameters -- roughly 17x smaller than vision's
-631,975,680 and 84x smaller than language's 3,085,938,688) could plausibly have a DIFFERENT bf16
-quantization floor than vision (where the v1-vs-v2 solver investigation actually happened) --
-this script exists to find out, cheaply, before committing to a 144-candidate full run.
+631,975,680 and 84x smaller than language's 3,085,938,688) has a DIFFERENT bf16 quantization
+floor than vision/language -- a real run of THIS script's own earlier (v2, bracketed-but-
+strict-only) version found vision and language converge strictly (abs errors 9.91e-7 and
+3.46e-7) but connector proves a genuine quantization_plateau (nearest attainable bf16 states
+0.0035686268537125777 / 0.0035711468798464217, relative error ~=3.52e-4, i.e. 0.0352%) -- this
+script (now dispatching v3, the quantization-aware two-tier acceptance rule) exists to surface
+exactly this kind of per-region numerical floor cheaply, before committing to a 144-candidate
+full run.
 
-Does NOT evaluate any capability/dataset -- purely weight-space: apply (bf16-bracketed solver,
-v2), verify outside-region invariance, reset, verify exact restoration. Reuses
+Does NOT evaluate any capability/dataset -- purely weight-space: apply (bf16 quantization-aware
+solver, v3), verify outside-region invariance, reset, verify exact restoration. Reuses
 run_stage7b_anatomical_calibration.py's own frozen constants (FULL_CALIBRATION_REGIONS,
 FULL_CALIBRATION_RADII, STAGE7B_BASE_SEED) and scoped_anatomical_perturbation.py's
-scoped_apply_anatomical_perturbation_bf16_bracketed directly -- never reimplements the solver.
+scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 directly -- never reimplements
+the solver or the acceptance rule.
 
 The per-region seed is derived via the EXACT SAME generate_perturbation_population call the real
 Stage-7B full run uses for (region, smallest_radius, candidate index 0) -- so this script
@@ -58,8 +64,9 @@ from ..run_stage7b_anatomical_calibration import (
 )
 from ..scoped_anatomical_perturbation import (
     CorrectionOutOfRegionDriftError,
+    QuantizationToleranceExceededError,
     RadiusCorrectionFailedError,
-    scoped_apply_anatomical_perturbation_bf16_bracketed,
+    scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
 )
 from ..thicket.perturbation import generate_perturbation_population
 from ..vlm_adapter import bootstrap_ray, verify_workers_can_import_external_root
@@ -134,32 +141,45 @@ def _rpc(engine, method, args=(), *, label: str, ray_get=None):
 def run_one_region_smallest_radius_smoke(
     engine, region: str, region_param_names: Sequence[str], seed: int, *, ray_get=None,
 ) -> Dict[str, Any]:
-    """The per-region lifecycle (Section 3 of the task): apply (bf16-bracketed solver) -> verify
-    outside-region invariance for the ACCEPTED candidate -> reset -> verify exact restoration.
-    No dataset/capability evaluation anywhere. Returns exactly the fields the task requires.
+    """The per-region lifecycle (Section 3 of the task): apply (bf16 quantization-aware v3
+    solver + two-tier acceptance) -> verify outside-region invariance for the ACCEPTED candidate
+    -> reset -> verify exact restoration. No dataset/capability evaluation anywhere. Returns
+    exactly the fields the task requires, plus the acceptance-mode fields v3 adds.
     """
     solved = False
+    radius_acceptance_mode = None
+    quantization_limited = None
     plateau = False
     solver_iterations = None
     final_realized = None
     absolute_error = None
+    relative_error = None
+    nearest_realized_below = None
+    nearest_realized_above = None
     error_message = None
     outside_drift = {"outside_region_max_abs_drift": None, "outside_region_changed_tensor_count": None, "outside_region_total_tensor_count": None}
 
     try:
         apply_result = _rpc(
-            engine, scoped_apply_anatomical_perturbation_bf16_bracketed,
+            engine, scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
             args=(seed, SMALLEST_CALIBRATION_RADIUS, region, tuple(region_param_names)),
-            label="scoped_apply_anatomical_perturbation_bf16_bracketed", ray_get=ray_get,
+            label="scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", ray_get=ray_get,
         )
         solved = True
+        radius_acceptance_mode = apply_result["radius_acceptance_mode"]
+        quantization_limited = apply_result["quantization_limited"]
         solver_iterations = apply_result["solver_iterations"]
         final_realized = apply_result["realized_relative_l2"]
-        absolute_error = apply_result["realized_abs_error"]
+        absolute_error = apply_result["absolute_radius_error"]
+        relative_error = apply_result["relative_radius_error"]
         plateau = apply_result["quantization_plateau"]
+        nearest_realized_below = apply_result["nearest_realized_below"]
+        nearest_realized_above = apply_result["nearest_realized_above"]
         outside_drift = _rpc(engine, report_post_solve_outside_region_drift, args=(tuple(region_param_names),), label="report_post_solve_outside_region_drift", ray_get=ray_get)
+    except QuantizationToleranceExceededError as e:
+        plateau = True
+        error_message = str(e)
     except (RadiusCorrectionFailedError, CorrectionOutOfRegionDriftError) as e:
-        plateau = isinstance(e, RadiusCorrectionFailedError)
         error_message = str(e)
 
     reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
@@ -176,10 +196,15 @@ def run_one_region_smallest_radius_smoke(
         "seed": seed,
         "radius_realization_method": RADIUS_REALIZATION_METHOD,
         "solved": solved,
+        "radius_acceptance_mode": radius_acceptance_mode,
+        "quantization_limited": quantization_limited,
         "final_realized_radius": final_realized,
         "absolute_error": absolute_error,
+        "relative_error": relative_error,
         "solver_iterations": solver_iterations,
         "quantization_plateau": plateau,
+        "nearest_realized_below": nearest_realized_below,
+        "nearest_realized_above": nearest_realized_above,
         "outside_region_changed_tensor_count": outside_drift["outside_region_changed_tensor_count"],
         "outside_region_max_abs_drift": outside_drift["outside_region_max_abs_drift"],
         "restoration_exact": bool(verification["ok"]),

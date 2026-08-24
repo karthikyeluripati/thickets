@@ -196,16 +196,49 @@ def test_run_one_region_smallest_radius_smoke_reports_plateau_failure_and_still_
     base_snapshot = {k: v.clone() for k, v in engine._base_weights.items()}
 
     import neural_thickets_repro.diagnostics.stage7b_radius_realization_smoke as module
+    from neural_thickets_repro.scoped_anatomical_perturbation import QuantizationToleranceExceededError
 
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
-        raise RadiusCorrectionFailedError("simulated plateau: quantization_plateau=True nearest_realized_below=x nearest_realized_above=y")
+        # QuantizationToleranceExceededError specifically -- a PROVEN plateau whose nearest
+        # attainable state's relative error still exceeds 0.1% -- distinct from a plain
+        # RadiusCorrectionFailedError (no plateau proven at all), which the smoke module
+        # correctly reports as quantization_plateau=False.
+        raise QuantizationToleranceExceededError("simulated plateau: quantization_plateau=True nearest_realized_below=x nearest_realized_above=y")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
 
     result = run_one_region_smallest_radius_smoke(engine, "region", ["region_layer.weight"], seed=1, ray_get=_identity_ray_get)
 
     assert result["solved"] is False
     assert result["quantization_plateau"] is True
+    assert result["error"] is not None
+    assert result["restoration_exact"] is True
+    for name, p in model.named_parameters():
+        assert torch.equal(p.detach(), base_snapshot[name])
+
+
+def test_run_one_region_smallest_radius_smoke_reports_non_plateau_failure_and_still_restores(monkeypatch):
+    """A plain RadiusCorrectionFailedError (no plateau proven at all -- the solver simply ran
+    out of attempts) must be reported as quantization_plateau=False, distinct from the
+    QuantizationToleranceExceededError plateau case above.
+    """
+    torch.manual_seed(0)
+    model = _TwoTensorModel()
+    engine = _FakeSmokeEngine(model)
+    engine.store_base_weights()
+    base_snapshot = {k: v.clone() for k, v in engine._base_weights.items()}
+
+    import neural_thickets_repro.diagnostics.stage7b_radius_realization_smoke as module
+
+    def _broken_apply(worker_self, seed, r, region_name, region_param_names):
+        raise RadiusCorrectionFailedError("simulated: did not converge, no plateau proven")
+
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _broken_apply)
+
+    result = run_one_region_smallest_radius_smoke(engine, "region", ["region_layer.weight"], seed=1, ray_get=_identity_ray_get)
+
+    assert result["solved"] is False
+    assert result["quantization_plateau"] is False
     assert result["error"] is not None
     assert result["restoration_exact"] is True
     for name, p in model.named_parameters():
