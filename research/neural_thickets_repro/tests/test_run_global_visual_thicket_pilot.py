@@ -457,6 +457,23 @@ def test_run_pilot_rpc_reuses_the_same_engine_for_every_perturbation():
     assert engine.generate_call_count == plan.total_perturbation_capability_evaluations
 
 
+def test_run_pilot_rpc_verifies_restoration_after_every_single_candidate():
+    """Restoration verification (spec Task 2 item 4 / this repair pass's Task 3) must run
+    after EVERY candidate, not just the last one -- checked here by counting
+    'verify_restoration_rpc' collective_rpc dispatches against the exact number of unique
+    perturbations in a multi-sigma, multi-candidate population.
+    """
+    engine = _fake_engine()
+    contexts = _build_contexts(PILOT_CAPABILITIES)
+    raw = _raw_config()
+    plan = build_pilot_plan(raw, perturbations_per_sigma=3, subset_size=2)
+
+    run_pilot_rpc(plan, contexts, engine, _fake_tokenizer(), None, base_seed=42, parameter_mask_hash="hash1", ray_get=_identity_ray_get)
+
+    verify_calls = [c for c in engine.collective_rpc_calls if c[0] == "verify_restoration_rpc"]
+    assert len(verify_calls) == plan.total_unique_perturbations
+
+
 # --- deterministic pilot population reproduction -----------------------------------------------
 
 
@@ -562,14 +579,27 @@ def test_main_dry_run_with_smoke_overrides(capsys):
 
 
 def test_format_runtime_compatibility_diagnostic_includes_every_required_field():
-    from neural_thickets_repro.run_global_visual_thicket_pilot import format_runtime_compatibility_diagnostic
+    from neural_thickets_repro.run_global_visual_thicket_pilot import build_stage6_engine_config, format_runtime_compatibility_diagnostic
 
     text = format_runtime_compatibility_diagnostic(
         {"model_name": "Qwen/Qwen2.5-VL-3B-Instruct", "requested_revision": "rev1", "resolved_snapshot_path": "/fake/snap"},
         worker_extension_cls="utils.worker_extn.WorkerExtension", vllm_version="0.11.0", engine_mode="V1 (default)",
+        engine_config=build_stage6_engine_config(),
     )
-    for expected in ("vllm_version", "engine_mode", "worker_extension_cls", "model_name", "requested_revision", "resolved_snapshot_path"):
+    for expected in (
+        "vllm_version", "engine_mode", "worker_extension_cls", "model_name", "requested_revision",
+        "resolved_snapshot_path", "max_model_len: 4096", "gpu_memory_utilization: 0.75", "store_base_weights_called: False",
+    ):
         assert expected in text
+
+
+def test_build_stage6_engine_config_has_the_required_max_model_len_and_never_calls_store_base_weights():
+    from neural_thickets_repro.run_global_visual_thicket_pilot import build_stage6_engine_config
+
+    config = build_stage6_engine_config()
+    assert config["max_model_len"] == 4096
+    assert config["gpu_memory_utilization"] == 0.75
+    assert config["store_base_weights_called"] is False
 
 
 def test_get_vllm_version_never_raises_when_vllm_missing(monkeypatch):
@@ -618,22 +648,150 @@ def test_resolve_and_report_model_snapshot_calls_vlm_adapter_resolver(monkeypatc
     }
 
 
-# --- full main() GPU-path wiring: one model load, zero frontend access -------------------------
+# --- launch_stage6_engine: max_model_len, no store_base_weights, upstream WorkerExtension,
+# one engine only (Stage-6 RunPod smoke fix: KV-cache OOM + wasted second-model-copy) ----------
 
 
-def test_main_real_run_launches_engine_exactly_once_and_never_touches_frontend_attrs(tmp_path, monkeypatch):
+class _FakeStage6ActorHandle:
+    """What `RandOptNcclLLM(...).remote(**engine_kwargs)` returns in the fake -- records the
+    exact engine_kwargs it was constructed with, and exposes `.collective_rpc.remote(...)` so
+    a test can assert NOTHING (in particular never "store_base_weights") was dispatched to it
+    during launch_stage6_engine() itself.
+    """
+
+    def __init__(self, engine_kwargs):
+        self.engine_kwargs = engine_kwargs
+        self.collective_rpc_calls = []
+        self.collective_rpc = SimpleNamespace(remote=self._collective_rpc_remote)
+
+    def _collective_rpc_remote(self, method, args=()):
+        self.collective_rpc_calls.append((method, args))
+        return "fake_result"
+
+
+def _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls):
+    """Installs fake `ray`, `ray.util.placement_group`, `ray.util.scheduling_strategies`, and
+    `core`/`core.engine` (providing only `RandOptNcclLLM`, matching the real upstream module's
+    own class -- `launch_engines` itself is deliberately NOT provided, proving
+    launch_stage6_engine() never calls it) into sys.modules. Returns the list
+    `remote_actor_calls` will be populated with every `RandOptNcclLLM(...).remote(**kwargs)`
+    call's engine_kwargs.
+    """
+
+    class _FakeRandOptNcclLLM:
+        pass
+
+    def _ray_remote(**decorator_kwargs):
+        def _decorator(cls):
+            class _FakeActorClass:
+                @staticmethod
+                def remote(**engine_kwargs):
+                    remote_actor_calls.append(engine_kwargs)
+                    return _FakeStage6ActorHandle(engine_kwargs)
+
+            return _FakeActorClass
+
+        return _decorator
+
+    fake_ray_module = types.ModuleType("ray")
+    fake_ray_module.remote = _ray_remote
+    fake_ray_module.get = lambda x, timeout=None: x
+
+    fake_pg_module = types.ModuleType("ray.util.placement_group")
+    fake_pg_module.placement_group = lambda bundles, lifetime=None: SimpleNamespace(ready=lambda: "ready_marker")
+
+    fake_strategies_module = types.ModuleType("ray.util.scheduling_strategies")
+    fake_strategies_module.PlacementGroupSchedulingStrategy = lambda **kwargs: SimpleNamespace(**kwargs)
+
+    fake_ray_util_module = types.ModuleType("ray.util")
+
+    fake_core_engine_module = types.ModuleType("core.engine")
+    fake_core_engine_module.RandOptNcclLLM = _FakeRandOptNcclLLM
+    fake_core_module = types.ModuleType("core")
+    fake_core_module.engine = fake_core_engine_module
+
+    monkeypatch.setitem(sys.modules, "ray", fake_ray_module)
+    monkeypatch.setitem(sys.modules, "ray.util", fake_ray_util_module)
+    monkeypatch.setitem(sys.modules, "ray.util.placement_group", fake_pg_module)
+    monkeypatch.setitem(sys.modules, "ray.util.scheduling_strategies", fake_strategies_module)
+    monkeypatch.setitem(sys.modules, "core", fake_core_module)
+    monkeypatch.setitem(sys.modules, "core.engine", fake_core_engine_module)
+
+
+def test_launch_stage6_engine_passes_max_model_len_4096(monkeypatch):
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    engines, pgs = launch_stage6_engine("/fake/snapshot/path")
+    assert len(remote_actor_calls) == 1
+    assert remote_actor_calls[0]["max_model_len"] == 4096
+
+
+def test_launch_stage6_engine_uses_upstream_worker_extension_cls(monkeypatch):
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    launch_stage6_engine("/fake/snapshot/path")
+    assert remote_actor_calls[0]["worker_extension_cls"] == "utils.worker_extn.WorkerExtension"
+
+
+def test_launch_stage6_engine_loads_exactly_one_engine(monkeypatch):
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    engines, pgs = launch_stage6_engine("/fake/snapshot/path")
+    assert len(engines) == 1
+    assert len(pgs) == 1
+    assert len(remote_actor_calls) == 1
+
+
+def test_launch_stage6_engine_never_calls_store_base_weights(monkeypatch):
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    engines, pgs = launch_stage6_engine("/fake/snapshot/path")
+    engine = engines[0]
+    assert engine.collective_rpc_calls == []  # nothing dispatched during launch at all
+    assert all(call[0] != "store_base_weights" for call in engine.collective_rpc_calls)
+
+
+def test_launch_stage6_engine_matches_stage6_defaults(monkeypatch):
+    from neural_thickets_repro.run_global_visual_thicket_pilot import STAGE6_GPU_MEMORY_UTILIZATION, STAGE6_MAX_MODEL_LEN, launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    launch_stage6_engine("/fake/snapshot/path")
+    kwargs = remote_actor_calls[0]
+    assert kwargs["max_model_len"] == STAGE6_MAX_MODEL_LEN == 4096
+    assert kwargs["gpu_memory_utilization"] == STAGE6_GPU_MEMORY_UTILIZATION == 0.75
+    assert kwargs["tensor_parallel_size"] == 1
+    assert kwargs["distributed_executor_backend"] == "ray"
+    assert kwargs["dtype"] == "bfloat16"
+    assert kwargs["enforce_eager"] is True
+    assert kwargs["limit_mm_per_prompt"] == {"image": 1}
+
+
+# --- full main() GPU-path wiring: one model load, zero frontend access, no store_base_weights ---
+
+
+def test_main_real_run_launches_engine_exactly_once_and_never_calls_store_base_weights(tmp_path, monkeypatch):
     import neural_thickets_repro.run_global_visual_thicket_pilot as pilot_mod
     import neural_thickets_repro.vlm_adapter as vlm_adapter
 
     fake_engine = _fake_engine()
     launch_calls = []
 
-    def _fake_launch_engines(num_engines, model_name, precision, tensor_parallel_size, multimodal):
-        launch_calls.append((num_engines, model_name, precision, tensor_parallel_size, multimodal))
+    def _fake_launch_stage6_engine(model_path, **kwargs):
+        launch_calls.append((model_path, kwargs))
         return [fake_engine], ["fake_pg"]
 
+    monkeypatch.setattr(pilot_mod, "launch_stage6_engine", _fake_launch_stage6_engine)
+
     fake_core_engine_module = types.ModuleType("core.engine")
-    fake_core_engine_module.launch_engines = _fake_launch_engines
     fake_core_engine_module.cleanup_engines = lambda engines, pgs: None
     fake_core_module = types.ModuleType("core")
     fake_core_module.engine = fake_core_engine_module
@@ -674,8 +832,16 @@ def test_main_real_run_launches_engine_exactly_once_and_never_touches_frontend_a
 
     assert rc == 0
     assert len(launch_calls) == 1  # exactly one engine launch -- one model load
-    assert launch_calls[0][1] == "/fake/snapshot/path"  # the RESOLVED snapshot path, not the bare model name
+    assert launch_calls[0][0] == "/fake/snapshot/path"  # the RESOLVED snapshot path, not the bare model name
+    assert launch_calls[0][1]["max_model_len"] == 4096
+    assert "store_base_weights" not in [c[0] for c in fake_engine.collective_rpc_calls]
     assert (tmp_path / "out" / "model_resolution.json").exists()
+    assert (tmp_path / "out" / "engine_config.json").exists()
+    import json as _json
+
+    engine_config_on_disk = _json.loads((tmp_path / "out" / "engine_config.json").read_text())
+    assert engine_config_on_disk["max_model_len"] == 4096
+    assert engine_config_on_disk["store_base_weights_called"] is False
     assert (tmp_path / "out" / "results.jsonl").exists()
     assert (tmp_path / "out" / "figure2_summary.json").exists()
     assert (tmp_path / "out" / "diversity_summary.json").exists()

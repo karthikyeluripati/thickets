@@ -118,6 +118,15 @@ DEFAULT_SUBSET_SIZE = 50
 DEFAULT_RESTORATION_ATOL = 1e-4
 DEFAULT_RESTORATION_RTOL = 1e-3
 
+# Stage-6-specific engine construction (this repair pass): Qwen2.5-VL-3B-Instruct's own
+# default max_model_len (128000) drove a real RunPod smoke KV-cache OOM (required 4.39 GiB,
+# available 3.01 GiB at gpu_memory_utilization=0.75 on an L40S) -- this pilot only ever
+# generates short, fixed-length responses (max_tokens=256), so 4096 (already sufficient for
+# this project's prior Qwen2.5-VL benchmark runs) is set explicitly rather than raising
+# gpu_memory_utilization to accommodate an irrelevant 128k context.
+STAGE6_MAX_MODEL_LEN = 4096
+STAGE6_GPU_MEMORY_UTILIZATION = 0.75
+
 SOLUTION_DENSITY_MARGINS: Tuple[float, ...] = (0.0, 0.02, 0.05)
 
 # The upstream WorkerExtension call pair this pilot dispatches for perturb/restore -- the
@@ -236,12 +245,13 @@ def format_pilot_plan(plan: PilotPlan) -> str:
         f"baseline_evaluations: {plan.baseline_evaluations}",
         f"total_model_example_evaluations: {plan.total_model_example_evaluations}",
         "expected_model_loading_strategy: ONE vLLM engine (Ray actor, TP=1, "
-        "worker_extension_cls=utils.worker_extn.WorkerExtension, set by launch_engines() "
-        "itself) loaded once for the whole pilot; per perturbation: perturb_self_weights via "
-        "collective_rpc -> evaluate visual_grounding, ocr_text_recognition_grounded, "
-        "spatial_reasoning D_map subsets in that fixed order (engine.generate.remote) -> "
-        "restore_self_weights via collective_rpc -> verify_restoration_rpc via collective_rpc "
-        "against a fingerprint captured once before the sweep -> next perturbation. No "
+        "worker_extension_cls=utils.worker_extn.WorkerExtension, launched by OUR OWN "
+        "launch_stage6_engine() -- max_model_len=4096, no store_base_weights call) loaded "
+        "once for the whole pilot; per perturbation: perturb_self_weights via collective_rpc "
+        "-> evaluate visual_grounding, ocr_text_recognition_grounded, spatial_reasoning "
+        "D_map subsets in that fixed order (engine.generate.remote) -> restore_self_weights "
+        "via collective_rpc -> verify_restoration_rpc via collective_rpc against a "
+        "fingerprint captured once before the sweep -> next perturbation. No "
         "per-perturbation or per-capability engine reload. Zero frontend "
         "llm_engine.model_executor access anywhere in this path.",
         f"output_dir: {plan.output_dir}",
@@ -498,7 +508,21 @@ def detect_vllm_engine_mode() -> str:
     return "V1 (default; VLLM_USE_V1 not set to 0)"
 
 
-def format_runtime_compatibility_diagnostic(model_resolution: Dict[str, str], worker_extension_cls: str, vllm_version: str, engine_mode: str) -> str:
+def build_stage6_engine_config() -> Dict[str, Any]:
+    """The exact Stage-6-specific engine construction parameters (this repair pass) --
+    persisted and printed as runtime metadata so a real run's actual max_model_len/
+    gpu_memory_utilization is always auditable, not merely assumed from this module's source.
+    """
+    return {
+        "max_model_len": STAGE6_MAX_MODEL_LEN,
+        "gpu_memory_utilization": STAGE6_GPU_MEMORY_UTILIZATION,
+        "tensor_parallel_size": 1,
+        "precision": "bfloat16",
+        "store_base_weights_called": False,
+    }
+
+
+def format_runtime_compatibility_diagnostic(model_resolution: Dict[str, str], worker_extension_cls: str, vllm_version: str, engine_mode: str, engine_config: Dict[str, Any]) -> str:
     lines = [
         "=== Stage 6: runtime compatibility diagnostic (printed before execution) ===",
         f"vllm_version: {vllm_version}",
@@ -507,6 +531,9 @@ def format_runtime_compatibility_diagnostic(model_resolution: Dict[str, str], wo
         f"model_name: {model_resolution['model_name']}",
         f"requested_revision: {model_resolution['requested_revision']}",
         f"resolved_snapshot_path: {model_resolution['resolved_snapshot_path']}",
+        f"max_model_len: {engine_config['max_model_len']}",
+        f"gpu_memory_utilization: {engine_config['gpu_memory_utilization']}",
+        f"store_base_weights_called: {engine_config['store_base_weights_called']}",
     ]
     return "\n".join(lines)
 
@@ -573,6 +600,79 @@ def compute_diversity_summary(records: List[ExperimentResultRecord]) -> Dict[str
 
 
 # =============================================================================================
+# Stage-6-specific engine launcher (this repair pass) -- NOT external/RandOpt/core/engine.py's
+# launch_engines(), which upstream unconditionally follows with collective_rpc(
+# "store_base_weights") and has no max_model_len parameter at all.
+# =============================================================================================
+
+
+def launch_stage6_engine(
+    model_path: str, *, precision: str = "bfloat16", gpu_memory_utilization: float = STAGE6_GPU_MEMORY_UTILIZATION,
+    max_model_len: int = STAGE6_MAX_MODEL_LEN, tensor_parallel_size: int = 1,
+) -> Tuple[list, list]:
+    """Stage-6-specific single-engine Ray/vLLM launcher -- an INDEPENDENT, from-scratch
+    function in OUR OWN package (external/RandOpt is not modified or subclassed on disk in
+    any way); reuses upstream's `RandOptNcclLLM` class directly (imported, never copied) and
+    the identical `worker_extension_cls="utils.worker_extn.WorkerExtension"` string, so every
+    existing collective_rpc perturb/restore/mask/verify call in this module keeps working
+    completely unchanged.
+
+    Deliberately does NOT call `external/RandOpt/core/engine.py:launch_engines()`, for two
+    reasons, neither a change to upstream's actual RandOpt search semantics:
+      1. `launch_engines()` accepts no `max_model_len` -- Qwen2.5-VL-3B-Instruct's own default
+         (128000) drove the real RunPod smoke's KV-cache OOM (required 4.39 GiB, available
+         3.01 GiB at gpu_memory_utilization=0.75 on an L40S). `max_model_len=4096` (already
+         sufficient for this project's prior Qwen2.5-VL benchmark runs) is passed explicitly
+         instead of raising gpu_memory_utilization to accommodate an irrelevant 128k context.
+      2. `launch_engines()` unconditionally calls `collective_rpc("store_base_weights")` after
+         creating every engine -- upstream's own "Ensemble methods" (store_base_weights/
+         apply_perturbation/reset_to_base_weights) clone every model parameter a SECOND time
+         onto the GPU. Stage 6's lifecycle (perturb_self_weights -> evaluate 3 capabilities ->
+         restore_self_weights -> verify_restoration_rpc) never reads `self._base_weights` --
+         only the ensemble methods this pilot never calls do -- so that second ~3B-parameter
+         GPU copy is pure waste here, and this function never issues that RPC call.
+
+    Mirrors the REST of `launch_engines()`'s single-engine (TP=1) setup: one GPU-only
+    placement group, `RandOptNcclLLM` as a Ray actor with `distributed_executor_backend=
+    "ray"`, `enforce_eager=True`, `limit_mm_per_prompt={"image": 1}`. Returns `([engine], [pg])`
+    -- the identical list-shaped return `launch_engines()` gives -- so upstream's own
+    unmodified `cleanup_engines([engine], [pg])` still works for teardown, and the rest of
+    this module needs no further changes.
+    """
+    import ray
+    from ray.util.placement_group import placement_group
+    from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
+
+    if str(EXTERNAL_ROOT) not in sys.path:
+        sys.path.insert(0, str(EXTERNAL_ROOT))
+    from core.engine import RandOptNcclLLM  # type: ignore  # upstream, unmodified -- reused, never copied
+
+    pg_bundles = [{"GPU": 1, "CPU": 0} for _ in range(tensor_parallel_size)]
+    pg = placement_group(pg_bundles, lifetime="detached")
+    ray.get(pg.ready(), timeout=120)
+
+    strategy = PlacementGroupSchedulingStrategy(
+        placement_group=pg, placement_group_capture_child_tasks=True, placement_group_bundle_index=0,
+    )
+    engine_kwargs = dict(
+        model=model_path,
+        tensor_parallel_size=tensor_parallel_size,
+        distributed_executor_backend="ray",
+        worker_extension_cls="utils.worker_extn.WorkerExtension",
+        dtype=precision,
+        enforce_eager=True,
+        gpu_memory_utilization=gpu_memory_utilization,
+        max_model_len=max_model_len,
+        disable_log_stats=True,
+        limit_mm_per_prompt={"image": 1},
+    )
+    engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(RandOptNcclLLM).remote(**engine_kwargs)
+
+    # Deliberately NOT calling collective_rpc("store_base_weights") here -- see docstring above.
+    return [engine], [pg]
+
+
+# =============================================================================================
 # CLI
 # =============================================================================================
 
@@ -598,9 +698,10 @@ def main(argv=None) -> int:
     # --- Real GPU execution path: lazy-imports vllm/ray/transformers, not exercised by CPU
     # tests, not run in this Stage-6 repair-pass preparation session (see module docstring).
     model_resolution = resolve_and_report_model_snapshot(plan.model_name, plan.model_revision)
+    engine_config = build_stage6_engine_config()
     print(format_runtime_compatibility_diagnostic(
         model_resolution, worker_extension_cls="utils.worker_extn.WorkerExtension",
-        vllm_version=get_vllm_version(), engine_mode=detect_vllm_engine_mode(),
+        vllm_version=get_vllm_version(), engine_mode=detect_vllm_engine_mode(), engine_config=engine_config,
     ))
 
     from .config import load_capability_benchmark_config
@@ -609,6 +710,7 @@ def main(argv=None) -> int:
 
     plan.output_dir.mkdir(parents=True, exist_ok=True)
     (plan.output_dir / "model_resolution.json").write_text(json.dumps(model_resolution, indent=2))
+    (plan.output_dir / "engine_config.json").write_text(json.dumps(engine_config, indent=2))
     subset_ids_dir = plan.output_dir / "d_map_subsets"
     base_seed = raw_config["pilot"].get("base_seed", 20260823)
 
@@ -627,7 +729,7 @@ def main(argv=None) -> int:
 
     if str(EXTERNAL_ROOT) not in sys.path:
         sys.path.insert(0, str(EXTERNAL_ROOT))
-    from core.engine import cleanup_engines, launch_engines  # type: ignore
+    from core.engine import cleanup_engines  # type: ignore  # upstream, unmodified -- teardown only; launch uses OUR OWN launch_stage6_engine (see its docstring for why)
 
     bootstrap_ray(EXTERNAL_ROOT)
 
@@ -638,7 +740,11 @@ def main(argv=None) -> int:
     engines, pgs = None, None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
-        engines, pgs = launch_engines(1, model_resolution["resolved_snapshot_path"], precision="bfloat16", tensor_parallel_size=1, multimodal=True)
+        engines, pgs = launch_stage6_engine(
+            model_resolution["resolved_snapshot_path"], precision=engine_config["precision"],
+            gpu_memory_utilization=engine_config["gpu_memory_utilization"], max_model_len=engine_config["max_model_len"],
+            tensor_parallel_size=engine_config["tensor_parallel_size"],
+        )
         engine = engines[0]
 
         parameter_mask_hash = compute_mask_info_via_rpc(engine)["mask_hash"]
