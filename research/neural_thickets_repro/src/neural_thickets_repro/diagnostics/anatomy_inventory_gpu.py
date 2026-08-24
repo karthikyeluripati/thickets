@@ -6,6 +6,32 @@ the vision encoder except in the optional, single-perturbation empirical sanity 
 (Section 4), which perturbs only the Stage-6 upstream scope (language, i.e. `full_lm`) and
 resets exactly before returning.
 
+REGRESSION FIX (this repair pass): the first version of this script launched the engine via
+`external/RandOpt/core/engine.py`'s upstream `launch_engines()`, which accepts no
+`max_model_len` and defaults to the real model's own 128000 -- on a real RunPod L40S at
+`gpu_memory_utilization=0.75` this required 4.39 GiB of KV cache against 3.01 GiB available,
+and vLLM aborted during engine initialization before Stage 7A ever ran. This is the EXACT same
+class of problem Stage 6 already solved (see run_global_visual_thicket_pilot.py's own
+`launch_stage6_engine` docstring) -- Stage 7A now REUSES that exact, already-battle-tested
+Stage-6 launcher and its engine-config helpers directly (import, not reimplementation):
+`launch_stage6_engine`, `build_stage6_engine_config` (max_model_len=4096,
+gpu_memory_utilization=0.60, tensor_parallel_size=1, precision=bfloat16 -- all Stage-6-frozen,
+none of them re-derived here), `resolve_and_report_model_snapshot`,
+`format_runtime_compatibility_diagnostic`, `format_base_snapshot_confirmation`,
+`store_base_weights_via_rpc`, `reset_to_base_weights_via_rpc`,
+`verify_exact_fixed_base_restoration_via_rpc`, `RestorationFailedError`. `external/RandOpt` is
+untouched by this fix -- only `cleanup_engines` (teardown, unconditionally safe for any engine
+shaped like `launch_engines()`'s own return value, per `launch_stage6_engine`'s own docstring)
+is still imported from it; `launch_engines` itself is never called or imported here anymore.
+
+BASE-SNAPSHOT LIFECYCLE (this repair pass): unlike upstream's `launch_engines()`, which
+unconditionally calls `store_base_weights()` as a hidden side effect of engine construction,
+`launch_stage6_engine` does NOT call it at all -- the caller must do so explicitly. Section 1/2
+anatomy/upstream-scope inventory needs no base snapshot (it only reads `named_parameters()`,
+never perturbs). `store_base_weights_via_rpc` (a second, GPU-resident full-model weight copy)
+is therefore called ONLY when Section 4's empirical check is not skipped -- see
+`maybe_run_empirical_check` below.
+
 Reuses, never reimplements:
   - thicket.anatomy.build_anatomy_atlas / validate_atlas (frozen L1/L2 region discovery)
   - thicket.anatomy_inventory.build_full_anatomy_inventory (per-region numeric report)
@@ -17,6 +43,11 @@ Reuses, never reimplements:
     empirical check dispatches the EXISTING "full_lm" raw_sigma scope path unchanged -- "full_lm"
     and anatomy.py's "language" region are the SAME parameter set, confirmed by this script's
     own measured equality check, not merely assumed)
+  - run_global_visual_thicket_pilot.launch_stage6_engine and its engine-config/diagnostic/
+    base-snapshot/restoration helpers (this repair pass -- see above)
+
+No dataset is loaded or evaluated anywhere in this module -- Sections 1-5 are pure weight
+inspection plus (optionally) one single-perturbation weight-norm measurement.
 
 Usage (pod, GPU required):
     python -m neural_thickets_repro.diagnostics.anatomy_inventory_gpu \
@@ -32,30 +63,46 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from ..config import load_config
 from ..env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
+from ..run_global_visual_thicket_pilot import (
+    RestorationFailedError,
+    build_stage6_engine_config,
+    format_base_snapshot_confirmation,
+    format_runtime_compatibility_diagnostic,
+    detect_vllm_engine_mode,
+    get_vllm_version,
+    launch_stage6_engine,
+    reset_to_base_weights_via_rpc,
+    resolve_and_report_model_snapshot,
+    store_base_weights_via_rpc,
+    verify_exact_fixed_base_restoration_via_rpc,
+)
 from ..scoped_perturbation import scoped_apply_perturbation
 from ..thicket.anatomy import build_anatomy_atlas, validate_atlas
 from ..thicket.anatomy_inventory import build_full_anatomy_inventory
 from ..thicket.radius_mapping import ANCHOR_LABEL, FROZEN_STAGE6_SIGMAS, build_sigma_relative_l2_mapping, select_common_calibration_radii
 from ..thicket.upstream_scope import compute_upstream_scope_inventory
-from ..vlm_adapter import bootstrap_ray, resolve_model_snapshot, verify_workers_can_import_external_root
+from ..vlm_adapter import bootstrap_ray, verify_workers_can_import_external_root
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
 
 # Fixed, clearly-not-a-real-candidate seed/sigma for the optional empirical sanity check --
-# same naming convention as scope_isolation_gpu_check.py's TEST_SEED/TEST_SIGMA.
+# same naming convention as scope_isolation_gpu_check.py's TEST_SEED/TEST_SIGMA. Frozen: this
+# diagnostic checks ONLY sigma=0.001 with ONE seed, never a population or a sigma sweep.
 EMPIRICAL_CHECK_SEED = 999_999_998
 EMPIRICAL_CHECK_SIGMA = 0.001
+EMPIRICAL_CHECK_SCOPE = "full_lm"
 
 
 def _report_anatomy_and_upstream_scope(worker_self) -> Dict[str, Any]:
     """Runs entirely inside the worker process. Builds the atlas from the model's REAL
     named_parameters(), validates it (hard-fails on unexpectedly empty/overlapping regions --
-    never silently accepted), and computes the full Section 1 + Section 2 numeric report.
+    never silently accepted), and computes the full Section 1 + Section 2 numeric report. Reads
+    weights only -- never perturbs, never requires a stored base snapshot.
     """
     model = worker_self.model_runner.model
     named_parameters = dict(model.named_parameters())
@@ -80,7 +127,7 @@ def _validate_collective_rpc_results(results: Any, *, label: str) -> Any:
     return results[0]
 
 
-def _rpc(engine, method, args=(), *, label: str, ray_get: "Any | None" = None):
+def _rpc(engine, method, args=(), *, label: str, ray_get: Optional[Any] = None):
     if ray_get is None:
         import ray
 
@@ -89,18 +136,21 @@ def _rpc(engine, method, args=(), *, label: str, ray_get: "Any | None" = None):
     return _validate_collective_rpc_results(results, label=label)
 
 
-def _run_empirical_norm_sanity_check(engine, *, ray_get: "Any | None" = None) -> Dict[str, Any]:
+def _run_empirical_norm_sanity_check(engine, *, ray_get: Optional[Any] = None) -> Dict[str, Any]:
     """Section 4: apply exactly ONE raw-sigma perturbation (sigma=0.001, one fixed seed) to the
     Stage-6 upstream scope (scopes.py's "full_lm" -- confirmed elsewhere in this report to
     equal anatomy.py's "language" L1 region), measure the realized ||epsilon||_2 / ||theta||_2
-    against the analytical sigma*sqrt(d)/||theta|| approximation, then reset exactly to base.
-    Never evaluates any dataset and never runs a population. `ray_get` is injectable purely for
-    CPU testing (a fake engine + identity function) -- real callers never pass it.
+    against the analytical sigma*sqrt(d)/||theta|| approximation, then reset exactly to base and
+    VERIFY exact restoration (reused `verify_exact_fixed_base_restoration_via_rpc` -- the same
+    check Stage 6 runs after every candidate). Requires `store_base_weights_via_rpc` to have
+    already been called on this engine. Never evaluates any dataset and never runs a
+    population. `ray_get` is injectable purely for CPU testing (a fake engine + identity
+    function) -- real callers never pass it.
     """
-    print(f"\nEmpirical norm sanity check: seed={EMPIRICAL_CHECK_SEED}, sigma={EMPIRICAL_CHECK_SIGMA}, scope=full_lm (raw_sigma)...")
+    print(f"\nEmpirical norm sanity check: seed={EMPIRICAL_CHECK_SEED}, sigma={EMPIRICAL_CHECK_SIGMA}, scope={EMPIRICAL_CHECK_SCOPE} (raw_sigma)...")
     result = _rpc(
         engine, scoped_apply_perturbation,
-        args=(EMPIRICAL_CHECK_SEED, EMPIRICAL_CHECK_SIGMA, "full_lm", "raw_sigma"),
+        args=(EMPIRICAL_CHECK_SEED, EMPIRICAL_CHECK_SIGMA, EMPIRICAL_CHECK_SCOPE, "raw_sigma"),
         label="scoped_apply_perturbation", ray_get=ray_get,
     )
     realized_l2 = result["actual_perturbation_l2"]
@@ -110,31 +160,51 @@ def _run_empirical_norm_sanity_check(engine, *, ray_get: "Any | None" = None) ->
     analytical_relative_l2 = (EMPIRICAL_CHECK_SIGMA * (d ** 0.5)) / theta_l2 if theta_l2 > 0 else 0.0
 
     print("  Resetting to base...")
-    _rpc(engine, "reset_to_base_weights", args=(), label="reset_to_base_weights", ray_get=ray_get)
-    # Trusts upstream reset_to_base_weights's own established exactness (already GPU-validated
-    # by scope_isolation_gpu_check.py's Test A-G and run_global_visual_thicket_pilot.py's
-    # per-candidate verify_exact_fixed_base_restoration_via_rpc) rather than re-deriving a third
-    # post-reset drift check here.
+    reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
+
+    verification = verify_exact_fixed_base_restoration_via_rpc(engine, ray_get=ray_get)
+    if not verification["ok"]:
+        raise RestorationFailedError(
+            f"Exact fixed-base restoration failed after Stage 7A's empirical norm sanity check "
+            f"(seed={EMPIRICAL_CHECK_SEED}, sigma={EMPIRICAL_CHECK_SIGMA}): "
+            f"max_abs_drift={verification['max_abs_drift']}"
+        )
 
     return {
         "seed": EMPIRICAL_CHECK_SEED,
         "sigma": EMPIRICAL_CHECK_SIGMA,
-        "scope": "full_lm",
+        "scope": EMPIRICAL_CHECK_SCOPE,
         "d": d,
         "theta_l2_norm": theta_l2,
         "realized_epsilon_l2_norm": realized_l2,
         "realized_relative_l2": realized_relative_l2,
         "analytical_expected_relative_l2": analytical_relative_l2,
         "absolute_difference": abs(realized_relative_l2 - analytical_relative_l2),
+        "restoration_verified_exact": True,
         "note": "Single-seed empirical measurement -- verifies the sigma*sqrt(d) approximation is accurate at model scale, not a claim about any other sigma.",
     }
+
+
+def maybe_run_empirical_check(
+    engine, *, skip_empirical_check: bool, gpu_memory_utilization: float, base_snapshot_mode: str, ray_get: Optional[Any] = None,
+) -> Optional[Dict[str, Any]]:
+    """Section 4's gate: `store_base_weights_via_rpc` (a second, GPU-resident full-model weight
+    copy) is called EXACTLY ONCE, and ONLY when the empirical check is not skipped -- inventory
+    /norm measurement alone (Sections 1-3, 5) never needs it. Returns None, without storing any
+    base snapshot at all, when `skip_empirical_check` is True.
+    """
+    if skip_empirical_check:
+        return None
+    store_base_weights_via_rpc(engine, ray_get=ray_get)
+    print(format_base_snapshot_confirmation(gpu_memory_utilization, base_snapshot_mode))
+    return _run_empirical_norm_sanity_check(engine, ray_get=ray_get)
 
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", default=str(REPO_ROOT / "configs" / "gqa_repro.yaml"))
     parser.add_argument("--out", default=str(REPO_ROOT / "results" / "stage7_anatomy_calibration" / "stage7_calibration_plan.json"))
-    parser.add_argument("--skip-empirical-check", action="store_true", help="skip Section 4's single-perturbation GPU sanity check")
+    parser.add_argument("--skip-empirical-check", action="store_true", help="skip Section 4's single-perturbation GPU sanity check (and never stores a base snapshot)")
     args = parser.parse_args(argv)
 
     cfg = load_config(args.config)
@@ -149,13 +219,18 @@ def main(argv=None) -> int:
         return 1
 
     cfg.require_resolved("model.revision")
-    model_path = resolve_model_snapshot(cfg.model.name, cfg.model.revision)
-    print(f"Resolved {cfg.model.name}@{cfg.model.revision} -> {model_path}")
+
+    model_resolution = resolve_and_report_model_snapshot(cfg.model.name, cfg.model.revision)
+    engine_config = build_stage6_engine_config()  # frozen: max_model_len=4096, gpu_memory_utilization=0.60, tensor_parallel_size=1, precision=bfloat16
+    print(format_runtime_compatibility_diagnostic(
+        model_resolution, worker_extension_cls="utils.worker_extn.WorkerExtension",
+        vllm_version=get_vllm_version(), engine_mode=detect_vllm_engine_mode(), engine_config=engine_config,
+    ))
 
     import ray
 
     sys.path.insert(0, str(EXTERNAL_ROOT))
-    from core.engine import cleanup_engines, launch_engines  # type: ignore
+    from core.engine import cleanup_engines  # type: ignore  # upstream, unmodified -- teardown only; launch uses OUR OWN launch_stage6_engine, never upstream launch_engines
 
     ray_owned_by_us = bootstrap_ray(EXTERNAL_ROOT)
 
@@ -163,7 +238,11 @@ def main(argv=None) -> int:
     pgs = None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
-        engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
+        engines, pgs = launch_stage6_engine(
+            model_resolution["resolved_snapshot_path"], precision=engine_config["precision"],
+            gpu_memory_utilization=engine_config["gpu_memory_utilization"], max_model_len=engine_config["max_model_len"],
+            tensor_parallel_size=engine_config["tensor_parallel_size"],
+        )
         engine = engines[0]
         try:
             print("Building live anatomy atlas + upstream-scope inventory (Sections 1-2)...")
@@ -172,9 +251,11 @@ def main(argv=None) -> int:
             anatomy_inventory["model_revision"] = cfg.model.revision
             upstream_scope_inventory = combined["upstream_scope_inventory"]
 
-            empirical_check = None
-            if not args.skip_empirical_check:
-                empirical_check = _run_empirical_norm_sanity_check(engine)
+            empirical_check = maybe_run_empirical_check(
+                engine, skip_empirical_check=args.skip_empirical_check,
+                gpu_memory_utilization=engine_config["gpu_memory_utilization"],
+                base_snapshot_mode=engine_config["base_snapshot_mode"],
+            )
         finally:
             cleanup_engines(engines, pgs)
     finally:
@@ -198,6 +279,7 @@ def main(argv=None) -> int:
     calibration_plan = {
         "model_name": cfg.model.name,
         "model_revision": cfg.model.revision,
+        "engine_config": engine_config,
         "anatomy_inventory": anatomy_inventory,
         "upstream_scope_inventory": upstream_scope_inventory,
         "sigma_to_relative_l2_mapping": {
