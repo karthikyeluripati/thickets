@@ -630,3 +630,41 @@ purely on the collected `ExperimentResultRecord` list — reused directly from S
 
 `external/RandOpt` is gitignored and not committed; a future session must re-run
 `python external/setup_external_repo.py` to re-inspect it (it is not assumed present).
+
+---
+
+## Durable methodology note: fixed-base restoration (found during the 384-candidate pilot)
+
+**Released-compatible native-BF16 regenerate-and-subtract restoration can accumulate numerical
+drift over long VLM perturbation sweeps.** Our safety guard detected this during the
+384-candidate Stage-6 pilot: the run reached sigma=0.01 and aborted at perturbation_id
+`5a417b7937eca5ad522e9c6b` (seed=1480723517) with a real, non-tolerance-passing norm
+discrepancy of 0.047271728515625 on `language_model.model.layers.5.self_attn.o_proj.weight` —
+`perturb_self_weights`/`restore_self_weights`'s add-then-regenerate-and-subtract restoration is
+not exactly invertible after BF16 rounding, and this is not guaranteed to stay small over an
+arbitrarily long sweep.
+
+Therefore **paper-facing mapping experiments use exact fixed-base restoration**
+(`store_base_weights`/`reset_to_base_weights` — a direct GPU-resident tensor copy from a frozen
+snapshot, reusing the exact mechanism already established for scoped RandOpt, `scoped_
+perturbation.py` / `diagnostics/scope_isolation_gpu_check.py`) **while retaining upstream
+Gaussian perturbation semantics** (`perturb_self_weights`, unmodified, unchanged noise/sigma
+interpretation). Concretely:
+
+```
+perturbation_semantics = global_gaussian_upstream   (unchanged)
+restoration_mode        = fixed_base                 (changed, this finding)
+```
+
+This is **methodology/reproducibility information, not a paper result about visual expertise**
+— it does not change what a perturbation *is*, only how the model is returned to theta_0
+between candidates, and every previously-frozen scientific quantity (the 384 uint32 seeds, the
+perturbation IDs, the sigma grid, the per-sigma population count, the capability order) is
+completely unaffected. The historical released-compatible subtractive restoration remains in
+the repository, unmodified, for reproduction purposes elsewhere (e.g. `run_randopt_image_
+aware.py`'s `released_compat` mode) — Stage 6 specifically no longer uses it.
+
+See `src/neural_thickets_repro/run_global_visual_thicket_pilot.py`'s module docstring and
+`src/neural_thickets_repro/thicket/worker_rpc.py`'s `verify_exact_fixed_base_restoration_rpc`
+docstring for the full technical account (root cause, exact lifecycle, exact restoration
+invariant).

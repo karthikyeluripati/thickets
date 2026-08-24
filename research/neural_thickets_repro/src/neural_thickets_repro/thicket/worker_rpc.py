@@ -1,46 +1,37 @@
 """Worker-side RPC callables for the Stage-6 Global Visual-Thicket Pilot.
 
-ROOT CAUSE this module fixes: under vLLM V1, `LLMEngine` has no `.model_executor` attribute
-reachable from the frontend/driver process (confirmed: `AttributeError: 'LLMEngine' object has
-no attribute 'model_executor'` on the real RunPod smoke, commit 630bc34) -- the model's real
-parameters only ever exist inside the worker process. There is no alternate frontend attribute
-to try; vLLM's own supported mechanism for driver -> worker access is `LLM.collective_rpc
-(method, args)`, which can dispatch either a STRING naming a method already present on the
-worker (e.g. upstream's own `perturb_self_weights`/`restore_self_weights`, unchanged), or an
-arbitrary CALLABLE, invoked inside the worker process as `callable(worker_self, *args)`.
+ROOT CAUSE (original, commit 630bc34): under vLLM V1, `LLMEngine` has no `.model_executor`
+attribute reachable from the frontend/driver process -- the model's real parameters only ever
+exist inside the worker process. vLLM's own supported mechanism for driver -> worker access is
+`LLM.collective_rpc(method, args)`, which can dispatch either a STRING naming a method already
+present on the worker (e.g. upstream's own `perturb_self_weights`/`store_base_weights`/
+`reset_to_base_weights`, unchanged), or an arbitrary CALLABLE, invoked inside the worker
+process as `callable(worker_self, *args)`.
 
 This project already established the Callable-dispatch half of that pattern BEFORE this stage
 (`scoped_perturbation.scoped_apply_perturbation`, dispatched via
 `collective_rpc(scoped_apply_perturbation, args=(...))`) -- the functions below follow the
-IDENTICAL convention for the two NEW capabilities Stage 6 needs (mask-hash/inventory and
-restoration verification) that upstream's `utils.worker_extn.WorkerExtension` does not provide.
-Using a plain Callable, rather than a custom `worker_extension_cls` subclass, means
-`external/RandOpt/core/engine.py`'s `launch_engines()` (which hardcodes
-`worker_extension_cls="utils.worker_extn.WorkerExtension"`) needs ZERO changes and stays
-completely unmodified -- exactly the "reuse the existing integration" instruction.
+IDENTICAL convention for the capabilities Stage 6 needs that upstream's `utils.worker_extn.
+WorkerExtension` does not provide (mask-hash/inventory, exact restoration verification). Using
+a plain Callable, rather than a custom `worker_extension_cls` subclass, means `external/
+RandOpt/core/engine.py` needs ZERO changes and stays completely unmodified.
 
 Every function here takes `worker_self` (the real vLLM worker instance, already mixed with
-upstream's `WorkerExtension` by `launch_engines()`) as its first argument and is fully
-unit-testable against a plain duck-typed fake exposing `.model_runner.model.named_parameters()`
-and `._should_perturb(name)` -- no GPU/vllm/ray/external-RandOpt import needed anywhere in this
-module.
+upstream's `WorkerExtension`) as its first argument and is fully unit-testable against a plain
+duck-typed fake (or a tiny real `torch.nn.Module`, for the exact-restoration check, which needs
+real tensor arithmetic) -- no GPU/ray/external-RandOpt import needed anywhere in this module.
 
-THE RESTORATION INVARIANT (documented precisely, per Stage-6 Task 2's requirement): for every
-parameter tensor `_should_perturb` selects (the SAME mask `global_gaussian_upstream`
-perturbs), the CURRENT per-tensor L2 norm must equal the BASE (pre-perturbation) per-tensor L2
-norm within an `atol + rtol * |base_norm|` tolerance (the same additive+relative convention
-`torch.allclose` uses, chosen because a fixed absolute tolerance is not meaningful across
-tensors whose norms range from O(1) to O(100+) in this model):
-
-    for every perturbable tensor name n:
-        | ||theta_current[n]||_2 - ||theta_base[n]||_2 |  <=  atol + rtol * ||theta_base[n]||_2
-
-This is a lightweight fingerprint -- one float per tensor, never a second full-model clone (no
-extra ~3B-parameter copy in GPU memory): an actually-accumulated perturbation residue changes
-at least one tensor's L2 norm by an amount that would not exactly cancel across that tensor's
-own independently-reseeded Gaussian noise; an exact false negative would require the
-accumulated residual to be a precisely zero-norm vector, not a realistic floating-point
-coincidence.
+RESTORATION-MODE HISTORY (read this before touching the restoration check below): an earlier
+version of this module verified restoration via a per-tensor L2-NORM fingerprint with an
+`atol + rtol*|base_norm|` tolerance, paired with `restore_self_weights`'s native-BF16
+regenerate-and-subtract restoration. A real 384-candidate RunPod run proved that restoration
+is NOT reliably invertible after bf16 rounding: it aborted at candidate
+`5a417b7937eca5ad522e9c6b` (seed=1480723517, sigma=0.01) with a real, non-tolerance-passing
+norm discrepancy of 0.0473 on `language_model.model.layers.5.self_attn.o_proj.weight`. Stage 6
+now uses upstream's OWN `store_base_weights()`/`reset_to_base_weights()` (a direct GPU-resident
+tensor COPY from a frozen snapshot, not add-then-subtract) for restoration -- `restore_self_
+weights` is never called by Stage 6 anymore -- so restoration can and must be held to an EXACT
+(not tolerance-based) standard: `verify_exact_fixed_base_restoration_rpc` below.
 """
 from __future__ import annotations
 
@@ -66,38 +57,36 @@ def compute_perturbable_mask_info_rpc(worker_self) -> Dict:
     return {"mask_hash": mask_hash, "param_count": len(names), "total_elements": total_elements}
 
 
-def compute_restoration_fingerprint_rpc(worker_self) -> Dict[str, float]:
-    """Per-tensor L2 norm of every perturbable parameter -- see module docstring's
-    restoration invariant. Deliberately NOT a state-dict clone: only one float per tensor is
-    computed and returned, no second copy of the model's weights is ever created.
+def verify_exact_fixed_base_restoration_rpc(worker_self) -> Dict:
+    """THE RESTORATION INVARIANT (fixed-base, this repair pass -- replaces the earlier
+    tolerance-based fingerprint check): after `reset_to_base_weights()`, every perturbable
+    parameter tensor must be EXACTLY (bitwise, in the model's native dtype) equal to upstream's
+    own stored `_base_weights[name]` snapshot -- zero changed tensors, zero differing elements.
+    `reset_to_base_weights` performs a direct `p.data.copy_(self._base_weights[name])`, never
+    an add-then-subtract, so a correct reset is exact by construction; this check exists to
+    PROVE that happened, not to tolerate any amount of drift.
+
+    Reuses the SAME exact-equality invariant already established and GPU-validated by
+    `diagnostics/scope_isolation_gpu_check.py`'s Test A-G ("reset_exact":
+    `max_abs_drift == 0.0` after `reset_to_base_weights`), via `diagnostics/perturb_restore_
+    drift.py`'s already-unit-tested `measure_drift` -- not a new, third measurement.
+
+    Raises `RuntimeError` if `store_base_weights()` was never called on this worker (nothing
+    to compare against). Returns a small diagnostic dict (ok, max_abs_drift,
+    fraction_elements_differing) -- never full tensors. Callers MUST abort the whole
+    experiment when `ok` is False.
     """
-    fingerprint: Dict[str, float] = {}
-    for name, p in worker_self.model_runner.model.named_parameters():
-        if worker_self._should_perturb(name):
-            fingerprint[name] = float(p.detach().float().norm().item())
-    return fingerprint
+    if not hasattr(worker_self, "_base_weights"):
+        raise RuntimeError(
+            "verify_exact_fixed_base_restoration_rpc: worker_self has no _base_weights -- "
+            "store_base_weights() must be called exactly once before any fixed-base "
+            "perturb/reset/verify cycle."
+        )
+    from ..diagnostics.perturb_restore_drift import measure_drift
 
-
-def verify_restoration_rpc(worker_self, base_fingerprint: Dict[str, float], atol: float, rtol: float = 1e-3) -> Dict:
-    """Checks the restoration invariant (module docstring) entirely INSIDE the worker;
-    returns a small diagnostic dict (ok, max_diff, worst offenders) -- never full tensors.
-    Callers (evaluate_one_perturbation_rpc) MUST abort the whole experiment when `ok` is
-    False, never continue to the next perturbation.
-    """
-    current = compute_restoration_fingerprint_rpc(worker_self)
-    diffs: Dict[str, float] = {}
-    failing: Dict[str, float] = {}
-    for name, base_norm in base_fingerprint.items():
-        current_norm = current.get(name, float("nan"))
-        diff = abs(current_norm - base_norm)
-        diffs[name] = diff
-        threshold = atol + rtol * abs(base_norm)
-        if not (diff <= threshold):  # NaN-safe: a missing/NaN current_norm always fails
-            failing[name] = diff
-
-    worst_offenders = dict(sorted(failing.items(), key=lambda kv: -kv[1])[:5])
-    max_diff = max(diffs.values()) if diffs else 0.0
+    drift = measure_drift(worker_self.model_runner.model, worker_self._base_weights, param_filter=worker_self._should_perturb)
     return {
-        "ok": len(failing) == 0, "max_diff": max_diff, "n_checked": len(diffs),
-        "n_failing": len(failing), "worst_offenders": worst_offenders,
+        "ok": drift["max_abs_drift"] == 0.0,
+        "max_abs_drift": drift["max_abs_drift"],
+        "fraction_elements_differing": drift["fraction_elements_differing"],
     }

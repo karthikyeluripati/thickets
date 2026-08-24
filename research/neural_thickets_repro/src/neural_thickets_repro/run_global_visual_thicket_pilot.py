@@ -4,88 +4,96 @@ Answers RQ1 ("do pretrained VLMs contain dense and diverse nearby experts across
 visual capabilities?") and produces the raw material for Figure 2 (performance-density
 distributions, solution-density curves, radius dependence, best-of-N behavior) and a first
 look at Figure 4's Spectral Discordance -- NOT the anatomy experiment (that's Stage 7+): every
-perturbation here is a `global_gaussian_upstream` perturbation (spec section C1 of
+perturbation here is a `global_gaussian_upstream` PERTURBATION (spec section C1 of
 VISUAL_THICKET_EXPERIMENT_SPEC.md), never `anatomical_relative_l2`.
 
-UPSTREAM RECONCILIATION (Stage 6): the pinned upstream commit
+    perturbation_semantics = global_gaussian_upstream   (unchanged since Stage 6 began)
+    restoration_mode       = fixed_base                 (THIS repair pass -- see below)
+
+These are two SEPARATE things and must never be described as one "identical to released
+RandOpt" lifecycle: the Gaussian perturbation itself (`perturb_self_weights`, upstream's own
+per-tensor-reseed math) is unchanged; only HOW the model is returned to theta_0 between
+candidates has changed.
+
+FIXED-BASE RESTORATION FIX (this repair pass -- root cause + fix): a real 384-candidate RunPod
+run reached sigma=0.01 and aborted with `RestorationFailedError` at perturbation_id
+`5a417b7937eca5ad522e9c6b` (seed=1480723517, sigma=0.01) -- 1/254 perturbable tensors exceeded
+tolerance, worst offender `language_model.model.layers.5.self_attn.o_proj.weight` with a norm
+discrepancy of 0.047271728515625. Diagnosis: the restoration mechanism at that time was
+upstream's `perturb_self_weights`/`restore_self_weights` pair -- native-BF16 add-then-
+regenerate-and-subtract -- which is NOT exactly invertible after BF16 rounding; over a
+384-candidate sweep this can (and, empirically, did) accumulate past any reasonable tolerance.
+This exact problem was ALREADY solved earlier in this repository for scoped RandOpt
+(`scoped_perturbation.py`, `diagnostics/scope_isolation_gpu_check.py`) via upstream's OWN
+`store_base_weights()`/`reset_to_base_weights()` pair -- a direct GPU-resident tensor COPY from
+a frozen snapshot, never an add-then-subtract. Stage 6 now reuses that exact existing design
+(no new restoration mechanism invented): `store_base_weights()` is called ONCE, immediately
+after the engine initializes; every candidate does `reset_to_base_weights()` ->
+`perturb_self_weights(seed, sigma)` -> evaluate -> `reset_to_base_weights()` -> verify EXACT
+restoration. `restore_self_weights` is NEVER called by Stage 6 anymore (it remains available,
+unmodified, for historical released-RandOpt reproduction elsewhere in this project, e.g.
+`run_randopt_image_aware.py`'s `released_compat` restoration mode).
+
+Because `reset_to_base_weights` is a direct copy (not an inverse of an additive operation),
+restoration can and must now be held to an EXACT standard -- see `thicket/worker_rpc.py`'s
+`verify_exact_fixed_base_restoration_rpc`, which reuses `diagnostics/perturb_restore_drift.py`
+'s already-unit-tested `measure_drift` (the SAME exact-equality check already established and
+GPU-validated by `diagnostics/scope_isolation_gpu_check.py`'s Test A-G).
+
+This restoration-mode change does NOT touch the perturbation distribution, the 384 uint32
+seeds, the perturbation IDs, the sigma grid, the per-sigma population count, or the capability
+order -- `PerturbationManifest` describes epsilon_i and is completely independent of how the
+model is returned to theta_0 between candidates.
+
+UPSTREAM RECONCILIATION (Stage 6, earlier repair passes): the pinned upstream commit
 (external/setup_external_repo.py, `536df0a308f3990b6270c991fbb96bd0b779a58e`) was cloned and
-read directly this stage (never vendored -- see external/EXTERNAL_COMMIT.txt's existing
-"read, described, and invoked externally, never transcribed" discipline):
+read directly (never vendored -- see external/EXTERNAL_COMMIT.txt's existing "read, described,
+and invoked externally, never transcribed" discipline):
   - `randopt.py`'s CLI default `--sigma_values 0.0001,0.0005,0.001,0.002,0.005,0.01` is the
-    EXACT upstream sigma grid (UPSTREAM_SIGMA_GRID below) -- already recorded as
-    `sigma_default` in REPRO_SPEC.md's "Sigma -- resolution plan" section, now directly
-    re-confirmed against the actual pinned source rather than only the file's own memory.
-  - `utils/worker_extn.py`'s `WorkerExtension.perturb_self_weights`/`restore_self_weights`
-    confirm `perturb_cpu.py`'s existing reimplementation exactly: a fresh
-    `torch.Generator(device=p.device).manual_seed(int(seed))` per named parameter, every
-    parameter visited but only ones NOT prefixed `visual.`/`model.visual.` actually modified
-    (`_should_perturb`, unless `PERTURB_VISUAL=1`), restore via regenerating the identical
-    noise and subtracting rather than a stored-copy restore. `thicket.perturbation`'s
-    `global_gaussian_upstream` mode already wraps `perturb_cpu.perturb`/`restore` unchanged
-    (a CPU-testable reference implementation of the exact same math) -- nothing about THAT
-    needed fixing.
-  - `randopt.py:run_sampling` draws `population_size` UNIQUE seeds without replacement, then
-    draws ONE sigma per candidate independently WITH replacement from the sigma list via
-    `rng.choice(sigma_list, size=population_size)` -- i.e. upstream does NOT evaluate a fixed
-    count per sigma bucket. This pilot deliberately DEPARTS from that one detail (evaluating a
-    fixed `perturbations_per_sigma` count per sigma, per this stage's own task spec) to get a
-    clean per-sigma breakdown for Figure 2's radius-dependence panel; every other mechanic
-    (the sigma VALUES themselves, the per-tensor-reseed noise, the perturb-then-restore
-    lifecycle) is unchanged and reused verbatim.
-  - Spectral Discordance: grepped the full pinned checkout (`spectral|discordance|spearman`,
-    case-insensitive) -- ZERO matches anywhere in upstream source. There is no upstream
-    implementation to reconcile against. Stage 5's implementation (ported from the published
-    paper's Definition 2.2) therefore remains the sole authoritative definition; nothing
-    needed changing (see VISUAL_THICKET_EXPERIMENT_SPEC.md's updated H2 status).
+    EXACT upstream sigma grid (UPSTREAM_SIGMA_GRID below).
+  - `utils/worker_extn.py`'s `perturb_self_weights`/`store_base_weights`/`reset_to_base_
+    weights` are used unmodified, string-dispatched via `collective_rpc`.
+  - Spectral Discordance: zero matches anywhere in upstream source -- Stage 5's paper-
+    Definition-2.2 port remains the sole authoritative definition.
 
-RUNPOD SMOKE FAILURE + FIX (this repair pass, commit 630bc34 -> here): the first smoke crashed
-with `AttributeError: 'LLMEngine' object has no attribute 'model_executor'` at
-`llm.llm_engine.model_executor.driver_worker.model_runner.model` -- a FRONTEND/driver-process
-attribute path that simply does not exist under vLLM V1 (confirmed against the pinned upstream
-source: `utils/worker_extn.py`'s real model access, `self.model_runner.model`, only ever runs
-INSIDE the worker process, reached exclusively via `LLM.collective_rpc(method, args)` --
-`core/engine.py:launch_engines` sets `worker_extension_cls="utils.worker_extn.WorkerExtension"`
-on every engine it creates and dispatches every weight-touching operation through
-`engine.collective_rpc.remote(...)`, NEVER through a frontend attribute). ROOT CAUSE: the
-original `main()` tried to reach the model directly from the driver process, instead of
-dispatching through the collective_rpc mechanism this project's OWN existing GQA RandOpt
-integration (`run_randopt_image_aware.py`, `run_scoped_randopt.py`) already uses and has
-already validated on GPU. FIX (this pass): removed ALL frontend model access; every
-weight-touching operation (perturb, restore, mask-hash/inventory, restoration verification) now
-dispatches via `collective_rpc` -- perturb/restore reuse upstream's OWN
-`perturb_self_weights`/`restore_self_weights` methods (string dispatch, unmodified upstream
-code); mask-hash/inventory and restoration verification (which upstream does not provide) are
-NEW plain Python functions in `thicket/worker_rpc.py`, dispatched as CALLABLES via
-`collective_rpc(callable, args)` -- the IDENTICAL pattern already established by
-`scoped_perturbation.scoped_apply_perturbation` before this stage. This needed no
-`worker_extension_cls` subclass and zero changes to `external/RandOpt/core/engine.py`.
+RUNPOD FIXES BAKED IN FROM EARLIER REPAIR PASSES (still true, not re-explained at length here):
+  - Zero frontend `llm_engine.model_executor` access anywhere -- every weight-touching
+    operation dispatches via `collective_rpc`.
+  - Model revision is resolved to an immutable local HF snapshot path
+    (`vlm_adapter.resolve_model_snapshot`) BEFORE constructing any engine.
+  - `max_model_len=4096` (Qwen2.5-VL-3B-Instruct's own 128000 default caused a real KV-cache
+    OOM on an L40S at gpu_memory_utilization=0.75); `gpu_memory_utilization` is now 0.60 (this
+    repair pass -- `store_base_weights` creates a second GPU-resident weight copy, needing more
+    headroom than the perturb/restore-only design this value was originally tuned for).
+  - Every derived perturbation seed is folded into numpy's `[0, 2**32)` domain
+    (`NUMPY_SEED_DOMAIN`) at population-generation time, with a hard uniqueness check across
+    the full population.
 
-MODEL REVISION PINNING FIX (this repair pass): the RunPod log showed `revision=None` reaching
-vLLM despite the pilot config declaring an exact pinned revision -- `main()` previously passed
-`plan.model_name` straight to the engine launcher without ever resolving the pin. Fixed by
-calling `vlm_adapter.resolve_model_snapshot(model_name, revision)` (the SAME function
-`run_capability_benchmark_gate.run_one_capability` already uses for this exact purpose) BEFORE
-constructing any engine, and passing the resulting immutable local snapshot PATH (not the bare
-HF repo name) to `launch_engines`. All three of {model_name, requested_revision,
-resolved_snapshot_path} are persisted to `model_resolution.json`.
-
-EXECUTION MODEL (matches upstream's own `run_sampling` sequence, confirmed by reading it, and
-this project's own already-validated Ray/collective_rpc integration): ONE vLLM engine (Ray
-actor, TP=1) launched once for the whole pilot; per perturbation: perturb via collective_rpc
--> generate on every capability's fixed D_map subset, in a fixed order (via
-`engine.generate.remote`, wrapped by `RayEngineLLMAdapter` so the existing, UNMODIFIED
-`benchmarks/runner.run_benchmark` free function needs no changes at all) -> restore via
-collective_rpc -> verify restoration via collective_rpc against a fingerprint captured once
-before the sweep -> next perturbation. No per-perturbation or per-capability engine reload.
+STALE-OUTPUT SAFETY + CHECKPOINT/RESUME (this repair pass): a smoke run and the real full run
+previously shared an ambiguous output identity (a 12-perturbation smoke's `results.jsonl`
+could be mistaken for the 1152-row full run's output after the full run crashed mid-sweep).
+Fixed via a deterministic `run_signature` ("full" iff both `perturbations_per_sigma` and
+`examples_per_capability` exactly match the paper config; otherwise `smoke_p{P}_n{N}") that is
+ALWAYS appended to `output_dir`, so a full run and any override run can never collide on disk.
+Every run also gets a `checkpoint_manifest.json` recording its full identity (restoration_mode,
+perturbation_semantics, model_revision, subset hashes, expected counts) -- an existing,
+INCOMPATIBLE checkpoint (e.g. one written under the old subtractive-restoration design) hard
+-fails rather than silently resuming. Candidate rows are appended to `results.jsonl` ONLY after
+that candidate's full apply -> evaluate -> reset -> verify cycle has already succeeded, so an
+interrupted run can safely resume from exactly where it left off -- never re-doing completed
+GPU work, never fabricating results for a candidate that never finished. `write_paper_summary`
+refuses to generate `figure2_summary.json`/`diversity_summary.json` for a run whose actual
+perturbation/row counts fall short of the checkpoint's own recorded expectations.
 """
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import yaml
@@ -106,7 +114,7 @@ from .thicket.schema import ExperimentResultRecord
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
 
-# Confirmed directly against the pinned upstream commit this stage -- see module docstring.
+# Confirmed directly against the pinned upstream commit -- see module docstring.
 UPSTREAM_SIGMA_GRID: Tuple[float, ...] = (0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01)
 
 # Exactly these three -- never add a fourth in this pilot (spec section 3).
@@ -120,28 +128,36 @@ CAPABILITY_CONFIG_FILES: Dict[str, str] = {
 
 DEFAULT_PERTURBATIONS_PER_SIGMA = 64
 DEFAULT_SUBSET_SIZE = 50
-DEFAULT_RESTORATION_ATOL = 1e-4
-DEFAULT_RESTORATION_RTOL = 1e-3
 
-# Stage-6-specific engine construction (this repair pass): Qwen2.5-VL-3B-Instruct's own
-# default max_model_len (128000) drove a real RunPod smoke KV-cache OOM (required 4.39 GiB,
-# available 3.01 GiB at gpu_memory_utilization=0.75 on an L40S) -- this pilot only ever
-# generates short, fixed-length responses (max_tokens=256), so 4096 (already sufficient for
-# this project's prior Qwen2.5-VL benchmark runs) is set explicitly rather than raising
-# gpu_memory_utilization to accommodate an irrelevant 128k context.
+# Stage-6-specific engine construction. max_model_len: Qwen2.5-VL-3B-Instruct's own default
+# (128000) drove a real RunPod KV-cache OOM (required 4.39 GiB, available 3.01 GiB at
+# gpu_memory_utilization=0.75 on an L40S) -- this pilot only ever generates short, fixed-length
+# responses (max_tokens=256), so 4096 (already sufficient for this project's prior Qwen2.5-VL
+# benchmark runs) is set explicitly rather than raising gpu_memory_utilization to accommodate
+# an irrelevant 128k context. gpu_memory_utilization: lowered from 0.75 to 0.60 (this repair
+# pass) -- store_base_weights() now creates a second GPU-resident copy of every perturbable
+# parameter (the frozen theta_0 snapshot), so the engine needs more headroom than the original
+# perturb/restore-only (no second copy) design assumed. max_model_len is NOT changed.
 STAGE6_MAX_MODEL_LEN = 4096
-STAGE6_GPU_MEMORY_UTILIZATION = 0.75
+STAGE6_GPU_MEMORY_UTILIZATION = 0.60
 
 SOLUTION_DENSITY_MARGINS: Tuple[float, ...] = (0.0, 0.02, 0.05)
 
-# The upstream WorkerExtension call pair this pilot dispatches for perturb/restore -- the
-# "regenerate identical noise and subtract" convention (vs. the separate store_base_weights/
-# apply_perturbation/reset_to_base_weights ensemble methods upstream also exposes), matching
-# EXACTLY what `thicket.perturbation`'s `global_gaussian_upstream` mode already wraps for its
-# CPU-testable reference implementation, and what `run_randopt_image_aware.py` already calls
-# this "released_compat" (see its own RESTORATION_MODES) -- named here for documentation only,
-# not a mode switch (this pilot only ever uses this one).
+# Frozen scientific-interpretation labels (this repair pass) -- persisted/printed everywhere a
+# run's identity matters (engine config, checkpoint manifest, run manifest) so the lifecycle is
+# never silently described as identical to released RandOpt.
+PERTURBATION_SEMANTICS = "global_gaussian_upstream"
+RESTORATION_MODE = "fixed_base"
+BASE_SNAPSHOT_MODE = "store_base_weights"
+
+# Upstream WorkerExtension method names this pilot dispatches via collective_rpc.
 WORKER_PERTURB_METHOD = "perturb_self_weights"
+WORKER_STORE_BASE_METHOD = "store_base_weights"
+WORKER_RESET_TO_BASE_METHOD = "reset_to_base_weights"
+# Historical released-compatible restoration -- NEVER called by Stage 6's fixed_base lifecycle
+# (see module docstring); kept only so the underlying upstream call shape stays documented and
+# testable in isolation, exactly as `run_randopt_image_aware.py`'s own `released_compat` mode
+# already uses it elsewhere in this project.
 WORKER_RESTORE_METHOD = "restore_self_weights"
 
 
@@ -152,9 +168,9 @@ class PilotConfigError(ValueError):
 
 
 class RestorationFailedError(RuntimeError):
-    """A perturbation's restore step did not return model parameters to within tolerance of
-    the stored base fingerprint -- the experiment must abort here (spec section 7), never
-    silently continue with possibly-accumulated drift.
+    """A perturbation's fixed-base reset did not return every perturbable parameter to an
+    EXACT match with the frozen base snapshot -- the experiment must abort here (spec section
+    4), never silently continue with possibly-accumulated drift.
     """
 
 
@@ -165,9 +181,40 @@ class CollectiveRpcResultError(RuntimeError):
     """
 
 
+class IncompatibleCheckpointError(RuntimeError):
+    """An existing checkpoint_manifest.json / baseline_scores.json in this output directory
+    does not match the current run's identity (restoration_mode, perturbation_semantics,
+    model_revision, subset hashes, run_signature, or expected counts) -- e.g. it was written
+    by a run using the old subtractive restoration. Hard-fails rather than silently resuming
+    or partially trusting incompatible prior results.
+    """
+
+
+class IncompleteRunError(RuntimeError):
+    """The run's own accounting shows fewer actual unique perturbations or result rows than
+    the checkpoint's own recorded expectations -- refuses to (re)generate
+    figure2_summary.json/diversity_summary.json (spec section 6's stale-output-safety fix): a
+    partial run's output must never be mistaken for the finished paper summary.
+    """
+
+
 # =============================================================================================
 # Pilot plan: pure arithmetic, no I/O, no GPU -- everything printed by --dry-run.
 # =============================================================================================
+
+
+def compute_run_signature(
+    perturbations_per_sigma: int, examples_per_capability: int,
+    paper_perturbations_per_sigma: int, paper_examples_per_capability: int,
+) -> str:
+    """"full" iff BOTH values exactly match the paper pilot config's own (un-overridden)
+    values; otherwise a deterministic "smoke_p{P}_n{N}" identity. This is what guarantees a
+    full run and any override/smoke run can never write into the same output directory,
+    however `--output-dir` was specified (the identity is always appended on top of it).
+    """
+    if perturbations_per_sigma == paper_perturbations_per_sigma and examples_per_capability == paper_examples_per_capability:
+        return "full"
+    return f"smoke_p{perturbations_per_sigma}_n{examples_per_capability}"
 
 
 @dataclass(frozen=True)
@@ -181,8 +228,7 @@ class PilotPlan:
     perturbations_per_sigma: int
     examples_per_capability: int
     output_dir: Path
-    restoration_atol: float
-    restoration_rtol: float
+    run_signature: str
 
     @property
     def total_unique_perturbations(self) -> int:
@@ -207,12 +253,14 @@ def load_pilot_config(path: "str | Path") -> dict:
 
 def build_pilot_plan(
     raw_config: dict, *, perturbations_per_sigma: Optional[int] = None, subset_size: Optional[int] = None,
-    output_dir: Optional[str] = None, restoration_atol: Optional[float] = None, restoration_rtol: Optional[float] = None,
+    output_dir: Optional[str] = None,
 ) -> PilotPlan:
     """Validates the two Stage-6 scientific-integrity invariants that must never silently
     drift (spec sections 3 and 5): the capability set is EXACTLY `PILOT_CAPABILITIES`, and the
     sigma grid is EXACTLY `UPSTREAM_SIGMA_GRID` (order-independent) -- never a config typo
-    substituting a fourth capability or an invented sigma value.
+    substituting a fourth capability or an invented sigma value. `output_dir` always has the
+    run's `run_signature` appended, so smoke/override runs and the real full run never share
+    an ambiguous output identity (see module docstring).
     """
     model = raw_config["model"]
     pilot = raw_config["pilot"]
@@ -225,14 +273,21 @@ def build_pilot_plan(
     if set(sigma_grid) != set(UPSTREAM_SIGMA_GRID):
         raise PilotConfigError(f"Stage-6 pilot sigma grid must be exactly the upstream grid {UPSTREAM_SIGMA_GRID}, got {sigma_grid}")
 
+    paper_perturbations_per_sigma = pilot["perturbations_per_sigma"]
+    paper_examples_per_capability = pilot["examples_per_capability"]
+    actual_perturbations_per_sigma = perturbations_per_sigma if perturbations_per_sigma is not None else paper_perturbations_per_sigma
+    actual_examples_per_capability = subset_size if subset_size is not None else paper_examples_per_capability
+
+    run_signature = compute_run_signature(
+        actual_perturbations_per_sigma, actual_examples_per_capability, paper_perturbations_per_sigma, paper_examples_per_capability,
+    )
+    base_output_root = Path(output_dir) if output_dir is not None else REPO_ROOT / raw_config["outputs"]["root"]
+
     return PilotPlan(
         model_name=model["name"], model_revision=model["revision"], model_family=model.get("family", "qwen2_5_vl"),
         model_scale=model.get("scale", "3B"), capabilities=capabilities, sigma_grid=sigma_grid,
-        perturbations_per_sigma=perturbations_per_sigma if perturbations_per_sigma is not None else pilot["perturbations_per_sigma"],
-        examples_per_capability=subset_size if subset_size is not None else pilot["examples_per_capability"],
-        output_dir=Path(output_dir) if output_dir is not None else REPO_ROOT / raw_config["outputs"]["root"],
-        restoration_atol=restoration_atol if restoration_atol is not None else pilot.get("restoration_atol", DEFAULT_RESTORATION_ATOL),
-        restoration_rtol=restoration_rtol if restoration_rtol is not None else pilot.get("restoration_rtol", DEFAULT_RESTORATION_RTOL),
+        perturbations_per_sigma=actual_perturbations_per_sigma, examples_per_capability=actual_examples_per_capability,
+        output_dir=base_output_root / run_signature, run_signature=run_signature,
     )
 
 
@@ -249,15 +304,19 @@ def format_pilot_plan(plan: PilotPlan) -> str:
         f"total_perturbation_x_capability_evaluations: {plan.total_perturbation_capability_evaluations}",
         f"baseline_evaluations: {plan.baseline_evaluations}",
         f"total_model_example_evaluations: {plan.total_model_example_evaluations}",
+        f"run_signature: {plan.run_signature}",
+        f"perturbation_semantics: {PERTURBATION_SEMANTICS}",
+        f"restoration_mode: {RESTORATION_MODE}",
         "expected_model_loading_strategy: ONE vLLM engine (Ray actor, TP=1, "
         "worker_extension_cls=utils.worker_extn.WorkerExtension, launched by OUR OWN "
-        "launch_stage6_engine() -- max_model_len=4096, no store_base_weights call) loaded "
-        "once for the whole pilot; per perturbation: perturb_self_weights via collective_rpc "
-        "-> evaluate visual_grounding, ocr_text_recognition_grounded, spatial_reasoning "
-        "D_map subsets in that fixed order (engine.generate.remote) -> restore_self_weights "
-        "via collective_rpc -> verify_restoration_rpc via collective_rpc against a "
-        "fingerprint captured once before the sweep -> next perturbation. No "
-        "per-perturbation or per-capability engine reload. Zero frontend "
+        "launch_stage6_engine() -- max_model_len=4096, gpu_memory_utilization=0.60) loaded "
+        "once for the whole pilot; store_base_weights called EXACTLY ONCE immediately after "
+        "launch to freeze theta_0; per perturbation: reset_to_base_weights -> "
+        "perturb_self_weights(seed, sigma) -> evaluate visual_grounding, "
+        "ocr_text_recognition_grounded, spatial_reasoning D_map subsets in that fixed order "
+        "(engine.generate.remote) -> reset_to_base_weights -> verify EXACT restoration (zero "
+        "changed perturbable tensors) via collective_rpc -- restore_self_weights is NEVER "
+        "called. No per-perturbation or per-capability engine reload. Zero frontend "
         "llm_engine.model_executor access anywhere in this path.",
         f"output_dir: {plan.output_dir}",
     ]
@@ -296,7 +355,7 @@ def build_d_map_context(benchmark: Any, cfg: Any, capability: str, n: int, seed:
 
 
 # =============================================================================================
-# Worker-RPC transport (Task 1/2 of this repair pass) -- ZERO frontend model_executor access.
+# Worker-RPC transport -- ZERO frontend model_executor access.
 # =============================================================================================
 
 
@@ -323,12 +382,12 @@ def _validate_collective_rpc_results(results: Any, *, label: str) -> Any:
 
 def _collective_rpc_single_worker(engine: Any, method: "str | Callable", args: tuple = (), *, label: str, ray_get: Optional[Callable] = None) -> Any:
     """Dispatches `method` (a STRING naming an existing worker-extension method, e.g. upstream's
-    own `perturb_self_weights`, or a plain CALLABLE defined in our own package, e.g.
-    `thicket.worker_rpc.verify_restoration_rpc` -- the exact same Callable-dispatch convention
-    already established by `scoped_perturbation.scoped_apply_perturbation`) via
-    `engine.collective_rpc.remote(method, args=args)`, then `ray.get`s and unwraps the
-    single-worker result. `ray_get` is injectable purely for CPU testing (a fake engine +
-    identity function) -- real callers never pass it, and get the real `ray.get`.
+    own `perturb_self_weights`/`store_base_weights`/`reset_to_base_weights`, or a plain
+    CALLABLE defined in our own package -- the exact same Callable-dispatch convention already
+    established by `scoped_perturbation.scoped_apply_perturbation`) via `engine.collective_rpc
+    .remote(method, args=args)`, then `ray.get`s and unwraps the single-worker result.
+    `ray_get` is injectable purely for CPU testing (a fake engine + identity function) -- real
+    callers never pass it, and get the real `ray.get`.
     """
     if ray_get is None:
         import ray
@@ -339,43 +398,57 @@ def _collective_rpc_single_worker(engine: Any, method: "str | Callable", args: t
 
 def perturb_via_rpc(engine: Any, seed: int, sigma: float, *, ray_get: Optional[Callable] = None) -> None:
     """Dispatches upstream's OWN, unmodified `perturb_self_weights(seed, sigma, negate=False)`
-    -- string method dispatch, no reimplementation.
+    -- string method dispatch, no reimplementation. MUST be called immediately after
+    `reset_to_base_weights_via_rpc` so it perturbs from the exact frozen base, not whatever the
+    current (possibly already-perturbed) state happens to be.
     """
     _collective_rpc_single_worker(engine, WORKER_PERTURB_METHOD, args=(seed, sigma, False), label=WORKER_PERTURB_METHOD, ray_get=ray_get)
 
 
 def restore_via_rpc(engine: Any, seed: int, sigma: float, *, ray_get: Optional[Callable] = None) -> None:
     """Dispatches upstream's OWN, unmodified `restore_self_weights(seed, sigma, negate=False)`
-    -- MUST reuse the identical (seed, sigma) as the matching perturb_via_rpc call.
+    -- the HISTORICAL released-compatible restoration mechanism. NEVER called by Stage 6's
+    fixed_base lifecycle (see module docstring) -- kept only so the underlying upstream call
+    shape stays documented and independently testable.
     """
     _collective_rpc_single_worker(engine, WORKER_RESTORE_METHOD, args=(seed, sigma, False), label=WORKER_RESTORE_METHOD, ray_get=ray_get)
 
 
+def store_base_weights_via_rpc(engine: Any, *, ray_get: Optional[Callable] = None) -> None:
+    """Dispatches upstream's OWN, unmodified `store_base_weights()` -- clones every current
+    parameter as the frozen theta_0 snapshot. Called EXACTLY ONCE per Stage-6 run, immediately
+    after the engine initializes, before any perturbation or baseline evaluation.
+    """
+    _collective_rpc_single_worker(engine, WORKER_STORE_BASE_METHOD, args=(), label=WORKER_STORE_BASE_METHOD, ray_get=ray_get)
+
+
+def reset_to_base_weights_via_rpc(engine: Any, *, ray_get: Optional[Callable] = None) -> None:
+    """Dispatches upstream's OWN, unmodified `reset_to_base_weights()` -- a direct tensor COPY
+    from the frozen theta_0 snapshot (`store_base_weights_via_rpc` must have already been
+    called on this engine). Called TWICE per candidate: once before perturbing (defensive --
+    guarantees perturbation is always applied from the exact stored base regardless of
+    whatever the current state is) and once after evaluating (the actual restoration step).
+    """
+    _collective_rpc_single_worker(engine, WORKER_RESET_TO_BASE_METHOD, args=(), label=WORKER_RESET_TO_BASE_METHOD, ray_get=ray_get)
+
+
 def compute_mask_info_via_rpc(engine: Any, *, ray_get: Optional[Callable] = None) -> Dict:
-    """Dispatches `thicket.worker_rpc.compute_perturbable_mask_info_rpc` as a Callable (spec
-    Task 2 item 3) -- computed and hashed entirely inside the worker.
+    """Dispatches `thicket.worker_rpc.compute_perturbable_mask_info_rpc` as a Callable --
+    computed and hashed entirely inside the worker.
     """
     from .thicket.worker_rpc import compute_perturbable_mask_info_rpc
 
     return _collective_rpc_single_worker(engine, compute_perturbable_mask_info_rpc, args=(), label="compute_perturbable_mask_info_rpc", ray_get=ray_get)
 
 
-def compute_restoration_fingerprint_via_rpc(engine: Any, *, ray_get: Optional[Callable] = None) -> Dict[str, float]:
-    """Dispatches `thicket.worker_rpc.compute_restoration_fingerprint_rpc` as a Callable --
-    per-tensor L2 norms, computed inside the worker, no second model copy."""
-    from .thicket.worker_rpc import compute_restoration_fingerprint_rpc
-
-    return _collective_rpc_single_worker(engine, compute_restoration_fingerprint_rpc, args=(), label="compute_restoration_fingerprint_rpc", ray_get=ray_get)
-
-
-def verify_restoration_via_rpc(engine: Any, base_fingerprint: Dict[str, float], atol: float, rtol: float, *, ray_get: Optional[Callable] = None) -> Dict:
-    """Dispatches `thicket.worker_rpc.verify_restoration_rpc` as a Callable (spec Task 2 item
-    4) -- checks the restoration invariant (see that module's docstring) entirely inside the
-    worker and returns only a small diagnostic dict, never full tensors.
+def verify_exact_fixed_base_restoration_via_rpc(engine: Any, *, ray_get: Optional[Callable] = None) -> Dict:
+    """Dispatches `thicket.worker_rpc.verify_exact_fixed_base_restoration_rpc` as a Callable --
+    checks the EXACT fixed-base restoration invariant (see that module's docstring) entirely
+    inside the worker and returns only a small diagnostic dict, never full tensors.
     """
-    from .thicket.worker_rpc import verify_restoration_rpc
+    from .thicket.worker_rpc import verify_exact_fixed_base_restoration_rpc
 
-    return _collective_rpc_single_worker(engine, verify_restoration_rpc, args=(base_fingerprint, atol, rtol), label="verify_restoration_rpc", ray_get=ray_get)
+    return _collective_rpc_single_worker(engine, verify_exact_fixed_base_restoration_rpc, args=(), label="verify_exact_fixed_base_restoration_rpc", ray_get=ray_get)
 
 
 class RayEngineLLMAdapter:
@@ -383,7 +456,7 @@ class RayEngineLLMAdapter:
     calls `llm.generate(requests, sampling_params, use_tqdm=...)` and expects the return value
     directly, never a Ray ObjectRef) can be pointed at a Ray-actor-wrapped vLLM engine -- the
     only way collective_rpc-manipulable weights are reachable under vLLM V1 (see module
-    docstring). `run_benchmark` itself needed ZERO changes for this repair pass.
+    docstring). `run_benchmark` itself needed ZERO changes.
     """
 
     def __init__(self, engine: Any, ray_get: Optional[Callable] = None):
@@ -398,23 +471,31 @@ class RayEngineLLMAdapter:
 
 
 # =============================================================================================
-# Per-perturbation evaluation lifecycle (spec sections 5-7) -- RPC-only, no frontend model access.
+# Per-perturbation evaluation lifecycle (fixed-base restoration, this repair pass)
 # =============================================================================================
 
 
 def evaluate_one_perturbation_rpc(
     engine: Any, manifest: PerturbationManifest, capability_contexts: Dict[str, CapabilityContext],
-    tokenizer: Any, sampling_params: Any, base_fingerprint: Dict[str, float], restoration_atol: float, restoration_rtol: float,
-    *, ray_get: Optional[Callable] = None,
+    tokenizer: Any, sampling_params: Any, *, ray_get: Optional[Callable] = None,
 ) -> List[ExperimentResultRecord]:
-    """Applies `manifest`'s perturbation ONCE (via collective_rpc), evaluates every
-    capability's D_map subset (in `capability_contexts`'s own iteration order -- callers must
-    pass an order-preserving dict built in the required visual_grounding -> OCR ->
-    spatial_reasoning order), restores (via collective_rpc), then verifies restoration (via
-    collective_rpc) -- raising RestorationFailedError aborts the whole experiment rather than
-    silently proceeding to the next perturbation with possibly-drifted base weights.
+    """Fixed-base lifecycle for candidate i (this repair pass -- replaces the subtractive
+    `restore_self_weights` restoration used through commit f71f608):
+
+        reset_to_base_weights()                 -- guarantee current == theta_0
+        perturb_self_weights(seed_i, sigma)      -- apply epsilon_i from theta_0
+        evaluate every capability's D_map subset (in `capability_contexts`'s own iteration
+            order -- callers must pass an order-preserving dict built in the required
+            visual_grounding -> OCR -> spatial_reasoning order)
+        reset_to_base_weights()                  -- restore, via direct copy, back to theta_0
+        verify EXACT restoration (zero changed perturbable tensors)
+
+    `restore_self_weights` is NEVER called here. Raising RestorationFailedError aborts the
+    whole experiment rather than silently proceeding to the next candidate with possibly
+    -drifted base weights.
     """
     llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
+    reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
     perturb_via_rpc(engine, manifest.seed, manifest.sigma, ray_get=ray_get)
     records: List[ExperimentResultRecord] = []
     try:
@@ -431,36 +512,36 @@ def evaluate_one_perturbation_rpc(
                 base_score=base_score, perturbed_score=perturbed_score, delta=perturbed_score - base_score,
                 parser_failure_rate=result.aggregate_metrics.get("parser_failure_rate"),
                 per_example_result_path=None, per_example_result_hash=result.generation_hash(),
-                runtime_metadata={},
+                runtime_metadata={"restoration_mode": RESTORATION_MODE, "perturbation_semantics": PERTURBATION_SEMANTICS},
             ))
     finally:
-        restore_via_rpc(engine, manifest.seed, manifest.sigma, ray_get=ray_get)
+        reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
 
-    verification = verify_restoration_via_rpc(engine, base_fingerprint, restoration_atol, restoration_rtol, ray_get=ray_get)
+    verification = verify_exact_fixed_base_restoration_via_rpc(engine, ray_get=ray_get)
     if not verification["ok"]:
         raise RestorationFailedError(
-            f"Restoration check failed after perturbation {manifest.perturbation_id!r} "
-            f"(seed={manifest.seed}, sigma={manifest.sigma}): {verification['n_failing']}/"
-            f"{verification['n_checked']} tensor(s) exceeded tolerance "
-            f"(atol={restoration_atol}, rtol={restoration_rtol}); worst offenders: "
-            f"{verification['worst_offenders']}"
+            f"Exact fixed-base restoration failed after perturbation {manifest.perturbation_id!r} "
+            f"(seed={manifest.seed}, sigma={manifest.sigma}): max_abs_drift="
+            f"{verification['max_abs_drift']}, fraction_elements_differing="
+            f"{verification['fraction_elements_differing']}"
         )
     return records
 
 
 def build_stage6_perturbation_population(plan: PilotPlan, base_seed: int, parameter_mask_hash: str) -> Tuple[PerturbationManifest, ...]:
     """Builds the FULL Stage-6 population across every sigma bucket (spec section 5: a fixed
-    `perturbations_per_sigma` count per sigma, `global_gaussian_upstream` mode only).
+    `perturbations_per_sigma` count per sigma, `global_gaussian_upstream` mode only) --
+    UNCHANGED by the fixed-base restoration fix (this function describes epsilon_i, never how
+    the model is returned to theta_0 between candidates).
 
-    SEED-DOMAIN FIX (this repair pass): the pinned upstream WorkerExtension._set_seed calls
+    SEED-DOMAIN FIX (earlier repair pass): the pinned upstream WorkerExtension._set_seed calls
     `np.random.seed(seed)`, which hard-requires `0 <= seed <= 2**32 - 1` -- `thicket.seeds.
-    derive_seed`'s own 63-bit output falls outside that domain, which is exactly what crashed
-    a real RunPod smoke at the first `perturb_self_weights(seed, sigma)` call. Every manifest's
-    worker seed is therefore reduced into that domain (`seed % NUMPY_SEED_DOMAIN`) AT
-    GENERATION TIME, via `generate_perturbation_population`'s `seed_modulus` parameter -- the
-    value stored on `PerturbationManifest.seed` (and used to compute `perturbation_id`) IS the
-    exact uint32 value later passed to `perturb_self_weights`/`restore_self_weights`, never a
-    larger value silently truncated only at RPC time.
+    derive_seed`'s own 63-bit output falls outside that domain. Every manifest's worker seed is
+    therefore reduced into that domain (`seed % NUMPY_SEED_DOMAIN`) AT GENERATION TIME, via
+    `generate_perturbation_population`'s `seed_modulus` parameter -- the value stored on
+    `PerturbationManifest.seed` (and used to compute `perturbation_id`) IS the exact uint32
+    value later passed to `perturb_self_weights`, never a larger value silently truncated only
+    at RPC time.
 
     The ENTIRE combined population (every sigma bucket together, not just one at a time) is
     then validated for worker-seed uniqueness (`validate_unique_worker_seeds`) BEFORE any
@@ -481,38 +562,195 @@ def build_stage6_perturbation_population(plan: PilotPlan, base_seed: int, parame
     return tuple(all_manifests)
 
 
+# =============================================================================================
+# Checkpoint / resume (spec section 7) -- durable per-candidate persistence.
+# =============================================================================================
+
+
+@dataclass(frozen=True)
+class CheckpointManifest:
+    """A run's full identity, persisted to `checkpoint_manifest.json` on first write and
+    validated (never silently overwritten) on every subsequent resume attempt. Equality is
+    exact dataclass field equality -- ANY difference (including, critically,
+    `restoration_mode`) makes an existing checkpoint incompatible.
+    """
+    experiment_id: str
+    run_signature: str
+    restoration_mode: str
+    perturbation_semantics: str
+    model_revision: str
+    subset_hashes: Dict[str, str]
+    subset_size: int
+    perturbations_per_sigma: int
+    expected_unique_perturbations: int
+    expected_result_rows: int
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "experiment_id": self.experiment_id, "run_signature": self.run_signature,
+            "restoration_mode": self.restoration_mode, "perturbation_semantics": self.perturbation_semantics,
+            "model_revision": self.model_revision, "subset_hashes": dict(sorted(self.subset_hashes.items())),
+            "subset_size": self.subset_size, "perturbations_per_sigma": self.perturbations_per_sigma,
+            "expected_unique_perturbations": self.expected_unique_perturbations, "expected_result_rows": self.expected_result_rows,
+        }
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "CheckpointManifest":
+        return cls(
+            experiment_id=d["experiment_id"], run_signature=d["run_signature"], restoration_mode=d["restoration_mode"],
+            perturbation_semantics=d["perturbation_semantics"], model_revision=d["model_revision"],
+            subset_hashes=dict(d["subset_hashes"]), subset_size=d["subset_size"], perturbations_per_sigma=d["perturbations_per_sigma"],
+            expected_unique_perturbations=d["expected_unique_perturbations"], expected_result_rows=d["expected_result_rows"],
+        )
+
+
+def build_stage6_checkpoint_manifest(plan: PilotPlan, capability_contexts: Dict[str, CapabilityContext]) -> CheckpointManifest:
+    return CheckpointManifest(
+        experiment_id="visual_thicket_global_3b_pilot", run_signature=plan.run_signature, restoration_mode=RESTORATION_MODE,
+        perturbation_semantics=PERTURBATION_SEMANTICS, model_revision=plan.model_revision,
+        subset_hashes={c: ctx.subset_hash for c, ctx in capability_contexts.items()}, subset_size=plan.examples_per_capability,
+        perturbations_per_sigma=plan.perturbations_per_sigma, expected_unique_perturbations=plan.total_unique_perturbations,
+        expected_result_rows=plan.total_perturbation_capability_evaluations,
+    )
+
+
+def ensure_checkpoint_manifest(path: Path, current: CheckpointManifest) -> CheckpointManifest:
+    """Writes `current` if no checkpoint exists yet; otherwise hard-fails
+    (IncompatibleCheckpointError) unless the existing checkpoint is field-for-field identical.
+    This is the mechanism that makes it impossible to silently resume a differently
+    -configured partial run (e.g. one that used subtractive restoration) into this run.
+    """
+    if path.exists():
+        existing = CheckpointManifest.from_dict(json.loads(path.read_text()))
+        if existing != current:
+            raise IncompatibleCheckpointError(
+                f"Existing checkpoint at {path} is incompatible with this run -- refusing to "
+                f"resume: existing={existing.to_dict()} current={current.to_dict()}"
+            )
+        return existing
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(current.to_dict(), indent=2))
+    return current
+
+
+def load_records(results_path: Path) -> List[ExperimentResultRecord]:
+    if not results_path.exists():
+        return []
+    records = []
+    with results_path.open() as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                records.append(ExperimentResultRecord.from_dict(json.loads(line)))
+    return records
+
+
+def load_completed_perturbation_rows(results_path: Path, expected_capabilities: Sequence[str]) -> Dict[str, List[ExperimentResultRecord]]:
+    """Groups already-persisted rows by perturbation_id, returning only those with a COMPLETE
+    set (exactly one row per expected capability). An incomplete group is excluded and will be
+    re-run from scratch -- resuming NEVER trusts a partial candidate.
+    """
+    rows_by_pid: Dict[str, List[ExperimentResultRecord]] = {}
+    for record in load_records(results_path):
+        rows_by_pid.setdefault(record.perturbation_id, []).append(record)
+    expected = set(expected_capabilities)
+    return {pid: rows for pid, rows in rows_by_pid.items() if {r.capability for r in rows} == expected and len(rows) == len(expected)}
+
+
+def append_candidate_rows(results_path: Path, records: List[ExperimentResultRecord]) -> None:
+    """Durable per-candidate persistence: called ONLY after a candidate's entire apply ->
+    evaluate -> reset -> verify cycle has already succeeded (see evaluate_one_perturbation_rpc)
+    -- a row appearing in this file is therefore proof restoration passed for that candidate,
+    never written speculatively beforehand. flush+fsync so a crash immediately after this call
+    returns still leaves the just-completed candidate durably on disk.
+    """
+    results_path.parent.mkdir(parents=True, exist_ok=True)
+    with results_path.open("a") as f:
+        for r in records:
+            f.write(json.dumps(r.to_dict()) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+
+def load_or_compute_baseline_scores(
+    baseline_path: Path, capability_contexts: Dict[str, CapabilityContext], model_revision: str, run_signature: str,
+    llm_adapter: Any, tokenizer: Any, sampling_params: Any,
+) -> None:
+    """Populates `ctx.base_score` (from exact theta_0, evaluated immediately after
+    `store_base_weights`) for every capability. Reused from `baseline_path` only if the
+    persisted model_revision/run_signature/every capability's subset_hash all match this run's
+    identity (spec section 8) -- any mismatch hard-fails (IncompatibleCheckpointError) rather
+    than silently reusing a stale baseline; a missing file means compute fresh and persist.
+    """
+    if baseline_path.exists():
+        persisted = json.loads(baseline_path.read_text())
+        compatible = (
+            persisted.get("model_revision") == model_revision and persisted.get("run_signature") == run_signature
+            and all(
+                capability in persisted.get("capabilities", {}) and persisted["capabilities"][capability]["subset_hash"] == ctx.subset_hash
+                for capability, ctx in capability_contexts.items()
+            )
+        )
+        if not compatible:
+            raise IncompatibleCheckpointError(
+                f"Existing baseline_scores.json at {baseline_path} does not match this run's "
+                f"identity -- refusing to reuse stale baseline scores."
+            )
+        for capability, ctx in capability_contexts.items():
+            ctx.base_score = persisted["capabilities"][capability]["score"]
+        return
+
+    persisted = {"model_revision": model_revision, "run_signature": run_signature, "capabilities": {}}
+    for capability, ctx in capability_contexts.items():
+        base_result = run_benchmark(ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params)
+        ctx.base_result = base_result
+        ctx.base_score = base_result.aggregate_metrics["primary_metric"]
+        persisted["capabilities"][capability] = {"score": ctx.base_score, "subset_hash": ctx.subset_hash}
+    baseline_path.parent.mkdir(parents=True, exist_ok=True)
+    baseline_path.write_text(json.dumps(persisted, indent=2))
+
+
 def run_pilot_rpc(
     plan: PilotPlan, capability_contexts: Dict[str, CapabilityContext], engine: Any, tokenizer: Any,
     sampling_params: Any, base_seed: int, parameter_mask_hash: str, *, ray_get: Optional[Callable] = None,
 ) -> List[ExperimentResultRecord]:
-    """Loops perturbation -> capability, exactly the nesting spec section 6 requires (sigma is
-    the outer grouping `build_stage6_perturbation_population` adds on top, for a clean
-    per-sigma bucket count -- see module docstring's upstream-reconciliation note). The
-    restoration fingerprint is captured ONCE via RPC before the whole sweep.
+    """Builds the full population, validates/creates the checkpoint manifest (hard-fails on an
+    incompatible existing one), skips any perturbation already completely persisted, and
+    evaluates + durably persists every remaining one -- exactly the checkpoint/resume contract
+    of spec section 7.
     """
-    base_fingerprint = compute_restoration_fingerprint_via_rpc(engine, ray_get=ray_get)
     population = build_stage6_perturbation_population(plan, base_seed, parameter_mask_hash)
+
+    current_checkpoint = build_stage6_checkpoint_manifest(plan, capability_contexts)
+    checkpoint_path = plan.output_dir / "checkpoint_manifest.json"
+    ensure_checkpoint_manifest(checkpoint_path, current_checkpoint)
+
+    results_path = plan.output_dir / "results.jsonl"
+    completed = load_completed_perturbation_rows(results_path, plan.capabilities)
+
     all_records: List[ExperimentResultRecord] = []
+    for rows in completed.values():
+        all_records.extend(rows)
+
     for manifest in population:
-        all_records.extend(evaluate_one_perturbation_rpc(
-            engine, manifest, capability_contexts, tokenizer, sampling_params,
-            base_fingerprint, plan.restoration_atol, plan.restoration_rtol, ray_get=ray_get,
-        ))
+        if manifest.perturbation_id in completed:
+            continue
+        records = evaluate_one_perturbation_rpc(engine, manifest, capability_contexts, tokenizer, sampling_params, ray_get=ray_get)
+        append_candidate_rows(results_path, records)
+        all_records.extend(records)
     return all_records
 
 
 # =============================================================================================
-# Model-revision resolution (Task 4) + runtime compatibility diagnostic (Task 5)
+# Model-revision resolution + runtime compatibility diagnostic
 # =============================================================================================
 
 
 def resolve_and_report_model_snapshot(model_name: str, revision: str) -> Dict[str, str]:
     """Resolves `model_name@revision` to an immutable local HF snapshot path BEFORE
     constructing vLLM -- the SAME `vlm_adapter.resolve_model_snapshot` function
-    `run_capability_benchmark_gate.run_one_capability` already uses for this exact purpose
-    (never relies on the HF repo's current HEAD, unlike passing the bare repo name straight to
-    vLLM, which is what produced `revision=None` in the RunPod log this pass fixes). Returns
-    all three of {model_name, requested_revision, resolved_snapshot_path} for persistence.
+    `run_capability_benchmark_gate.run_one_capability` already uses for this exact purpose.
+    Returns all three of {model_name, requested_revision, resolved_snapshot_path}.
     """
     from .vlm_adapter import resolve_model_snapshot
 
@@ -530,28 +768,27 @@ def get_vllm_version() -> str:
 
 def detect_vllm_engine_mode() -> str:
     """Best-effort V1/V0 report: vLLM >=0.8 defaults to the V1 engine unless VLLM_USE_V1=0 is
-    explicitly set -- reports the env var directly (the actual signal this project's own
-    RunPod failure hinged on) rather than guessing at internal engine class names that vary
-    across versions.
+    explicitly set -- reports the env var directly rather than guessing at internal engine
+    class names that vary across versions.
     """
-    import os
-
     if os.environ.get("VLLM_USE_V1") == "0":
         return "V0 (VLLM_USE_V1=0 explicitly set)"
     return "V1 (default; VLLM_USE_V1 not set to 0)"
 
 
 def build_stage6_engine_config() -> Dict[str, Any]:
-    """The exact Stage-6-specific engine construction parameters (this repair pass) --
-    persisted and printed as runtime metadata so a real run's actual max_model_len/
-    gpu_memory_utilization is always auditable, not merely assumed from this module's source.
+    """The exact Stage-6-specific engine construction + scientific-interpretation parameters --
+    persisted and printed as runtime metadata so a real run's actual configuration is always
+    auditable, not merely assumed from this module's source.
     """
     return {
         "max_model_len": STAGE6_MAX_MODEL_LEN,
         "gpu_memory_utilization": STAGE6_GPU_MEMORY_UTILIZATION,
         "tensor_parallel_size": 1,
         "precision": "bfloat16",
-        "store_base_weights_called": False,
+        "restoration_mode": RESTORATION_MODE,
+        "perturbation_semantics": PERTURBATION_SEMANTICS,
+        "base_snapshot_mode": BASE_SNAPSHOT_MODE,
     }
 
 
@@ -566,13 +803,28 @@ def format_runtime_compatibility_diagnostic(model_resolution: Dict[str, str], wo
         f"resolved_snapshot_path: {model_resolution['resolved_snapshot_path']}",
         f"max_model_len: {engine_config['max_model_len']}",
         f"gpu_memory_utilization: {engine_config['gpu_memory_utilization']}",
-        f"store_base_weights_called: {engine_config['store_base_weights_called']}",
+        f"restoration_mode: {engine_config['restoration_mode']}",
+        f"perturbation_semantics: {engine_config['perturbation_semantics']}",
+        f"base_snapshot_mode: {engine_config['base_snapshot_mode']}",
     ]
     return "\n".join(lines)
 
 
+def format_base_snapshot_confirmation(gpu_memory_utilization: float, base_snapshot_mode: str) -> str:
+    """Printed once, immediately after `store_base_weights_via_rpc` actually succeeds --
+    `base_snapshot_stored: True` is a genuine runtime observation (unlike the pre-execution
+    diagnostic above, which is printed before the engine even exists).
+    """
+    return (
+        "=== Stage 6: base snapshot stored (theta_0 frozen) ===\n"
+        f"gpu_memory_utilization: {gpu_memory_utilization}\n"
+        f"base_snapshot_mode: {base_snapshot_mode}\n"
+        "base_snapshot_stored: True"
+    )
+
+
 # =============================================================================================
-# Figure-2 metrics + diversity (spec sections 9-10)
+# Figure-2 metrics + diversity
 # =============================================================================================
 
 
@@ -632,10 +884,52 @@ def compute_diversity_summary(records: List[ExperimentResultRecord]) -> Dict[str
     }
 
 
+def build_run_manifest_summary(checkpoint: CheckpointManifest, records: List[ExperimentResultRecord]) -> Dict[str, Any]:
+    actual_unique_perturbations = len({r.perturbation_id for r in records})
+    actual_result_rows = len(records)
+    run_complete = (
+        actual_unique_perturbations == checkpoint.expected_unique_perturbations
+        and actual_result_rows == checkpoint.expected_result_rows
+    )
+    return {
+        "subset_size": checkpoint.subset_size, "perturbations_per_sigma": checkpoint.perturbations_per_sigma,
+        "expected_unique_perturbations": checkpoint.expected_unique_perturbations, "actual_unique_perturbations": actual_unique_perturbations,
+        "expected_result_rows": checkpoint.expected_result_rows, "actual_result_rows": actual_result_rows,
+        "restoration_mode": checkpoint.restoration_mode, "run_complete": run_complete,
+    }
+
+
+def write_paper_summary(output_dir: Path) -> Dict[str, Any]:
+    """(Re)builds figure2_summary.json/diversity_summary.json from `output_dir/results.jsonl`,
+    gated by `output_dir/checkpoint_manifest.json`'s own recorded expectations -- refuses
+    (IncompleteRunError) if the actual counts fall short. ALWAYS writes run_manifest.json first
+    (the accounting itself, including for an incomplete run, so any shortfall stays visible on
+    disk even when the paper summary is refused). Safe to call standalone (`--summarize-only`)
+    against a possibly-interrupted run's output directory without accidentally treating
+    partial results as the finished paper summary (spec section 6).
+    """
+    checkpoint_path = output_dir / "checkpoint_manifest.json"
+    if not checkpoint_path.exists():
+        raise FileNotFoundError(f"No checkpoint_manifest.json found at {checkpoint_path} -- this run never started (or output_dir is wrong).")
+    checkpoint = CheckpointManifest.from_dict(json.loads(checkpoint_path.read_text()))
+    records = load_records(output_dir / "results.jsonl")
+
+    manifest = build_run_manifest_summary(checkpoint, records)
+    (output_dir / "run_manifest.json").write_text(json.dumps(manifest, indent=2))
+    if not manifest["run_complete"]:
+        raise IncompleteRunError(f"Refusing to generate the paper summary for an incomplete run at {output_dir}: {manifest}")
+
+    figure2_summary = compute_figure2_summary(records)
+    (output_dir / "figure2_summary.json").write_text(json.dumps(figure2_summary, indent=2))
+    diversity_summary = compute_diversity_summary(records)
+    (output_dir / "diversity_summary.json").write_text(json.dumps(diversity_summary, indent=2))
+    return manifest
+
+
 # =============================================================================================
-# Stage-6-specific engine launcher (this repair pass) -- NOT external/RandOpt/core/engine.py's
-# launch_engines(), which upstream unconditionally follows with collective_rpc(
-# "store_base_weights") and has no max_model_len parameter at all.
+# Stage-6-specific engine launcher -- NOT external/RandOpt/core/engine.py's launch_engines(),
+# which has no max_model_len parameter and unconditionally calls store_base_weights itself
+# (Stage 6 needs precise, controlled ownership of exactly when/how many times that happens).
 # =============================================================================================
 
 
@@ -647,30 +941,23 @@ def launch_stage6_engine(
     function in OUR OWN package (external/RandOpt is not modified or subclassed on disk in
     any way); reuses upstream's `RandOptNcclLLM` class directly (imported, never copied) and
     the identical `worker_extension_cls="utils.worker_extn.WorkerExtension"` string, so every
-    existing collective_rpc perturb/restore/mask/verify call in this module keeps working
+    existing collective_rpc perturb/reset/mask/verify call in this module keeps working
     completely unchanged.
 
-    Deliberately does NOT call `external/RandOpt/core/engine.py:launch_engines()`, for two
-    reasons, neither a change to upstream's actual RandOpt search semantics:
-      1. `launch_engines()` accepts no `max_model_len` -- Qwen2.5-VL-3B-Instruct's own default
-         (128000) drove the real RunPod smoke's KV-cache OOM (required 4.39 GiB, available
-         3.01 GiB at gpu_memory_utilization=0.75 on an L40S). `max_model_len=4096` (already
-         sufficient for this project's prior Qwen2.5-VL benchmark runs) is passed explicitly
-         instead of raising gpu_memory_utilization to accommodate an irrelevant 128k context.
-      2. `launch_engines()` unconditionally calls `collective_rpc("store_base_weights")` after
-         creating every engine -- upstream's own "Ensemble methods" (store_base_weights/
-         apply_perturbation/reset_to_base_weights) clone every model parameter a SECOND time
-         onto the GPU. Stage 6's lifecycle (perturb_self_weights -> evaluate 3 capabilities ->
-         restore_self_weights -> verify_restoration_rpc) never reads `self._base_weights` --
-         only the ensemble methods this pilot never calls do -- so that second ~3B-parameter
-         GPU copy is pure waste here, and this function never issues that RPC call.
+    Deliberately does NOT call `external/RandOpt/core/engine.py:launch_engines()`:
+      1. `launch_engines()` accepts no `max_model_len` -- see STAGE6_MAX_MODEL_LEN's own
+         comment for the real KV-cache OOM this avoids.
+      2. `launch_engines()` unconditionally calls `collective_rpc("store_base_weights")`
+         itself, immediately on creation, for every engine -- Stage 6 instead calls
+         `store_base_weights_via_rpc` explicitly, exactly once, from `main()`, so the timing
+         and count of that call is deliberate and auditable rather than an implicit side
+         effect of engine construction.
 
     Mirrors the REST of `launch_engines()`'s single-engine (TP=1) setup: one GPU-only
     placement group, `RandOptNcclLLM` as a Ray actor with `distributed_executor_backend=
     "ray"`, `enforce_eager=True`, `limit_mm_per_prompt={"image": 1}`. Returns `([engine], [pg])`
     -- the identical list-shaped return `launch_engines()` gives -- so upstream's own
-    unmodified `cleanup_engines([engine], [pg])` still works for teardown, and the rest of
-    this module needs no further changes.
+    unmodified `cleanup_engines([engine], [pg])` still works for teardown.
     """
     import ray
     from ray.util.placement_group import placement_group
@@ -701,7 +988,8 @@ def launch_stage6_engine(
     )
     engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(RandOptNcclLLM).remote(**engine_kwargs)
 
-    # Deliberately NOT calling collective_rpc("store_base_weights") here -- see docstring above.
+    # Deliberately NOT calling collective_rpc("store_base_weights") here -- main() does it
+    # explicitly, exactly once, via store_base_weights_via_rpc -- see docstring above.
     return [engine], [pg]
 
 
@@ -717,6 +1005,11 @@ def main(argv=None) -> int:
     parser.add_argument("--perturbations-per-sigma", type=int, default=None, help="smoke override, e.g. 2 -- does not modify the paper pilot config")
     parser.add_argument("--subset-size", type=int, default=None, help="smoke override, e.g. 5 -- does not modify the paper pilot config")
     parser.add_argument("--dry-run", action="store_true", help="print the plan and exit -- no model load, no GPU")
+    parser.add_argument(
+        "--summarize-only", action="store_true",
+        help="skip GPU execution entirely -- (re)build figure2/diversity summaries from an "
+             "existing output_dir's results.jsonl + checkpoint_manifest.json (refuses if incomplete)",
+    )
     args = parser.parse_args(argv)
 
     raw_config = load_pilot_config(args.config)
@@ -726,6 +1019,11 @@ def main(argv=None) -> int:
     print(format_pilot_plan(plan))
 
     if args.dry_run:
+        return 0
+
+    if args.summarize_only:
+        manifest = write_paper_summary(plan.output_dir)
+        print(json.dumps(manifest, indent=2))
         return 0
 
     # --- Real GPU execution path: lazy-imports vllm/ray/transformers, not exercised by CPU
@@ -762,7 +1060,7 @@ def main(argv=None) -> int:
 
     if str(EXTERNAL_ROOT) not in sys.path:
         sys.path.insert(0, str(EXTERNAL_ROOT))
-    from core.engine import cleanup_engines  # type: ignore  # upstream, unmodified -- teardown only; launch uses OUR OWN launch_stage6_engine (see its docstring for why)
+    from core.engine import cleanup_engines  # type: ignore  # upstream, unmodified -- teardown only; launch uses OUR OWN launch_stage6_engine
 
     bootstrap_ray(EXTERNAL_ROOT)
 
@@ -780,32 +1078,23 @@ def main(argv=None) -> int:
         )
         engine = engines[0]
 
+        store_base_weights_via_rpc(engine)
+        print(format_base_snapshot_confirmation(engine_config["gpu_memory_utilization"], engine_config["base_snapshot_mode"]))
+
         parameter_mask_hash = compute_mask_info_via_rpc(engine)["mask_hash"]
 
         llm_adapter = RayEngineLLMAdapter(engine)
-        for capability, ctx in capability_contexts.items():
-            base_result = run_benchmark(ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params)
-            ctx.base_result = base_result
-            ctx.base_score = base_result.aggregate_metrics["primary_metric"]
+        baseline_path = plan.output_dir / "baseline_scores.json"
+        load_or_compute_baseline_scores(baseline_path, capability_contexts, plan.model_revision, plan.run_signature, llm_adapter, tokenizer, sampling_params)
 
         records = run_pilot_rpc(plan, capability_contexts, engine, tokenizer, sampling_params, base_seed, parameter_mask_hash)
     finally:
         if engines is not None:
             cleanup_engines(engines, pgs)
 
-    results_path = plan.output_dir / "results.jsonl"
-    with results_path.open("w") as f:
-        for r in records:
-            f.write(json.dumps(r.to_dict()) + "\n")
-
-    figure2_summary = compute_figure2_summary(records)
-    (plan.output_dir / "figure2_summary.json").write_text(json.dumps(figure2_summary, indent=2))
-
-    diversity_summary = compute_diversity_summary(records)
-    (plan.output_dir / "diversity_summary.json").write_text(json.dumps(diversity_summary, indent=2))
-
-    print(f"Wrote {len(records)} result rows to {results_path}")
-    print(f"Wrote {plan.output_dir}/figure2_summary.json and {plan.output_dir}/diversity_summary.json")
+    manifest = write_paper_summary(plan.output_dir)
+    print(f"Wrote {len(records)} result rows to {plan.output_dir / 'results.jsonl'}")
+    print(f"Run manifest: {json.dumps(manifest, indent=2)}")
     return 0
 
 

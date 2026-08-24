@@ -36,14 +36,15 @@ pilot:
   # this one value plus an explicit namespace tag.
   base_seed: 20260823
 
-  # Restoration-safety tolerance (spec section 7; restoration INVARIANT documented in
-  # src/neural_thickets_repro/thicket/worker_rpc.py): after restore_self_weights, every
-  # perturbable tensor's CURRENT L2 norm must equal its BASE (pre-perturbation) L2 norm within
-  # atol + rtol*|base_norm| (the same additive+relative convention torch.allclose uses -- a
-  # fixed absolute tolerance alone is not meaningful across tensors whose norms range from O(1)
-  # to O(100+) in this model). A failed check aborts the experiment immediately.
-  restoration_atol: 0.0001
-  restoration_rtol: 0.001
+  # Restoration mode is FIXED-BASE (store_base_weights/reset_to_base_weights, an exact GPU
+  # -resident tensor copy), not a configurable tolerance -- a real 384-candidate RunPod run
+  # proved the earlier subtractive-restoration tolerance approach was insufficient (see
+  # src/neural_thickets_repro/run_global_visual_thicket_pilot.py's module docstring and
+  # VISUAL_THICKET_EXPERIMENT_SPEC.md's durable note). restoration_mode/perturbation_semantics
+  # are frozen code constants (RESTORATION_MODE/PERTURBATION_SEMANTICS), not YAML-configurable,
+  # so this file has no restoration knob to silently loosen.
 
 outputs:
+  # run_signature ("full" vs "smoke_p{P}_n{N}") is ALWAYS appended to this root by
+  # build_pilot_plan() -- a full run and any override/smoke run can never collide on disk.
   root: results/visual_thicket_global_3b_pilot
