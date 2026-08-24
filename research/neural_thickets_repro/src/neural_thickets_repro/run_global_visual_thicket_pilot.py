@@ -95,7 +95,12 @@ from .benchmarks.subset_selection import build_or_load_subset
 from .thicket import diversity as thicket_diversity
 from .thicket import metrics as thicket_metrics
 from .thicket.data_roles import DataRolePartition, partition_data_roles, write_data_role_manifest
-from .thicket.perturbation import PerturbationManifest, generate_perturbation_population
+from .thicket.perturbation import (
+    NUMPY_SEED_DOMAIN,
+    PerturbationManifest,
+    generate_perturbation_population,
+    validate_unique_worker_seeds,
+)
 from .thicket.schema import ExperimentResultRecord
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -443,28 +448,56 @@ def evaluate_one_perturbation_rpc(
     return records
 
 
-def run_pilot_rpc(
-    plan: PilotPlan, capability_contexts: Dict[str, CapabilityContext], engine: Any, tokenizer: Any,
-    sampling_params: Any, base_seed: int, parameter_mask_hash: str, *, ray_get: Optional[Callable] = None,
-) -> List[ExperimentResultRecord]:
-    """Loops sigma -> perturbation -> capability, exactly the nesting spec section 6 requires
-    at the perturbation/capability level (sigma is the outer grouping this pilot adds on top,
-    for a clean per-sigma bucket count -- see module docstring's upstream-reconciliation note).
-    The restoration fingerprint is captured ONCE via RPC before the whole sweep.
+def build_stage6_perturbation_population(plan: PilotPlan, base_seed: int, parameter_mask_hash: str) -> Tuple[PerturbationManifest, ...]:
+    """Builds the FULL Stage-6 population across every sigma bucket (spec section 5: a fixed
+    `perturbations_per_sigma` count per sigma, `global_gaussian_upstream` mode only).
+
+    SEED-DOMAIN FIX (this repair pass): the pinned upstream WorkerExtension._set_seed calls
+    `np.random.seed(seed)`, which hard-requires `0 <= seed <= 2**32 - 1` -- `thicket.seeds.
+    derive_seed`'s own 63-bit output falls outside that domain, which is exactly what crashed
+    a real RunPod smoke at the first `perturb_self_weights(seed, sigma)` call. Every manifest's
+    worker seed is therefore reduced into that domain (`seed % NUMPY_SEED_DOMAIN`) AT
+    GENERATION TIME, via `generate_perturbation_population`'s `seed_modulus` parameter -- the
+    value stored on `PerturbationManifest.seed` (and used to compute `perturbation_id`) IS the
+    exact uint32 value later passed to `perturb_self_weights`/`restore_self_weights`, never a
+    larger value silently truncated only at RPC time.
+
+    The ENTIRE combined population (every sigma bucket together, not just one at a time) is
+    then validated for worker-seed uniqueness (`validate_unique_worker_seeds`) BEFORE any
+    perturbation is ever applied -- a collision anywhere in the pilot hard-fails
+    (DuplicateWorkerSeedError) rather than being silently resolved in a way that would change
+    reproducibility.
     """
-    base_fingerprint = compute_restoration_fingerprint_via_rpc(engine, ray_get=ray_get)
-    all_records: List[ExperimentResultRecord] = []
+    all_manifests: List[PerturbationManifest] = []
     for sigma in plan.sigma_grid:
         population = generate_perturbation_population(
             mode="global_gaussian_upstream", n=plan.perturbations_per_sigma, base_seed=base_seed,
             model_family=plan.model_family, model_scale=plan.model_scale, model_revision=plan.model_revision,
             parameter_mask_hash=parameter_mask_hash, anatomy_region=None, radius=None, sigma=sigma,
+            seed_modulus=NUMPY_SEED_DOMAIN,
         )
-        for manifest in population:
-            all_records.extend(evaluate_one_perturbation_rpc(
-                engine, manifest, capability_contexts, tokenizer, sampling_params,
-                base_fingerprint, plan.restoration_atol, plan.restoration_rtol, ray_get=ray_get,
-            ))
+        all_manifests.extend(population)
+    validate_unique_worker_seeds(all_manifests)
+    return tuple(all_manifests)
+
+
+def run_pilot_rpc(
+    plan: PilotPlan, capability_contexts: Dict[str, CapabilityContext], engine: Any, tokenizer: Any,
+    sampling_params: Any, base_seed: int, parameter_mask_hash: str, *, ray_get: Optional[Callable] = None,
+) -> List[ExperimentResultRecord]:
+    """Loops perturbation -> capability, exactly the nesting spec section 6 requires (sigma is
+    the outer grouping `build_stage6_perturbation_population` adds on top, for a clean
+    per-sigma bucket count -- see module docstring's upstream-reconciliation note). The
+    restoration fingerprint is captured ONCE via RPC before the whole sweep.
+    """
+    base_fingerprint = compute_restoration_fingerprint_via_rpc(engine, ray_get=ray_get)
+    population = build_stage6_perturbation_population(plan, base_seed, parameter_mask_hash)
+    all_records: List[ExperimentResultRecord] = []
+    for manifest in population:
+        all_records.extend(evaluate_one_perturbation_rpc(
+            engine, manifest, capability_contexts, tokenizer, sampling_params,
+            base_fingerprint, plan.restoration_atol, plan.restoration_rtol, ray_get=ray_get,
+        ))
     return all_records
 
 

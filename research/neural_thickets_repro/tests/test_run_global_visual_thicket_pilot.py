@@ -489,6 +489,118 @@ def test_pilot_population_differs_across_sigmas():
     assert {m.seed for m in pop_a}.isdisjoint({m.seed for m in pop_b})
 
 
+# --- Stage-6 worker-seed domain fix: build_stage6_perturbation_population -----------------------
+#
+# Root cause: the pinned upstream WorkerExtension._set_seed calls np.random.seed(seed), which
+# hard-requires 0 <= seed <= 2**32 - 1 -- derive_seed()'s raw 63-bit output can exceed this,
+# which is exactly what crashed a real RunPod smoke at the first perturb_self_weights call.
+
+
+def test_build_stage6_perturbation_population_every_seed_in_numpy_uint32_domain():
+    from neural_thickets_repro.run_global_visual_thicket_pilot import NUMPY_SEED_DOMAIN, build_stage6_perturbation_population
+
+    plan = build_pilot_plan(_raw_config())
+    population = build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+    assert all(0 <= m.seed < NUMPY_SEED_DOMAIN for m in population)
+
+
+def test_build_stage6_perturbation_population_full_grid_has_384_unique_seeds():
+    from neural_thickets_repro.run_global_visual_thicket_pilot import build_stage6_perturbation_population
+
+    plan = build_pilot_plan(_raw_config())  # paper config: 6 sigmas x 64 = 384
+    population = build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+    assert len(population) == 384
+    assert len({m.seed for m in population}) == 384
+    assert len({m.perturbation_id for m in population}) == 384
+
+
+def test_build_stage6_perturbation_population_is_deterministic():
+    from neural_thickets_repro.run_global_visual_thicket_pilot import build_stage6_perturbation_population
+
+    plan = build_pilot_plan(_raw_config(), perturbations_per_sigma=5)
+    pop_1 = build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+    pop_2 = build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+    assert [m.seed for m in pop_1] == [m.seed for m in pop_2]
+    assert [m.perturbation_id for m in pop_1] == [m.perturbation_id for m in pop_2]
+
+
+def test_build_stage6_perturbation_population_manifest_seed_is_the_actual_worker_seed():
+    """perturbation_id must be computed from the ACTUAL uint32 seed -- not a larger un-reduced
+    value truncated later at RPC time.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import NUMPY_SEED_DOMAIN, build_stage6_perturbation_population
+    from neural_thickets_repro.thicket.perturbation import compute_perturbation_id
+
+    plan = build_pilot_plan(_raw_config(), perturbations_per_sigma=5)
+    population = build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+    for manifest in population:
+        assert 0 <= manifest.seed < NUMPY_SEED_DOMAIN
+        expected_id = compute_perturbation_id(
+            manifest.seed, manifest.perturbation_mode, manifest.anatomy_region, manifest.radius, manifest.sigma,
+            manifest.model_family, manifest.model_scale, manifest.model_revision, manifest.parameter_mask_hash,
+        )
+        assert manifest.perturbation_id == expected_id
+
+
+def test_build_stage6_perturbation_population_hard_fails_on_collision(monkeypatch):
+    """Forces a real worker-seed collision (via a tiny seed_modulus injected through a
+    monkeypatched NUMPY_SEED_DOMAIN) to prove build_stage6_perturbation_population's
+    uniqueness check actually fires, rather than silently proceeding with a duplicate.
+    """
+    import neural_thickets_repro.run_global_visual_thicket_pilot as pilot_mod
+    from neural_thickets_repro.thicket.perturbation import DuplicateWorkerSeedError
+
+    monkeypatch.setattr(pilot_mod, "NUMPY_SEED_DOMAIN", 4)  # tiny domain -> guaranteed collisions
+    plan = build_pilot_plan(_raw_config(), perturbations_per_sigma=20)
+    with pytest.raises(DuplicateWorkerSeedError):
+        pilot_mod.build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+
+
+def test_perturb_and_restore_use_the_identical_worker_seed_from_the_manifest():
+    """The same manifest.seed drives both perturb_via_rpc and restore_via_rpc -- checked by
+    inspecting the actual RPC call args dispatched during a full lifecycle.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import NUMPY_SEED_DOMAIN, build_stage6_perturbation_population
+
+    plan = build_pilot_plan(_raw_config(), perturbations_per_sigma=2, subset_size=3)
+    population = build_stage6_perturbation_population(plan, base_seed=20260823, parameter_mask_hash="hash1")
+    manifest = population[0]
+    assert 0 <= manifest.seed < NUMPY_SEED_DOMAIN
+
+    engine = _fake_engine()
+    contexts = _build_contexts(PILOT_CAPABILITIES)
+    base_fingerprint = compute_restoration_fingerprint_via_rpc(engine, ray_get=_identity_ray_get)
+
+    evaluate_one_perturbation_rpc(engine, manifest, contexts, _fake_tokenizer(), None, base_fingerprint, restoration_atol=1e-6, restoration_rtol=0.0, ray_get=_identity_ray_get)
+
+    perturb_call = next(c for c in engine.collective_rpc_calls if c[0] == WORKER_PERTURB_METHOD)
+    restore_call = next(c for c in engine.collective_rpc_calls if c[0] == WORKER_RESTORE_METHOD)
+    assert perturb_call[1][0] == manifest.seed
+    assert restore_call[1][0] == manifest.seed
+    assert perturb_call[1][0] == restore_call[1][0]
+
+
+def test_run_pilot_rpc_uses_stage6_seed_domain_and_still_aligns_ids_across_capabilities():
+    """End-to-end: run_pilot_rpc (which now delegates to build_stage6_perturbation_population)
+    still produces the same-perturbation-id-across-all-capabilities alignment, with every seed
+    inside the numpy-compatible domain.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import NUMPY_SEED_DOMAIN
+
+    engine = _fake_engine()
+    contexts = _build_contexts(PILOT_CAPABILITIES)
+    plan = build_pilot_plan(_raw_config(), perturbations_per_sigma=3, subset_size=2)
+
+    records = run_pilot_rpc(plan, contexts, engine, _fake_tokenizer(), None, base_seed=20260823, parameter_mask_hash="hash1", ray_get=_identity_ray_get)
+
+    by_pid = {}
+    for r in records:
+        by_pid.setdefault(r.perturbation_id, set()).add(r.capability)
+        assert 0 <= r.seed < NUMPY_SEED_DOMAIN
+    assert all(caps == set(PILOT_CAPABILITIES) for caps in by_pid.values())
+    assert len(by_pid) == plan.total_unique_perturbations
+
+
 # --- Figure-2 metrics + Spectral Discordance ----------------------------------------------------
 
 

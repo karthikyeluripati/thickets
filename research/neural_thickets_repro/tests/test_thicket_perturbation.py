@@ -1,7 +1,10 @@
+import pytest
 import torch
 
 from neural_thickets_repro.thicket.perturbation import (
     DegenerateRegionError,
+    DuplicateWorkerSeedError,
+    NUMPY_SEED_DOMAIN,
     PerturbationManifest,
     apply_anatomical_relative_l2,
     apply_global_gaussian_upstream,
@@ -9,6 +12,7 @@ from neural_thickets_repro.thicket.perturbation import (
     generate_perturbation_population,
     undo_anatomical_relative_l2,
     undo_global_gaussian_upstream,
+    validate_unique_worker_seeds,
 )
 
 
@@ -224,3 +228,91 @@ def test_generate_perturbation_population_differs_across_regions():
         model_revision="rev1", parameter_mask_hash="hash1", anatomy_region="vision_late", radius=0.05,
     )
     assert [m.seed for m in pop_a] != [m.seed for m in pop_b]
+
+
+# ---------------------------------------------------------------------------------------
+# seed_modulus / NUMPY_SEED_DOMAIN / validate_unique_worker_seeds -- upstream numpy seed
+# -domain fix (this repair pass): np.random.seed(seed) (called by the pinned upstream
+# WorkerExtension._set_seed) hard-requires 0 <= seed <= 2**32 - 1, but derive_seed()'s own
+# 63-bit output can exceed it -- a real RunPod smoke crashed at the first
+# perturb_self_weights(seed, sigma) call because of this.
+# ---------------------------------------------------------------------------------------
+
+
+def _population_kwargs(**overrides):
+    kwargs = dict(
+        mode="global_gaussian_upstream", n=20, base_seed=20260823, model_family="qwen2_5_vl",
+        model_scale="3B", model_revision="rev1", parameter_mask_hash="hash1", sigma=0.001,
+    )
+    kwargs.update(overrides)
+    return kwargs
+
+
+def test_numpy_seed_domain_is_two_to_the_32():
+    assert NUMPY_SEED_DOMAIN == 2 ** 32
+
+
+def test_without_seed_modulus_seeds_may_exceed_numpy_domain():
+    """Sanity check on the bug this repair pass fixes: derive_seed's raw 63-bit output is NOT
+    guaranteed to fit the numpy uint32 domain -- proven here by finding at least one seed above
+    it in a large-enough population (never asserted to be ALL of them, since that would depend
+    on hash internals -- only that the unconstrained default is not automatically safe).
+    """
+    population = generate_perturbation_population(**_population_kwargs(n=200))
+    assert any(m.seed >= NUMPY_SEED_DOMAIN for m in population)
+
+
+def test_seed_modulus_keeps_every_seed_in_the_numpy_domain():
+    population = generate_perturbation_population(**_population_kwargs(n=200, seed_modulus=NUMPY_SEED_DOMAIN))
+    assert all(0 <= m.seed < NUMPY_SEED_DOMAIN for m in population)
+
+
+def test_seed_modulus_manifest_seed_is_the_actual_reduced_value_not_truncated_later():
+    """PerturbationManifest.seed (and therefore perturbation_id, computed from it) must BE the
+    reduced value -- never a larger un-reduced seed truncated only at RPC time.
+    """
+    population = generate_perturbation_population(**_population_kwargs(seed_modulus=NUMPY_SEED_DOMAIN))
+    for manifest in population:
+        assert manifest.seed % NUMPY_SEED_DOMAIN == manifest.seed  # already reduced -- a no-op mod
+        expected_id = compute_perturbation_id(
+            manifest.seed, manifest.perturbation_mode, manifest.anatomy_region, manifest.radius, manifest.sigma,
+            manifest.model_family, manifest.model_scale, manifest.model_revision, manifest.parameter_mask_hash,
+        )
+        assert manifest.perturbation_id == expected_id
+
+
+def test_seed_modulus_population_still_reproducible():
+    pop_1 = generate_perturbation_population(**_population_kwargs(seed_modulus=NUMPY_SEED_DOMAIN))
+    pop_2 = generate_perturbation_population(**_population_kwargs(seed_modulus=NUMPY_SEED_DOMAIN))
+    assert [m.seed for m in pop_1] == [m.seed for m in pop_2]
+    assert [m.perturbation_id for m in pop_1] == [m.perturbation_id for m in pop_2]
+
+
+def test_generate_perturbation_population_rejects_non_positive_seed_modulus():
+    with pytest.raises(ValueError):
+        generate_perturbation_population(**_population_kwargs(seed_modulus=0))
+
+
+def test_validate_unique_worker_seeds_passes_for_distinct_seeds():
+    population = generate_perturbation_population(**_population_kwargs(seed_modulus=NUMPY_SEED_DOMAIN))
+    validate_unique_worker_seeds(population)  # must not raise
+
+
+def test_validate_unique_worker_seeds_hard_fails_on_an_intentionally_duplicated_population():
+    population = list(generate_perturbation_population(**_population_kwargs(n=5, seed_modulus=NUMPY_SEED_DOMAIN)))
+    duplicated_manifest = PerturbationManifest(
+        seed=population[0].seed, perturbation_mode="global_gaussian_upstream", model_family="qwen2_5_vl",
+        model_scale="3B", model_revision="rev1", parameter_mask_hash="hash1", sigma=0.005,  # different sigma -> different perturbation_id, SAME seed
+    )
+    population.append(duplicated_manifest)
+    with pytest.raises(DuplicateWorkerSeedError):
+        validate_unique_worker_seeds(population)
+
+
+def test_validate_unique_worker_seeds_across_a_tiny_forced_modulus_detects_collisions():
+    """Forces real collisions (via a tiny seed_modulus) to prove the check actually fires in
+    practice, not just against a hand-built duplicate manifest.
+    """
+    population = generate_perturbation_population(**_population_kwargs(n=50, seed_modulus=4))
+    with pytest.raises(DuplicateWorkerSeedError):
+        validate_unique_worker_seeds(population)

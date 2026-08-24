@@ -213,9 +213,32 @@ class PerturbationManifest:
 # --- D1: shared population across capabilities ------------------------------------------------
 
 
+# The pinned upstream WorkerExtension._set_seed calls np.random.seed(seed) (alongside
+# torch.manual_seed/random.seed), and numpy hard-requires 0 <= seed <= 2**32 - 1 -- a real
+# Stage-6 RunPod smoke crashed at the first perturb_self_weights(seed, sigma) call because
+# thicket.seeds.derive_seed's own 63-bit output falls outside that domain. This constant names
+# that upstream-imposed domain size; pass it as generate_perturbation_population's
+# `seed_modulus` for any population whose manifests will be perturbed/restored through
+# upstream's global_gaussian_upstream RPC path (see run_global_visual_thicket_pilot.py).
+# derive_seed() itself is UNCHANGED -- still used elsewhere (data roles, bootstrap) with its
+# full 63-bit range; only the population-generation step optionally folds the result down.
+NUMPY_SEED_DOMAIN = 2 ** 32
+
+
+class DuplicateWorkerSeedError(RuntimeError):
+    """Two or more perturbations in the same population were assigned the identical worker
+    seed (after any `seed_modulus` reduction) -- hard-fails rather than silently resolving the
+    collision, which would either skip a candidate or reuse another candidate's exact noise
+    stream, silently changing reproducibility guarantees. Extremely unlikely for this
+    project's population sizes against a uint32 domain, but the invariant is checked, never
+    assumed.
+    """
+
+
 def generate_perturbation_population(
     *, mode: str, n: int, base_seed: int, model_family: str, model_scale: str, model_revision: str,
     parameter_mask_hash: str, anatomy_region: Optional[str] = None, radius: Optional[float] = None, sigma: Optional[float] = None,
+    seed_modulus: Optional[int] = None,
 ) -> Tuple[PerturbationManifest, ...]:
     """Builds ONE population of `n` PerturbationManifests for a single (mode, region,
     radius-or-sigma) cell, with seeds derived purely as a function of this cell's own
@@ -227,12 +250,25 @@ def generate_perturbation_population(
     evaluates every capability against each manifest in the returned tuple, in order, gets the
     SAME perturbation identity at index i regardless of which capability is being scored --
     never an independently-resampled population per task.
+
+    `seed_modulus`: when given (e.g. NUMPY_SEED_DOMAIN for `global_gaussian_upstream`
+    populations), each derived seed is reduced via `seed % seed_modulus` BEFORE it is stored
+    on the manifest -- i.e. `PerturbationManifest.seed` (and therefore `perturbation_id`,
+    which is computed from it) IS the actual worker seed that will be passed to
+    perturb_self_weights/restore_self_weights, never a larger value truncated later at RPC
+    time. `None` (the default) preserves the exact prior behavior for every other caller
+    (e.g. `anatomical_relative_l2`, whose noise generation uses torch.Generator.manual_seed
+    and has no such domain restriction).
     """
     from .seeds import derive_seed
 
     manifests = []
     for i in range(n):
         seed = derive_seed(base_seed, "perturbation_population", mode, str(anatomy_region), str(radius), str(sigma), str(i))
+        if seed_modulus is not None:
+            if seed_modulus <= 0:
+                raise ValueError(f"seed_modulus must be positive, got {seed_modulus}")
+            seed = seed % seed_modulus
         manifests.append(
             PerturbationManifest(
                 seed=seed, perturbation_mode=mode, anatomy_region=anatomy_region, radius=radius, sigma=sigma,
@@ -241,3 +277,23 @@ def generate_perturbation_population(
             )
         )
     return tuple(manifests)
+
+
+def validate_unique_worker_seeds(manifests: Sequence[PerturbationManifest]) -> None:
+    """Hard-fails (DuplicateWorkerSeedError) if any two manifests in `manifests` share the
+    identical `.seed` -- must be called across the FULL population that will actually be
+    perturbed (e.g. every sigma bucket combined for the Stage-6 pilot), not just one cell at a
+    time, since a collision could in principle occur across cells too.
+    """
+    seen: Dict[int, str] = {}
+    collisions = []
+    for m in manifests:
+        if m.seed in seen:
+            collisions.append({"seed": m.seed, "first_perturbation_id": seen[m.seed], "duplicate_perturbation_id": m.perturbation_id})
+        else:
+            seen[m.seed] = m.perturbation_id
+    if collisions:
+        raise DuplicateWorkerSeedError(
+            f"Duplicate worker seed(s) found across {len(manifests)} perturbations "
+            f"({len(collisions)} collision(s)): {collisions[:5]}"
+        )
