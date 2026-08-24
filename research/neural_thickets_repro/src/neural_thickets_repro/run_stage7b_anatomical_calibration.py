@@ -8,7 +8,28 @@ names).
 perturbation_mode = anatomical_relative_l2 (thicket.perturbation.apply_anatomical_relative_l2,
 the EXACT-rescale mode -- see that module's docstring for why this is scientifically distinct
 from scoped_perturbation.py's expectation-only relative_l2 scale mode). Dispatched via
-scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation.
+scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation_bf16_corrected (this repair
+pass -- see BF16 CORRECTION section below).
+
+=================================================================================================
+BF16 REALIZED-RADIUS CORRECTION (this repair pass -- proven root cause, not assumed): a real
+RunPod smoke candidate (region=vision, r=0.035698828543799424) hard-failed with realized
+r=0.03569534313727009 (abs error 3.485e-06 against a 1e-6 tolerance). Root cause, proven by
+instrumentation (tests/test_scoped_anatomical_perturbation.py): `apply_anatomical_relative_l2`'s
+own `realized_epsilon_l2_norm` was computed from the additive `delta` tensor BEFORE the in-place
+`p.add_()` -- on bf16 weights, that add rounds AGAIN, so the TRUE weight-space displacement
+(theta_after - theta_before, measured in fp32) is measurably different from `delta`'s own norm.
+`thicket.perturbation.apply_anatomical_relative_l2` now measures and returns both the DESIGNED
+(pre-add) and the TRUE REALIZED (post-add) values; `scoped_anatomical_perturbation.
+scoped_apply_anatomical_perturbation_bf16_corrected` iteratively rescales the SAME fixed seeded
+Gaussian direction (never resampling) until the TRUE realized radius is within
+REALIZED_RADIUS_TOLERANCE, or hard-fails (RadiusCorrectionFailedError) after at most
+MAX_RADIUS_CORRECTION_ITERATIONS=5 attempts -- see that module's docstring for the full
+derivation and convergence evidence. `radius_realization_method` ("fixed_direction_bf16_
+corrected_v1") is now part of both the run_signature (for any non-"full" plan) and the
+checkpoint/run manifest identity, so a checkpoint written under the OLD, uncorrected one-shot
+method can never be silently resumed under this one.
+=================================================================================================
 
 =================================================================================================
 FROZEN FULL-CALIBRATION PAPER CONFIG (Stage 7A live evidence, model
@@ -56,19 +77,22 @@ explicitly, immediately after engine launch -- for both smoke and full runs.
 =================================================================================================
 
 Lifecycle per candidate (fixed-base, same restoration discipline as Stage 6):
-    reset_to_base_weights() [defensive, inside scoped_apply_anatomical_perturbation]
-    -> apply region-only exact-relative-L2 perturbation
-    -> verify realized_relative_l2 matches requested radius within REALIZED_RADIUS_TOLERANCE
-    -> verify outside-region parameters are EXACTLY unchanged (max_abs_drift == 0.0)
-    -> evaluate all 3 capabilities' D_map subsets, in fixed order
+    [inside scoped_apply_anatomical_perturbation_bf16_corrected, per correction attempt:]
+        reset_to_base_weights() -- from the frozen theta_0 snapshot, every attempt
+        -> apply the SAME fixed seeded direction at the current scalar magnitude
+        -> verify outside-region parameters are EXACTLY unchanged (max_abs_drift == 0.0)
+        -> measure the TRUE (post-BF16-add) realized relative-L2; accept or rescale and retry
+    -> (accepted) evaluate all 3 capabilities' D_map subsets, in fixed order
     -> reset_to_base_weights()
     -> verify EXACT fixed-base restoration (reused from run_global_visual_thicket_pilot)
     -> append candidate rows (checkpointed -- same append-only, resume-safe discipline as Stage 6)
 
 Hard-fails (never silently continues, never loosened for smoke) on:
-    - abs(realized_relative_l2 - requested_radius) > REALIZED_RADIUS_TOLERANCE
-    - any out-of-region parameter drift (max_abs_drift != 0.0)
-    - a failed exact fixed-base restoration verification
+    - the correction loop failing to reach REALIZED_RADIUS_TOLERANCE within
+      MAX_RADIUS_CORRECTION_ITERATIONS attempts (RadiusCorrectionFailedError)
+    - any out-of-region parameter drift on ANY correction attempt, not just the accepted one
+      (CorrectionOutOfRegionDriftError)
+    - a failed exact fixed-base restoration verification (RestorationFailedError)
 
 =================================================================================================
 KNOWN GAP / TODO (Stage 7A finding -- NOT a blocker for this L1 calibration; recorded here for
@@ -120,7 +144,12 @@ from .run_global_visual_thicket_pilot import (
     store_base_weights_via_rpc,
     verify_exact_fixed_base_restoration_via_rpc,
 )
-from .scoped_anatomical_perturbation import diag_region_drift, diag_snapshot_base, scoped_apply_anatomical_perturbation
+from .scoped_anatomical_perturbation import (
+    BF16_RADIUS_REALIZATION_METHOD,
+    CorrectionOutOfRegionDriftError,
+    RadiusCorrectionFailedError,
+    scoped_apply_anatomical_perturbation_bf16_corrected,
+)
 from .thicket.anatomy import build_anatomy_atlas
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest, generate_perturbation_population, validate_unique_worker_seeds
 from .thicket.schema import ExperimentResultRecord
@@ -153,22 +182,26 @@ SMOKE_D_MAP_N = 5
 
 _ALLOWED_D_MAP_SIZES: Tuple[int, ...] = (FULL_CALIBRATION_D_MAP_N, SMOKE_D_MAP_N)
 
+# The realization method this run uses -- reused BY IDENTITY from scoped_anatomical_
+# perturbation.py, never redefined here. Folded into both the run_signature (for any non-"full"
+# plan) and the checkpoint/run manifest identity (this repair pass), so a checkpoint written
+# under a different (e.g. the original, uncorrected one-shot) method is never silently resumed.
+RADIUS_REALIZATION_METHOD = BF16_RADIUS_REALIZATION_METHOD
+
 # Tolerance for the exact-rescale realized-vs-requested relative-L2 check -- matches the
 # tolerance already established by tests/test_thicket_perturbation.py's
-# test_anatomical_relative_l2_hits_requested_ratio_exactly for the same underlying primitive.
-# NEVER loosened for smoke.
+# test_anatomical_relative_l2_hits_requested_ratio_exactly for the same underlying primitive,
+# and scoped_anatomical_perturbation.RADIUS_REALIZATION_TOLERANCE. NEVER loosened for smoke.
 REALIZED_RADIUS_TOLERANCE = 1e-6
 
 
 class RealizedRadiusMismatchError(RuntimeError):
-    """The realized relative-L2 norm did not match the requested radius within
-    REALIZED_RADIUS_TOLERANCE -- hard-fails rather than silently recording the requested value.
-    """
-
-
-class OutOfRegionDriftError(RuntimeError):
-    """A parameter outside the perturbed anatomy region changed -- hard-fails rather than
-    silently recording a candidate whose perturbation leaked outside its declared scope.
+    """Defensive re-check (no extra RPC round trip) on the ALREADY bf16-corrected/converged
+    result: the realized relative-L2 norm did not match the requested radius within
+    REALIZED_RADIUS_TOLERANCE -- should never actually fire in practice, since
+    scoped_apply_anatomical_perturbation_bf16_corrected itself already guarantees convergence
+    (RadiusCorrectionFailedError) or this exact bound before returning; kept as a second,
+    independent layer rather than trusting a single check.
     """
 
 
@@ -187,22 +220,29 @@ def _format_radius_for_signature(radius: float) -> str:
     return f"{radius:.6f}".replace(".", "")
 
 
-def compute_stage7b_run_signature(regions: Sequence[str], radii: Sequence[float], n_per_cell: int, d_map_n: int) -> str:
-    """"full" iff EVERY dimension exactly matches the frozen full-calibration identity;
-    otherwise a deterministic "smoke_..." descriptive string built from the ACTUAL values (never
-    a fixed literal string) -- structurally guarantees "full" can only ever mean the one frozen
-    identity, and any override (smoke or otherwise) can never collide with it. This is what
-    makes it impossible for a failed/partial smoke run to ever be resumed as a full run: they
-    always live under different `output_dir`s.
+def compute_stage7b_run_signature(
+    regions: Sequence[str], radii: Sequence[float], n_per_cell: int, d_map_n: int,
+    radius_realization_method: str = RADIUS_REALIZATION_METHOD,
+) -> str:
+    """"full" iff EVERY dimension (including `radius_realization_method`, this repair pass)
+    exactly matches the frozen full-calibration identity; otherwise a deterministic "smoke_..."
+    descriptive string built from the ACTUAL values (never a fixed literal string), always
+    suffixed with the realization method -- structurally guarantees "full" can only ever mean
+    the one frozen identity, and any override (smoke, a different realization method, or both)
+    can never collide with it or with a run made under a different method. This is what makes
+    it impossible for a failed/partial smoke run -- OR a run made under the OLD, uncorrected
+    one-shot realization method -- to ever be resumed as (or mistaken for) this run: they always
+    live under different `output_dir`s.
     """
     if (
         tuple(regions) == FULL_CALIBRATION_REGIONS and tuple(radii) == FULL_CALIBRATION_RADII
         and n_per_cell == FULL_CALIBRATION_N_PER_CELL and d_map_n == FULL_CALIBRATION_D_MAP_N
+        and radius_realization_method == RADIUS_REALIZATION_METHOD
     ):
         return "full"
     region_label = "-".join(regions)
     radius_label = "-".join(_format_radius_for_signature(r) for r in radii)
-    return f"smoke_{region_label}_r{radius_label}_n{d_map_n}_p{n_per_cell}"
+    return f"smoke_{region_label}_r{radius_label}_n{d_map_n}_p{n_per_cell}_{radius_realization_method}"
 
 
 # =============================================================================================
@@ -221,6 +261,7 @@ class Stage7bPlan:
     capabilities: Tuple[str, ...]
     n_per_cell: int
     d_map_n: int
+    radius_realization_method: str
     run_signature: str
     output_dir: Path
 
@@ -242,11 +283,15 @@ def build_stage7b_plan(
     regions: Sequence[str] = FULL_CALIBRATION_REGIONS, radii: Sequence[float] = FULL_CALIBRATION_RADII,
     n_per_cell: int = FULL_CALIBRATION_N_PER_CELL, d_map_n: int = FULL_CALIBRATION_D_MAP_N,
     model_family: str = "qwen2_5_vl", model_scale: str = "3B",
+    radius_realization_method: str = RADIUS_REALIZATION_METHOD,
 ) -> Stage7bPlan:
     """Defaults to the FROZEN full-calibration identity exactly; pass explicit `regions`/
     `radii`/`n_per_cell`/`d_map_n` (see `build_smoke_stage7b_plan`) to override execution size
     only -- never used to invent new scientific definitions (radii/regions callers pass here
-    must still come from this module's own frozen constants).
+    must still come from this module's own frozen constants). `radius_realization_method` is
+    not a knob real callers override (there is only ONE method implemented) -- exposed as a
+    parameter purely so tests can construct a plan under a hypothetical different/old method to
+    prove it never collides with this one's run_signature or checkpoint identity.
     """
     if not regions:
         raise ValueError("Stage 7B requires at least one anatomy region.")
@@ -255,12 +300,12 @@ def build_stage7b_plan(
     if d_map_n not in _ALLOWED_D_MAP_SIZES:
         raise DatasetRoleViolationError(f"Stage 7B D_map size must be one of {_ALLOWED_D_MAP_SIZES}, got {d_map_n}")
 
-    run_signature = compute_stage7b_run_signature(regions, radii, n_per_cell, d_map_n)
+    run_signature = compute_stage7b_run_signature(regions, radii, n_per_cell, d_map_n, radius_realization_method)
     return Stage7bPlan(
         model_name=model_name, model_revision=model_revision, model_family=model_family, model_scale=model_scale,
         regions=tuple(regions), radii=tuple(radii), capabilities=CALIBRATION_CAPABILITIES,
-        n_per_cell=n_per_cell, d_map_n=d_map_n, run_signature=run_signature,
-        output_dir=Path(output_root) / run_signature,
+        n_per_cell=n_per_cell, d_map_n=d_map_n, radius_realization_method=radius_realization_method,
+        run_signature=run_signature, output_dir=Path(output_root) / run_signature,
     )
 
 
@@ -320,12 +365,16 @@ class IncompatibleCalibrationCheckpointError(RuntimeError):
     """
 
 
+_UNKNOWN_LEGACY_REALIZATION_METHOD = "unknown_pre_correction_legacy"  # sentinel for a checkpoint written before this field existed -- NEVER equal to RADIUS_REALIZATION_METHOD, so from_dict never silently treats an old checkpoint as compatible
+
+
 @dataclass(frozen=True)
 class Stage7bCheckpointManifest:
     experiment_id: str
     run_signature: str
     restoration_mode: str
     perturbation_mode: str
+    radius_realization_method: str
     model_revision: str
     dataset_role: str
     regions: Tuple[str, ...]
@@ -342,9 +391,9 @@ class Stage7bCheckpointManifest:
         return {
             "experiment_id": self.experiment_id, "run_signature": self.run_signature,
             "restoration_mode": self.restoration_mode, "perturbation_mode": self.perturbation_mode,
-            "perturbation_semantics": self.perturbation_mode, "model_revision": self.model_revision,
-            "dataset_role": self.dataset_role, "regions": list(self.regions), "radii": list(self.radii),
-            "capabilities": list(self.capabilities), "n_per_cell": self.n_per_cell, "d_map_n": self.d_map_n,
+            "perturbation_semantics": self.perturbation_mode, "radius_realization_method": self.radius_realization_method,
+            "model_revision": self.model_revision, "dataset_role": self.dataset_role, "regions": list(self.regions),
+            "radii": list(self.radii), "capabilities": list(self.capabilities), "n_per_cell": self.n_per_cell, "d_map_n": self.d_map_n,
             "subset_hashes": dict(sorted(self.subset_hashes.items())),
             "region_mask_hashes": dict(sorted(self.region_mask_hashes.items())),
             "expected_unique_perturbations": self.expected_unique_perturbations,
@@ -355,7 +404,9 @@ class Stage7bCheckpointManifest:
     def from_dict(cls, d: Dict[str, Any]) -> "Stage7bCheckpointManifest":
         return cls(
             experiment_id=d["experiment_id"], run_signature=d["run_signature"], restoration_mode=d["restoration_mode"],
-            perturbation_mode=d["perturbation_mode"], model_revision=d["model_revision"], dataset_role=d["dataset_role"],
+            perturbation_mode=d["perturbation_mode"],
+            radius_realization_method=d.get("radius_realization_method", _UNKNOWN_LEGACY_REALIZATION_METHOD),
+            model_revision=d["model_revision"], dataset_role=d["dataset_role"],
             regions=tuple(d["regions"]), radii=tuple(d["radii"]), capabilities=tuple(d["capabilities"]),
             n_per_cell=d["n_per_cell"], d_map_n=d["d_map_n"], subset_hashes=dict(d["subset_hashes"]),
             region_mask_hashes=dict(d.get("region_mask_hashes", {})),
@@ -373,7 +424,8 @@ def build_stage7b_checkpoint_manifest(
         raise ValueError(f"Missing region_mask_hashes for region(s): {sorted(missing_regions)}")
     return Stage7bCheckpointManifest(
         experiment_id=EXPERIMENT_ID, run_signature=plan.run_signature, restoration_mode=RESTORATION_MODE,
-        perturbation_mode=PERTURBATION_MODE, model_revision=plan.model_revision, dataset_role=DATASET_ROLE,
+        perturbation_mode=PERTURBATION_MODE, radius_realization_method=plan.radius_realization_method,
+        model_revision=plan.model_revision, dataset_role=DATASET_ROLE,
         regions=plan.regions, radii=plan.radii, capabilities=plan.capabilities, n_per_cell=plan.n_per_cell, d_map_n=plan.d_map_n,
         subset_hashes={c: ctx.subset_hash for c, ctx in capability_contexts.items()},
         region_mask_hashes={r: region_mask_hashes[r] for r in plan.regions},
@@ -410,7 +462,8 @@ def build_stage7b_run_manifest_summary(checkpoint: Stage7bCheckpointManifest, re
     return {
         "experiment_id": checkpoint.experiment_id, "run_signature": checkpoint.run_signature,
         "restoration_mode": checkpoint.restoration_mode, "perturbation_mode": checkpoint.perturbation_mode,
-        "perturbation_semantics": checkpoint.perturbation_mode, "model_revision": checkpoint.model_revision,
+        "perturbation_semantics": checkpoint.perturbation_mode, "radius_realization_method": checkpoint.radius_realization_method,
+        "model_revision": checkpoint.model_revision,
         "regions": list(checkpoint.regions), "radii": list(checkpoint.radii), "n_per_cell": checkpoint.n_per_cell,
         "d_map_n": checkpoint.d_map_n, "subset_hashes": dict(sorted(checkpoint.subset_hashes.items())),
         "region_mask_hashes": dict(sorted(checkpoint.region_mask_hashes.items())),
@@ -499,34 +552,35 @@ def evaluate_one_calibration_candidate_rpc(
 ) -> List[ExperimentResultRecord]:
     """`run_benchmark` is injected (real callers pass benchmarks.runner.run_benchmark) so this
     function stays testable against a fake engine + fake benchmark runner with zero GPU/ray.
+
+    Dispatches scoped_apply_anatomical_perturbation_bf16_corrected -- the ENTIRE reset ->
+    apply -> measure-TRUE-realized-radius -> accept-or-rescale-and-retry loop happens inside
+    THAT single RPC call, entirely before this function ever reaches the capability-evaluation
+    loop below (no capability evaluation occurs before radius convergence). That function
+    itself raises RadiusCorrectionFailedError / CorrectionOutOfRegionDriftError on any
+    unrecovered violation -- this function's own RealizedRadiusMismatchError check afterward is
+    a defensive, no-extra-RPC re-verification of the already-converged result, not the primary
+    enforcement.
     """
     if manifest.perturbation_mode != PERTURBATION_MODE:
         raise ValueError(f"Stage 7B only evaluates {PERTURBATION_MODE!r} manifests, got {manifest.perturbation_mode!r}")
-
-    _collective_rpc_single_worker(engine, diag_snapshot_base, args=(), label="diag_snapshot_base", ray_get=ray_get)
 
     llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
     records: List[ExperimentResultRecord] = []
     try:
         apply_result = _collective_rpc_single_worker(
-            engine, scoped_apply_anatomical_perturbation,
+            engine, scoped_apply_anatomical_perturbation_bf16_corrected,
             args=(manifest.seed, manifest.radius, manifest.anatomy_region, tuple(region_param_names)),
-            label="scoped_apply_anatomical_perturbation", ray_get=ray_get,
+            label="scoped_apply_anatomical_perturbation_bf16_corrected", ray_get=ray_get,
         )
         realized_r = apply_result["realized_relative_l2"]
         if abs(realized_r - manifest.radius) > REALIZED_RADIUS_TOLERANCE:
             raise RealizedRadiusMismatchError(
                 f"Perturbation {manifest.perturbation_id!r} (region={manifest.anatomy_region!r}, "
-                f"requested radius={manifest.radius}): realized relative-L2 {realized_r} differs "
-                f"by more than {REALIZED_RADIUS_TOLERANCE}."
-            )
-
-        drift = _collective_rpc_single_worker(engine, diag_region_drift, args=(tuple(region_param_names),), label="diag_region_drift", ray_get=ray_get)
-        if drift["out_of_region"]["max_abs_drift"] != 0.0:
-            raise OutOfRegionDriftError(
-                f"Perturbation {manifest.perturbation_id!r} (region={manifest.anatomy_region!r}) changed "
-                f"{drift['out_of_region']['fraction_elements_differing']:.2e} fraction of out-of-region "
-                f"elements (max_abs_drift={drift['out_of_region']['max_abs_drift']}) -- refusing to record."
+                f"requested radius={manifest.radius}): bf16-corrected realized relative-L2 "
+                f"{realized_r} still differs by more than {REALIZED_RADIUS_TOLERANCE} -- this "
+                f"should be unreachable, since scoped_apply_anatomical_perturbation_bf16_corrected "
+                f"itself guarantees this bound or raises RadiusCorrectionFailedError."
             )
 
         for capability, ctx in capability_contexts.items():
@@ -546,7 +600,16 @@ def evaluate_one_calibration_candidate_rpc(
                 per_example_result_path=None, per_example_result_hash=result.generation_hash(),
                 runtime_metadata={
                     "restoration_mode": RESTORATION_MODE, "perturbation_semantics": PERTURBATION_MODE,
-                    "requested_relative_l2": manifest.radius, "realized_relative_l2": realized_r,
+                    "radius_realization_method": apply_result["radius_realization_method"],
+                    "requested_relative_l2": manifest.radius, "designed_relative_l2": apply_result["designed_relative_l2"],
+                    "designed_abs_error": apply_result["designed_abs_error"],
+                    "realized_relative_l2": realized_r, "realized_abs_error": apply_result["realized_abs_error"],
+                    "initial_realized_relative_l2": apply_result["initial_realized_relative_l2"],
+                    "final_realized_relative_l2": apply_result["final_realized_relative_l2"],
+                    "final_absolute_radius_error": apply_result["final_absolute_radius_error"],
+                    "final_scale": apply_result["final_scale"],
+                    "correction_iterations": apply_result["correction_iterations"],
+                    "direction_seed": apply_result["direction_seed"],
                     "region_param_count": apply_result["region_param_count"],
                     "theta_region_l2_norm": apply_result["theta_l2_norm"], "epsilon_region_l2_norm": apply_result["realized_epsilon_l2_norm"],
                 },
@@ -634,12 +697,15 @@ def main(argv=None) -> int:
     print(f"Stage 7B plan (run_signature={plan.run_signature}, is_smoke={plan.is_smoke}): regions={plan.regions} radii={plan.radii} capabilities={plan.capabilities}")
     print(f"n_per_cell={plan.n_per_cell} d_map_n={plan.d_map_n} total_unique_perturbations={plan.total_unique_perturbations}")
     print(f"total_perturbation_x_capability_evaluations={plan.total_perturbation_capability_evaluations}")
+    print(f"radius_realization_method={plan.radius_realization_method}")
     print(f"output_dir={plan.output_dir}")
     print(
-        "Lifecycle: reset_to_base_weights -> scoped_apply_anatomical_perturbation (exact "
-        "relative-L2 rescale) -> verify realized radius within tolerance -> verify zero "
-        "out-of-region drift -> evaluate visual_grounding/ocr_text_recognition_grounded/"
-        "spatial_reasoning D_map -> reset_to_base_weights -> verify exact restoration."
+        "Lifecycle: scoped_apply_anatomical_perturbation_bf16_corrected (per attempt: "
+        "reset_to_base_weights -> apply SAME fixed seeded direction at current scale -> verify "
+        "zero out-of-region drift -> measure TRUE post-BF16-add realized radius -> accept or "
+        "rescale-and-retry, up to 5 attempts) -> evaluate visual_grounding/"
+        "ocr_text_recognition_grounded/spatial_reasoning D_map -> reset_to_base_weights -> "
+        "verify exact restoration."
     )
 
     if args.dry_run:

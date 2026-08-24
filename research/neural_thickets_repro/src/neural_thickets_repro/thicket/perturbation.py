@@ -77,12 +77,32 @@ class AnatomicalRelativeL2Record:
     theta_l2_norm: float = 0.0
     raw_noise_l2_norm: float = 0.0
     scale: float = 0.0
+    # DESIGNED: the norm of the additive tensor `delta = scale * noise` as computed BEFORE it is
+    # added to theta -- i.e. after the noise's own dtype rounding and the scale multiply, but
+    # BEFORE the in-place `p.add_()` rounds a second time to the parameter's own dtype. On a
+    # low-precision dtype (bf16) this is NOT the same number as what actually lands in theta.
+    designed_epsilon_l2_norm: float = 0.0
+    # REALIZED: the TRUE post-application weight-space displacement, measured directly as
+    # (theta_after - theta_before) in fp32 -- this is what the model actually runs inference
+    # with, and is the number any radius tolerance must be checked against. On fp32 models the
+    # add-then-subtract round-trip is exact to ~1e-7 relative precision, so this is numerically
+    # indistinguishable from `designed_epsilon_l2_norm` there; on bf16 (~3 fewer mantissa bits)
+    # the gap between the two is large enough to blow a 1e-6 absolute-radius tolerance (see
+    # RunPod live evidence: designed error ~1e-6, realized error ~3.5e-6 for the same candidate).
     realized_epsilon_l2_norm: float = 0.0
     region_param_names: Tuple[str, ...] = ()
 
     @property
     def param_count(self) -> int:
         return len(self.region_param_names)
+
+    @property
+    def designed_relative_l2(self) -> float:
+        return self.designed_epsilon_l2_norm / self.theta_l2_norm if self.theta_l2_norm > 0 else 0.0
+
+    @property
+    def realized_relative_l2(self) -> float:
+        return self.realized_epsilon_l2_norm / self.theta_l2_norm if self.theta_l2_norm > 0 else 0.0
 
 
 class DegenerateRegionError(RuntimeError):
@@ -93,16 +113,25 @@ class DegenerateRegionError(RuntimeError):
 
 @torch.no_grad()
 def apply_anatomical_relative_l2(
-    model: torch.nn.Module, region: str, region_param_names: Sequence[str], seed: int, r: float
+    model: torch.nn.Module, region: str, region_param_names: Sequence[str], seed: int, r: float,
+    *, base_state: Optional[Dict[str, torch.Tensor]] = None,
 ) -> AnatomicalRelativeL2Record:
     """Sampling procedure (spec C2):
       1. sample independent Gaussian noise over only `region_param_names` (per-tensor reseed,
          the same convention as perturb_cpu._generate_noise / scoped_perturbation.py -- never
          an independent continuous stream across the concatenated region);
       2. compute the combined sampled noise's L2 norm across the whole region;
-      3. rescale by a single scalar so the applied perturbation's L2 norm EXACTLY equals
-         r * ||theta_a||_2;
+      3. rescale by a single scalar so the DESIGNED additive tensor's L2 norm EXACTLY equals
+         r * ||theta_a||_2 (this scalar derivation is UNCHANGED -- same formula, same noise);
       4. every parameter outside the region is never touched (not even read).
+
+    `base_state`: OPTIONAL pre-existing snapshot of theta_before (e.g. a GPU worker's own
+    `_base_weights`, already resident from `store_base_weights()`) used to measure the TRUE
+    realized displacement without an extra per-call clone of the (potentially huge, e.g.
+    3B-parameter `language`) region. If omitted, each selected tensor is cloned locally before
+    mutation instead -- correct either way, just more memory when the caller has no existing
+    snapshot to reuse. Callers MUST have already reset the model to this exact `base_state`
+    (or to whatever pre-mutation values are being cloned) before calling.
     """
     region_param_names = tuple(sorted(set(region_param_names)))
     if not region_param_names:
@@ -112,12 +141,18 @@ def apply_anatomical_relative_l2(
     missing = [n for n in region_param_names if n not in named]
     if missing:
         raise DegenerateRegionError(f"Region {region!r} references parameter name(s) not found on the model: {missing[:10]}")
+    if base_state is not None:
+        missing_base = [n for n in region_param_names if n not in base_state]
+        if missing_base:
+            raise DegenerateRegionError(f"base_state is missing parameter name(s) for region {region!r}: {missing_base[:10]}")
 
     theta_sq_sum = 0.0
     noises: Dict[str, torch.Tensor] = {}
     noise_sq_sum = 0.0
+    theta_before: Dict[str, torch.Tensor] = {}
     for name in region_param_names:
         p = named[name]
+        theta_before[name] = base_state[name] if base_state is not None else p.detach().clone()
         theta_sq_sum += p.detach().float().pow(2).sum().item()
         noise = _generate_noise(p, seed)
         noises[name] = noise
@@ -130,17 +165,22 @@ def apply_anatomical_relative_l2(
 
     scale = (r * theta_l2_norm) / raw_noise_l2_norm
 
+    designed_sq_sum = 0.0
     realized_sq_sum = 0.0
     for name in region_param_names:
         p = named[name]
         delta = scale * noises[name]
+        designed_sq_sum += delta.detach().float().pow(2).sum().item()
         p.add_(delta.to(dtype=p.dtype))
-        realized_sq_sum += delta.detach().float().pow(2).sum().item()
+        realized_delta = p.detach().float() - theta_before[name].float()
+        realized_sq_sum += realized_delta.pow(2).sum().item()
+    designed_epsilon_l2_norm = designed_sq_sum ** 0.5
     realized_epsilon_l2_norm = realized_sq_sum ** 0.5
 
     return AnatomicalRelativeL2Record(
         region=region, seed=seed, requested_r=r, theta_l2_norm=theta_l2_norm, raw_noise_l2_norm=raw_noise_l2_norm,
-        scale=scale, realized_epsilon_l2_norm=realized_epsilon_l2_norm, region_param_names=region_param_names,
+        scale=scale, designed_epsilon_l2_norm=designed_epsilon_l2_norm, realized_epsilon_l2_norm=realized_epsilon_l2_norm,
+        region_param_names=region_param_names,
     )
 
 

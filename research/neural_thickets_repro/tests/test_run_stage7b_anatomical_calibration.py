@@ -26,8 +26,8 @@ from neural_thickets_repro.run_stage7b_anatomical_calibration import (
     FULL_CALIBRATION_N_PER_CELL,
     FULL_CALIBRATION_RADII,
     FULL_CALIBRATION_REGIONS,
+    RADIUS_REALIZATION_METHOD,
     IncompatibleCalibrationCheckpointError,
-    OutOfRegionDriftError,
     PERTURBATION_MODE,
     RealizedRadiusMismatchError,
     SMOKE_D_MAP_N,
@@ -45,6 +45,7 @@ from neural_thickets_repro.run_stage7b_anatomical_calibration import (
     report_region_param_names,
     run_stage7b_rpc,
 )
+from neural_thickets_repro.scoped_anatomical_perturbation import CorrectionOutOfRegionDriftError, RadiusCorrectionFailedError
 
 
 def _identity_ray_get(x):
@@ -250,6 +251,60 @@ def test_failed_smoke_checkpoint_can_never_be_loaded_as_a_full_checkpoint(tmp_pa
     ensure_stage7b_checkpoint_manifest(smoke_plan.output_dir / "checkpoint_manifest.json", smoke_checkpoint)
 
     assert not (full_plan.output_dir / "checkpoint_manifest.json").exists()
+
+
+# --- radius_realization_method is part of checkpoint/run identity (this repair pass) ----------
+
+
+def test_radius_realization_method_is_frozen_to_the_bf16_corrected_method():
+    assert RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_corrected_v1"
+
+
+def test_a_different_realization_method_never_produces_the_full_signature():
+    signature = compute_stage7b_run_signature(
+        FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N,
+        radius_realization_method="one_shot_uncorrected_legacy",
+    )
+    assert signature != "full"
+    assert signature.endswith("one_shot_uncorrected_legacy")
+
+
+def test_a_different_realization_method_gets_a_disjoint_smoke_path(tmp_path):
+    """Simulates the exact scenario the live failure created: a smoke run's checkpoint was
+    already written under the OLD (uncorrected, one-shot) method. A fresh run under the NEW
+    bf16-corrected method must land in a DIFFERENT output_dir, never touching -- let alone
+    resuming -- the old one.
+    """
+    old_plan = build_stage7b_plan(
+        model_name="m", model_revision="r", output_root=tmp_path, regions=(SMOKE_REGION,), radii=(SMOKE_RADIUS,),
+        n_per_cell=SMOKE_N_PER_CELL, d_map_n=SMOKE_D_MAP_N, radius_realization_method="one_shot_uncorrected_legacy",
+    )
+    new_plan = build_smoke_stage7b_plan(model_name="m", model_revision="r", output_root=tmp_path)
+
+    assert old_plan.output_dir != new_plan.output_dir
+    assert old_plan.run_signature != new_plan.run_signature
+
+    old_checkpoint = build_stage7b_checkpoint_manifest(old_plan, _fake_contexts(n=5), {r: f"h_{r}" for r in old_plan.regions})
+    ensure_stage7b_checkpoint_manifest(old_plan.output_dir / "checkpoint_manifest.json", old_checkpoint)
+
+    assert not (new_plan.output_dir / "checkpoint_manifest.json").exists()
+
+
+def test_checkpoint_from_legacy_dict_missing_realization_method_is_incompatible_with_current(tmp_path):
+    """A checkpoint dict written before this field existed at all (no `radius_realization_
+    method` key) must round-trip to a sentinel value that is NEVER equal to the current
+    RADIUS_REALIZATION_METHOD -- defense in depth on top of the signature-based path isolation,
+    for the pathological case of the same output_dir being reused across method versions.
+    """
+    plan = build_smoke_stage7b_plan(model_name="m", model_revision="r", output_root=tmp_path)
+    current_checkpoint = build_stage7b_checkpoint_manifest(plan, _fake_contexts(n=5), _region_mask_hashes(plan))
+
+    legacy_dict = current_checkpoint.to_dict()
+    del legacy_dict["radius_realization_method"]
+    legacy_checkpoint = Stage7bCheckpointManifest.from_dict(legacy_dict)
+
+    assert legacy_checkpoint.radius_realization_method != current_checkpoint.radius_realization_method
+    assert legacy_checkpoint != current_checkpoint
 
 
 # =================================================================================================
@@ -557,13 +612,13 @@ def test_evaluate_one_calibration_candidate_rpc_resets_before_and_after(runtime_
 
     assert "reset_to_base_weights" in engine.calls
     assert engine.calls.count("reset_to_base_weights") >= 1
-    assert "scoped_apply_anatomical_perturbation" in engine.calls
-    # The defensive reset-before-perturb happens INSIDE scoped_apply_anatomical_perturbation
-    # itself (a direct method call on worker_self, not a separate top-level collective_rpc
-    # dispatch this fake's call log would see) -- proven directly against a persistent fake
-    # worker in test_scoped_anatomical_perturbation.py::
-    # test_scoped_apply_anatomical_perturbation_calls_reset_to_base_first. The reset visible
-    # HERE, as its own top-level dispatch, is the lifecycle's final restoration.
+    assert "scoped_apply_anatomical_perturbation_bf16_corrected" in engine.calls
+    # The per-attempt defensive reset-before-perturb happens INSIDE
+    # scoped_apply_anatomical_perturbation_bf16_corrected itself (direct method calls on
+    # worker_self, not separate top-level collective_rpc dispatches this fake's call log would
+    # see) -- proven directly against a persistent fake worker in
+    # test_scoped_anatomical_perturbation.py::test_bf16_correction_resets_base_before_every_attempt.
+    # The reset visible HERE, as its own top-level dispatch, is the lifecycle's final restoration.
     assert engine.calls[-2:] == ["reset_to_base_weights", "verify_exact_fixed_base_restoration_rpc"]
 
 
@@ -599,20 +654,35 @@ def test_evaluate_one_calibration_candidate_rpc_rejects_wrong_perturbation_mode(
         )
 
 
+def _broken_bf16_corrected_result(region_name, seed, r, region_param_names, *, realized_relative_l2):
+    """Shape-complete fake result dict matching scoped_apply_anatomical_perturbation_bf16_
+    corrected's real return contract, used to force specific failure scenarios in the caller.
+    """
+    return {
+        "region": region_name, "seed": seed, "direction_seed": seed, "requested_relative_l2": r,
+        "designed_relative_l2": realized_relative_l2, "designed_abs_error": abs(realized_relative_l2 - r),
+        "realized_relative_l2": realized_relative_l2, "realized_abs_error": abs(realized_relative_l2 - r),
+        "initial_realized_relative_l2": realized_relative_l2, "final_realized_relative_l2": realized_relative_l2,
+        "final_absolute_radius_error": abs(realized_relative_l2 - r), "final_scale": 1.0, "correction_iterations": 1,
+        "radius_realization_method": "fixed_direction_bf16_corrected_v1", "theta_l2_norm": 1.0,
+        "raw_noise_l2_norm": 1.0, "realized_epsilon_l2_norm": realized_relative_l2,
+        "region_param_count": len(region_param_names), "attempts": [],
+    }
+
+
 def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mismatch(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """Forces a mismatch by monkeypatching scoped_apply_anatomical_perturbation's dispatched
-    result to report a realized radius far from what was requested.
+    """Forces a mismatch by monkeypatching scoped_apply_anatomical_perturbation_bf16_corrected's
+    dispatched result to (implausibly) claim convergence with a realized radius far from what
+    was requested -- proves the CALLER's own defensive re-check still fires even if the
+    dispatched result were ever wrong, not just that the corrected function itself is correct.
     """
     model = runtime_wrapped_vlm_32vision_factory()
     manifest, engine, region_param_names = _build_manifest_and_engine(model, radius=0.05)
 
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
-        return {
-            "region": region_name, "seed": seed, "requested_relative_l2": r, "realized_relative_l2": r + 10.0,
-            "region_param_count": len(region_param_names), "theta_l2_norm": 1.0, "realized_epsilon_l2_norm": 1.0,
-        }
+        return _broken_bf16_corrected_result(region_name, seed, r, region_param_names, realized_relative_l2=r + 10.0)
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
 
     with pytest.raises(RealizedRadiusMismatchError):
         evaluate_one_calibration_candidate_rpc(
@@ -621,36 +691,74 @@ def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mi
         )
 
 
-def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_out_of_region_drift(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """Forces an out-of-region drift report by monkeypatching diag_region_drift's result --
-    the perturbation itself is correct (apply_anatomical_relative_l2 never touches outside its
-    region, proven directly in test_thicket_perturbation.py); this test proves the CALLER
-    hard-fails if the drift check ever reported a leak, regardless of cause.
+def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_region_drift_error(runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """If scoped_apply_anatomical_perturbation_bf16_corrected itself raises
+    CorrectionOutOfRegionDriftError (its own per-attempt out-of-region check -- proven directly
+    in test_scoped_anatomical_perturbation.py), the caller must propagate it, not swallow it.
     """
     model = runtime_wrapped_vlm_32vision_factory()
     manifest, engine, region_param_names = _build_manifest_and_engine(model, radius=0.05)
 
-    def _broken_drift(worker_self, region_param_names):
-        return {
-            "in_region": {"max_abs_drift": 1.0, "fraction_elements_differing": 1.0},
-            "out_of_region": {"max_abs_drift": 0.5, "fraction_elements_differing": 0.01},
-            "region_param_count": len(region_param_names),
-            "out_of_region_param_count": 10,
-        }
+    def _broken_apply(worker_self, seed, r, region_name, region_param_names):
+        raise CorrectionOutOfRegionDriftError("simulated out-of-region leak")
 
-    monkeypatch.setattr(module, "diag_region_drift", _broken_drift)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
 
-    with pytest.raises(OutOfRegionDriftError):
+    with pytest.raises(CorrectionOutOfRegionDriftError):
         evaluate_one_calibration_candidate_rpc(
             engine, manifest, region_param_names, _fake_contexts(), tokenizer=None, sampling_params=None,
             run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
         )
 
 
+def test_evaluate_one_calibration_candidate_rpc_propagates_radius_correction_failed_error(runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """If scoped_apply_anatomical_perturbation_bf16_corrected itself raises
+    RadiusCorrectionFailedError (a genuine numerical plateau -- proven directly in
+    test_scoped_anatomical_perturbation.py), the caller must propagate it, never silently
+    accept a wider tolerance.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest, engine, region_param_names = _build_manifest_and_engine(model, radius=0.05)
+
+    def _broken_apply(worker_self, seed, r, region_name, region_param_names):
+        raise RadiusCorrectionFailedError("simulated plateau -- did not converge")
+
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+
+    with pytest.raises(RadiusCorrectionFailedError):
+        evaluate_one_calibration_candidate_rpc(
+            engine, manifest, region_param_names, _fake_contexts(), tokenizer=None, sampling_params=None,
+            run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+
+
+def test_evaluate_one_calibration_candidate_rpc_resets_after_a_correction_failure(runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """Even when the correction dispatch itself raises, evaluate_one_calibration_candidate_rpc's
+    own `finally` block must still attempt the final reset_to_base_weights -- verified by
+    checking the fake engine's call log includes it despite the raised exception.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    manifest, engine, region_param_names = _build_manifest_and_engine(model, radius=0.05)
+    engine.calls.clear()
+
+    def _broken_apply(worker_self, seed, r, region_name, region_param_names):
+        raise RadiusCorrectionFailedError("simulated plateau")
+
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+
+    with pytest.raises(RadiusCorrectionFailedError):
+        evaluate_one_calibration_candidate_rpc(
+            engine, manifest, region_param_names, _fake_contexts(), tokenizer=None, sampling_params=None,
+            run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+
+    assert "reset_to_base_weights" in engine.calls
+
+
 def test_evaluate_one_calibration_candidate_rpc_never_touches_outside_region_for_real(runtime_wrapped_vlm_32vision_factory):
-    """End-to-end (no monkeypatching): the real scoped_apply_anatomical_perturbation only
-    touches its own region's parameters -- confirmed by inspecting the model directly after
-    the call returns (before the lifecycle's own final reset).
+    """End-to-end (no monkeypatching): the real scoped_apply_anatomical_perturbation_bf16_
+    corrected only touches its own region's parameters -- confirmed by inspecting the model
+    directly after the call returns (before the lifecycle's own final reset).
     """
     model = runtime_wrapped_vlm_32vision_factory()
     manifest, engine, region_param_names = _build_manifest_and_engine(model, region="vision", radius=0.05)
@@ -735,12 +843,9 @@ def test_run_stage7b_rpc_never_persists_rows_for_a_failed_candidate(tmp_path, ru
     contexts = _fake_contexts(n=5)
 
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
-        return {
-            "region": region_name, "seed": seed, "requested_relative_l2": r, "realized_relative_l2": r + 10.0,
-            "region_param_count": len(region_param_names), "theta_l2_norm": 1.0, "realized_epsilon_l2_norm": 1.0,
-        }
+        return _broken_bf16_corrected_result(region_name, seed, r, region_param_names, realized_relative_l2=r + 10.0)
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
 
     with pytest.raises(RealizedRadiusMismatchError):
         run_stage7b_rpc(
@@ -751,6 +856,45 @@ def test_run_stage7b_rpc_never_persists_rows_for_a_failed_candidate(tmp_path, ru
 
     results_path = plan.output_dir / "results.jsonl"
     assert not results_path.exists() or results_path.read_text().strip() == ""
+
+
+def test_run_stage7b_rpc_never_persists_rows_on_a_genuine_bf16_convergence_failure(tmp_path):
+    """The REAL live failure mode, end to end through run_stage7b_rpc (not monkeypatched):
+    a region too small for bf16 quantization noise to average out never converges within
+    MAX_RADIUS_CORRECTION_ITERATIONS -- run_stage7b_rpc must propagate RadiusCorrectionFailedError
+    and leave zero completed rows on disk. Uses a real bf16 CPU model (torch supports bf16
+    arithmetic on CPU) so this exercises the actual rounding behavior, not a simulation.
+    """
+    torch.manual_seed(0)
+
+    class _TinyBF16Model(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.region_layer = torch.nn.Linear(2000, 1, bias=False)
+            self.outside_layer = torch.nn.Linear(100, 1, bias=False)
+
+    model = _TinyBF16Model().to(torch.bfloat16)
+    engine = _FakeCalibrationEngine(model)
+    engine.store_base_weights()
+
+    plan = build_stage7b_plan(
+        model_name="qwen2_5_vl", model_revision="rev1", output_root=tmp_path,
+        regions=("region",), radii=(0.035698828543799424,), n_per_cell=1, d_map_n=5,
+    )
+    region_param_names_by_region = {"region": ("region_layer.weight",)}
+    mask_hash_by_region = {"region": "hash_region"}
+    contexts = _fake_contexts(n=5)
+
+    with pytest.raises(RadiusCorrectionFailedError):
+        run_stage7b_rpc(
+            plan, contexts, engine, tokenizer=None, sampling_params=None, base_seed=12345,
+            region_param_names_by_region=region_param_names_by_region, parameter_mask_hash_by_region=mask_hash_by_region,
+            run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+
+    results_path = plan.output_dir / "results.jsonl"
+    assert not results_path.exists() or results_path.read_text().strip() == ""
+    assert torch.equal(model.outside_layer.weight.detach(), engine._base_weights["outside_layer.weight"])
 
 
 def test_run_stage7b_rpc_skips_already_completed_candidates(tmp_path, runtime_wrapped_vlm_32vision_factory):
@@ -781,4 +925,4 @@ def test_run_stage7b_rpc_skips_already_completed_candidates(tmp_path, runtime_wr
     )
 
     assert len(records2) == 3  # resumed from the already-completed rows, no new GPU work needed
-    assert "scoped_apply_anatomical_perturbation" not in engine2.calls
+    assert "scoped_apply_anatomical_perturbation_bf16_corrected" not in engine2.calls
