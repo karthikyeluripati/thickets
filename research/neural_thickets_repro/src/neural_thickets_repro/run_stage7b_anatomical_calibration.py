@@ -74,6 +74,37 @@ never confused with a bare "full" from an earlier method) and the checkpoint/run
 identity, so a checkpoint written under v1 or v2 can never be silently resumed under v3 -- their
 artifacts are left on disk, untouched, as provenance; v3 always starts as a scientifically fresh
 run under its own run_signature/output_dir.
+
+CACHE LIFECYCLE FIX -- multimodal_cache_policy=full_reset_on_weight_change_v1 (this repair pass):
+the v3 full run (144 perturbations/432 rows, commit 0307f99) was analyzed and found to have every
+vision- and multimodal_connector_or_merger-region row with delta EXACTLY 0.0 and
+per_example_result_hash collapsed to a SINGLE value across all 6 radii x 8 seeds, despite a real,
+confirmed nonzero weight displacement (epsilon_region_l2_norm > 0 per candidate) -- see
+analysis/stage7b_anatomical_calibration_analysis.py's compute_data_integrity_report for the exact
+detection logic and evidence (288 of 432 rows affected). Root cause, confirmed by source
+inspection: this module launches its engine via run_global_visual_thicket_pilot.
+launch_stage6_engine()/build_stage6_engine_config() -- the exact path GATE2_CACHE_SAFETY_
+REVIEW.md analyzed and declared safe ONLY because "the visual encoder is never perturbed" under
+Stage 6; Stage 7B perturbs both vision and connector regions, violating that precondition, and
+never called vlm_adapter.reset_vllm_encoder_cache_full() anywhere. Fix reuses the EXISTING
+mechanism from vlm_adapter.py BY IDENTITY (ensure_full_encoder_cache_reset_exposed /
+reset_vllm_encoder_cache_full) -- no new cache-clearing implementation. `radius_realization_
+method` is intentionally left UNCHANGED (this is a cache-lifecycle correction, not a
+radius-solving change); `multimodal_cache_policy` is tracked as an independent, orthogonal
+identity field folded into the run_signature/checkpoint/run-manifest/candidate-runtime-metadata
+(EVERY signature, including the full identity, is now BOTH method- and cache-policy-suffixed,
+e.g. `full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1`), so the old no-cache-reset
+v3 run (the one analyzed at commit 0307f99, whose vision/connector rows are invalid) can never be
+silently resumed into, or confused with, the corrected run -- it is left on disk, untouched, as
+provenance. The reset is called TWICE per candidate (see evaluate_one_calibration_candidate_rpc's
+own docstring): once immediately after the accepted perturbation and before ANY capability is
+evaluated, and once again immediately after the post-candidate fixed-base restoration is
+verified -- required for EVERY region type, including language, since the immediately preceding
+candidate may have perturbed vision/connector and left candidate-specific embeddings cached; the
+lifecycle never relies on candidate ordering. At startup, ensure_stage7b_encoder_cache_reset_
+mechanism_exposed() (pre-launch) and ensure_encoder_cache_reset_available() (post-launch, against
+the live engine) both HARD FAIL BEFORE EXPERIMENT if the reset mechanism is not reachable/working
+-- Stage 7B never silently proceeds without a proven-working cache-invalidation path.
 =================================================================================================
 
 =================================================================================================
@@ -207,6 +238,7 @@ from .scoped_anatomical_perturbation import (
 from .thicket.anatomy import build_anatomy_atlas
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest, generate_perturbation_population, validate_unique_worker_seeds
 from .thicket.schema import ExperimentResultRecord
+from .vlm_adapter import ensure_full_encoder_cache_reset_exposed, reset_vllm_encoder_cache_full
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
@@ -251,6 +283,94 @@ RADIUS_REALIZATION_METHOD = QUANTIZATION_AWARE_METHOD_V3
 # and scoped_anatomical_perturbation.RADIUS_REALIZATION_TOLERANCE. NEVER loosened for smoke.
 REALIZED_RADIUS_TOLERANCE = 1e-6
 
+# --- CACHE LIFECYCLE FIX (this repair pass) -----------------------------------------------------
+# Root cause (Stage 7B v3 full-run analysis, commit 0307f99): every vision- and connector-region
+# row had delta EXACTLY 0.0 and a per_example_result_hash collapsed to a single value across all
+# 6 radii x 8 seeds, despite a real, confirmed nonzero weight displacement -- vLLM's cached
+# multimodal-encoder output for the fixed image inputs was never invalidated after an
+# anatomical perturbation, so vision/connector-perturbed generation silently reused the BASE
+# model's cached image embeddings. GATE2_CACHE_SAFETY_REVIEW.md's "safe by construction" analysis
+# for launch_stage6_engine() depended entirely on "the visual encoder is never perturbed", which
+# Stage 7B violates. Fix reuses the EXISTING, already-implemented reset mechanism from
+# vlm_adapter.py BY IDENTITY (ensure_full_encoder_cache_reset_exposed / reset_vllm_encoder_cache_
+# full) -- no new cache-clearing implementation is written here. `radius_realization_method`
+# (fixed_direction_bf16_quantization_aware_v3) is INTENTIONALLY left unchanged -- this fix is a
+# cache-lifecycle correction, not a radius-solving change -- and is tracked as an independent,
+# orthogonal identity field, MULTIMODAL_CACHE_POLICY, so a checkpoint/run written WITHOUT this
+# fix (the v3-no-cache-reset run analyzed at commit 0307f99, 288 of whose 432 rows are
+# vision/connector and therefore scientifically invalid) can never be silently resumed under the
+# corrected policy -- see compute_stage7b_run_signature and Stage7bCheckpointManifest below.
+MULTIMODAL_CACHE_POLICY = "full_reset_on_weight_change_v1"
+
+# Deterministic, explicit short label for the run_signature -- NEVER auto-abbreviated (a missing
+# entry hard-fails via _format_cache_policy_for_signature rather than guessing a truncation).
+_CACHE_POLICY_SIGNATURE_LABELS: Dict[str, str] = {
+    MULTIMODAL_CACHE_POLICY: "cache_reset_v1",
+}
+
+_UNKNOWN_LEGACY_CACHE_POLICY = "unknown_pre_cache_reset_legacy"  # sentinel for a checkpoint written before this field existed -- NEVER equal to MULTIMODAL_CACHE_POLICY
+
+
+def _format_cache_policy_for_signature(cache_policy: str) -> str:
+    try:
+        return _CACHE_POLICY_SIGNATURE_LABELS[cache_policy]
+    except KeyError:
+        raise ValueError(
+            f"No run_signature label registered for multimodal_cache_policy={cache_policy!r} -- "
+            f"add one to _CACHE_POLICY_SIGNATURE_LABELS explicitly rather than guessing an "
+            f"abbreviation."
+        )
+
+
+class EncoderCacheResetUnavailableError(RuntimeError):
+    """The full multimodal-encoder-cache reset mechanism (vlm_adapter.
+    ensure_full_encoder_cache_reset_exposed / reset_vllm_encoder_cache_full) is not reachable --
+    either the monkey-patch that exposes it on the Ray actor class failed before engine launch,
+    or a live, post-launch verification call against the running engine failed. Hard-fails
+    BEFORE any candidate work begins: Stage 7B perturbs vision/connector regions, and an
+    unreachable cache reset would silently reproduce the exact stale-encoder-cache artifact
+    MULTIMODAL_CACHE_POLICY exists to prevent.
+    """
+
+
+def ensure_stage7b_encoder_cache_reset_mechanism_exposed(external_root: "str | Path" = EXTERNAL_ROOT) -> None:
+    """MUST be called BEFORE the engine is launched (mirrors vlm_adapter.
+    ensure_full_encoder_cache_reset_exposed's own requirement -- it monkey-patches RandOptNcclLLM
+    so Ray's actor-method registry includes reset_encoder_cache_full when launch_engines() wraps
+    it). Wraps any failure in EncoderCacheResetUnavailableError for a single, uniform "cache
+    reset unreachable, hard fail before experiment" error type across both the pre-launch and
+    post-launch (see ensure_encoder_cache_reset_available below) checks.
+    """
+    try:
+        ensure_full_encoder_cache_reset_exposed(external_root)
+    except Exception as exc:  # noqa: BLE001
+        raise EncoderCacheResetUnavailableError(
+            f"Stage 7B requires vlm_adapter.ensure_full_encoder_cache_reset_exposed() to succeed "
+            f"BEFORE the engine is launched -- failed with {type(exc).__name__}: {exc}. Refusing "
+            f"to start Stage 7B (multimodal_cache_policy={MULTIMODAL_CACHE_POLICY!r}) without a "
+            f"reachable cache-invalidation path."
+        ) from exc
+
+
+def ensure_encoder_cache_reset_available(engine: Any) -> None:
+    """Proves the full cache-reset mechanism actually WORKS end-to-end against the LIVE, already
+    -launched engine (not merely that the attribute was exposed pre-launch) -- catches a
+    real-world mismatch (e.g. an installed vLLM version whose LLMEngine no longer exposes
+    reset_encoder_cache()) that a static attribute check alone would miss. Called once, right
+    after store_base_weights_via_rpc, BEFORE any candidate evaluation begins.
+    """
+    try:
+        reset_vllm_encoder_cache_full(engine)
+    except Exception as exc:  # noqa: BLE001
+        raise EncoderCacheResetUnavailableError(
+            f"Stage 7B requires a working full multimodal-encoder-cache reset "
+            f"(multimodal_cache_policy={MULTIMODAL_CACHE_POLICY!r}) -- reset_vllm_encoder_cache_full "
+            f"failed against the live engine ({type(exc).__name__}: {exc}). Refusing to start "
+            f"Stage 7B candidate evaluation without a proven-working cache-invalidation path, "
+            f"since vision/connector perturbations would otherwise silently reuse stale cached "
+            f"multimodal-encoder output -- the exact bug this policy exists to prevent."
+        ) from exc
+
 
 class RealizedRadiusMismatchError(RuntimeError):
     """Defensive, mode-aware re-check (no extra RPC round trip) on the ALREADY accepted result:
@@ -282,25 +402,32 @@ def _format_radius_for_signature(radius: float) -> str:
 def compute_stage7b_run_signature(
     regions: Sequence[str], radii: Sequence[float], n_per_cell: int, d_map_n: int,
     radius_realization_method: str = RADIUS_REALIZATION_METHOD,
+    multimodal_cache_policy: str = MULTIMODAL_CACHE_POLICY,
 ) -> str:
-    """`f"full_{radius_realization_method}"` iff regions/radii/n_per_cell/d_map_n exactly match
-    the frozen full-calibration identity (the METHOD itself is always suffixed onto the
-    signature, this repair pass -- no bare "full" literal exists anymore, exactly so a v3 run's
-    output directory is `full_fixed_direction_bf16_quantization_aware_v3` and can never be
-    confused with, or resumed from, a v1/v2 (or any future) method's own full-run directory);
-    otherwise a deterministic "smoke_..." descriptive string built from the ACTUAL values (never
-    a fixed literal string), also suffixed with the method. This is what makes it impossible for
-    a failed/partial smoke run -- OR a run made under an OLDER realization method -- to ever be
-    resumed as (or mistaken for) this run: they always live under different `output_dir`s.
+    """`f"full_{radius_realization_method}_{cache_label}"` iff regions/radii/n_per_cell/d_map_n
+    exactly match the frozen full-calibration identity (both the radius-realization METHOD and
+    the multimodal-CACHE-POLICY are suffixed onto the signature -- no bare "full" literal exists
+    anymore, exactly so a v3+cache-reset-v1 run's output directory is
+    `full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1` and can never be confused
+    with, or resumed from, an older method's OR an older/absent cache-policy's own full-run
+    directory -- in particular the v3-no-cache-reset run analyzed at commit 0307f99, whose
+    vision/connector rows are scientifically invalid, lives under a permanently different
+    `full_fixed_direction_bf16_quantization_aware_v3` directory and is never touched by this
+    signature); otherwise a deterministic "smoke_..." descriptive string built from the ACTUAL
+    values (never a fixed literal string), also suffixed with both labels. This is what makes it
+    impossible for a failed/partial smoke run -- OR a run made under an OLDER realization method
+    OR an OLDER/absent cache policy -- to ever be resumed as (or mistaken for) this run: they
+    always live under different `output_dir`s.
     """
+    cache_label = _format_cache_policy_for_signature(multimodal_cache_policy)
     if (
         tuple(regions) == FULL_CALIBRATION_REGIONS and tuple(radii) == FULL_CALIBRATION_RADII
         and n_per_cell == FULL_CALIBRATION_N_PER_CELL and d_map_n == FULL_CALIBRATION_D_MAP_N
     ):
-        return f"full_{radius_realization_method}"
+        return f"full_{radius_realization_method}_{cache_label}"
     region_label = "-".join(regions)
     radius_label = "-".join(_format_radius_for_signature(r) for r in radii)
-    return f"smoke_{region_label}_r{radius_label}_n{d_map_n}_p{n_per_cell}_{radius_realization_method}"
+    return f"smoke_{region_label}_r{radius_label}_n{d_map_n}_p{n_per_cell}_{radius_realization_method}_{cache_label}"
 
 
 # =============================================================================================
@@ -320,6 +447,7 @@ class Stage7bPlan:
     n_per_cell: int
     d_map_n: int
     radius_realization_method: str
+    multimodal_cache_policy: str
     run_signature: str
     output_dir: Path
 
@@ -349,14 +477,17 @@ def build_stage7b_plan(
     n_per_cell: int = FULL_CALIBRATION_N_PER_CELL, d_map_n: int = FULL_CALIBRATION_D_MAP_N,
     model_family: str = "qwen2_5_vl", model_scale: str = "3B",
     radius_realization_method: str = RADIUS_REALIZATION_METHOD,
+    multimodal_cache_policy: str = MULTIMODAL_CACHE_POLICY,
 ) -> Stage7bPlan:
     """Defaults to the FROZEN full-calibration identity exactly; pass explicit `regions`/
-    `radii`/`n_per_cell`/`d_map_n` (see `build_smoke_stage7b_plan`) to override execution size
-    only -- never used to invent new scientific definitions (radii/regions callers pass here
-    must still come from this module's own frozen constants). `radius_realization_method` is
-    not a knob real callers override (there is only ONE method implemented) -- exposed as a
-    parameter purely so tests can construct a plan under a hypothetical different/old method to
-    prove it never collides with this one's run_signature or checkpoint identity.
+    `radii`/`n_per_cell`/`d_map_n` (see `build_smoke_stage7b_plan`/
+    `build_cache_safety_smoke_stage7b_plan`) to override execution size only -- never used to
+    invent new scientific definitions (radii/regions callers pass here must still come from this
+    module's own frozen constants). `radius_realization_method`/`multimodal_cache_policy` are
+    not knobs real callers override (there is only ONE of each implemented) -- exposed as
+    parameters purely so tests can construct a plan under a hypothetical different/old
+    method/policy to prove it never collides with this one's run_signature or checkpoint
+    identity.
     """
     if not regions:
         raise ValueError("Stage 7B requires at least one anatomy region.")
@@ -365,23 +496,46 @@ def build_stage7b_plan(
     if d_map_n not in _ALLOWED_D_MAP_SIZES:
         raise DatasetRoleViolationError(f"Stage 7B D_map size must be one of {_ALLOWED_D_MAP_SIZES}, got {d_map_n}")
 
-    run_signature = compute_stage7b_run_signature(regions, radii, n_per_cell, d_map_n, radius_realization_method)
+    run_signature = compute_stage7b_run_signature(regions, radii, n_per_cell, d_map_n, radius_realization_method, multimodal_cache_policy)
     return Stage7bPlan(
         model_name=model_name, model_revision=model_revision, model_family=model_family, model_scale=model_scale,
         regions=tuple(regions), radii=tuple(radii), capabilities=CALIBRATION_CAPABILITIES,
         n_per_cell=n_per_cell, d_map_n=d_map_n, radius_realization_method=radius_realization_method,
+        multimodal_cache_policy=multimodal_cache_policy,
         run_signature=run_signature, output_dir=Path(output_root) / run_signature,
     )
 
 
 def build_smoke_stage7b_plan(*, model_name: str, model_revision: str, output_root: "str | Path") -> Stage7bPlan:
-    """The one frozen smoke configuration this task defines: region=vision,
+    """The one frozen EXECUTION-size smoke configuration this task defines: region=vision,
     radius=SMOKE_RADIUS (exactly FULL_CALIBRATION_RADII[2]), 1 perturbation, 5 D_map examples/
     capability, all 3 frozen capabilities. Execution size only -- same scientific protocol.
+    See `build_cache_safety_smoke_stage7b_plan` for the SEPARATE, 3-region cache-lifecycle smoke.
     """
     return build_stage7b_plan(
         model_name=model_name, model_revision=model_revision, output_root=output_root,
         regions=(SMOKE_REGION,), radii=(SMOKE_RADIUS,), n_per_cell=SMOKE_N_PER_CELL, d_map_n=SMOKE_D_MAP_N,
+    )
+
+
+def build_cache_safety_smoke_stage7b_plan(*, model_name: str, model_revision: str, output_root: "str | Path") -> Stage7bPlan:
+    """CACHE-SAFETY SMOKE (this repair pass): validates the corrected cache-invalidation
+    lifecycle across ALL THREE region types in one small GPU-cheap run, before committing to
+    another full 144-candidate/432-row run. All 3 frozen regions x radius=SMOKE_RADIUS (exactly
+    FULL_CALIBRATION_RADII[2]) x 1 perturbation/region x all 3 frozen capabilities x SMOKE_D_MAP_N
+    (5) examples/capability = 3 unique perturbations, 9 result rows, 45 perturbed
+    model-example evaluations. This is EXECUTION/INSTRUMENTATION validation only -- it does NOT
+    require Delta != 0 as a correctness invariant (a valid perturbation can legitimately leave
+    N=5 predictions unchanged); the pass condition is that the cache-reset lifecycle actually ran
+    (see runtime_metadata's cache_reset_before_evaluation/cache_reset_after_restoration fields on
+    every persisted row), not any particular behavioral outcome. Structurally distinct
+    run_signature/output_dir from both the single-region execution smoke
+    (`build_smoke_stage7b_plan`) and the full calibration run, since it spans all 3 regions but
+    n_per_cell=1/d_map_n=5 (never matches the frozen full-calibration identity).
+    """
+    return build_stage7b_plan(
+        model_name=model_name, model_revision=model_revision, output_root=output_root,
+        regions=FULL_CALIBRATION_REGIONS, radii=(SMOKE_RADIUS,), n_per_cell=1, d_map_n=SMOKE_D_MAP_N,
     )
 
 
@@ -440,6 +594,7 @@ class Stage7bCheckpointManifest:
     restoration_mode: str
     perturbation_mode: str
     radius_realization_method: str
+    multimodal_cache_policy: str
     model_revision: str
     dataset_role: str
     regions: Tuple[str, ...]
@@ -457,6 +612,7 @@ class Stage7bCheckpointManifest:
             "experiment_id": self.experiment_id, "run_signature": self.run_signature,
             "restoration_mode": self.restoration_mode, "perturbation_mode": self.perturbation_mode,
             "perturbation_semantics": self.perturbation_mode, "radius_realization_method": self.radius_realization_method,
+            "multimodal_cache_policy": self.multimodal_cache_policy,
             "model_revision": self.model_revision, "dataset_role": self.dataset_role, "regions": list(self.regions),
             "radii": list(self.radii), "capabilities": list(self.capabilities), "n_per_cell": self.n_per_cell, "d_map_n": self.d_map_n,
             "subset_hashes": dict(sorted(self.subset_hashes.items())),
@@ -471,6 +627,7 @@ class Stage7bCheckpointManifest:
             experiment_id=d["experiment_id"], run_signature=d["run_signature"], restoration_mode=d["restoration_mode"],
             perturbation_mode=d["perturbation_mode"],
             radius_realization_method=d.get("radius_realization_method", _UNKNOWN_LEGACY_REALIZATION_METHOD),
+            multimodal_cache_policy=d.get("multimodal_cache_policy", _UNKNOWN_LEGACY_CACHE_POLICY),
             model_revision=d["model_revision"], dataset_role=d["dataset_role"],
             regions=tuple(d["regions"]), radii=tuple(d["radii"]), capabilities=tuple(d["capabilities"]),
             n_per_cell=d["n_per_cell"], d_map_n=d["d_map_n"], subset_hashes=dict(d["subset_hashes"]),
@@ -490,6 +647,7 @@ def build_stage7b_checkpoint_manifest(
     return Stage7bCheckpointManifest(
         experiment_id=EXPERIMENT_ID, run_signature=plan.run_signature, restoration_mode=RESTORATION_MODE,
         perturbation_mode=PERTURBATION_MODE, radius_realization_method=plan.radius_realization_method,
+        multimodal_cache_policy=plan.multimodal_cache_policy,
         model_revision=plan.model_revision, dataset_role=DATASET_ROLE,
         regions=plan.regions, radii=plan.radii, capabilities=plan.capabilities, n_per_cell=plan.n_per_cell, d_map_n=plan.d_map_n,
         subset_hashes={c: ctx.subset_hash for c, ctx in capability_contexts.items()},
@@ -528,6 +686,7 @@ def build_stage7b_run_manifest_summary(checkpoint: Stage7bCheckpointManifest, re
         "experiment_id": checkpoint.experiment_id, "run_signature": checkpoint.run_signature,
         "restoration_mode": checkpoint.restoration_mode, "perturbation_mode": checkpoint.perturbation_mode,
         "perturbation_semantics": checkpoint.perturbation_mode, "radius_realization_method": checkpoint.radius_realization_method,
+        "multimodal_cache_policy": checkpoint.multimodal_cache_policy,
         "model_revision": checkpoint.model_revision,
         "regions": list(checkpoint.regions), "radii": list(checkpoint.radii), "n_per_cell": checkpoint.n_per_cell,
         "d_map_n": checkpoint.d_map_n, "subset_hashes": dict(sorted(checkpoint.subset_hashes.items())),
@@ -632,6 +791,18 @@ def evaluate_one_calibration_candidate_rpc(
     quantization_limited re-checks the relative 0.1% bound -- an absolute-1e-6 re-check would
     incorrectly reject every legitimate quantization-limited acceptance, which by definition can
     exceed 1e-6 absolute error), not the primary enforcement.
+
+    CACHE LIFECYCLE (this repair pass, multimodal_cache_policy=full_reset_on_weight_change_v1 --
+    see the module-level constant's own docstring for the confirmed root cause this fixes):
+    reset_vllm_encoder_cache_full(engine) is called TWICE per candidate -- once immediately after
+    the accepted perturbation and BEFORE any capability is evaluated (so vLLM's cached
+    multimodal-encoder output for the fixed image inputs can never be reused from the stale,
+    pre-perturbation weight state), and once again immediately after the post-candidate
+    fixed-base restoration is verified, BEFORE returning (so the candidate immediately following
+    -- of ANY region type, including language -- never inherits THIS candidate's now-stale
+    cached embeddings either; required unconditionally, never relying on candidate ordering).
+    Reuses vlm_adapter.reset_vllm_encoder_cache_full BY IDENTITY (imported into this module's
+    namespace, so tests can monkeypatch it directly) -- no new cache-clearing implementation.
     """
     if manifest.perturbation_mode != PERTURBATION_MODE:
         raise ValueError(f"Stage 7B only evaluates {PERTURBATION_MODE!r} manifests, got {manifest.perturbation_mode!r}")
@@ -667,6 +838,12 @@ def evaluate_one_calibration_candidate_rpc(
                 )
         else:
             raise RealizedRadiusMismatchError(f"Unknown radius_acceptance_mode {acceptance_mode!r} for perturbation {manifest.perturbation_id!r}.")
+
+        # Invalidate the multimodal-encoder cache BEFORE evaluating under the accepted
+        # perturbed weights -- required for EVERY region type (including language), since the
+        # immediately preceding candidate may have perturbed vision/connector and left
+        # candidate-specific embeddings cached; never relying on candidate ordering.
+        reset_vllm_encoder_cache_full(engine)
 
         for capability, ctx in capability_contexts.items():
             if ctx.partition.manifest_hash != ctx.subset_hash:
@@ -710,6 +887,13 @@ def evaluate_one_calibration_candidate_rpc(
                     "direction_seed": apply_result["direction_seed"],
                     "region_param_count": apply_result["region_param_count"],
                     "theta_region_l2_norm": apply_result["theta_l2_norm"], "epsilon_region_l2_norm": apply_result["realized_epsilon_l2_norm"],
+                    "multimodal_cache_policy": MULTIMODAL_CACHE_POLICY,
+                    "cache_reset_before_evaluation": True,
+                    # Set False here, flipped to True below ONLY after the post-restoration
+                    # reset has actually succeeded -- if it fails, this function raises before
+                    # `return records`, so these records are never persisted (run_stage7b_rpc
+                    # only checkpoints rows after this function returns successfully).
+                    "cache_reset_after_restoration": False,
                 },
             ))
     finally:
@@ -722,6 +906,15 @@ def evaluate_one_calibration_candidate_rpc(
             f"(region={manifest.anatomy_region!r}, radius={manifest.radius}, seed={manifest.seed}): "
             f"max_abs_drift={verification['max_abs_drift']}"
         )
+
+    # Invalidate the multimodal-encoder cache AGAIN, AFTER restoration is verified and BEFORE
+    # returning -- so the NEXT candidate (of any region type) never inherits this candidate's
+    # cached embeddings either. Only once this has actually succeeded do the already-built
+    # records get marked cache_reset_after_restoration=True.
+    reset_vllm_encoder_cache_full(engine)
+    for record in records:
+        record.runtime_metadata["cache_reset_after_restoration"] = True
+
     return records
 
 
@@ -779,23 +972,33 @@ def main(argv=None) -> int:
         "--smoke", action="store_true",
         help="tiny live GPU smoke: region=vision, radius=%s, 1 perturbation, %d D_map examples/capability -- execution size only, same scientific protocol as the frozen full calibration" % (SMOKE_RADIUS, SMOKE_D_MAP_N),
     )
+    parser.add_argument(
+        "--cache-safety-smoke", action="store_true",
+        help="tiny live GPU smoke validating the corrected multimodal-encoder-cache-reset lifecycle: all 3 regions x radius=%s x 1 perturbation/region x %d D_map examples/capability -- instrumentation/lifecycle validation only, NOT a behavioral (Delta != 0) check" % (SMOKE_RADIUS, SMOKE_D_MAP_N),
+    )
     parser.add_argument("--dry-run", action="store_true", help="print the plan and exit -- no model load, no GPU")
     args = parser.parse_args(argv)
+
+    if args.smoke and args.cache_safety_smoke:
+        print("--smoke and --cache-safety-smoke are mutually exclusive.", file=sys.stderr)
+        return 1
 
     from .config import load_config
 
     cfg = load_config(args.config)
 
-    plan = (
-        build_smoke_stage7b_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
-        if args.smoke
-        else build_stage7b_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
-    )
+    if args.smoke:
+        plan = build_smoke_stage7b_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
+    elif args.cache_safety_smoke:
+        plan = build_cache_safety_smoke_stage7b_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
+    else:
+        plan = build_stage7b_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
 
     print(f"Stage 7B plan (run_signature={plan.run_signature}, is_smoke={plan.is_smoke}): regions={plan.regions} radii={plan.radii} capabilities={plan.capabilities}")
     print(f"n_per_cell={plan.n_per_cell} d_map_n={plan.d_map_n} total_unique_perturbations={plan.total_unique_perturbations}")
     print(f"total_perturbation_x_capability_evaluations={plan.total_perturbation_capability_evaluations}")
     print(f"radius_realization_method={plan.radius_realization_method}")
+    print(f"multimodal_cache_policy={plan.multimodal_cache_policy}")
     print(f"output_dir={plan.output_dir}")
     print(
         "Lifecycle: scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (per trial: "
@@ -804,8 +1007,10 @@ def main(argv=None) -> int:
         "strictly (<=1e-6), or proportion/bisect-and-retry up to 20 trials; if a quantization "
         "plateau is PROVEN and the nearest attainable state's relative error is <=0.1%, reset -> "
         "reapply that scalar -> verify exact reproduction -> accept as quantization_limited; "
-        "otherwise hard-fail) -> evaluate visual_grounding/ocr_text_recognition_grounded/"
-        "spatial_reasoning D_map -> reset_to_base_weights -> verify exact restoration."
+        "otherwise hard-fail) -> FULLY INVALIDATE the multimodal-encoder cache "
+        "(reset_vllm_encoder_cache_full) -> evaluate visual_grounding/ocr_text_recognition_grounded/"
+        "spatial_reasoning D_map -> reset_to_base_weights -> verify exact restoration -> FULLY "
+        "INVALIDATE the multimodal-encoder cache again -> checkpoint candidate rows."
     )
 
     if args.dry_run:
@@ -861,6 +1066,12 @@ def main(argv=None) -> int:
     engines, pgs = None, None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
+
+        # HARD FAIL BEFORE EXPERIMENT if the full multimodal-encoder-cache reset mechanism
+        # cannot be exposed -- MUST run before launch_stage6_engine (it monkey-patches
+        # RandOptNcclLLM so Ray's actor-method registry includes reset_encoder_cache_full).
+        ensure_stage7b_encoder_cache_reset_mechanism_exposed(EXTERNAL_ROOT)
+
         engines, pgs = launch_stage6_engine(
             model_resolution["resolved_snapshot_path"], precision=engine_config["precision"],
             gpu_memory_utilization=engine_config["gpu_memory_utilization"], max_model_len=engine_config["max_model_len"],
@@ -870,6 +1081,12 @@ def main(argv=None) -> int:
 
         store_base_weights_via_rpc(engine)
         print(format_base_snapshot_confirmation(engine_config["gpu_memory_utilization"], engine_config["base_snapshot_mode"]))
+
+        # HARD FAIL BEFORE EXPERIMENT if the cache reset mechanism doesn't actually WORK
+        # end-to-end against the LIVE engine (not merely that it was exposed pre-launch) --
+        # proven before any candidate evaluation begins.
+        ensure_encoder_cache_reset_available(engine)
+        print(f"Confirmed working multimodal-encoder-cache reset (multimodal_cache_policy={plan.multimodal_cache_policy!r}).")
 
         region_info = _collective_rpc_single_worker(engine, report_region_param_names, args=(plan.regions,), label="report_region_param_names")
         region_param_names_by_region = {r: tuple(info["param_names"]) for r, info in region_info.items()}

@@ -98,7 +98,8 @@ def _checkpoint_for(records) -> Stage7bCheckpointManifest:
     return Stage7bCheckpointManifest(
         experiment_id="stage7b_anatomical_calibration", run_signature="full_test",
         restoration_mode="fixed_base", perturbation_mode="anatomical_relative_l2",
-        radius_realization_method=RADIUS_REALIZATION_METHOD, model_revision="rev1", dataset_role="map",
+        radius_realization_method=RADIUS_REALIZATION_METHOD, multimodal_cache_policy="full_reset_on_weight_change_v1",
+        model_revision="rev1", dataset_role="map",
         regions=FULL_CALIBRATION_REGIONS, radii=FULL_CALIBRATION_RADII, capabilities=CAPABILITIES,
         n_per_cell=FULL_CALIBRATION_N_PER_CELL, d_map_n=FULL_CALIBRATION_D_MAP_N,
         subset_hashes={c: "sh" for c in CAPABILITIES},
@@ -213,6 +214,28 @@ def test_data_integrity_report_does_not_flag_a_region_with_real_signal():
     report = sca.compute_data_integrity_report(records)
     assert report["affected_regions"] == []
     assert "No stale-encoder-cache artifact detected" in report["conclusion"]
+
+
+def test_data_integrity_report_provenance_fields_for_a_contaminated_run():
+    records = _build_full_records(contaminate_regions=["vision", "multimodal_connector_or_merger"])
+    report = sca.compute_data_integrity_report(records)
+    assert report["scientific_status"] == "partially_invalid"
+    assert report["valid_regions"] == ["language"]
+    assert report["invalid_regions"] == ["multimodal_connector_or_merger", "vision"]
+    assert report["invalid_reason"] == "stale multimodal encoder cache after anatomical weight changes"
+    # 2 regions x 6 radii x 8 seeds x 3 capabilities
+    assert report["invalid_row_count"] == 2 * 6 * 8 * 3 == 288
+    assert report["total_row_count"] == len(records) == 432
+
+
+def test_data_integrity_report_provenance_fields_for_a_clean_run():
+    records = _build_full_records()  # no contamination
+    report = sca.compute_data_integrity_report(records)
+    assert report["scientific_status"] == "valid"
+    assert set(report["valid_regions"]) == set(FULL_CALIBRATION_REGIONS)
+    assert report["invalid_regions"] == []
+    assert report["invalid_reason"] is None
+    assert report["invalid_row_count"] == 0
 
 
 def test_data_integrity_report_requires_all_three_symptoms_together():

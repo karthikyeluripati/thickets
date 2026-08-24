@@ -289,8 +289,21 @@ def compute_data_integrity_report(records: Sequence[ExperimentResultRecord]) -> 
             suspect_region_capability_pairs.append(key)
 
     affected_regions = sorted({key.split("|")[1] for key in suspect_region_capability_pairs})
+    invalid_row_count = sum(row["n_rows"] for row in per_group.values() if row["suspected_stale_encoder_cache_artifact"])
+    valid_regions = sorted(set(r.anatomy_region for r in records) - set(affected_regions))
 
     return {
+        # Explicit, machine-readable provenance block (never let a downstream reader infer this
+        # from the free-text "finding"/"conclusion" strings below) -- Stage 8 or any future
+        # analysis MUST check scientific_status before consuming this run's region-level data.
+        "scientific_status": "partially_invalid" if affected_regions else "valid",
+        "valid_regions": valid_regions,
+        "invalid_regions": affected_regions,
+        "invalid_reason": (
+            "stale multimodal encoder cache after anatomical weight changes" if affected_regions else None
+        ),
+        "invalid_row_count": invalid_row_count,
+        "total_row_count": len(records),
         "finding": (
             "Every (capability, region) row-group for region in {vision, multimodal_connector_or_merger} "
             "has delta EXACTLY 0.0 across all 6 radii x 8 seeds AND collapses to a single "
@@ -315,11 +328,16 @@ def compute_data_integrity_report(records: Sequence[ExperimentResultRecord]) -> 
         "affected_regions": affected_regions,
         "per_capability_region": per_group,
         "conclusion": (
-            "vision and multimodal_connector_or_merger results in this run are SCIENTIFICALLY "
-            "INVALID -- an instrumentation artifact, not a near-base finding -- until "
-            "reset_vllm_encoder_cache_full() is wired into evaluate_one_calibration_candidate_rpc's "
-            "RPC path (or equivalent) and Stage 7B is re-run for these two regions. language-region "
-            "results are NOT affected by this bug and may be used as-is."
+            "vision and multimodal_connector_or_merger results in THIS run are SCIENTIFICALLY "
+            "INVALID -- an instrumentation artifact, not a near-base finding. The cache-lifecycle "
+            "fix (reset_vllm_encoder_cache_full wired into evaluate_one_calibration_candidate_rpc, "
+            "multimodal_cache_policy=full_reset_on_weight_change_v1) has since been implemented in "
+            "run_stage7b_anatomical_calibration.py, but THIS specific run predates that fix and "
+            "must be preserved as no-cache-reset PROVENANCE only, never consumed by Stage 8 or any "
+            "later anatomical analysis -- a corrected run must be executed under the NEW "
+            "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1 run_signature/output_dir "
+            "before vision/connector conclusions can be drawn. language-region results in this run "
+            "are NOT affected by this bug and may be used as-is."
             if affected_regions else
             "No stale-encoder-cache artifact detected in this run."
         ),
@@ -692,6 +710,14 @@ def build_markdown_report(
     lines.append("## CRITICAL FINDING: stale multimodal-encoder cache invalidates vision/connector results")
     lines.append("")
     di = regime_summary["data_integrity_warning"]
+    lines.append(
+        f"**scientific_status = `{di['scientific_status']}`** -- "
+        f"valid_regions = {di['valid_regions']}, invalid_regions = {di['invalid_regions']}, "
+        f"invalid_reason = {di['invalid_reason']!r}, "
+        f"**invalid_row_count = {di['invalid_row_count']} of {di['total_row_count']} total rows** "
+        f"(NOT all {di['total_row_count']} rows -- only the vision + connector rows)."
+    )
+    lines.append("")
     lines.append(di["finding"])
     lines.append("")
     lines.append(f"**Affected regions**: {', '.join(di['affected_regions']) if di['affected_regions'] else 'none'}.")

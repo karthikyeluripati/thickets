@@ -26,7 +26,9 @@ from neural_thickets_repro.run_stage7b_anatomical_calibration import (
     FULL_CALIBRATION_N_PER_CELL,
     FULL_CALIBRATION_RADII,
     FULL_CALIBRATION_REGIONS,
+    MULTIMODAL_CACHE_POLICY,
     RADIUS_REALIZATION_METHOD,
+    EncoderCacheResetUnavailableError,
     IncompatibleCalibrationCheckpointError,
     PERTURBATION_MODE,
     RealizedRadiusMismatchError,
@@ -35,21 +37,43 @@ from neural_thickets_repro.run_stage7b_anatomical_calibration import (
     SMOKE_RADIUS,
     SMOKE_REGION,
     Stage7bCheckpointManifest,
+    build_cache_safety_smoke_stage7b_plan,
     build_smoke_stage7b_plan,
     build_stage7b_checkpoint_manifest,
     build_stage7b_plan,
     build_stage7b_population,
     compute_stage7b_run_signature,
+    ensure_encoder_cache_reset_available,
     ensure_stage7b_checkpoint_manifest,
+    ensure_stage7b_encoder_cache_reset_mechanism_exposed,
     evaluate_one_calibration_candidate_rpc,
     report_region_param_names,
     run_stage7b_rpc,
 )
 from neural_thickets_repro.scoped_anatomical_perturbation import CorrectionOutOfRegionDriftError, RadiusCorrectionFailedError
 
+CACHE_POLICY_SUFFIX = "cache_reset_v1"  # matches module._CACHE_POLICY_SIGNATURE_LABELS[MULTIMODAL_CACHE_POLICY]
+
 
 def _identity_ray_get(x):
     return x
+
+
+@pytest.fixture(autouse=True)
+def _fake_encoder_cache_reset(monkeypatch):
+    """Autouse for this whole file: reset_vllm_encoder_cache_full does `import ray` internally,
+    and ray is not installed in this CPU-only test environment -- every test in this file that
+    exercises evaluate_one_calibration_candidate_rpc/run_stage7b_rpc needs a fake standing in by
+    default. Records each call onto the fake engine's own `.calls` log (already used throughout
+    this file for RPC-order assertions), tagged distinctly from the collective_rpc-dispatched
+    weight-manipulation calls. Tests that want to verify FAILURE behavior override this with
+    their own monkeypatch.setattr(module, "reset_vllm_encoder_cache_full", ...) inside the test
+    body, which takes effect immediately (monkeypatch stacks in call order).
+    """
+    def _fake_reset(engine):
+        if hasattr(engine, "calls"):
+            engine.calls.append("reset_vllm_encoder_cache_full")
+    monkeypatch.setattr(module, "reset_vllm_encoder_cache_full", _fake_reset)
 
 
 # =================================================================================================
@@ -87,7 +111,8 @@ def test_default_stage7b_plan_is_the_frozen_full_identity():
     assert plan.radii == FULL_CALIBRATION_RADII
     assert plan.n_per_cell == FULL_CALIBRATION_N_PER_CELL
     assert plan.d_map_n == FULL_CALIBRATION_D_MAP_N
-    assert plan.run_signature == f"full_{RADIUS_REALIZATION_METHOD}"
+    assert plan.run_signature == f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}"
+    assert plan.multimodal_cache_policy == MULTIMODAL_CACHE_POLICY
     assert plan.is_smoke is False
 
 
@@ -206,14 +231,14 @@ def test_smoke_and_full_plans_never_share_an_output_directory():
     full_plan = build_stage7b_plan(model_name="m", model_revision="r", output_root="out")
     smoke_plan = build_smoke_stage7b_plan(model_name="m", model_revision="r", output_root="out")
     assert full_plan.output_dir != smoke_plan.output_dir
-    assert full_plan.run_signature == f"full_{RADIUS_REALIZATION_METHOD}"
+    assert full_plan.run_signature == f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}"
     assert smoke_plan.run_signature != full_plan.run_signature
     assert smoke_plan.run_signature.startswith("smoke_")
 
 
 def test_compute_stage7b_run_signature_is_method_suffixed_full_for_the_exact_frozen_identity():
     signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
-    assert signature == f"full_{RADIUS_REALIZATION_METHOD}" == "full_fixed_direction_bf16_quantization_aware_v3"
+    assert signature == f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}" == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
 
 
 @pytest.mark.parametrize(
@@ -227,7 +252,7 @@ def test_compute_stage7b_run_signature_is_method_suffixed_full_for_the_exact_fro
 )
 def test_compute_stage7b_run_signature_never_returns_the_current_full_signature_for_any_deviation(regions, radii, n_per_cell, d_map_n):
     signature = compute_stage7b_run_signature(regions, radii, n_per_cell, d_map_n)
-    assert signature != f"full_{RADIUS_REALIZATION_METHOD}"
+    assert signature != f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}"
     assert signature.startswith("smoke_")
 
 
@@ -273,8 +298,29 @@ def test_a_different_realization_method_gets_its_own_disjoint_full_signature():
     )
     current_signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
     assert other_signature.startswith("full_")
-    assert other_signature.endswith("one_shot_uncorrected_legacy")
+    assert "one_shot_uncorrected_legacy" in other_signature
     assert other_signature != current_signature
+
+
+def test_an_unregistered_cache_policy_hard_fails_rather_than_guessing_an_abbreviation():
+    with pytest.raises(ValueError, match="No run_signature label registered"):
+        compute_stage7b_run_signature(
+            FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N,
+            multimodal_cache_policy="some_future_policy_nobody_registered_a_label_for",
+        )
+
+
+def test_corrected_full_signature_is_structurally_disjoint_from_the_old_no_cache_reset_run():
+    """The v3-no-cache-reset run analyzed at commit 0307f99 (288 of 432 rows are scientifically
+    invalid vision/connector rows -- see MULTIMODAL_CACHE_POLICY's own docstring) was persisted
+    under the literal run_signature "full_fixed_direction_bf16_quantization_aware_v3" (no cache
+    -policy suffix existed yet). The corrected run's signature must never equal that string, so
+    the old invalid run's output_dir/checkpoint can never be silently resumed into.
+    """
+    current_signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
+    old_no_cache_reset_run_signature = "full_fixed_direction_bf16_quantization_aware_v3"
+    assert current_signature == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
+    assert current_signature != old_no_cache_reset_run_signature
 
 
 def test_a_different_realization_method_gets_a_disjoint_smoke_path(tmp_path):
@@ -392,8 +438,9 @@ def test_build_stage7b_checkpoint_manifest_fields():
     plan = build_stage7b_plan(model_name="m", model_revision="rev1", output_root="out")
     checkpoint = build_stage7b_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan))
     assert checkpoint.experiment_id == EXPERIMENT_ID
-    assert checkpoint.run_signature == f"full_{RADIUS_REALIZATION_METHOD}"
+    assert checkpoint.run_signature == f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}"
     assert checkpoint.radius_realization_method == RADIUS_REALIZATION_METHOD
+    assert checkpoint.multimodal_cache_policy == MULTIMODAL_CACHE_POLICY
     assert checkpoint.perturbation_mode == PERTURBATION_MODE
     assert checkpoint.dataset_role == "map" == DATASET_ROLE
     assert checkpoint.d_map_n == FULL_CALIBRATION_D_MAP_N
@@ -627,8 +674,12 @@ def test_evaluate_one_calibration_candidate_rpc_resets_before_and_after(runtime_
     # worker_self, not separate top-level collective_rpc dispatches this fake's call log would
     # see) -- proven directly against a persistent fake worker in
     # test_scoped_anatomical_perturbation.py::test_bf16_correction_resets_base_before_every_attempt.
-    # The reset visible HERE, as its own top-level dispatch, is the lifecycle's final restoration.
-    assert engine.calls[-2:] == ["reset_to_base_weights", "verify_exact_fixed_base_restoration_rpc"]
+    # The reset visible HERE, as its own top-level dispatch, is the lifecycle's final restoration,
+    # followed by the post-restoration multimodal-encoder-cache reset (this repair pass).
+    assert engine.calls[-3:] == ["reset_to_base_weights", "verify_exact_fixed_base_restoration_rpc", "reset_vllm_encoder_cache_full"]
+    # And the cache is ALSO invalidated once, right after the accepted perturbation and before
+    # any capability evaluation -- so it must appear at least twice total in the call log.
+    assert engine.calls.count("reset_vllm_encoder_cache_full") == 2
 
 
 def test_evaluate_one_calibration_candidate_rpc_restores_exactly(runtime_wrapped_vlm_32vision_factory):
