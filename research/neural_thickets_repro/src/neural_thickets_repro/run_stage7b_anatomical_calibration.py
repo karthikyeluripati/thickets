@@ -8,27 +8,44 @@ names).
 perturbation_mode = anatomical_relative_l2 (thicket.perturbation.apply_anatomical_relative_l2,
 the EXACT-rescale mode -- see that module's docstring for why this is scientifically distinct
 from scoped_perturbation.py's expectation-only relative_l2 scale mode). Dispatched via
-scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation_bf16_corrected (this repair
-pass -- see BF16 CORRECTION section below).
+scoped_anatomical_perturbation.scoped_apply_anatomical_perturbation_bf16_bracketed (v2, this
+repair pass -- see BF16 BRACKETED SOLVER v2 section below).
 
 =================================================================================================
-BF16 REALIZED-RADIUS CORRECTION (this repair pass -- proven root cause, not assumed): a real
-RunPod smoke candidate (region=vision, r=0.035698828543799424) hard-failed with realized
+BF16 REALIZED-RADIUS CORRECTION -- v1 (proven root cause, not assumed): a real RunPod smoke
+candidate (region=vision, r=0.035698828543799424) hard-failed with realized
 r=0.03569534313727009 (abs error 3.485e-06 against a 1e-6 tolerance). Root cause, proven by
 instrumentation (tests/test_scoped_anatomical_perturbation.py): `apply_anatomical_relative_l2`'s
 own `realized_epsilon_l2_norm` was computed from the additive `delta` tensor BEFORE the in-place
 `p.add_()` -- on bf16 weights, that add rounds AGAIN, so the TRUE weight-space displacement
 (theta_after - theta_before, measured in fp32) is measurably different from `delta`'s own norm.
-`thicket.perturbation.apply_anatomical_relative_l2` now measures and returns both the DESIGNED
-(pre-add) and the TRUE REALIZED (post-add) values; `scoped_anatomical_perturbation.
-scoped_apply_anatomical_perturbation_bf16_corrected` iteratively rescales the SAME fixed seeded
-Gaussian direction (never resampling) until the TRUE realized radius is within
-REALIZED_RADIUS_TOLERANCE, or hard-fails (RadiusCorrectionFailedError) after at most
-MAX_RADIUS_CORRECTION_ITERATIONS=5 attempts -- see that module's docstring for the full
-derivation and convergence evidence. `radius_realization_method` ("fixed_direction_bf16_
-corrected_v1") is now part of both the run_signature (for any non-"full" plan) and the
-checkpoint/run manifest identity, so a checkpoint written under the OLD, uncorrected one-shot
-method can never be silently resumed under this one.
+`thicket.perturbation.apply_anatomical_relative_l2` measures and returns both the DESIGNED
+(pre-add) and the TRUE REALIZED (post-add) values; v1's `scoped_apply_anatomical_perturbation_
+bf16_corrected` iteratively rescaled the SAME fixed seeded Gaussian direction via PROPORTIONAL
+correction only.
+
+BF16 BRACKETED SOLVER -- v2 (this repair pass): v1's proportional-only correction was then run
+for real on a full-calibration attempt and OSCILLATED without converging at the smallest frozen
+radius (region=vision, r=0.0035698828543799426): 5 attempts alternated overshoot/undershoot
+(closest was attempt 4, abs error 1.37e-6, still > tolerance) and exhausted its budget. Root
+cause: near this radius/region, the map from scalar magnitude to TRUE bf16-realized relative-L2
+is a piecewise-constant "staircase" (bf16 rounding discreteness dominates at very small deltas),
+on which linear extrapolation can legally overshoot and oscillate forever. v2's `scoped_apply_
+anatomical_perturbation_bf16_bracketed` replaces linear extrapolation, once an
+overshoot/undershoot pair is observed, with deterministic BISECTION inside a maintained scalar
+bracket (never resampling the direction, only the scalar magnitude) -- see scoped_anatomical_
+perturbation.py's own docstring for the full derivation, and `solve_bf16_radius` there for the
+pure, directly-unit-tested control-flow logic (including a replay of the exact live oscillating
+sequence above). Hard-fails (RadiusCorrectionFailedError) with `quantization_plateau=True` and
+the nearest achievable realized values on both sides of the target when no bf16-representable
+point is actually within tolerance -- never silently accepted with a looser bound.
+
+`radius_realization_method` ("fixed_direction_bf16_bracketed_v2") is part of both the
+run_signature (for any non-"full" plan) and the checkpoint/run manifest identity, so a
+checkpoint written under a DIFFERENT method (v1's "fixed_direction_bf16_corrected_v1", or any
+earlier one-shot method) can never be silently resumed under this one -- the v1 full-run attempt
+that produced the oscillating failure above is left on disk, untouched, as provenance; v2 starts
+as a scientifically fresh run under its own run_signature/output_dir.
 =================================================================================================
 
 =================================================================================================
@@ -77,20 +94,23 @@ explicitly, immediately after engine launch -- for both smoke and full runs.
 =================================================================================================
 
 Lifecycle per candidate (fixed-base, same restoration discipline as Stage 6):
-    [inside scoped_apply_anatomical_perturbation_bf16_corrected, per correction attempt:]
-        reset_to_base_weights() -- from the frozen theta_0 snapshot, every attempt
-        -> apply the SAME fixed seeded direction at the current scalar magnitude
+    [inside scoped_apply_anatomical_perturbation_bf16_bracketed, per solver trial:]
+        reset_to_base_weights() -- from the frozen theta_0 snapshot, every trial
+        -> apply the SAME fixed seeded direction at the trial's scalar magnitude
         -> verify outside-region parameters are EXACTLY unchanged (max_abs_drift == 0.0)
-        -> measure the TRUE (post-BF16-add) realized relative-L2; accept or rescale and retry
-    -> (accepted) evaluate all 3 capabilities' D_map subsets, in fixed order
+        -> measure the TRUE (post-BF16-add) realized relative-L2; accept, or bisect/proportion
+           -correct and retry (see solve_bf16_radius)
+    -> (accepted) evaluate all 3 capabilities' D_map subsets, in fixed order -- the accepted
+       trial's weights are exactly what remains loaded, never reconstructed afterward
     -> reset_to_base_weights()
     -> verify EXACT fixed-base restoration (reused from run_global_visual_thicket_pilot)
     -> append candidate rows (checkpointed -- same append-only, resume-safe discipline as Stage 6)
 
 Hard-fails (never silently continues, never loosened for smoke) on:
-    - the correction loop failing to reach REALIZED_RADIUS_TOLERANCE within
-      MAX_RADIUS_CORRECTION_ITERATIONS attempts (RadiusCorrectionFailedError)
-    - any out-of-region parameter drift on ANY correction attempt, not just the accepted one
+    - the solver failing to reach REALIZED_RADIUS_TOLERANCE within MAX_RADIUS_SOLVER_ITERATIONS
+      trials (RadiusCorrectionFailedError, evidence includes quantization_plateau and the
+      nearest achievable realized values on both sides of the target when detected)
+    - any out-of-region parameter drift on ANY solver trial, not just the accepted one
       (CorrectionOutOfRegionDriftError)
     - a failed exact fixed-base restoration verification (RestorationFailedError)
 
@@ -145,10 +165,10 @@ from .run_global_visual_thicket_pilot import (
     verify_exact_fixed_base_restoration_via_rpc,
 )
 from .scoped_anatomical_perturbation import (
-    BF16_RADIUS_REALIZATION_METHOD,
+    BF16_RADIUS_REALIZATION_METHOD_V2,
     CorrectionOutOfRegionDriftError,
     RadiusCorrectionFailedError,
-    scoped_apply_anatomical_perturbation_bf16_corrected,
+    scoped_apply_anatomical_perturbation_bf16_bracketed,
 )
 from .thicket.anatomy import build_anatomy_atlas
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest, generate_perturbation_population, validate_unique_worker_seeds
@@ -184,9 +204,10 @@ _ALLOWED_D_MAP_SIZES: Tuple[int, ...] = (FULL_CALIBRATION_D_MAP_N, SMOKE_D_MAP_N
 
 # The realization method this run uses -- reused BY IDENTITY from scoped_anatomical_
 # perturbation.py, never redefined here. Folded into both the run_signature (for any non-"full"
-# plan) and the checkpoint/run manifest identity (this repair pass), so a checkpoint written
-# under a different (e.g. the original, uncorrected one-shot) method is never silently resumed.
-RADIUS_REALIZATION_METHOD = BF16_RADIUS_REALIZATION_METHOD
+# plan) and the checkpoint/run manifest identity, so a checkpoint written under a different
+# method (v1's proportional-only corrector, or any earlier one-shot method) is never silently
+# resumed under this one (v2, the bracketed solver -- this repair pass).
+RADIUS_REALIZATION_METHOD = BF16_RADIUS_REALIZATION_METHOD_V2
 
 # Tolerance for the exact-rescale realized-vs-requested relative-L2 check -- matches the
 # tolerance already established by tests/test_thicket_perturbation.py's
@@ -196,10 +217,10 @@ REALIZED_RADIUS_TOLERANCE = 1e-6
 
 
 class RealizedRadiusMismatchError(RuntimeError):
-    """Defensive re-check (no extra RPC round trip) on the ALREADY bf16-corrected/converged
+    """Defensive re-check (no extra RPC round trip) on the ALREADY bf16-bracketed/converged
     result: the realized relative-L2 norm did not match the requested radius within
     REALIZED_RADIUS_TOLERANCE -- should never actually fire in practice, since
-    scoped_apply_anatomical_perturbation_bf16_corrected itself already guarantees convergence
+    scoped_apply_anatomical_perturbation_bf16_bracketed itself already guarantees convergence
     (RadiusCorrectionFailedError) or this exact bound before returning; kept as a second,
     independent layer rather than trusting a single check.
     """
@@ -553,14 +574,15 @@ def evaluate_one_calibration_candidate_rpc(
     """`run_benchmark` is injected (real callers pass benchmarks.runner.run_benchmark) so this
     function stays testable against a fake engine + fake benchmark runner with zero GPU/ray.
 
-    Dispatches scoped_apply_anatomical_perturbation_bf16_corrected -- the ENTIRE reset ->
-    apply -> measure-TRUE-realized-radius -> accept-or-rescale-and-retry loop happens inside
-    THAT single RPC call, entirely before this function ever reaches the capability-evaluation
-    loop below (no capability evaluation occurs before radius convergence). That function
-    itself raises RadiusCorrectionFailedError / CorrectionOutOfRegionDriftError on any
-    unrecovered violation -- this function's own RealizedRadiusMismatchError check afterward is
-    a defensive, no-extra-RPC re-verification of the already-converged result, not the primary
-    enforcement.
+    Dispatches scoped_apply_anatomical_perturbation_bf16_bracketed (v2) -- the ENTIRE reset ->
+    apply -> measure-TRUE-realized-radius -> accept-or-bisect/proportion-and-retry solver loop
+    happens inside THAT single RPC call, entirely before this function ever reaches the
+    capability-evaluation loop below (no capability evaluation occurs before radius
+    convergence), and the accepted trial's weights remain loaded exactly as-is (see that
+    function's own docstring). It raises RadiusCorrectionFailedError / CorrectionOutOfRegionDriftError
+    on any unrecovered violation -- this function's own RealizedRadiusMismatchError check
+    afterward is a defensive, no-extra-RPC re-verification of the already-converged result, not
+    the primary enforcement.
     """
     if manifest.perturbation_mode != PERTURBATION_MODE:
         raise ValueError(f"Stage 7B only evaluates {PERTURBATION_MODE!r} manifests, got {manifest.perturbation_mode!r}")
@@ -569,17 +591,17 @@ def evaluate_one_calibration_candidate_rpc(
     records: List[ExperimentResultRecord] = []
     try:
         apply_result = _collective_rpc_single_worker(
-            engine, scoped_apply_anatomical_perturbation_bf16_corrected,
+            engine, scoped_apply_anatomical_perturbation_bf16_bracketed,
             args=(manifest.seed, manifest.radius, manifest.anatomy_region, tuple(region_param_names)),
-            label="scoped_apply_anatomical_perturbation_bf16_corrected", ray_get=ray_get,
+            label="scoped_apply_anatomical_perturbation_bf16_bracketed", ray_get=ray_get,
         )
         realized_r = apply_result["realized_relative_l2"]
         if abs(realized_r - manifest.radius) > REALIZED_RADIUS_TOLERANCE:
             raise RealizedRadiusMismatchError(
                 f"Perturbation {manifest.perturbation_id!r} (region={manifest.anatomy_region!r}, "
-                f"requested radius={manifest.radius}): bf16-corrected realized relative-L2 "
+                f"requested radius={manifest.radius}): bf16-bracketed realized relative-L2 "
                 f"{realized_r} still differs by more than {REALIZED_RADIUS_TOLERANCE} -- this "
-                f"should be unreachable, since scoped_apply_anatomical_perturbation_bf16_corrected "
+                f"should be unreachable, since scoped_apply_anatomical_perturbation_bf16_bracketed "
                 f"itself guarantees this bound or raises RadiusCorrectionFailedError."
             )
 
@@ -609,6 +631,10 @@ def evaluate_one_calibration_candidate_rpc(
                     "final_absolute_radius_error": apply_result["final_absolute_radius_error"],
                     "final_scale": apply_result["final_scale"],
                     "correction_iterations": apply_result["correction_iterations"],
+                    "solver_iterations": apply_result["solver_iterations"],
+                    "quantization_plateau": apply_result["quantization_plateau"],
+                    "nearest_realized_below": apply_result["nearest_realized_below"],
+                    "nearest_realized_above": apply_result["nearest_realized_above"],
                     "direction_seed": apply_result["direction_seed"],
                     "region_param_count": apply_result["region_param_count"],
                     "theta_region_l2_norm": apply_result["theta_l2_norm"], "epsilon_region_l2_norm": apply_result["realized_epsilon_l2_norm"],
@@ -700,12 +726,12 @@ def main(argv=None) -> int:
     print(f"radius_realization_method={plan.radius_realization_method}")
     print(f"output_dir={plan.output_dir}")
     print(
-        "Lifecycle: scoped_apply_anatomical_perturbation_bf16_corrected (per attempt: "
-        "reset_to_base_weights -> apply SAME fixed seeded direction at current scale -> verify "
-        "zero out-of-region drift -> measure TRUE post-BF16-add realized radius -> accept or "
-        "rescale-and-retry, up to 5 attempts) -> evaluate visual_grounding/"
-        "ocr_text_recognition_grounded/spatial_reasoning D_map -> reset_to_base_weights -> "
-        "verify exact restoration."
+        "Lifecycle: scoped_apply_anatomical_perturbation_bf16_bracketed (per trial: "
+        "reset_to_base_weights -> apply SAME fixed seeded direction at trial scale -> verify "
+        "zero out-of-region drift -> measure TRUE post-BF16-add realized radius -> accept, or "
+        "proportion/bisect-and-retry, up to 20 trials, plateau-detected if no attainable point "
+        "is within tolerance) -> evaluate visual_grounding/ocr_text_recognition_grounded/"
+        "spatial_reasoning D_map -> reset_to_base_weights -> verify exact restoration."
     )
 
     if args.dry_run:

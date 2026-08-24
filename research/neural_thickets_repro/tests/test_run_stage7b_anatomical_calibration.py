@@ -256,8 +256,8 @@ def test_failed_smoke_checkpoint_can_never_be_loaded_as_a_full_checkpoint(tmp_pa
 # --- radius_realization_method is part of checkpoint/run identity (this repair pass) ----------
 
 
-def test_radius_realization_method_is_frozen_to_the_bf16_corrected_method():
-    assert RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_corrected_v1"
+def test_radius_realization_method_is_frozen_to_the_bf16_bracketed_v2_method():
+    assert RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_bracketed_v2"
 
 
 def test_a_different_realization_method_never_produces_the_full_signature():
@@ -612,9 +612,9 @@ def test_evaluate_one_calibration_candidate_rpc_resets_before_and_after(runtime_
 
     assert "reset_to_base_weights" in engine.calls
     assert engine.calls.count("reset_to_base_weights") >= 1
-    assert "scoped_apply_anatomical_perturbation_bf16_corrected" in engine.calls
+    assert "scoped_apply_anatomical_perturbation_bf16_bracketed" in engine.calls
     # The per-attempt defensive reset-before-perturb happens INSIDE
-    # scoped_apply_anatomical_perturbation_bf16_corrected itself (direct method calls on
+    # scoped_apply_anatomical_perturbation_bf16_bracketed itself (direct method calls on
     # worker_self, not separate top-level collective_rpc dispatches this fake's call log would
     # see) -- proven directly against a persistent fake worker in
     # test_scoped_anatomical_perturbation.py::test_bf16_correction_resets_base_before_every_attempt.
@@ -656,7 +656,7 @@ def test_evaluate_one_calibration_candidate_rpc_rejects_wrong_perturbation_mode(
 
 def _broken_bf16_corrected_result(region_name, seed, r, region_param_names, *, realized_relative_l2):
     """Shape-complete fake result dict matching scoped_apply_anatomical_perturbation_bf16_
-    corrected's real return contract, used to force specific failure scenarios in the caller.
+    bracketed's (v2) real return contract, used to force specific failure scenarios in the caller.
     """
     return {
         "region": region_name, "seed": seed, "direction_seed": seed, "requested_relative_l2": r,
@@ -664,14 +664,15 @@ def _broken_bf16_corrected_result(region_name, seed, r, region_param_names, *, r
         "realized_relative_l2": realized_relative_l2, "realized_abs_error": abs(realized_relative_l2 - r),
         "initial_realized_relative_l2": realized_relative_l2, "final_realized_relative_l2": realized_relative_l2,
         "final_absolute_radius_error": abs(realized_relative_l2 - r), "final_scale": 1.0, "correction_iterations": 1,
-        "radius_realization_method": "fixed_direction_bf16_corrected_v1", "theta_l2_norm": 1.0,
+        "solver_iterations": 1, "quantization_plateau": False, "nearest_realized_below": None, "nearest_realized_above": None,
+        "radius_realization_method": "fixed_direction_bf16_bracketed_v2", "theta_l2_norm": 1.0,
         "raw_noise_l2_norm": 1.0, "realized_epsilon_l2_norm": realized_relative_l2,
         "region_param_count": len(region_param_names), "attempts": [],
     }
 
 
 def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mismatch(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """Forces a mismatch by monkeypatching scoped_apply_anatomical_perturbation_bf16_corrected's
+    """Forces a mismatch by monkeypatching scoped_apply_anatomical_perturbation_bf16_bracketed's
     dispatched result to (implausibly) claim convergence with a realized radius far from what
     was requested -- proves the CALLER's own defensive re-check still fires even if the
     dispatched result were ever wrong, not just that the corrected function itself is correct.
@@ -682,7 +683,7 @@ def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mi
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         return _broken_bf16_corrected_result(region_name, seed, r, region_param_names, realized_relative_l2=r + 10.0)
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
 
     with pytest.raises(RealizedRadiusMismatchError):
         evaluate_one_calibration_candidate_rpc(
@@ -692,7 +693,7 @@ def test_evaluate_one_calibration_candidate_rpc_hard_fails_on_realized_radius_mi
 
 
 def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_region_drift_error(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """If scoped_apply_anatomical_perturbation_bf16_corrected itself raises
+    """If scoped_apply_anatomical_perturbation_bf16_bracketed itself raises
     CorrectionOutOfRegionDriftError (its own per-attempt out-of-region check -- proven directly
     in test_scoped_anatomical_perturbation.py), the caller must propagate it, not swallow it.
     """
@@ -702,7 +703,7 @@ def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_reg
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         raise CorrectionOutOfRegionDriftError("simulated out-of-region leak")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
 
     with pytest.raises(CorrectionOutOfRegionDriftError):
         evaluate_one_calibration_candidate_rpc(
@@ -712,7 +713,7 @@ def test_evaluate_one_calibration_candidate_rpc_propagates_correction_out_of_reg
 
 
 def test_evaluate_one_calibration_candidate_rpc_propagates_radius_correction_failed_error(runtime_wrapped_vlm_32vision_factory, monkeypatch):
-    """If scoped_apply_anatomical_perturbation_bf16_corrected itself raises
+    """If scoped_apply_anatomical_perturbation_bf16_bracketed itself raises
     RadiusCorrectionFailedError (a genuine numerical plateau -- proven directly in
     test_scoped_anatomical_perturbation.py), the caller must propagate it, never silently
     accept a wider tolerance.
@@ -723,7 +724,7 @@ def test_evaluate_one_calibration_candidate_rpc_propagates_radius_correction_fai
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         raise RadiusCorrectionFailedError("simulated plateau -- did not converge")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
 
     with pytest.raises(RadiusCorrectionFailedError):
         evaluate_one_calibration_candidate_rpc(
@@ -744,7 +745,7 @@ def test_evaluate_one_calibration_candidate_rpc_resets_after_a_correction_failur
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         raise RadiusCorrectionFailedError("simulated plateau")
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
 
     with pytest.raises(RadiusCorrectionFailedError):
         evaluate_one_calibration_candidate_rpc(
@@ -845,7 +846,7 @@ def test_run_stage7b_rpc_never_persists_rows_for_a_failed_candidate(tmp_path, ru
     def _broken_apply(worker_self, seed, r, region_name, region_param_names):
         return _broken_bf16_corrected_result(region_name, seed, r, region_param_names, realized_relative_l2=r + 10.0)
 
-    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_corrected", _broken_apply)
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_bracketed", _broken_apply)
 
     with pytest.raises(RealizedRadiusMismatchError):
         run_stage7b_rpc(
@@ -925,4 +926,4 @@ def test_run_stage7b_rpc_skips_already_completed_candidates(tmp_path, runtime_wr
     )
 
     assert len(records2) == 3  # resumed from the already-completed rows, no new GPU work needed
-    assert "scoped_apply_anatomical_perturbation_bf16_corrected" not in engine2.calls
+    assert "scoped_apply_anatomical_perturbation_bf16_bracketed" not in engine2.calls

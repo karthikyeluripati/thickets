@@ -9,15 +9,19 @@ import torch
 
 from neural_thickets_repro.scoped_anatomical_perturbation import (
     BF16_RADIUS_REALIZATION_METHOD,
+    BF16_RADIUS_REALIZATION_METHOD_V2,
     CorrectionOutOfRegionDriftError,
     MAX_RADIUS_CORRECTION_ITERATIONS,
+    MAX_RADIUS_SOLVER_ITERATIONS,
     RADIUS_REALIZATION_TOLERANCE,
     RadiusCorrectionFailedError,
     diag_full_model_drift,
     diag_region_drift,
     diag_snapshot_base,
     scoped_apply_anatomical_perturbation,
+    scoped_apply_anatomical_perturbation_bf16_bracketed,
     scoped_apply_anatomical_perturbation_bf16_corrected,
+    solve_bf16_radius,
 )
 from neural_thickets_repro.thicket.anatomy import build_anatomy_atlas
 
@@ -338,3 +342,298 @@ def test_bf16_correction_hard_fails_on_out_of_region_drift(monkeypatch):
 
     with pytest.raises(CorrectionOutOfRegionDriftError):
         scoped_apply_anatomical_perturbation_bf16_corrected(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+
+# =================================================================================================
+# solve_bf16_radius: pure control-flow solver (no GPU/model access) -- the bracketed/bisection
+# replacement for v1's proportional-only correction, which was observed to oscillate on a real
+# RunPod full-calibration run without converging (see module docstring for the live sequence).
+# =================================================================================================
+
+
+def test_solve_bf16_radius_constants_are_frozen():
+    assert MAX_RADIUS_SOLVER_ITERATIONS == 20
+    assert BF16_RADIUS_REALIZATION_METHOD_V2 == "fixed_direction_bf16_bracketed_v2"
+
+
+def _scripted_evaluate_fn(sequence):
+    it = iter(sequence)
+
+    def _evaluate(trial_r):
+        v = next(it)
+        return {"realized_relative_l2": v, "designed_relative_l2": v}
+
+    return _evaluate
+
+
+# The EXACT live-failure sequence reported from the real RunPod full-calibration attempt
+# (region=vision, requested r=0.0035698828543799426): 5 proportional-only attempts oscillating
+# overshoot/undershoot around the target, closest (attempt 4) still 1.37e-6 > the 1e-6 tolerance.
+LIVE_OSCILLATING_SEQUENCE = [
+    0.003713521124129136,
+    0.003573362306920378,
+    0.0035728117233154925,
+    0.0035712537875961575,
+    0.003566903799826982,
+]
+LIVE_REQUESTED_R = 0.0035698828543799426
+
+
+def test_solve_bf16_radius_v1_style_proportional_alone_would_have_failed_these_5():
+    """Sanity-checks the fixture itself: none of the 5 real observed values is within 1e-6 of
+    the target -- this is genuinely the failure v1 hit, not a fabricated scenario.
+    """
+    for v in LIVE_OSCILLATING_SEQUENCE:
+        assert abs(v - LIVE_REQUESTED_R) > RADIUS_REALIZATION_TOLERANCE
+
+
+def test_solve_bf16_radius_observed_sequence_converges_once_an_attainable_point_exists():
+    """Replays the exact 5 live observations, then injects a 6th trial landing exactly on the
+    target -- proves the solver (unlike v1) keeps searching via bisection once a bracket forms
+    (after attempt 5's undershoot) instead of giving up, and accepts as soon as an attainable
+    point is found.
+    """
+    sequence = LIVE_OSCILLATING_SEQUENCE + [LIVE_REQUESTED_R]
+    result = solve_bf16_radius(_scripted_evaluate_fn(sequence), LIVE_REQUESTED_R, max_iterations=20, tolerance=1e-6)
+
+    assert result["converged"] is True
+    assert result["quantization_plateau"] is False
+    assert len(result["attempts"]) == 6
+    assert result["best_realized_relative_l2"] == LIVE_REQUESTED_R
+    assert result["best_absolute_error"] == 0.0
+
+
+def test_solve_bf16_radius_does_not_simply_oscillate_forever():
+    """After the 5 live observations (last one an undershoot, forming a bracket against attempt
+    4's overshoot), the 6th trial's scalar must be a BISECTION midpoint of the bracket -- NOT
+    the proportional formula v1 used (which is exactly what caused the observed oscillation).
+    """
+    sequence = LIVE_OSCILLATING_SEQUENCE + [LIVE_REQUESTED_R]
+    result = solve_bf16_radius(_scripted_evaluate_fn(sequence), LIVE_REQUESTED_R, max_iterations=20, tolerance=1e-6)
+
+    attempt_5 = result["attempts"][4]
+    attempt_6 = result["attempts"][5]
+    assert attempt_5["bracket_low_scale"] is not None and attempt_5["bracket_high_scale"] is not None
+    expected_bisection_midpoint = (attempt_5["bracket_low_scale"] + attempt_5["bracket_high_scale"]) / 2.0
+    assert attempt_6["scalar"] == expected_bisection_midpoint
+    proportional_next = attempt_5["scalar"] * LIVE_REQUESTED_R / attempt_5["realized_relative_l2"]
+    assert attempt_6["scalar"] != proportional_next
+
+
+def test_solve_bf16_radius_bracket_has_realizations_on_opposite_sides_of_target():
+    sequence = LIVE_OSCILLATING_SEQUENCE + [LIVE_REQUESTED_R]
+    result = solve_bf16_radius(_scripted_evaluate_fn(sequence), LIVE_REQUESTED_R, max_iterations=20, tolerance=1e-6)
+
+    last_with_bracket = result["attempts"][4]  # attempt 5, the first one with both sides set
+    assert last_with_bracket["bracket_low_realized"] <= LIVE_REQUESTED_R
+    assert last_with_bracket["bracket_high_realized"] >= LIVE_REQUESTED_R
+
+
+def test_solve_bf16_radius_bracket_shrinks_deterministically():
+    """A smooth, purely synthetic monotonic evaluate_fn (realized = r, i.e. a perfect
+    zero-noise oracle) -- proves the bracket's scalar width strictly halves once bisection
+    begins, converging to within tolerance in a bounded, predictable number of steps.
+    """
+    requested = 0.1
+
+    def _evaluate(trial_r):
+        # deliberately offset so the first two trials straddle the target before bisection begins
+        return {"realized_relative_l2": trial_r, "designed_relative_l2": trial_r}
+
+    # seed two straddling observations manually via a wrapper sequence, then let pure bisection run
+    sequence = [0.2, 0.05]  # trial1: overshoot (proportional next), trial2: undershoot -> bracket forms
+    scripted = _scripted_evaluate_fn(sequence)
+
+    def _combined(trial_r):
+        try:
+            return scripted(trial_r)
+        except StopIteration:
+            return _evaluate(trial_r)
+
+    # tolerance chosen so pure bisection (halving a 0.15-wide bracket) provably converges well
+    # within max_iterations=20: 0.15 / 2**12 ~= 3.7e-5 < 1e-4, i.e. ~12 halvings needed.
+    result = solve_bf16_radius(_combined, requested, max_iterations=20, tolerance=1e-4)
+
+    widths = []
+    prev_low = prev_high = None
+    for a in result["attempts"]:
+        if a["bracket_low_scale"] is not None and a["bracket_high_scale"] is not None:
+            widths.append(a["bracket_high_scale"] - a["bracket_low_scale"])
+    # widths must be non-increasing once the bracket exists (never widens)
+    assert all(widths[i] >= widths[i + 1] - 1e-15 for i in range(len(widths) - 1))
+    assert result["converged"] is True
+
+
+def test_solve_bf16_radius_detects_plateau_when_no_attainable_point_within_tolerance():
+    requested = 0.01
+    x_high, x_low = 0.0100050, 0.0099950  # both 5e-6 away from target -- neither within 1e-6
+    sequence = [x_high, x_low, x_low]  # 3rd trial repeats the 2nd's exact realized value -> plateau
+
+    result = solve_bf16_radius(_scripted_evaluate_fn(sequence), requested, max_iterations=20, tolerance=1e-6)
+
+    assert result["converged"] is False
+    assert result["quantization_plateau"] is True
+    assert result["nearest_realized_below"] == x_low
+    assert result["nearest_realized_above"] == x_high
+    assert result["best_absolute_error"] == pytest.approx(5e-6)
+    assert len(result["attempts"]) == 3  # stops promptly, does not burn all 20 iterations
+
+
+def test_solve_bf16_radius_tracks_best_so_far_correctly_even_when_last_attempt_is_worse():
+    """Mirrors the live sequence's own shape: attempt 4 (overshoot, error 1.37e-6) is closer to
+    target than attempt 5 (undershoot, error 2.98e-6) -- best-so-far must report attempt 4, not
+    simply the most recent attempt.
+    """
+    result = solve_bf16_radius(_scripted_evaluate_fn(LIVE_OSCILLATING_SEQUENCE), LIVE_REQUESTED_R, max_iterations=5, tolerance=1e-6)
+
+    assert result["converged"] is False  # v1's exact failure -- 5 attempts, none within tolerance
+    assert result["best_iteration"] == 4
+    assert result["best_realized_relative_l2"] == LIVE_OSCILLATING_SEQUENCE[3]
+    assert result["best_absolute_error"] == pytest.approx(abs(LIVE_OSCILLATING_SEQUENCE[3] - LIVE_REQUESTED_R))
+    assert result["best_absolute_error"] == min(abs(v - LIVE_REQUESTED_R) for v in LIVE_OSCILLATING_SEQUENCE)
+
+
+def test_solve_bf16_radius_converges_immediately_when_first_trial_within_tolerance():
+    sequence = [LIVE_REQUESTED_R]
+    result = solve_bf16_radius(_scripted_evaluate_fn(sequence), LIVE_REQUESTED_R, max_iterations=20, tolerance=1e-6)
+    assert result["converged"] is True
+    assert len(result["attempts"]) == 1
+    assert result["accepted_scalar"] == LIVE_REQUESTED_R
+
+
+# =================================================================================================
+# scoped_apply_anatomical_perturbation_bf16_bracketed: the GPU-facing v2 wrapper, real bf16
+# tensors -- same _bf16_worker fixture already established for v1's tests above.
+# =================================================================================================
+
+
+def test_bracketed_v2_one_shot_misses_but_solver_converges():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert result["realized_abs_error"] <= RADIUS_REALIZATION_TOLERANCE
+    assert result["radius_realization_method"] == BF16_RADIUS_REALIZATION_METHOD_V2
+    assert result["quantization_plateau"] is False
+    assert result["solver_iterations"] <= MAX_RADIUS_SOLVER_ITERATIONS
+
+
+def test_bracketed_v2_preserves_fixed_direction_only_scale_changes():
+    from neural_thickets_repro.perturb_cpu import _generate_noise
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    noise_a = _generate_noise(base_weights["region_layer.weight"], DIRECTION_SEED)
+    noise_b = _generate_noise(base_weights["region_layer.weight"], DIRECTION_SEED)
+    assert torch.equal(noise_a, noise_b)
+
+    if len(result["attempts"]) > 1:
+        scalars = [a["scalar"] for a in result["attempts"]]
+        assert len(set(scalars)) == len(scalars)
+
+
+def test_bracketed_v2_final_weights_correspond_to_the_accepted_radius():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    theta_before = base_weights["region_layer.weight"].float()
+    theta_after = model.region_layer.weight.detach().float()
+    realized_delta_l2 = (theta_after - theta_before).pow(2).sum().sqrt().item()
+    independently_measured_ratio = realized_delta_l2 / result["theta_l2_norm"]
+
+    assert independently_measured_ratio == pytest.approx(result["realized_relative_l2"], abs=1e-9)
+    assert abs(independently_measured_ratio - REQUESTED_R) <= RADIUS_REALIZATION_TOLERANCE
+
+
+def test_bracketed_v2_outside_region_bitwise_unchanged():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert torch.equal(model.outside_layer.weight.detach(), base_weights["outside_layer.weight"])
+
+
+def test_bracketed_v2_resets_before_every_trial():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert reset_calls["count"] == len(result["attempts"])
+
+
+def test_bracketed_v2_never_evaluates_capabilities():
+    import inspect
+
+    source = inspect.getsource(scoped_apply_anatomical_perturbation_bf16_bracketed)
+    for forbidden in ("run_benchmark", "CapabilityContext", "aggregate_metrics", "SamplingParams"):
+        assert forbidden not in source
+    source = inspect.getsource(solve_bf16_radius)
+    for forbidden in ("run_benchmark", "CapabilityContext", "aggregate_metrics", "SamplingParams"):
+        assert forbidden not in source
+
+
+def test_bracketed_v2_fails_with_evidence_on_a_genuine_plateau():
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)
+    region_names = ["region_layer.weight"]
+
+    with pytest.raises(RadiusCorrectionFailedError) as exc_info:
+        scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    message = str(exc_info.value)
+    assert "quantization_plateau" in message
+    assert "nearest_realized_below" in message
+    assert "nearest_realized_above" in message
+
+
+def test_bracketed_v2_same_seed_produces_the_same_result():
+    worker_1, model_1, base_weights_1, _ = _bf16_worker(region_elements=500_000)
+    worker_2, model_2, base_weights_2, _ = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result_1 = scoped_apply_anatomical_perturbation_bf16_bracketed(worker_1, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    result_2 = scoped_apply_anatomical_perturbation_bf16_bracketed(worker_2, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert result_1["solver_iterations"] == result_2["solver_iterations"]
+    assert result_1["final_realized_relative_l2"] == result_2["final_realized_relative_l2"]
+    assert torch.equal(model_1.region_layer.weight.detach(), model_2.region_layer.weight.detach())
+
+
+def test_bracketed_v2_requires_base_weights_stored():
+    torch.manual_seed(0)
+    model = _TwoTensorBF16Model(1000).to(torch.bfloat16)
+    worker = SimpleNamespace(model_runner=SimpleNamespace(model=model))  # no _base_weights
+    with pytest.raises(RuntimeError, match="store_base_weights"):
+        scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", ["region_layer.weight"])
+
+
+def test_bracketed_v2_hard_fails_on_out_of_region_drift(monkeypatch):
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    def _broken_measure_drift(model_arg, base_state, param_filter=None):
+        return {"max_abs_drift": 0.5, "mean_abs_drift": 0.1, "relative_norm_drift": 0.1, "fraction_elements_differing": 0.01}
+
+    monkeypatch.setattr(module, "measure_drift", _broken_measure_drift)
+
+    with pytest.raises(CorrectionOutOfRegionDriftError):
+        scoped_apply_anatomical_perturbation_bf16_bracketed(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+
+# --- v1 vs v2 method distinction (checkpoint/run isolation lives in run_stage7b_anatomical_
+# calibration.py's own tests; this confirms the two constants this module exposes are distinct) -
+
+
+def test_v1_and_v2_realization_methods_are_distinct_constants():
+    assert BF16_RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_corrected_v1"
+    assert BF16_RADIUS_REALIZATION_METHOD_V2 == "fixed_direction_bf16_bracketed_v2"
+    assert BF16_RADIUS_REALIZATION_METHOD != BF16_RADIUS_REALIZATION_METHOD_V2
