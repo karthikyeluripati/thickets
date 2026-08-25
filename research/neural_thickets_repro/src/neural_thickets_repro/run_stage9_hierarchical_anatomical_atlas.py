@@ -97,6 +97,47 @@ STAGE9_SMOKE_N_DIRECTIONS (1) direction family, all 6 frozen capabilities, STAGE
 result rows, 108 x 5 = 540 perturbed model-example evaluations.
 
 =================================================================================================
+DRIVER-RSS OOM DURING FULL CANDIDATE EVALUATION -- root-caused and fixed (this repair pass)
+=================================================================================================
+The live full run (1152 candidates -- exactly 2x Stage 8's 576) OOM'd mid-sweep at driver RSS
+~101 GB (node ~116.42 GB, 95% threshold), NOT during the baseline preflight (already fixed for
+Stage 8/reused here) but during candidate evaluation itself
+(run_stage9_rpc -> evaluate_one_stage9_candidate_rpc -> run_benchmark -> ray.get). Differential
+audit against Stage 8's identical-shaped code (run_stage8_rpc/evaluate_one_stage8_candidate_rpc)
+found the ONE structural difference that scales with candidate count and is retained for the
+ENTIRE run: run_stage9_rpc (like the pre-fix run_stage8_rpc) accumulated EVERY candidate's full
+ExperimentResultRecord objects -- both already-checkpointed rows (reloaded whole on every
+resume, growing with resume depth) and newly-evaluated ones -- into one `all_records` list held
+for the whole 1152-candidate sweep, then returned. Fixed: run_stage9_rpc now retains only the
+SET of already-completed perturbation IDs (never their row contents) and returns an int count
+of newly-written rows -- results.jsonl itself (already re-read independently by
+write_stage9_run_manifest) is the sole source of truth for totals, never re-accumulated in
+memory. evaluate_one_stage9_candidate_rpc additionally `del`s each capability's RunResult and
+calls mem_telemetry.release_transient_memory() immediately after its needed values are
+extracted (fixes ownership/retention FIRST, gc/malloc_trim second, never gc alone). New
+per-candidate RSS telemetry (candidate_memory_telemetry.jsonl, kept fully separate from the
+scientific results.jsonl schema) records rss_start/after_perturbation/after_each_capability/
+after_checkpoint/after_cleanup/delta_from_previous_candidate/high_water per candidate, so a
+future run's own telemetry can directly show whether driver RSS still rises monotonically.
+AUDITED, confirmed NOT a contributing issue (documented rather than re-investigated blind):
+direction tensors are never pre-materialized on the driver (only integer seeds live in
+build_stage9_direction_seed_bank; the actual Gaussian noise tensors are generated INSIDE the
+GPU worker, per RPC call, by apply_anatomical_relative_l2's own _generate_noise); D_map
+capability_contexts and the six child-region partition/mask reports are each built EXACTLY ONCE
+in main(), before the candidate loop, never rebuilt per candidate. FAILURE PATH (Section 8 of
+the spec): the live crash log showed a primary Ray OOM followed by a confusing SECONDARY
+RayActorError from evaluate_one_stage9_candidate_rpc's own `finally`-block restoration attempt
+against an already-dead engine. Fixed: `_is_ray_unrecoverable_error` detects this class of
+exception and skips ALL further RPCs (no restoration, no cache reset) when the engine is no
+longer usable, letting the ORIGINAL exception propagate cleanly -- a candidate that fails this
+way has zero rows appended, which already satisfies "an interrupted candidate is never
+checkpointed as complete" without a masking secondary crash. Any OTHER (recoverable-engine)
+exception still gets the existing best-effort restoration attempt, unchanged.
+EXECUTION-ONLY: Stage9CheckpointManifest/compute_stage9_run_signature are UNCHANGED by this
+pass -- the fixed runner resumes the SAME stage9_hierarchical_anatomical_atlas_3b_v1 scientific
+run (already-checkpointed candidates are skipped exactly as before), never a new run identity.
+
+=================================================================================================
 DO NOT DO YET
 =================================================================================================
 Attention-vs-MLP, individual heads, low-rank/SVD geometry, 7B/72B or frontier models,
@@ -802,19 +843,71 @@ def ensure_stage9_baseline_gate_passes(gate_report: Dict[str, Any]) -> None:
 # =============================================================================================
 
 
+def _is_ray_unrecoverable_error(exc: BaseException) -> bool:
+    """True if `exc` indicates the Ray actor/engine is no longer usable (actor death, node-
+    level OOM kill) -- in which case ANY further RPC (restoration, cache reset) would itself
+    raise a confusing SECONDARY exception against a dead actor, masking the real root cause
+    (this is exactly the live failure pattern this repair pass fixes: a primary Ray OOM
+    followed by a second RayActorError from reset_to_base_weights_via_rpc). Lazily imports ray
+    (never at module scope, matching this project's existing convention) so this stays
+    importable/testable without ray installed -- returns False, never raises, when ray isn't
+    available or the exception type can't be resolved.
+    """
+    try:
+        import ray
+    except ImportError:
+        return False
+    candidate_types = tuple(
+        t for t in (
+            getattr(ray.exceptions, "RayActorError", None),
+            getattr(ray.exceptions, "OutOfMemoryError", None),
+            getattr(ray.exceptions, "ActorDiedError", None),
+            getattr(ray.exceptions, "RayTaskError", None),
+        ) if t is not None
+    )
+    return bool(candidate_types) and isinstance(exc, candidate_types)
+
+
 def evaluate_one_stage9_candidate_rpc(
     engine: Any, assignment: Stage9DirectionAssignment, child_region_param_names: Sequence[str],
     capability_contexts: Dict[str, CapabilityContext], tokenizer: Any, sampling_params: Any,
     *, run_benchmark: Callable, ray_get: Optional[Callable] = None, generation_batch_size: int = STAGE9_GENERATE_BATCH_SIZE,
+    rss_checkpoint: Optional[Callable[[str], None]] = None,
 ) -> List[ExperimentResultRecord]:
     """Identical lifecycle to Stage 8's evaluate_one_stage8_candidate_rpc (same v3
     quantization-aware radius acceptance, same twice-per-candidate cache reset, same bounded
     generation path), generalized to perturb a Stage-9 CHILD region instead of an L1 anatomy,
     and to persist direction-family identity keyed by child region.
+
+    THIS REPAIR PASS (driver-RSS OOM during full candidate evaluation, ~101 GB, 1152 candidates
+    -- exactly 2x Stage 8's 576): each capability's RunResult is now explicitly `del`eted and
+    mem_telemetry.release_transient_memory() called immediately after the values needed for the
+    result row are extracted (Section 6 of the spec) -- fixes ownership/retention FIRST, gc/
+    malloc_trim second, never gc alone. `rss_checkpoint` (default None, zero overhead for every
+    caller that doesn't pass it) fires at "before_candidate", "after_perturbation_applied", and
+    "after_capability_<name>" for each of the six capabilities (Section 3's points A/B/C) --
+    D/E/F/G are the caller's (run_stage9_rpc's) own responsibility, since checkpoint-append and
+    candidate-to-candidate cleanup happen outside this function's scope.
+
+    FAILURE PATH (Section 8): if an exception during perturb/evaluate indicates the Ray engine
+    itself is no longer usable (_is_ray_unrecoverable_error), NO further RPC is attempted
+    against the dead actor -- the exception propagates immediately, with zero rows appended
+    (an interrupted candidate is never checkpointed as complete, by construction). Any OTHER
+    exception (e.g. a radius-correction failure against a still-live engine) still gets the
+    existing best-effort restoration attempt before propagating, exactly as before this pass --
+    restoration is never skipped during a live, recoverable engine.
     """
     manifest = assignment.manifest
     if manifest.perturbation_mode != PERTURBATION_MODE:
         raise ValueError(f"Stage 9 only evaluates {PERTURBATION_MODE!r} manifests, got {manifest.perturbation_mode!r}")
+
+    from .mem_telemetry import release_transient_memory
+
+    def _checkpoint(label: str) -> None:
+        if rss_checkpoint is not None:
+            rss_checkpoint(label)
+
+    _checkpoint("before_candidate")
 
     llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
     records: List[ExperimentResultRecord] = []
@@ -844,6 +937,7 @@ def evaluate_one_stage9_candidate_rpc(
             raise RealizedRadiusMismatchError(f"Unknown radius_acceptance_mode {acceptance_mode!r} for perturbation {manifest.perturbation_id!r}.")
 
         reset_vllm_encoder_cache_full(engine)
+        _checkpoint("after_perturbation_applied")
 
         for capability, ctx in capability_contexts.items():
             if ctx.partition.manifest_hash != ctx.subset_hash:
@@ -854,6 +948,8 @@ def evaluate_one_stage9_candidate_rpc(
             )
             perturbed_score = result.aggregate_metrics["primary_metric"]
             base_score = ctx.base_score
+            per_example_hash = result.generation_hash()
+            parser_failure_rate = result.aggregate_metrics.get("parser_failure_rate")
             records.append(ExperimentResultRecord(
                 experiment_id=EXPERIMENT_ID, perturbation_id=manifest.perturbation_id,
                 model_family=manifest.model_family, model_scale=manifest.model_scale, model_revision=manifest.model_revision,
@@ -861,8 +957,8 @@ def evaluate_one_stage9_candidate_rpc(
                 radius=manifest.radius, sigma=manifest.sigma, seed=manifest.seed, parameter_mask_hash=manifest.parameter_mask_hash,
                 capability=capability, dataset_role=DATASET_ROLE, subset_hash=ctx.subset_hash,
                 base_score=base_score, perturbed_score=perturbed_score, delta=perturbed_score - base_score,
-                parser_failure_rate=result.aggregate_metrics.get("parser_failure_rate"),
-                per_example_result_path=None, per_example_result_hash=result.generation_hash(),
+                parser_failure_rate=parser_failure_rate,
+                per_example_result_path=None, per_example_result_hash=per_example_hash,
                 runtime_metadata={
                     "restoration_mode": RESTORATION_MODE, "perturbation_semantics": PERTURBATION_MODE,
                     "radius_realization_method": apply_result["radius_realization_method"],
@@ -883,9 +979,23 @@ def evaluate_one_stage9_candidate_rpc(
                     "generation_batch_size": generation_batch_size,
                 },
             ))
-    finally:
+            del result
+            release_transient_memory()
+            _checkpoint(f"after_capability_{capability}")
+    except Exception as exc:
+        if _is_ray_unrecoverable_error(exc):
+            # Engine/actors are dead -- do NOT issue further RPC calls against them (this is
+            # exactly the live secondary-crash pattern this repair pass fixes). Zero rows have
+            # been appended to results.jsonl for this candidate, so it is already, correctly,
+            # incomplete -- propagate the ORIGINAL exception cleanly, never masked by a second one.
+            raise
+        # Any other (recoverable-engine) failure: still attempt best-effort restoration before
+        # propagating, exactly as before this repair pass -- restoration is never skipped while
+        # the engine itself is still usable.
         reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
+        raise
 
+    reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
     verification = verify_exact_fixed_base_restoration_via_rpc(engine, ray_get=ray_get)
     if not verification["ok"]:
         raise RestorationFailedError(
@@ -908,14 +1018,34 @@ class RealizedRadiusMismatchError(RuntimeError):
     """
 
 
+def _write_candidate_telemetry_line(path: Path, record: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a") as f:
+        f.write(json.dumps(record) + "\n")
+        f.flush()
+
+
 def run_stage9_rpc(
     plan: Stage9Plan, capability_contexts: Dict[str, CapabilityContext], engine: Any, tokenizer: Any,
     sampling_params: Any, seed_bank: Dict[str, Tuple[int, ...]], child_region_param_names_by_region: Dict[str, Sequence[str]],
     child_mask_hash_by_region: Dict[str, str], audits: Dict[str, Stage9PartitionAudit], *, run_benchmark: Callable, ray_get: Optional[Callable] = None,
-) -> List[ExperimentResultRecord]:
+) -> int:
     """A candidate is checkpointed ONLY after its full apply -> evaluate(all 6 capabilities) ->
     reset -> verify cycle has already succeeded inside evaluate_one_stage9_candidate_rpc.
+
+    THIS REPAIR PASS (driver-RSS OOM during full candidate evaluation): NO LONGER accumulates
+    every candidate's ExperimentResultRecord objects in memory for the whole 1152-candidate
+    sweep (Section 2 of the spec's "preferred design") -- neither the already-checkpointed rows
+    (previously re-loaded into a full in-memory list every resume, growing with resume depth)
+    nor the newly-evaluated ones. results.jsonl is already the durable, resumable source of
+    truth (write_stage9_run_manifest re-reads the authoritative total from it independently);
+    this function now returns only the COUNT of rows newly appended this call. Per-candidate RSS
+    telemetry (Section 3) is written to its OWN file (candidate_memory_telemetry.jsonl),
+    NEVER embedded into the scientific results.jsonl rows -- see the module-level docstring
+    section on driver-RSS OOM root-causing for the full context.
     """
+    from .mem_telemetry import release_transient_memory, rss_mb
+
     population_by_cell = build_stage9_population(plan, seed_bank, child_mask_hash_by_region)
     validate_stage9_direction_seed_reuse(plan, population_by_cell)
 
@@ -924,24 +1054,66 @@ def run_stage9_rpc(
     ensure_stage9_checkpoint_manifest(checkpoint_path, current_checkpoint)
 
     results_path = plan.output_dir / "results.jsonl"
-    completed = load_completed_perturbation_rows(results_path, plan.capabilities)
+    telemetry_path = plan.output_dir / "candidate_memory_telemetry.jsonl"
+    # Only the SET of already-completed perturbation IDs is retained going forward -- never
+    # their full row contents (the previous version's `all_records.extend(rows) for rows in
+    # completed.values()` retained every already-checkpointed candidate's records too, growing
+    # with resume depth on top of the newly-evaluated ones).
+    completed_ids = set(load_completed_perturbation_rows(results_path, plan.capabilities).keys())
 
-    all_records: List[ExperimentResultRecord] = []
-    for rows in completed.values():
-        all_records.extend(rows)
+    newly_completed_rows = 0
+    perturbation_index = 0
+    previous_candidate_rss_mb: Optional[float] = None
 
-    for (region, _radius), assignments in population_by_cell.items():
+    for (region, radius), assignments in population_by_cell.items():
         region_param_names = child_region_param_names_by_region[region]
         for assignment in assignments:
-            if assignment.manifest.perturbation_id in completed:
+            if assignment.manifest.perturbation_id in completed_ids:
                 continue
+
+            rss_start_mb = rss_mb()
+            capability_rss_mb: List[float] = []
+            rss_after_perturbation_mb: Optional[float] = None
+
+            def _rss_checkpoint(label: str, _cap_rss=capability_rss_mb) -> None:
+                nonlocal rss_after_perturbation_mb
+                if label == "after_perturbation_applied":
+                    rss_after_perturbation_mb = rss_mb()
+                elif label.startswith("after_capability_"):
+                    _cap_rss.append(rss_mb())
+
             records = evaluate_one_stage9_candidate_rpc(
                 engine, assignment, region_param_names, capability_contexts, tokenizer, sampling_params,
                 run_benchmark=run_benchmark, ray_get=ray_get, generation_batch_size=plan.generation_batch_size,
+                rss_checkpoint=_rss_checkpoint,
             )
             append_candidate_rows(results_path, records)
-            all_records.extend(records)
-    return all_records
+            rss_after_checkpoint_mb = rss_mb()
+
+            newly_completed_rows += len(records)
+            del records
+            release_transient_memory()
+            rss_after_cleanup_mb = rss_mb()
+
+            high_water_mb = max(
+                v for v in (rss_start_mb, rss_after_perturbation_mb, *capability_rss_mb, rss_after_checkpoint_mb, rss_after_cleanup_mb)
+                if v is not None
+            )
+            _write_candidate_telemetry_line(telemetry_path, {
+                "perturbation_index": perturbation_index, "perturbation_id": assignment.manifest.perturbation_id,
+                "child_region": region, "radius": radius, "direction_index": assignment.direction_index,
+                "rss_start_mb": rss_start_mb, "rss_after_perturbation_mb": rss_after_perturbation_mb,
+                "rss_after_capability_mb": capability_rss_mb, "rss_after_checkpoint_mb": rss_after_checkpoint_mb,
+                "rss_after_cleanup_mb": rss_after_cleanup_mb,
+                "delta_from_previous_candidate_mb": (
+                    (rss_after_cleanup_mb - previous_candidate_rss_mb) if previous_candidate_rss_mb is not None else 0.0
+                ),
+                "high_water_mb": high_water_mb,
+            })
+            previous_candidate_rss_mb = rss_after_cleanup_mb
+            perturbation_index += 1
+
+    return newly_completed_rows
 
 
 # =============================================================================================
@@ -1120,7 +1292,7 @@ def main(argv=None) -> int:
             ensure_stage9_baseline_gate_passes(gate_report)
             print("Confirmed: live Stage-9 baseline and D_map subset hashes match the authoritative Stage-8 N=50 manifests for all 6 capabilities.")
 
-        records = run_stage9_rpc(
+        newly_written_rows = run_stage9_rpc(
             plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank,
             child_region_param_names_by_region, child_mask_hash_by_region,
             {k: Stage9PartitionAudit(**v) for k, v in child_info["audits"].items()},
@@ -1132,8 +1304,11 @@ def main(argv=None) -> int:
         elif ray_owned_by_us and ray.is_initialized():
             ray.shutdown()
 
+    # The authoritative row/perturbation totals are always read back from results.jsonl itself
+    # (write_stage9_run_manifest), never accumulated in memory for the whole sweep -- see
+    # run_stage9_rpc's own docstring for why (this repair pass's driver-RSS OOM fix).
     manifest = write_stage9_run_manifest(plan.output_dir)
-    print(f"Wrote {len(records)} result rows to {plan.output_dir / 'results.jsonl'}")
+    print(f"Wrote {newly_written_rows} NEW result rows this run to {plan.output_dir / 'results.jsonl'}")
     print(f"Run manifest: {json.dumps(manifest, indent=2)}")
     return 0
 

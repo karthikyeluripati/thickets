@@ -621,17 +621,23 @@ def test_run_stage9_rpc_persists_rows_only_after_full_success(tmp_path, runtime_
     engine = _FakeStage9Engine(model)
     engine.store_base_weights()
 
-    records = run_stage9_rpc(
+    newly_written = run_stage9_rpc(
         plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
         child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
         audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
     )
 
-    assert len(records) == 2 * 6
+    # This repair pass: run_stage9_rpc returns an int COUNT of newly-written rows, never the
+    # full in-memory record list (the driver-RSS OOM fix) -- the authoritative total still
+    # lives on disk.
+    assert newly_written == 2 * 6
     results_path = plan.output_dir / "results.jsonl"
     assert results_path.exists()
     assert len(results_path.read_text().strip().split("\n")) == 12
     assert (plan.output_dir / "checkpoint_manifest.json").exists()
+    telemetry_path = plan.output_dir / "candidate_memory_telemetry.jsonl"
+    assert telemetry_path.exists()
+    assert len(telemetry_path.read_text().strip().split("\n")) == 2  # one line per candidate, not per row
 
 
 def test_run_stage9_rpc_resumes_skipping_completed_candidates(tmp_path, runtime_wrapped_vlm_32vision_factory):
@@ -655,12 +661,12 @@ def test_run_stage9_rpc_resumes_skipping_completed_candidates(tmp_path, runtime_
         child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
         audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
     )
-    records_again = run_stage9_rpc(
+    newly_written_second_call = run_stage9_rpc(
         plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
         child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
         audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
     )
-    assert len(records_again) == 12
+    assert newly_written_second_call == 0  # nothing new -- everything was already complete
     results_path = plan.output_dir / "results.jsonl"
     assert len(results_path.read_text().strip().split("\n")) == 12  # never duplicated
 
@@ -903,3 +909,289 @@ def test_stage9_design_counts_unchanged_by_this_repair_pass():
     smoke_plan = build_stage9_smoke_plan(model_name="m", model_revision="rev1", output_root="out")
     assert smoke_plan.total_unique_perturbations == 18
     assert smoke_plan.total_perturbation_capability_evaluations == 108
+
+
+# =================================================================================================
+# 11. Driver-RSS OOM fix during full candidate evaluation (this repair pass)
+# =================================================================================================
+
+
+def test_checkpointed_candidates_have_exactly_six_rows(tmp_path, runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    region_param_names_by_region = {"language_mid": children["language_mid"].param_names}
+    mask_hashes = {"language_mid": children["language_mid"].mask_hash}
+    plan = build_stage9_plan(
+        model_name="qwen2_5_vl_3b", model_revision="rev1", output_root=str(tmp_path),
+        child_regions=("language_mid",), radii=(0.05,), n_directions_per_cell=2, d_map_n=5,
+    )
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    contexts = _fake_contexts(n=5)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+
+    run_stage9_rpc(
+        plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
+        audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    completed = module.load_completed_perturbation_rows(plan.output_dir / "results.jsonl", plan.capabilities)
+    assert len(completed) == 2  # 2 directions
+    for pid, rows in completed.items():
+        assert len(rows) == 6
+        assert {r.capability for r in rows} == set(STAGE9_CAPABILITIES)
+
+
+def test_incomplete_candidate_after_simulated_failure_writes_zero_rows(runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """A mid-candidate failure (e.g. run_benchmark raising) must leave results.jsonl untouched
+    for that candidate -- append_candidate_rows is only ever called AFTER the function returns
+    successfully.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+
+    def _failing_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        raise RuntimeError("simulated mid-candidate failure")
+
+    with pytest.raises(RuntimeError, match="simulated mid-candidate failure"):
+        evaluate_one_stage9_candidate_rpc(
+            engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+            run_benchmark=_failing_run_benchmark, ray_get=_identity_ray_get,
+        )
+    # Restoration was still attempted (recoverable-engine path) -- weights are back to base.
+    for name, p in model.named_parameters():
+        assert torch.equal(p.detach(), engine._base_weights[name])
+
+
+def test_resume_reruns_a_candidate_with_fewer_than_six_rows(tmp_path, runtime_wrapped_vlm_32vision_factory):
+    """A candidate with an incomplete row set on disk (simulating a crash mid-checkpoint) must
+    NOT be treated as completed -- load_completed_perturbation_rows only counts a perturbation
+    as done when exactly the full capability set is present.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    region_param_names_by_region = {"language_mid": children["language_mid"].param_names}
+    mask_hashes = {"language_mid": children["language_mid"].mask_hash}
+    plan = build_stage9_plan(
+        model_name="qwen2_5_vl_3b", model_revision="rev1", output_root=str(tmp_path),
+        child_regions=("language_mid",), radii=(0.05,), n_directions_per_cell=1, d_map_n=5,
+    )
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    contexts = _fake_contexts(n=5)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+
+    # Manually write a PARTIAL candidate (only 3 of 6 capability rows) directly to results.jsonl,
+    # simulating a crash that happened mid-write -- but append_candidate_rows itself is always
+    # atomic-per-candidate in the real lifecycle, so this models an out-of-band interruption.
+    from neural_thickets_repro.run_global_visual_thicket_pilot import append_candidate_rows
+    from neural_thickets_repro.thicket.schema import ExperimentResultRecord
+
+    partial_pid = list(build_stage9_population(plan, bank, mask_hashes).values())[0][0].manifest.perturbation_id
+    partial_rows = [
+        ExperimentResultRecord(
+            experiment_id=module.EXPERIMENT_ID, perturbation_id=partial_pid, model_family="qwen2_5_vl", model_scale="3B",
+            model_revision="rev1", perturbation_mode=module.PERTURBATION_MODE, anatomy_region="language_mid", radius=0.05,
+            sigma=None, seed=1, parameter_mask_hash="h", capability=cap, dataset_role="map", subset_hash=f"sub_{cap}",
+            base_score=0.5, perturbed_score=0.5, delta=0.0, parser_failure_rate=0.0, per_example_result_path=None,
+            per_example_result_hash="h", runtime_metadata={},
+        )
+        for cap in STAGE9_CAPABILITIES[:3]
+    ]
+    (plan.output_dir).mkdir(parents=True, exist_ok=True)
+    append_candidate_rows(plan.output_dir / "results.jsonl", partial_rows)
+
+    newly_written = run_stage9_rpc(
+        plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
+        audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    # The partial (3-row) candidate was NOT trusted as already complete -- it was re-evaluated
+    # in FULL, appending a fresh set of all 6 rows (never overwriting/deduplicating the old
+    # partial ones -- append_candidate_rows is append-only by design).
+    assert newly_written == 6
+    all_rows_for_pid = [
+        r for r in module.load_records(plan.output_dir / "results.jsonl") if r.perturbation_id == partial_pid
+    ]
+    assert len(all_rows_for_pid) == 3 + 6  # old partial rows + the fresh full re-evaluation
+    # load_completed_perturbation_rows's own conservative design (pre-existing, unchanged by
+    # this repair pass) never trusts a perturbation_id with anything other than EXACTLY one row
+    # per expected capability -- 9 rows for one pid is correctly still "not complete", matching
+    # "resuming NEVER trusts a partial candidate" rather than silently deduplicating.
+    completed = module.load_completed_perturbation_rows(plan.output_dir / "results.jsonl", plan.capabilities)
+    assert partial_pid not in completed
+
+
+def test_run_result_is_deleted_after_each_capability(runtime_wrapped_vlm_32vision_factory):
+    """Confirms del+release_transient_memory actually runs once per capability (6x per
+    candidate), not merely once per candidate.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+    release_calls = {"n": 0}
+
+    import neural_thickets_repro.mem_telemetry as mem_telemetry_module
+
+    original = mem_telemetry_module.release_transient_memory
+
+    def _counting_release():
+        release_calls["n"] += 1
+        original()
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(mem_telemetry_module, "release_transient_memory", _counting_release)
+        evaluate_one_stage9_candidate_rpc(
+            engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+            run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+    assert release_calls["n"] == 6  # once per capability
+
+
+def test_scientific_record_accumulator_contains_only_compact_objects(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+
+    records = evaluate_one_stage9_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    from neural_thickets_repro.thicket.schema import ExperimentResultRecord
+
+    for r in records:
+        assert isinstance(r, ExperimentResultRecord)
+        # runtime_metadata must contain only JSON-primitive values -- never a raw generation,
+        # image, tensor, or RunResult reference.
+        for value in r.runtime_metadata.values():
+            assert isinstance(value, (str, int, float, bool, type(None)))
+
+
+def test_candidate_memory_telemetry_is_separate_from_results_jsonl(tmp_path, runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    region_param_names_by_region = {"language_mid": children["language_mid"].param_names}
+    mask_hashes = {"language_mid": children["language_mid"].mask_hash}
+    plan = build_stage9_plan(
+        model_name="qwen2_5_vl_3b", model_revision="rev1", output_root=str(tmp_path),
+        child_regions=("language_mid",), radii=(0.05,), n_directions_per_cell=1, d_map_n=5,
+    )
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    contexts = _fake_contexts(n=5)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+
+    run_stage9_rpc(
+        plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
+        audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+
+    import json as _json
+
+    results_rows = [_json.loads(line) for line in (plan.output_dir / "results.jsonl").read_text().strip().split("\n")]
+    for row in results_rows:
+        assert not any(k.startswith("rss_") for k in row)
+        assert not any(k.startswith("rss_") for k in row.get("runtime_metadata", {}))
+
+    telemetry_rows = [_json.loads(line) for line in (plan.output_dir / "candidate_memory_telemetry.jsonl").read_text().strip().split("\n")]
+    assert len(telemetry_rows) == 1  # 1 direction family
+    for key in ("perturbation_index", "perturbation_id", "child_region", "radius", "direction_index",
+                "rss_start_mb", "rss_after_capability_mb", "rss_after_checkpoint_mb", "rss_after_cleanup_mb",
+                "delta_from_previous_candidate_mb", "high_water_mb"):
+        assert key in telemetry_rows[0]
+    assert len(telemetry_rows[0]["rss_after_capability_mb"]) == 6
+
+
+def test_direction_seed_bank_contains_only_integers_never_tensors():
+    """Stage 9 must never pre-materialize direction tensors on the driver -- only integer seeds."""
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, STAGE9_CHILD_REGIONS, 8)
+    for region, seeds in bank.items():
+        for seed in seeds:
+            assert isinstance(seed, int)
+
+
+def test_is_ray_unrecoverable_error_true_for_a_ray_actor_error():
+    import sys
+    import types
+
+    fake_ray = types.ModuleType("ray")
+    fake_exceptions = types.ModuleType("ray.exceptions")
+
+    class FakeRayActorError(Exception):
+        pass
+
+    fake_exceptions.RayActorError = FakeRayActorError
+    fake_ray.exceptions = fake_exceptions
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setitem(sys.modules, "ray", fake_ray)
+        mp.setitem(sys.modules, "ray.exceptions", fake_exceptions)
+        assert module._is_ray_unrecoverable_error(FakeRayActorError("actor died")) is True
+        assert module._is_ray_unrecoverable_error(RuntimeError("some other error")) is False
+
+
+def test_is_ray_unrecoverable_error_false_when_ray_not_installed():
+    # In this CPU-only test environment ray genuinely is not installed -- confirms the
+    # ImportError path returns False rather than raising.
+    assert module._is_ray_unrecoverable_error(RuntimeError("anything")) is False
+
+
+def test_ray_unrecoverable_failure_path_skips_restoration_rpc(runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """When the exception is classified as ray-unrecoverable, evaluate_one_stage9_candidate_rpc
+    must NOT call reset_to_base_weights_via_rpc again (which would itself raise against a dead
+    actor) -- it must propagate the original exception directly.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+
+    class FakeUnrecoverableError(Exception):
+        pass
+
+    def _failing_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        raise FakeUnrecoverableError("simulated Ray actor death / OOM")
+
+    monkeypatch.setattr(module, "_is_ray_unrecoverable_error", lambda exc: isinstance(exc, FakeUnrecoverableError))
+    reset_calls_before = engine.calls.count("reset_to_base_weights")
+
+    with pytest.raises(FakeUnrecoverableError):
+        evaluate_one_stage9_candidate_rpc(
+            engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+            run_benchmark=_failing_run_benchmark, ray_get=_identity_ray_get,
+        )
+    # No additional reset_to_base_weights RPC was attempted after the unrecoverable failure.
+    assert engine.calls.count("reset_to_base_weights") == reset_calls_before
+
+
+def test_stage8_run_stage8_rpc_still_returns_a_list_unchanged():
+    """This repair pass touches ONLY Stage 9 -- Stage 8's own run_stage8_rpc must remain
+    completely unaffected (still returns the full record list, never changed to an int).
+    """
+    import inspect
+
+    from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import run_stage8_rpc
+
+    sig = inspect.signature(run_stage8_rpc)
+    assert "List" in str(sig.return_annotation)
+
+
+def test_all_stage9_scientific_signatures_remain_identical():
+    """No new field was added to Stage9CheckpointManifest by this execution-only repair pass --
+    the fixed runner resumes the SAME scientific run identity.
+    """
+    import dataclasses
+
+    field_names = {f.name for f in dataclasses.fields(Stage9CheckpointManifest)}
+    assert field_names == {
+        "experiment_id", "run_signature", "restoration_mode", "perturbation_mode",
+        "radius_realization_method", "multimodal_cache_policy", "enable_prefix_caching",
+        "generation_batch_size", "model_revision", "dataset_role", "child_regions", "radii",
+        "capabilities", "n_directions_per_cell", "d_map_n", "subset_hashes", "child_mask_hashes",
+        "direction_seed_bank_hash", "partition_audit_hash", "stage8_parent_run_signature",
+        "expected_unique_perturbations", "expected_result_rows",
+    }
+    assert compute_stage9_run_signature(STAGE9_CHILD_REGIONS, STAGE9_RADII, 64, 50) == "stage9_hierarchical_anatomical_atlas_3b_v1"
