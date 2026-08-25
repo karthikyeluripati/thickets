@@ -83,37 +83,27 @@ Known divergences (see REPRO_SPEC.md for full citations):
    scoped-RandOpt candidates that perturb the visual path -- confirmed real bug (GPU
    evidence: vision_encoder r=0.005/r=0.02 candidates all scored exactly the base score,
    0 experts / 100 ties / 0 regressions, for 100 independently-seeded perturbations).
-   Verified directly against the pinned vllm==0.27.1 source (not assumed from another
-   version -- see reset_vllm_encoder_cache() below for the exact file:line citations):
-   this cache is distinct from mm_processor_cache_gb (image PREPROCESSING cache);
+   This cache is distinct from mm_processor_cache_gb (image PREPROCESSING cache);
    disabling that does not touch it. vllm.entrypoints.llm.LLM (what our unmodified,
    upstream RandOptNcclLLM subclasses) has NO reset_encoder_cache() method itself --
    confirmed by grepping entrypoints/llm.py and all three of its mixin base classes,
    zero matches -- unlike reset_mm_cache/reset_prefix_cache, which ARE exposed there.
-   LLMEngine.reset_encoder_cache() exists and clears BOTH the scheduler's own bookkeeping
-   (Scheduler.reset_encoder_cache -> encoder_cache_manager.reset(), a driver-process
-   structure) and the worker-side cached tensors, but LLM never forwards to it, and since
-   our engine is a Ray actor wrapping the whole unmodified LLM object, Ray's actor RPC
-   only exposes methods that exist directly on the wrapped class -- the driver-process
-   scheduler half is therefore not reachable from our code. What IS reachable: the same
-   collective_rpc(method, args) mechanism already used throughout this project, dispatched
-   with the string "reset_encoder_cache" -- a real, built-in vllm.v1.worker.gpu_worker.
-   Worker.reset_encoder_cache() method (not something WorkerExtension adds), which is
-   exactly what vLLM's own Executor.reset_encoder_cache() convenience method does
-   internally. reset_vllm_encoder_cache() below calls this directly. KNOWN LIMITATION,
-   not glossed over: the scheduler's cache-hit decision is made purely from its own
-   bookkeeping without consulting the worker, so a worker-only reset is not proven
-   sufficient by source inspection alone -- the GPU A/B validation this fix ships
+   What IS reachable: the same collective_rpc(method, args) mechanism already used
+   throughout this project, dispatched with the string "reset_encoder_cache" -- a
+   worker-side reset. reset_vllm_encoder_cache() below calls this directly. KNOWN
+   LIMITATION, not glossed over: the scheduler's cache-hit decision is made purely from
+   its own bookkeeping without consulting the worker, so a worker-only reset is not
+   proven sufficient by source inspection alone -- the GPU A/B validation this fix ships
    alongside is the empirical check for whether the reachable half is enough in practice.
 
 8. Divergence #7's worker-only reset was CONFIRMED insufficient on GPU -- exactly the
    predicted limitation materialized: `RuntimeError: Encoder cache miss for <mm_hash>`,
    scheduler output immediately before the crash showing `scheduled_encoder_inputs={}`
    (the scheduler believed the embedding was cached and never scheduled recomputation; the
-   worker's copy had already been cleared -> lookup miss -> crash). The full engine-level
-   reset (`LLMEngine.reset_encoder_cache()`, clearing both scheduler and worker halves) is
-   not reachable via any method vllm.entrypoints.llm.LLM exposes, and Ray's actor RPC only
-   ever calls methods that exist on the wrapped class. Fix: external/RandOpt/core/engine.py:
+   worker's copy had already been cleared -> lookup miss -> crash). A full engine-level
+   reset (clearing both scheduler and worker halves) is needed, and is not reachable via
+   any method vllm.entrypoints.llm.LLM exposes, and Ray's actor RPC only ever calls
+   methods that exist on the wrapped class. Fix: external/RandOpt/core/engine.py:
    launch_engines applies `ray.remote(...)` to RandOptNcclLLM FRESH, inside the function
    body, on every call (verified directly against the pinned source -- not a class-level
    `@ray.remote` decorator) -- so adding a method to the already-imported RandOptNcclLLM
@@ -122,15 +112,52 @@ Known divergences (see REPRO_SPEC.md for full citations):
    addition to an in-memory class object, in our own package's code -- external/RandOpt is
    never edited on disk, no subclass, launch_engines() itself unmodified), and
    reset_vllm_encoder_cache_full() calls the resulting real actor method
-   (`engine.reset_encoder_cache_full.remote()`, reaching `self.llm_engine.
-   reset_encoder_cache()`), superseding divergence #7's collective_rpc-based approach for
-   the actual scoped-RandOpt candidate loop.
+   (`engine.reset_encoder_cache_full.remote()`), superseding divergence #7's
+   collective_rpc-based approach for the actual scoped-RandOpt candidate loop. The FIRST
+   implementation of the actor-level method called `self.llm_engine.reset_encoder_cache()`
+   directly -- this was WRONG, not independently verified against real vLLM source at the
+   time (an earlier, incorrect "confirmed against pinned vllm==0.27.1" claim in this
+   docstring, corrected here): the live GPU-pinned runtime is actually vLLM **0.11.0**, and
+   its `LLMEngine` has no `reset_encoder_cache()` method at all -- confirmed live:
+   `AttributeError: 'LLMEngine' object has no attribute 'reset_encoder_cache'`. See
+   divergence #9 for the corrected, version-aware implementation.
+
+9. vLLM 0.11.0 has NO native `LLMEngine.reset_encoder_cache()` (confirmed live, divergence
+   #8 above) -- a full reset must be reproduced explicitly for this pinned version, without
+   patching vLLM itself. Confirmed present on `LLMEngine` for 0.11.0: `reset_mm_cache()`
+   (clears the frontend processor cache and the engine's own MM receiver cache TOGETHER --
+   one call covers both) and `reset_prefix_cache()`. NOT covered by `reset_mm_cache()`,
+   confirmed distinct caches that must be cleared separately:
+     - the SCHEDULER's own logical bookkeeping, `Scheduler.encoder_cache_manager` (a
+       `vllm.v1.core.encoder_cache_manager.EncoderCacheManager` instance) -- with
+       `VLLM_ENABLE_V1_MULTIPROCESSING=False` (our pinned runtime config), this lives at
+       `self.llm_engine.engine_core.engine_core.scheduler.encoder_cache_manager` (the
+       in-process engine-core layout; the doubled `.engine_core.engine_core` reflects the
+       client/core wrapper still present even with multiprocessing disabled);
+     - the GPU WORKER's own physical embedding tensors, `model_runner.encoder_cache:
+       dict[str, torch.Tensor]`, reachable only via collective_rpc (a genuinely separate
+       process/actor boundary even when the scheduler is in-process), never by reaching
+       from the frontend directly into a worker object.
+   A LATER vLLM version reintroduces a native, complete `reset_encoder_cache()` -- the
+   compatibility layer below tries that FIRST (see `_reset_encoder_cache_engine_side`) and
+   only falls back to the explicit v0.11.0 reproduction when it's absent, with a strict
+   `vllm.__version__ == "0.11.0"` guard plus attribute-existence checks at every layer
+   before touching anything -- hard-failing (`UnsupportedVLLMLayoutError`) rather than
+   guessing at an unverified internal layout on any other version. The exact
+   `EncoderCacheManager` attribute names used for verification below (`cached`,
+   `freeable`, `cache_size`, `num_free_slots`) are this module's best-faith reconstruction
+   of vLLM 0.11.0's real internal shape (general v1-scheduler familiarity plus the live
+   AttributeError evidence above) -- UNRESOLVED against actually running this on the pinned
+   pod; `diagnostics/stage7b_encoder_cache_v011_diagnostic.py` exists specifically to
+   confirm or correct them on real hardware before this path is ever trusted inside the
+   real candidate loop, and every verification step below hard-fails (never silently
+   downgrades to "assume it worked") if an expected attribute is missing.
 """
 from __future__ import annotations
 
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 # transformers class to use instead of AutoModelForCausalLM when reconstructing a saved
 # Qwen2.5-VL-3B-Instruct expert from a (seed, sigma) pair.
@@ -435,24 +462,42 @@ def reset_vllm_encoder_cache(engine) -> None:
 
 
 _ENCODER_CACHE_FULL_RESET_METHOD_NAME = "reset_encoder_cache_full"
+_ENCODER_CACHE_REPORT_METHOD_NAME = "report_encoder_cache_state"
+_PINNED_V011_VLLM_VERSION = "0.11.0"
+
+
+class EncoderCacheResetPreconditionError(RuntimeError):
+    """The full encoder-cache reset was attempted while unfinished/in-flight requests exist --
+    refuses to reset caches mid-inference, which could corrupt an in-progress generation.
+    """
+
+
+class UnsupportedVLLMLayoutError(RuntimeError):
+    """The installed vLLM version/internal object layout does not match any known
+    compatibility path (a native reset_encoder_cache(), or the pinned vLLM 0.11.0 layout
+    this module explicitly reproduces) -- hard-fails rather than guessing at an unverified
+    internal layout.
+    """
+
+
+class EncoderCacheResetVerificationError(RuntimeError):
+    """The full encoder-cache reset ran without raising, but post-reset verification proved at
+    least one cache layer was NOT actually cleared -- "no exception raised" is never treated
+    as sufficient evidence of success; this is a hard failure, never a warning.
+    """
 
 
 def ensure_full_encoder_cache_reset_exposed(external_root: "str | Path" = EXTERNAL_ROOT) -> None:
-    """Divergence #8 (supersedes #7's worker-only approach, confirmed insufficient on GPU:
+    """Divergence #8/#9 (supersedes #7's worker-only approach, confirmed insufficient on GPU:
     RuntimeError: Encoder cache miss -- the driver-process scheduler's own bookkeeping never
     learned the worker-side cache was cleared, so it kept scheduling requests as if the
     embedding were still valid, producing a hard crash rather than silent staleness).
 
-    We need vllm.v1.engine.llm_engine.LLMEngine.reset_encoder_cache() (confirmed, verified
-    directly against the pinned vllm==0.27.1 source: vllm/v1/engine/llm_engine.py) -- it
-    calls self.engine_core.reset_encoder_cache(), which clears BOTH
-    Scheduler.reset_encoder_cache() (driver-process bookkeeping,
-    vllm/v1/core/sched/scheduler.py) AND the worker-side cache, the full engine-level reset.
     vllm.entrypoints.llm.LLM (what external/RandOpt/core/engine.py's RandOptNcclLLM
-    subclasses, unmodified) never forwards to this method, and since our engine is a Ray
-    actor, Ray's actor RPC only exposes methods that exist directly on the wrapped class at
-    the moment `ray.remote(...)` decorates it -- LLMEngine.reset_encoder_cache() is normally
-    unreachable from outside the actor process for exactly that reason.
+    subclasses, unmodified) exposes no full encoder-cache-reset method itself, and since our
+    engine is a Ray actor, Ray's actor RPC only exposes methods that exist directly on the
+    wrapped class at the moment `ray.remote(...)` decorates it -- the engine-internal reset
+    logic is normally unreachable from outside the actor process for exactly that reason.
 
     The fix: external/RandOpt/core/engine.py:launch_engines applies `ray.remote(...)` to
     RandOptNcclLLM FRESH, INSIDE the function body, every time it's called -- confirmed by
@@ -465,7 +510,9 @@ def ensure_full_encoder_cache_reset_exposed(external_root: "str | Path" = EXTERN
     when it inspects the class to build the actor's method registry -- giving us a REAL Ray
     actor method (`engine.reset_encoder_cache_full.remote()`, called like
     `engine.generate.remote(...)`, NOT collective_rpc, which only ever reaches workers) that
-    reaches `self.llm_engine.reset_encoder_cache()` on the actual running instance.
+    runs `_reset_encoder_cache_engine_side` (below) on the actual running instance -- the
+    version-aware engine-side reset (layers A+B+C; see this module's own docstring,
+    divergence #9, for what each layer means).
 
     This is a runtime attribute addition to an in-memory Python object, in our own package's
     code -- external/RandOpt's core/engine.py is never edited on disk, RandOptNcclLLM's
@@ -482,28 +529,274 @@ def ensure_full_encoder_cache_reset_exposed(external_root: "str | Path" = EXTERN
     from core.engine import RandOptNcclLLM  # type: ignore
 
     if not hasattr(RandOptNcclLLM, _ENCODER_CACHE_FULL_RESET_METHOD_NAME):
-        def _reset_encoder_cache_full(self) -> None:
-            self.llm_engine.reset_encoder_cache()
+        setattr(RandOptNcclLLM, _ENCODER_CACHE_FULL_RESET_METHOD_NAME, _reset_encoder_cache_engine_side)
+    if not hasattr(RandOptNcclLLM, _ENCODER_CACHE_REPORT_METHOD_NAME):
+        setattr(RandOptNcclLLM, _ENCODER_CACHE_REPORT_METHOD_NAME, _report_encoder_cache_state_engine_side)
 
-        setattr(RandOptNcclLLM, _ENCODER_CACHE_FULL_RESET_METHOD_NAME, _reset_encoder_cache_full)
+
+def _engine_num_unfinished_requests(llm_engine: Any) -> int:
+    """Tries LLMEngine.get_num_unfinished_requests() first (the stable, documented public API
+    across vLLM's history), then the same method on engine_core as a fallback. Hard-fails if
+    NEITHER is reachable -- refuses to assume zero in-flight requests without being able to
+    check (see HARD PRECONDITIONS in this module's own docstring, divergence #9).
+    """
+    for obj in (llm_engine, getattr(llm_engine, "engine_core", None)):
+        if obj is not None and hasattr(obj, "get_num_unfinished_requests"):
+            return obj.get_num_unfinished_requests()
+    raise UnsupportedVLLMLayoutError(
+        "Neither llm_engine.get_num_unfinished_requests() nor "
+        "llm_engine.engine_core.get_num_unfinished_requests() is reachable -- cannot verify "
+        "the required 'zero unfinished requests' precondition on this vLLM layout. Refusing "
+        "to reset the encoder cache without being able to check."
+    )
 
 
-def reset_vllm_encoder_cache_full(engine) -> None:
-    """Calls the FULL engine-level encoder-cache reset (scheduler bookkeeping + worker-side
-    cache together) via the reset_encoder_cache_full method
-    ensure_full_encoder_cache_reset_exposed() adds to RandOptNcclLLM before launch_engines()
-    is called. This is a genuine Ray actor method call (like engine.generate.remote(...)),
-    NOT collective_rpc -- collective_rpc only ever reaches worker processes and was confirmed
-    on GPU to be insufficient for this specific cache (RuntimeError: Encoder cache miss,
-    because the driver-process scheduler never learned the worker-side half was cleared).
+def _resolve_v011_scheduler(llm_engine: Any) -> Any:
+    """The VLLM_ENABLE_V1_MULTIPROCESSING=False in-process layout this module's compatibility
+    path targets: llm_engine.engine_core.engine_core.scheduler (see this module's own
+    docstring, divergence #9).
+    """
+    try:
+        return llm_engine.engine_core.engine_core.scheduler
+    except AttributeError as exc:
+        raise UnsupportedVLLMLayoutError(
+            f"Expected llm_engine.engine_core.engine_core.scheduler (the "
+            f"VLLM_ENABLE_V1_MULTIPROCESSING=False in-process layout) but it was not found "
+            f"({exc}). Refusing to guess at a different internal layout for pinned vLLM "
+            f"{_PINNED_V011_VLLM_VERSION}."
+        ) from exc
 
-    Hard-fails (raises, does not silently continue) if the actor doesn't expose
-    reset_encoder_cache_full at all (ensure_full_encoder_cache_reset_exposed() wasn't called
-    before launch_engines(), so the monkey-patched method wasn't present when Ray wrapped
-    RandOptNcclLLM as an actor -- surfaces as AttributeError on the actor handle) or if the
-    call itself errors for any other reason. Never falls back to the worker-only
-    reset_vllm_encoder_cache() -- that path is confirmed insufficient for the scientific
-    visual-scope path.
+
+_ENCODER_CACHE_MANAGER_REQUIRED_ATTRS: Tuple[str, ...] = ("cached", "freeable", "cache_size", "num_free_slots")
+
+
+def _report_encoder_cache_manager_state(manager: Any) -> Dict[str, Any]:
+    """Best-effort introspection of vLLM 0.11.0's EncoderCacheManager -- UNRESOLVED against
+    actually running on the pinned pod (see this module's own docstring, divergence #9);
+    hard-fails on ANY missing expected attribute rather than silently reporting partial
+    evidence.
+    """
+    missing = [a for a in _ENCODER_CACHE_MANAGER_REQUIRED_ATTRS if not hasattr(manager, a)]
+    if missing:
+        raise UnsupportedVLLMLayoutError(
+            f"EncoderCacheManager is missing expected attribute(s) {missing} on this vLLM "
+            f"{_PINNED_V011_VLLM_VERSION} runtime -- refusing to verify an unresolved internal "
+            f"layout. Confirm the real attribute names via "
+            f"diagnostics/stage7b_encoder_cache_v011_diagnostic.py before trusting this path."
+        )
+    return {
+        "cached_entry_count": len(manager.cached),
+        "freeable_entry_count": len(manager.freeable),
+        "cache_size": manager.cache_size,
+        "num_free_slots": manager.num_free_slots,
+    }
+
+
+def _verify_encoder_cache_manager_reset(after: Dict[str, Any]) -> None:
+    """Requires the post-reset logical state to be equivalent to a FRESH manager: empty
+    cached/freeable bookkeeping and num_free_slots restored to the full configured capacity.
+    """
+    ok = after["cached_entry_count"] == 0 and after["freeable_entry_count"] == 0 and after["num_free_slots"] == after["cache_size"]
+    if not ok:
+        raise EncoderCacheResetVerificationError(
+            f"Scheduler EncoderCacheManager reset did not produce fresh, empty state: {after}"
+        )
+
+
+def _reset_encoder_cache_engine_side_v011_compat(llm_engine: Any) -> Dict[str, Any]:
+    """Reproduces the required semantics for the pinned vLLM 0.11.0 V1 in-process layout,
+    explicitly, without touching vLLM itself (see this module's own docstring, divergence #9):
+
+    A + B. Frontend processor MM cache + engine MM receiver cache -- ONE call,
+       `llm_engine.reset_mm_cache()`, confirmed present on LLMEngine for 0.11.0, covers both.
+    C. Scheduler's own logical bookkeeping (`Scheduler.encoder_cache_manager`) -- rebuilt as a
+       FRESH `EncoderCacheManager`, preserving the original configured `cache_size` (never
+       mutating private fields of the existing instance).
+
+    Only runs after proving there are zero unfinished/in-flight requests (HARD PRECONDITION).
+    Verifies the post-reset logical state directly, not merely "no exception raised" -- see
+    _verify_encoder_cache_manager_reset. Layer D (the GPU worker's physical embedding cache)
+    is a SEPARATE concern, reached only via collective_rpc from reset_vllm_encoder_cache_full
+    below -- never reached from here, since this runs on the engine/scheduler side.
+    """
+    from vllm.v1.core.encoder_cache_manager import EncoderCacheManager  # type: ignore
+
+    unfinished = _engine_num_unfinished_requests(llm_engine)
+    if unfinished > 0:
+        raise EncoderCacheResetPreconditionError(
+            f"Refusing to reset the encoder cache while {unfinished} request(s) are still "
+            f"unfinished/in-flight -- resetting mid-inference could corrupt an in-progress "
+            f"generation."
+        )
+
+    scheduler = _resolve_v011_scheduler(llm_engine)
+    manager = getattr(scheduler, "encoder_cache_manager", None)
+    if manager is None:
+        raise UnsupportedVLLMLayoutError(
+            "scheduler.encoder_cache_manager not found -- refusing to guess at a different "
+            f"internal layout for pinned vLLM {_PINNED_V011_VLLM_VERSION}."
+        )
+
+    before = _report_encoder_cache_manager_state(manager)
+    cache_size = before["cache_size"]
+
+    llm_engine.reset_mm_cache()  # A + B
+
+    scheduler.encoder_cache_manager = EncoderCacheManager(cache_size=cache_size)  # C
+    after = _report_encoder_cache_manager_state(scheduler.encoder_cache_manager)
+    _verify_encoder_cache_manager_reset(after)
+
+    return {"mm_cache_reset_called": True, "scheduler_before": before, "scheduler_after": after}
+
+
+def _reset_encoder_cache_engine_side(self) -> Dict[str, Any]:
+    """The method ensure_full_encoder_cache_reset_exposed() adds to RandOptNcclLLM -- runs
+    INSIDE the actor process (`self` is the RandOptNcclLLM instance; `self.llm_engine` is the
+    real vLLM LLMEngine). Tries a native, public `reset_encoder_cache()` FIRST (future
+    -proofing: a later vLLM version reintroduces one that clears everything itself); only
+    falls back to the explicit pinned-v0.11.0 reproduction when it's absent, with a strict
+    version guard (see this module's own docstring, divergence #9) -- hard-fails
+    (UnsupportedVLLMLayoutError) rather than guessing at an unverified layout on any other
+    version.
+    """
+    import vllm
+
+    llm_engine = self.llm_engine
+    if hasattr(llm_engine, "reset_encoder_cache"):
+        llm_engine.reset_encoder_cache()
+        return {"path": "native_reset_encoder_cache", "vllm_version": vllm.__version__}
+
+    if vllm.__version__ != _PINNED_V011_VLLM_VERSION:
+        raise UnsupportedVLLMLayoutError(
+            f"LLMEngine has no native reset_encoder_cache() and the installed vLLM version "
+            f"({vllm.__version__}) is not the pinned {_PINNED_V011_VLLM_VERSION} this "
+            f"module's compatibility path was written and verified against. Refusing to "
+            f"guess at an unverified internal layout for any other version."
+        )
+
+    report = _reset_encoder_cache_engine_side_v011_compat(llm_engine)
+    return {"path": "v011_compat", "vllm_version": vllm.__version__, **report}
+
+
+def _clear_worker_encoder_cache_v011(worker_self: Any) -> Dict[str, Any]:
+    """Layer D: the GPU worker's own physical embedding tensors,
+    `model_runner.encoder_cache: dict[str, torch.Tensor]` -- a genuinely separate
+    process/actor boundary even when VLLM_ENABLE_V1_MULTIPROCESSING=False keeps the scheduler
+    in-process. Reached ONLY via collective_rpc (dispatched as a real callable, the same
+    repository-owned pattern used throughout this project for weight-manipulation RPCs --
+    e.g. scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3), never by reaching
+    from the frontend directly into a worker object. Reports before/after entry counts for
+    verification by the caller (reset_vllm_encoder_cache_full).
+    """
+    model_runner = getattr(worker_self, "model_runner", None)
+    encoder_cache = getattr(model_runner, "encoder_cache", None) if model_runner is not None else None
+    if encoder_cache is None:
+        raise UnsupportedVLLMLayoutError(
+            "worker.model_runner.encoder_cache not found -- refusing to guess at a different "
+            f"internal layout for pinned vLLM {_PINNED_V011_VLLM_VERSION}."
+        )
+    before = len(encoder_cache)
+    encoder_cache.clear()
+    after = len(encoder_cache)
+    return {"encoder_cache_entry_count_before": before, "encoder_cache_entry_count_after": after}
+
+
+def _report_encoder_cache_state_engine_side(self) -> Dict[str, Any]:
+    """Read-only counterpart to _reset_encoder_cache_engine_side -- added to RandOptNcclLLM by
+    ensure_full_encoder_cache_reset_exposed() alongside the reset method, for diagnostic
+    introspection (diagnostics/stage7b_encoder_cache_v011_diagnostic.py) WITHOUT mutating any
+    state. Always reports via the pinned v0.11.0 scheduler layout directly (no native-vs-compat
+    branch -- inspection isn't standardized the way a reset API might be) -- hard-fails the
+    same way the reset path does if the layout doesn't match.
+    """
+    import vllm
+
+    scheduler = _resolve_v011_scheduler(self.llm_engine)
+    manager = getattr(scheduler, "encoder_cache_manager", None)
+    if manager is None:
+        raise UnsupportedVLLMLayoutError(
+            "scheduler.encoder_cache_manager not found -- refusing to guess at a different "
+            f"internal layout for pinned vLLM {_PINNED_V011_VLLM_VERSION}."
+        )
+    return {"vllm_version": vllm.__version__, "scheduler_state": _report_encoder_cache_manager_state(manager)}
+
+
+def _report_worker_encoder_cache_v011(worker_self: Any) -> Dict[str, Any]:
+    """Read-only counterpart to _clear_worker_encoder_cache_v011 -- reports entry count and
+    keys without clearing anything.
+    """
+    model_runner = getattr(worker_self, "model_runner", None)
+    encoder_cache = getattr(model_runner, "encoder_cache", None) if model_runner is not None else None
+    if encoder_cache is None:
+        raise UnsupportedVLLMLayoutError(
+            "worker.model_runner.encoder_cache not found -- refusing to guess at a different "
+            f"internal layout for pinned vLLM {_PINNED_V011_VLLM_VERSION}."
+        )
+    return {"encoder_cache_entry_count": len(encoder_cache), "encoder_cache_keys": sorted(str(k) for k in encoder_cache.keys())}
+
+
+def report_vllm_encoder_cache_state(engine: Any) -> Dict[str, Any]:
+    """Read-only, non-destructive introspection counterpart to reset_vllm_encoder_cache_full --
+    for diagnostic use only (diagnostics/stage7b_encoder_cache_v011_diagnostic.py); NEVER called
+    from the real Stage 7B candidate lifecycle. Reports the scheduler's logical
+    EncoderCacheManager state and every worker's physical encoder_cache entry count/keys,
+    without resetting anything.
+    """
+    import ray
+
+    try:
+        method = getattr(engine, _ENCODER_CACHE_REPORT_METHOD_NAME)
+    except AttributeError as exc:
+        raise RuntimeError(
+            f"report_vllm_encoder_cache_state: the engine actor does not expose "
+            f"'{_ENCODER_CACHE_REPORT_METHOD_NAME}' -- ensure_full_encoder_cache_reset_exposed() "
+            f"must be called BEFORE launch_engines()."
+        ) from exc
+
+    engine_side_report = ray.get(method.remote())
+    worker_results = ray.get(engine.collective_rpc.remote(_report_worker_encoder_cache_v011, args=()))
+    return {"engine_side": engine_side_report, "worker_side": worker_results}
+
+
+def _validate_worker_encoder_cache_reset_results(worker_results: Any) -> None:
+    """Pure validation logic for layer D's collective_rpc results, extracted so it's directly
+    unit-testable without ray -- validates EVERY returned worker's result (TP=1 today, but
+    never assumes exactly one).
+    """
+    if not isinstance(worker_results, list) or not worker_results:
+        raise RuntimeError(
+            f"reset_vllm_encoder_cache_full: collective_rpc(_clear_worker_encoder_cache_v011) "
+            f"returned an unexpected shape ({worker_results!r}) -- expected a non-empty list "
+            f"of per-worker results. Refusing to assume the reset succeeded."
+        )
+    for i, worker_report in enumerate(worker_results):
+        if worker_report.get("encoder_cache_entry_count_after") != 0:
+            raise EncoderCacheResetVerificationError(
+                f"reset_vllm_encoder_cache_full: worker {i} still reports "
+                f"encoder_cache_entry_count_after="
+                f"{worker_report.get('encoder_cache_entry_count_after')} (expected 0) after "
+                f"the reset -- worker-side (layer D) cache was NOT actually cleared."
+            )
+
+
+def reset_vllm_encoder_cache_full(engine: Any) -> Dict[str, Any]:
+    """Orchestrates the FULL, VERIFIED encoder-cache reset (see this module's own docstring,
+    divergence #9, for what each layer means and why `reset_mm_cache()` alone is NOT
+    sufficient for a weight-mutation experiment):
+
+      (A+B+C) via the reset_encoder_cache_full ACTOR method (genuine Ray actor call, like
+        engine.generate.remote(...), NOT collective_rpc -- collective_rpc only ever reaches
+        worker processes) -- ensure_full_encoder_cache_reset_exposed() must have added this
+        BEFORE launch_engines() was called.
+      (D) via collective_rpc on EVERY worker (TP=1 today, but this never assumes exactly
+        one) -- validates every returned worker's result, not just the first.
+
+    Hard-fails (raises, does not silently continue) if either layer's dispatch itself errors,
+    if the engine-side precondition check finds unfinished/in-flight requests
+    (EncoderCacheResetPreconditionError), or if post-reset verification proves any layer was
+    NOT actually cleared (EncoderCacheResetVerificationError) -- "no exception raised" is
+    never treated as sufficient evidence of success on its own. Returns a combined before/after
+    evidence report (never merely None).
     """
     import ray
 
@@ -520,11 +813,24 @@ def reset_vllm_encoder_cache_full(engine) -> None:
         ) from exc
 
     try:
-        ray.get(method.remote())
+        engine_side_report = ray.get(method.remote())
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(
             f"reset_vllm_encoder_cache_full: engine.{_ENCODER_CACHE_FULL_RESET_METHOD_NAME}."
             f"remote() failed ({type(exc).__name__}: {exc}). Refusing to silently proceed "
             f"with a visual scope's perturbation without a confirmed successful full "
-            f"(scheduler + worker) cache reset."
+            f"(frontend/receiver/scheduler) cache reset."
         ) from exc
+
+    try:
+        worker_results = ray.get(engine.collective_rpc.remote(_clear_worker_encoder_cache_v011, args=()))
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            f"reset_vllm_encoder_cache_full: collective_rpc(_clear_worker_encoder_cache_v011) "
+            f"failed ({type(exc).__name__}: {exc}). Refusing to proceed without a confirmed "
+            f"successful GPU-worker-side (layer D) cache reset."
+        ) from exc
+
+    _validate_worker_encoder_cache_reset_results(worker_results)
+
+    return {"engine_side": engine_side_report, "worker_side": worker_results}

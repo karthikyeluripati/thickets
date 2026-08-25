@@ -98,7 +98,8 @@ def _checkpoint_for(records) -> Stage7bCheckpointManifest:
     return Stage7bCheckpointManifest(
         experiment_id="stage7b_anatomical_calibration", run_signature="full_test",
         restoration_mode="fixed_base", perturbation_mode="anatomical_relative_l2",
-        radius_realization_method=RADIUS_REALIZATION_METHOD, multimodal_cache_policy="full_reset_on_weight_change_v1",
+        radius_realization_method=RADIUS_REALIZATION_METHOD, multimodal_cache_policy="full_encoder_reset_vllm011_verified_v2",
+        enable_prefix_caching=False,
         model_revision="rev1", dataset_role="map",
         regions=FULL_CALIBRATION_REGIONS, radii=FULL_CALIBRATION_RADII, capabilities=CAPABILITIES,
         n_per_cell=FULL_CALIBRATION_N_PER_CELL, d_map_n=FULL_CALIBRATION_D_MAP_N,

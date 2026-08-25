@@ -936,6 +936,7 @@ def write_paper_summary(output_dir: Path) -> Dict[str, Any]:
 def launch_stage6_engine(
     model_path: str, *, precision: str = "bfloat16", gpu_memory_utilization: float = STAGE6_GPU_MEMORY_UTILIZATION,
     max_model_len: int = STAGE6_MAX_MODEL_LEN, tensor_parallel_size: int = 1,
+    enable_prefix_caching: Optional[bool] = None,
 ) -> Tuple[list, list]:
     """Stage-6-specific single-engine Ray/vLLM launcher -- an INDEPENDENT, from-scratch
     function in OUR OWN package (external/RandOpt is not modified or subclassed on disk in
@@ -958,6 +959,17 @@ def launch_stage6_engine(
     "ray"`, `enforce_eager=True`, `limit_mm_per_prompt={"image": 1}`. Returns `([engine], [pg])`
     -- the identical list-shaped return `launch_engines()` gives -- so upstream's own
     unmodified `cleanup_engines([engine], [pg])` still works for teardown.
+
+    `enable_prefix_caching` (this repair pass, Stage-7B cache-safety fix): ADDITIVE, opt-in
+    override -- `None` (the default, and the only value Stage 6 itself ever passes) omits the
+    key from `engine_kwargs` entirely, leaving vLLM's own default exactly as before; this
+    function's behavior for every EXISTING (Stage 6) caller is therefore byte-identical to
+    before this parameter existed. Stage 7B (run_stage7b_anatomical_calibration.py's
+    build_stage7b_engine_config) explicitly passes `enable_prefix_caching=False`: decoder KV
+    prefixes may have been computed under a PREVIOUS candidate's now-stale weights, which is
+    unsafe across Stage 7B's weight-mutation candidate loop (a hazard Stage 6 does not share,
+    since Stage 6 never mutates weights mid-run in the same repeated apply/evaluate/restore
+    cycle) -- disabling it entirely is preferred over resetting it candidate-by-candidate.
     """
     import ray
     from ray.util.placement_group import placement_group
@@ -986,6 +998,8 @@ def launch_stage6_engine(
         disable_log_stats=True,
         limit_mm_per_prompt={"image": 1},
     )
+    if enable_prefix_caching is not None:
+        engine_kwargs["enable_prefix_caching"] = enable_prefix_caching
     engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(RandOptNcclLLM).remote(**engine_kwargs)
 
     # Deliberately NOT calling collective_rpc("store_base_weights") here -- main() does it

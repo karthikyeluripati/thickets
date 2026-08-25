@@ -99,6 +99,15 @@ def test_out_dir_naming_relative_l2_includes_r_value():
 
 
 class _FakeCollectiveRpc:
+    """reset_vllm_encoder_cache_full (this repair pass, pinned vLLM 0.11.0 compatibility --
+    see vlm_adapter.py's own docstring, divergence #9) now ALSO dispatches a worker-side
+    layer-D cache clear (_clear_worker_encoder_cache_v011) through collective_rpc, alongside
+    the pre-existing direct actor-method call for layers A+B+C -- distinct from
+    scoped_apply_perturbation, which is the ONLY callable this fake previously had to handle.
+    Dispatched BY NAME so a genuinely unexpected third callable still fails loudly rather than
+    silently reusing perturb_return's shape.
+    """
+
     def __init__(self, calls, perturb_return, fail_methods=frozenset()):
         self._calls = calls
         self._perturb_return = perturb_return
@@ -110,6 +119,10 @@ class _FakeCollectiveRpc:
         self._calls.append((name, tuple(args)))
         if name in self._fail_methods:
             raise RuntimeError(f"simulated failure dispatching {name!r}")
+        if name == "scoped_apply_perturbation":
+            return [self._perturb_return]
+        if name == "_clear_worker_encoder_cache_v011":
+            return [{"encoder_cache_entry_count_before": 1, "encoder_cache_entry_count_after": 0}]
         return [self._perturb_return] if is_callable else ["ack"]
 
 

@@ -2,6 +2,14 @@
 modules injected into sys.modules (same trick used in tests/test_run_scoped_randopt.py /
 test_gate2_restoration_ab.py) rather than tests/test_vlm_adapter.py's real-ray-required gate,
 so these run locally without the GPU-stack ray dependency installed.
+
+reset_vllm_encoder_cache_full now orchestrates TWO dispatches (this repair pass, pinned vLLM
+0.11.0 compatibility -- see vlm_adapter.py's own docstring, divergence #9): the direct actor
+method (layers A+B+C: frontend/receiver/scheduler, engine-process-side) AND collective_rpc on
+every worker (layer D: the GPU worker's own physical embedding cache) -- collective_rpc is no
+longer something this function avoids, it's a REQUIRED second half. Fakes below give every
+engine a working collective_rpc returning a well-formed, all-clear worker-side result unless a
+test is specifically about that layer.
 """
 import sys
 import types
@@ -14,6 +22,28 @@ from neural_thickets_repro.vlm_adapter import (
     reset_vllm_encoder_cache,
     reset_vllm_encoder_cache_full,
 )
+
+
+@pytest.fixture(autouse=True)
+def _fake_vllm_module_for_native_dispatch(monkeypatch):
+    """_reset_encoder_cache_engine_side (the function ensure_full_encoder_cache_reset_exposed
+    adds to RandOptNcclLLM) does `import vllm` to read __version__ for its return report --
+    inject a minimal fake so tests in this file don't need the real (GPU-stack-only) package.
+    """
+    fake_vllm = types.ModuleType("vllm")
+    fake_vllm.__version__ = "0.11.0"
+    monkeypatch.setitem(sys.modules, "vllm", fake_vllm)
+
+
+def _fake_worker_collective_rpc(calls, *, entry_count_after=0):
+    """A collective_rpc.remote stand-in returning ONE well-formed, all-clear
+    _clear_worker_encoder_cache_v011-shaped result -- matches _validate_worker_encoder_cache_
+    reset_results' expectations so tests not specifically about layer D can ignore it.
+    """
+    def _remote(method, args=()):
+        calls.append((method, args))
+        return [{"encoder_cache_entry_count_before": 1, "encoder_cache_entry_count_after": entry_count_after}]
+    return SimpleNamespace(remote=_remote)
 
 
 class _FakeCollectiveRpc:
@@ -123,14 +153,20 @@ def test_ensure_full_encoder_cache_reset_exposed_adds_the_method(_fake_core_engi
 
 
 def test_added_method_calls_llm_engine_reset_encoder_cache(_fake_core_engine_module, tmp_path):
+    """_FakeLLMEngine exposes a native reset_encoder_cache() -- the added method must take the
+    NATIVE path (see _reset_encoder_cache_engine_side's own docstring) and call it directly,
+    never falling through to the pinned-v0.11.0 compatibility reproduction.
+    """
     cls = _fake_core_engine_module
     ensure_full_encoder_cache_reset_exposed(tmp_path)
 
     instance = cls()
     instance.llm_engine = _FakeLLMEngine()
-    cls.reset_encoder_cache_full(instance)
+    report = cls.reset_encoder_cache_full(instance)
 
     assert instance.llm_engine.reset_encoder_cache_called is True
+    assert report["path"] == "native_reset_encoder_cache"
+    assert report["vllm_version"] == "0.11.0"
 
 
 def test_ensure_full_encoder_cache_reset_exposed_is_idempotent(_fake_core_engine_module, tmp_path):
@@ -167,11 +203,17 @@ class _FakeDirectMethod:
 
 def test_reset_vllm_encoder_cache_full_calls_the_actor_method():
     calls = []
-    engine = SimpleNamespace(reset_encoder_cache_full=_FakeDirectMethod(calls))
+    rpc_calls = []
+    engine = SimpleNamespace(
+        reset_encoder_cache_full=_FakeDirectMethod(calls),
+        collective_rpc=_fake_worker_collective_rpc(rpc_calls),
+    )
 
-    reset_vllm_encoder_cache_full(engine)
+    report = reset_vllm_encoder_cache_full(engine)
 
     assert calls == ["reset_encoder_cache_full"]
+    assert report["engine_side"] is None  # _FakeDirectMethod.remote() returns None
+    assert report["worker_side"] == [{"encoder_cache_entry_count_before": 1, "encoder_cache_entry_count_after": 0}]
 
 
 def test_reset_vllm_encoder_cache_full_raises_when_method_missing_on_actor():
@@ -189,14 +231,57 @@ def test_reset_vllm_encoder_cache_full_raises_when_call_errors():
         reset_vllm_encoder_cache_full(engine)
 
 
-def test_reset_vllm_encoder_cache_full_never_falls_back_to_collective_rpc():
-    """Confirms reset_vllm_encoder_cache_full never touches engine.collective_rpc at all --
-    it must be a direct actor method call, never the old worker-only mechanism.
+def test_reset_vllm_encoder_cache_full_never_uses_collective_rpc_for_the_engine_side_layers():
+    """The engine-side reset (layers A+B+C: frontend/receiver/scheduler) must be a direct actor
+    method call, NOT collective_rpc -- collective_rpc only ever reaches worker processes.
+    Confirmed here by giving collective_rpc a fake that would raise if ever asked to run the
+    engine-side method name.
     """
     calls = []
+
+    def _rpc_that_rejects_engine_side_calls(method, args=()):
+        if method == "reset_encoder_cache_full":
+            raise AssertionError("engine-side reset must never be dispatched via collective_rpc")
+        calls.append((method, args))
+        return [{"encoder_cache_entry_count_before": 1, "encoder_cache_entry_count_after": 0}]
+
     engine = SimpleNamespace(
-        reset_encoder_cache_full=_FakeDirectMethod(calls),
-        collective_rpc=None,  # would AttributeError/TypeError if accidentally used
+        reset_encoder_cache_full=_FakeDirectMethod([]),
+        collective_rpc=SimpleNamespace(remote=_rpc_that_rejects_engine_side_calls),
     )
 
-    reset_vllm_encoder_cache_full(engine)  # should not touch collective_rpc, should not raise
+    reset_vllm_encoder_cache_full(engine)  # should not raise -- the direct method call is separate
+
+    assert len(calls) == 1  # exactly one collective_rpc dispatch -- the layer-D worker clear
+
+
+def test_reset_vllm_encoder_cache_full_uses_collective_rpc_for_the_worker_side_layer():
+    """Layer D (the GPU worker's physical embedding cache) MUST be dispatched via
+    collective_rpc -- confirmed by checking the callable actually dispatched matches
+    _clear_worker_encoder_cache_v011.
+    """
+    from neural_thickets_repro.vlm_adapter import _clear_worker_encoder_cache_v011
+
+    rpc_calls = []
+    engine = SimpleNamespace(
+        reset_encoder_cache_full=_FakeDirectMethod([]),
+        collective_rpc=_fake_worker_collective_rpc(rpc_calls),
+    )
+
+    reset_vllm_encoder_cache_full(engine)
+
+    assert len(rpc_calls) == 1
+    dispatched_method, dispatched_args = rpc_calls[0]
+    assert dispatched_method is _clear_worker_encoder_cache_v011
+    assert dispatched_args == ()
+
+
+def test_reset_vllm_encoder_cache_full_raises_when_worker_still_populated_after_reset():
+    rpc_calls = []
+    engine = SimpleNamespace(
+        reset_encoder_cache_full=_FakeDirectMethod([]),
+        collective_rpc=_fake_worker_collective_rpc(rpc_calls, entry_count_after=3),
+    )
+
+    with pytest.raises(RuntimeError, match="NOT actually cleared"):
+        reset_vllm_encoder_cache_full(engine)

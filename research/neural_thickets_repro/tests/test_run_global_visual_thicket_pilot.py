@@ -1139,6 +1139,31 @@ def test_launch_stage6_engine_loads_exactly_one_engine(monkeypatch):
     assert len(remote_actor_calls) == 1
 
 
+def test_launch_stage6_engine_never_passes_enable_prefix_caching_by_default(monkeypatch):
+    """Stage 6's own frozen behavior must be byte-identical to before enable_prefix_caching
+    existed as a parameter -- the key must be entirely ABSENT from engine_kwargs (not merely
+    None), so vLLM's own default applies exactly as it always has.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    launch_stage6_engine("/fake/snapshot/path")
+    assert "enable_prefix_caching" not in remote_actor_calls[0]
+
+
+def test_launch_stage6_engine_passes_enable_prefix_caching_when_explicitly_set(monkeypatch):
+    """The additive Stage-7B override: passing enable_prefix_caching=False explicitly must
+    reach engine_kwargs, without needing any other change to this shared launcher.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    launch_stage6_engine("/fake/snapshot/path", enable_prefix_caching=False)
+    assert remote_actor_calls[0]["enable_prefix_caching"] is False
+
+
 # --- dry-run CLI ---------------------------------------------------------------------------------
 
 

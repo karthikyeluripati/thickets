@@ -52,7 +52,7 @@ from neural_thickets_repro.run_stage7b_anatomical_calibration import (
 )
 from neural_thickets_repro.scoped_anatomical_perturbation import CorrectionOutOfRegionDriftError, RadiusCorrectionFailedError
 
-CACHE_POLICY_SUFFIX = "cache_reset_v1"  # matches module._CACHE_POLICY_SIGNATURE_LABELS[MULTIMODAL_CACHE_POLICY]
+CACHE_POLICY_SUFFIX = "cache_reset_v011_verified_v2"  # matches module._CACHE_POLICY_SIGNATURE_LABELS[MULTIMODAL_CACHE_POLICY]
 
 
 def _identity_ray_get(x):
@@ -238,7 +238,7 @@ def test_smoke_and_full_plans_never_share_an_output_directory():
 
 def test_compute_stage7b_run_signature_is_method_suffixed_full_for_the_exact_frozen_identity():
     signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
-    assert signature == f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}" == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
+    assert signature == f"full_{RADIUS_REALIZATION_METHOD}_{CACHE_POLICY_SUFFIX}" == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v011_verified_v2"
 
 
 @pytest.mark.parametrize(
@@ -310,17 +310,22 @@ def test_an_unregistered_cache_policy_hard_fails_rather_than_guessing_an_abbrevi
         )
 
 
-def test_corrected_full_signature_is_structurally_disjoint_from_the_old_no_cache_reset_run():
-    """The v3-no-cache-reset run analyzed at commit 0307f99 (288 of 432 rows are scientifically
-    invalid vision/connector rows -- see MULTIMODAL_CACHE_POLICY's own docstring) was persisted
-    under the literal run_signature "full_fixed_direction_bf16_quantization_aware_v3" (no cache
-    -policy suffix existed yet). The corrected run's signature must never equal that string, so
-    the old invalid run's output_dir/checkpoint can never be silently resumed into.
+def test_corrected_full_signature_is_structurally_disjoint_from_both_prior_runs():
+    """Two prior, now-superseded runs must never collide with the current (v2, pinned-vLLM
+    -0.11.0-verified) signature: the v3-no-cache-reset run analyzed at commit 0307f99 (288 of
+    432 rows scientifically invalid -- no cache-policy suffix existed yet, literal signature
+    "full_fixed_direction_bf16_quantization_aware_v3"), and the v1 cache-reset run (commit
+    74f273b) that called an API (self.llm_engine.reset_encoder_cache()) which does not exist
+    on the pinned vLLM 0.11.0 runtime and hard-failed before producing any real candidate rows
+    (literal signature "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"). The
+    corrected run's signature must never equal either string.
     """
     current_signature = compute_stage7b_run_signature(FULL_CALIBRATION_REGIONS, FULL_CALIBRATION_RADII, FULL_CALIBRATION_N_PER_CELL, FULL_CALIBRATION_D_MAP_N)
     old_no_cache_reset_run_signature = "full_fixed_direction_bf16_quantization_aware_v3"
-    assert current_signature == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
+    old_v1_cache_reset_run_signature = "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
+    assert current_signature == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v011_verified_v2"
     assert current_signature != old_no_cache_reset_run_signature
+    assert current_signature != old_v1_cache_reset_run_signature
 
 
 def test_a_different_realization_method_gets_a_disjoint_smoke_path(tmp_path):
@@ -381,6 +386,71 @@ def test_frozen_engine_config_never_falls_back_to_model_default_context_length()
     assert engine_config["max_model_len"] != 128000
     assert engine_config["gpu_memory_utilization"] == 0.60
     assert engine_config["tensor_parallel_size"] == 1
+
+
+def test_build_stage7b_engine_config_matches_stage6_except_prefix_caching():
+    """Stage-7B-specific engine config: identical to Stage 6's frozen values, EXCEPT it adds
+    enable_prefix_caching=False (Stage 6's own config has no opinion on this key at all).
+    """
+    stage6_config = module.build_stage6_engine_config()
+    stage7b_config = module.build_stage7b_engine_config()
+
+    assert "enable_prefix_caching" not in stage6_config
+    assert stage7b_config["enable_prefix_caching"] is False
+
+    for key in stage6_config:
+        assert stage7b_config[key] == stage6_config[key]
+
+
+def test_stage7b_plan_defaults_to_prefix_caching_disabled():
+    plan = build_stage7b_plan(model_name="m", model_revision="r", output_root="out")
+    assert plan.enable_prefix_caching is False
+    assert plan.enable_prefix_caching == module.ENABLE_PREFIX_CACHING == False  # noqa: E712 (explicit bool, not truthiness)
+
+
+def test_checkpoint_manifest_round_trips_enable_prefix_caching_through_json():
+    plan = build_stage7b_plan(model_name="m", model_revision="rev1", output_root="out")
+    checkpoint = build_stage7b_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan))
+    restored = Stage7bCheckpointManifest.from_dict(json.loads(json.dumps(checkpoint.to_dict())))
+    assert restored.enable_prefix_caching is False
+    assert restored == checkpoint
+
+
+def test_checkpoint_from_legacy_dict_missing_enable_prefix_caching_is_incompatible_with_current(tmp_path):
+    """A checkpoint dict written before this field existed at all (no `enable_prefix_caching`
+    key) must round-trip to None -- distinct from both True and False -- so it is NEVER
+    silently treated as compatible with a current (enable_prefix_caching=False) checkpoint.
+    """
+    plan = build_smoke_stage7b_plan(model_name="m", model_revision="r", output_root=tmp_path)
+    current_checkpoint = build_stage7b_checkpoint_manifest(plan, _fake_contexts(n=5), _region_mask_hashes(plan))
+
+    legacy_dict = current_checkpoint.to_dict()
+    del legacy_dict["enable_prefix_caching"]
+    legacy_checkpoint = Stage7bCheckpointManifest.from_dict(legacy_dict)
+
+    assert legacy_checkpoint.enable_prefix_caching is None
+    assert legacy_checkpoint.enable_prefix_caching != current_checkpoint.enable_prefix_caching
+    assert legacy_checkpoint != current_checkpoint
+
+
+def test_main_asserts_enable_prefix_caching_is_false_in_source():
+    main_source = inspect.getsource(module.main)
+    assert 'engine_config["enable_prefix_caching"] is False' in main_source
+
+
+def test_main_passes_enable_prefix_caching_to_launch_stage6_engine_in_source():
+    main_source = inspect.getsource(module.main)
+    assert "enable_prefix_caching=engine_config[\"enable_prefix_caching\"]" in main_source
+
+
+def test_main_uses_stage7b_engine_config_not_bare_stage6_config_in_source():
+    """main() must call build_stage7b_engine_config() (which adds enable_prefix_caching=False),
+    never build_stage6_engine_config() directly -- that would silently re-enable prefix
+    caching (vLLM's own default).
+    """
+    main_source = inspect.getsource(module.main)
+    assert "build_stage7b_engine_config()" in main_source
+    assert "engine_config = build_stage6_engine_config()" not in main_source
 
 
 def test_main_never_imports_or_calls_upstream_launch_engines():

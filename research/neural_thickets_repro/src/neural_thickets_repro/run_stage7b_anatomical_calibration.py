@@ -283,7 +283,7 @@ RADIUS_REALIZATION_METHOD = QUANTIZATION_AWARE_METHOD_V3
 # and scoped_anatomical_perturbation.RADIUS_REALIZATION_TOLERANCE. NEVER loosened for smoke.
 REALIZED_RADIUS_TOLERANCE = 1e-6
 
-# --- CACHE LIFECYCLE FIX (this repair pass) -----------------------------------------------------
+# --- CACHE LIFECYCLE FIX (v1, prior repair pass) -------------------------------------------------
 # Root cause (Stage 7B v3 full-run analysis, commit 0307f99): every vision- and connector-region
 # row had delta EXACTLY 0.0 and a per_example_result_hash collapsed to a single value across all
 # 6 radii x 8 seeds, despite a real, confirmed nonzero weight displacement -- vLLM's cached
@@ -291,24 +291,49 @@ REALIZED_RADIUS_TOLERANCE = 1e-6
 # anatomical perturbation, so vision/connector-perturbed generation silently reused the BASE
 # model's cached image embeddings. GATE2_CACHE_SAFETY_REVIEW.md's "safe by construction" analysis
 # for launch_stage6_engine() depended entirely on "the visual encoder is never perturbed", which
-# Stage 7B violates. Fix reuses the EXISTING, already-implemented reset mechanism from
-# vlm_adapter.py BY IDENTITY (ensure_full_encoder_cache_reset_exposed / reset_vllm_encoder_cache_
-# full) -- no new cache-clearing implementation is written here. `radius_realization_method`
-# (fixed_direction_bf16_quantization_aware_v3) is INTENTIONALLY left unchanged -- this fix is a
-# cache-lifecycle correction, not a radius-solving change -- and is tracked as an independent,
-# orthogonal identity field, MULTIMODAL_CACHE_POLICY, so a checkpoint/run written WITHOUT this
-# fix (the v3-no-cache-reset run analyzed at commit 0307f99, 288 of whose 432 rows are
-# vision/connector and therefore scientifically invalid) can never be silently resumed under the
-# corrected policy -- see compute_stage7b_run_signature and Stage7bCheckpointManifest below.
-MULTIMODAL_CACHE_POLICY = "full_reset_on_weight_change_v1"
+# Stage 7B violates. v1's fix wired vlm_adapter.py's reset_vllm_encoder_cache_full into the
+# candidate lifecycle -- correct in SHAPE, but its own actor-side implementation called
+# `self.llm_engine.reset_encoder_cache()` directly, which does not exist on the pinned vLLM
+# 0.11.0 runtime (confirmed live: `AttributeError: 'LLMEngine' object has no attribute
+# 'reset_encoder_cache'`, commit 74f273b's cache-safety smoke). `radius_realization_method`
+# (fixed_direction_bf16_quantization_aware_v3) remains INTENTIONALLY unchanged across both cache
+# -policy versions -- these are cache-lifecycle corrections, never radius-solving changes.
+#
+# --- CACHE LIFECYCLE FIX v2: pinned-vLLM-0.11.0 VERIFIED reset (this repair pass) -----------------
+# Reuses vlm_adapter.py's reset_vllm_encoder_cache_full/ensure_full_encoder_cache_reset_exposed
+# BY IDENTITY, unchanged at this call site -- the version-aware, verified 4-layer reset (native
+# reset_encoder_cache() where available, else an explicit pinned-v0.11.0 reproduction covering
+# frontend/processor cache, engine MM receiver cache, the scheduler's own EncoderCacheManager
+# bookkeeping, AND every GPU worker's physical encoder_cache tensors, each layer independently
+# verified before/after -- never merely "no exception raised") now lives entirely inside
+# vlm_adapter.py itself (see that module's own docstring, divergence #9). Tracked as its own
+# cache-policy VERSION (never the same string as v1) precisely because the cache SEMANTICS
+# changed again -- a checkpoint/run written under v1 (which called an API that does not exist on
+# this runtime and would have hard-failed immediately, never producing any real rows) can never
+# be silently resumed under v2.
+MULTIMODAL_CACHE_POLICY = "full_encoder_reset_vllm011_verified_v2"
 
 # Deterministic, explicit short label for the run_signature -- NEVER auto-abbreviated (a missing
 # entry hard-fails via _format_cache_policy_for_signature rather than guessing a truncation).
+# v1's entry is kept (never removed) purely so a v1-identified checkpoint dict, if one ever
+# existed, still resolves to a disjoint signature rather than a KeyError.
 _CACHE_POLICY_SIGNATURE_LABELS: Dict[str, str] = {
-    MULTIMODAL_CACHE_POLICY: "cache_reset_v1",
+    "full_reset_on_weight_change_v1": "cache_reset_v1",
+    MULTIMODAL_CACHE_POLICY: "cache_reset_v011_verified_v2",
 }
 
-_UNKNOWN_LEGACY_CACHE_POLICY = "unknown_pre_cache_reset_legacy"  # sentinel for a checkpoint written before this field existed -- NEVER equal to MULTIMODAL_CACHE_POLICY
+_UNKNOWN_LEGACY_CACHE_POLICY = "unknown_pre_cache_reset_legacy"  # sentinel for a checkpoint written before this field existed at all -- NEVER equal to any real MULTIMODAL_CACHE_POLICY value
+
+# --- PREFIX-CACHE SAFETY (this repair pass) -------------------------------------------------
+# Live Stage-7B logs showed enable_prefix_caching=True (vLLM's own default, never overridden by
+# the shared launch_stage6_engine() call this module used) -- unsafe across Stage 7B's repeated
+# weight-mutation candidate loop, since decoder KV prefixes may have been computed under a
+# PREVIOUS candidate's now-stale weights. Frozen to False for every Stage 7B run (never a
+# per-run knob); disabling entirely is preferred over resetting it candidate-by-candidate.
+# Stage 6 is UNAFFECTED: launch_stage6_engine()'s own enable_prefix_caching parameter is
+# additive/opt-in (None by default, omitted from engine_kwargs entirely), so Stage 6's frozen
+# behavior is untouched -- see that function's own docstring.
+ENABLE_PREFIX_CACHING = False
 
 
 def _format_cache_policy_for_signature(cache_policy: str) -> str:
@@ -448,6 +473,7 @@ class Stage7bPlan:
     d_map_n: int
     radius_realization_method: str
     multimodal_cache_policy: str
+    enable_prefix_caching: bool
     run_signature: str
     output_dir: Path
 
@@ -478,6 +504,7 @@ def build_stage7b_plan(
     model_family: str = "qwen2_5_vl", model_scale: str = "3B",
     radius_realization_method: str = RADIUS_REALIZATION_METHOD,
     multimodal_cache_policy: str = MULTIMODAL_CACHE_POLICY,
+    enable_prefix_caching: bool = ENABLE_PREFIX_CACHING,
 ) -> Stage7bPlan:
     """Defaults to the FROZEN full-calibration identity exactly; pass explicit `regions`/
     `radii`/`n_per_cell`/`d_map_n` (see `build_smoke_stage7b_plan`/
@@ -487,7 +514,8 @@ def build_stage7b_plan(
     not knobs real callers override (there is only ONE of each implemented) -- exposed as
     parameters purely so tests can construct a plan under a hypothetical different/old
     method/policy to prove it never collides with this one's run_signature or checkpoint
-    identity.
+    identity. `enable_prefix_caching` is likewise frozen to False for every real Stage 7B run
+    (see ENABLE_PREFIX_CACHING's own comment) -- exposed only for the same test-isolation reason.
     """
     if not regions:
         raise ValueError("Stage 7B requires at least one anatomy region.")
@@ -501,7 +529,7 @@ def build_stage7b_plan(
         model_name=model_name, model_revision=model_revision, model_family=model_family, model_scale=model_scale,
         regions=tuple(regions), radii=tuple(radii), capabilities=CALIBRATION_CAPABILITIES,
         n_per_cell=n_per_cell, d_map_n=d_map_n, radius_realization_method=radius_realization_method,
-        multimodal_cache_policy=multimodal_cache_policy,
+        multimodal_cache_policy=multimodal_cache_policy, enable_prefix_caching=enable_prefix_caching,
         run_signature=run_signature, output_dir=Path(output_root) / run_signature,
     )
 
@@ -595,6 +623,7 @@ class Stage7bCheckpointManifest:
     perturbation_mode: str
     radius_realization_method: str
     multimodal_cache_policy: str
+    enable_prefix_caching: Optional[bool]
     model_revision: str
     dataset_role: str
     regions: Tuple[str, ...]
@@ -612,7 +641,7 @@ class Stage7bCheckpointManifest:
             "experiment_id": self.experiment_id, "run_signature": self.run_signature,
             "restoration_mode": self.restoration_mode, "perturbation_mode": self.perturbation_mode,
             "perturbation_semantics": self.perturbation_mode, "radius_realization_method": self.radius_realization_method,
-            "multimodal_cache_policy": self.multimodal_cache_policy,
+            "multimodal_cache_policy": self.multimodal_cache_policy, "enable_prefix_caching": self.enable_prefix_caching,
             "model_revision": self.model_revision, "dataset_role": self.dataset_role, "regions": list(self.regions),
             "radii": list(self.radii), "capabilities": list(self.capabilities), "n_per_cell": self.n_per_cell, "d_map_n": self.d_map_n,
             "subset_hashes": dict(sorted(self.subset_hashes.items())),
@@ -628,6 +657,7 @@ class Stage7bCheckpointManifest:
             perturbation_mode=d["perturbation_mode"],
             radius_realization_method=d.get("radius_realization_method", _UNKNOWN_LEGACY_REALIZATION_METHOD),
             multimodal_cache_policy=d.get("multimodal_cache_policy", _UNKNOWN_LEGACY_CACHE_POLICY),
+            enable_prefix_caching=d.get("enable_prefix_caching"),  # None (distinct from True/False) for a checkpoint written before this field existed
             model_revision=d["model_revision"], dataset_role=d["dataset_role"],
             regions=tuple(d["regions"]), radii=tuple(d["radii"]), capabilities=tuple(d["capabilities"]),
             n_per_cell=d["n_per_cell"], d_map_n=d["d_map_n"], subset_hashes=dict(d["subset_hashes"]),
@@ -647,7 +677,7 @@ def build_stage7b_checkpoint_manifest(
     return Stage7bCheckpointManifest(
         experiment_id=EXPERIMENT_ID, run_signature=plan.run_signature, restoration_mode=RESTORATION_MODE,
         perturbation_mode=PERTURBATION_MODE, radius_realization_method=plan.radius_realization_method,
-        multimodal_cache_policy=plan.multimodal_cache_policy,
+        multimodal_cache_policy=plan.multimodal_cache_policy, enable_prefix_caching=plan.enable_prefix_caching,
         model_revision=plan.model_revision, dataset_role=DATASET_ROLE,
         regions=plan.regions, radii=plan.radii, capabilities=plan.capabilities, n_per_cell=plan.n_per_cell, d_map_n=plan.d_map_n,
         subset_hashes={c: ctx.subset_hash for c, ctx in capability_contexts.items()},
@@ -686,7 +716,7 @@ def build_stage7b_run_manifest_summary(checkpoint: Stage7bCheckpointManifest, re
         "experiment_id": checkpoint.experiment_id, "run_signature": checkpoint.run_signature,
         "restoration_mode": checkpoint.restoration_mode, "perturbation_mode": checkpoint.perturbation_mode,
         "perturbation_semantics": checkpoint.perturbation_mode, "radius_realization_method": checkpoint.radius_realization_method,
-        "multimodal_cache_policy": checkpoint.multimodal_cache_policy,
+        "multimodal_cache_policy": checkpoint.multimodal_cache_policy, "enable_prefix_caching": checkpoint.enable_prefix_caching,
         "model_revision": checkpoint.model_revision,
         "regions": list(checkpoint.regions), "radii": list(checkpoint.radii), "n_per_cell": checkpoint.n_per_cell,
         "d_map_n": checkpoint.d_map_n, "subset_hashes": dict(sorted(checkpoint.subset_hashes.items())),
@@ -960,6 +990,27 @@ def run_stage7b_rpc(
 
 
 # =============================================================================================
+# Stage-7B-specific engine config (prefix-cache safety, this repair pass)
+# =============================================================================================
+
+
+def build_stage7b_engine_config() -> Dict[str, Any]:
+    """Reuses run_global_visual_thicket_pilot.build_stage6_engine_config()'s own dict BY
+    IDENTITY (never duplicated) plus ONE additive override: enable_prefix_caching=False. Live
+    Stage-7B logs showed enable_prefix_caching=True (vLLM's own default, since
+    launch_stage6_engine() was never told otherwise) -- unsafe across Stage 7B's repeated
+    weight-mutation candidate loop, since decoder KV prefixes may have been computed under a
+    PREVIOUS candidate's now-stale weights (a hazard Stage 6 does not share). The shared
+    Stage-6 launcher/config itself is NOT modified to change its own default -- see
+    launch_stage6_engine's own docstring for why passing this value explicitly here leaves
+    every existing Stage 6 caller byte-identical to before.
+    """
+    config = dict(build_stage6_engine_config())
+    config["enable_prefix_caching"] = ENABLE_PREFIX_CACHING
+    return config
+
+
+# =============================================================================================
 # CLI entry point
 # =============================================================================================
 
@@ -999,6 +1050,7 @@ def main(argv=None) -> int:
     print(f"total_perturbation_x_capability_evaluations={plan.total_perturbation_capability_evaluations}")
     print(f"radius_realization_method={plan.radius_realization_method}")
     print(f"multimodal_cache_policy={plan.multimodal_cache_policy}")
+    print(f"enable_prefix_caching={plan.enable_prefix_caching}")
     print(f"output_dir={plan.output_dir}")
     print(
         "Lifecycle: scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (per trial: "
@@ -1027,11 +1079,17 @@ def main(argv=None) -> int:
 
     cfg.require_resolved("model.revision")
     model_resolution = resolve_and_report_model_snapshot(plan.model_name, plan.model_revision)
-    engine_config = build_stage6_engine_config()  # frozen: max_model_len=4096, gpu_memory_utilization=0.60, tensor_parallel_size=1, precision=bfloat16
+    # Stage-7B-specific: identical to Stage 6's frozen (max_model_len=4096, gpu_memory_
+    # utilization=0.60, tensor_parallel_size=1, bfloat16) EXCEPT enable_prefix_caching=False --
+    # see build_stage7b_engine_config's own docstring. Never build_stage6_engine_config()
+    # directly here -- that would silently re-enable prefix caching (vLLM's own default).
+    engine_config = build_stage7b_engine_config()
+    assert engine_config["enable_prefix_caching"] is False, "Stage 7B must never run with prefix caching enabled -- see build_stage7b_engine_config."
     print(format_runtime_compatibility_diagnostic(
         model_resolution, worker_extension_cls="utils.worker_extn.WorkerExtension",
         vllm_version=get_vllm_version(), engine_mode=detect_vllm_engine_mode(), engine_config=engine_config,
     ))
+    print(f"Stage 7B engine override: enable_prefix_caching={engine_config['enable_prefix_caching']} (Stage 6's own launcher/default is unaffected -- see launch_stage6_engine's own docstring).")
 
     from .benchmarks.runner import run_benchmark
     from .config import load_capability_benchmark_config
@@ -1076,6 +1134,7 @@ def main(argv=None) -> int:
             model_resolution["resolved_snapshot_path"], precision=engine_config["precision"],
             gpu_memory_utilization=engine_config["gpu_memory_utilization"], max_model_len=engine_config["max_model_len"],
             tensor_parallel_size=engine_config["tensor_parallel_size"],
+            enable_prefix_caching=engine_config["enable_prefix_caching"],
         )
         engine = engines[0]
 

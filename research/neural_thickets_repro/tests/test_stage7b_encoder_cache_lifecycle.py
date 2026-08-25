@@ -347,9 +347,10 @@ def test_cache_reset_brackets_every_candidate_across_a_multi_candidate_run_regar
 
 
 def test_old_no_cache_reset_checkpoint_cannot_resume_into_the_corrected_plan(tmp_path):
-    """Simulates the REAL scenario: the old run analyzed at commit 0307f99 was persisted under
-    run_signature "full_fixed_direction_bf16_quantization_aware_v3" (no cache-policy suffix at
-    all). The corrected plan's run_signature/output_dir must be structurally disjoint, so its
+    """Simulates the REAL scenario: the original no-cache-reset run (commit 0307f99) was
+    persisted under run_signature "full_fixed_direction_bf16_quantization_aware_v3" (no
+    cache-policy suffix at all). The corrected (v2, pinned-vLLM-0.11.0-verified) plan's
+    run_signature/output_dir must be structurally disjoint, so its
     ensure_stage7b_checkpoint_manifest call never even sees, let alone resumes, that old
     checkpoint.
     """
@@ -360,9 +361,24 @@ def test_old_no_cache_reset_checkpoint_cannot_resume_into_the_corrected_plan(tmp
     corrected_plan = build_stage7b_plan(model_name="m", model_revision="rev1", output_root=tmp_path)
 
     assert corrected_plan.output_dir != old_output_dir
-    assert corrected_plan.run_signature == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
+    assert corrected_plan.run_signature == "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v011_verified_v2"
     assert not (corrected_plan.output_dir / "results.jsonl").exists()
-    assert (old_output_dir / "results.jsonl").exists()  # old provenance untouched
+
+
+def test_v1_cache_reset_checkpoint_cannot_resume_into_the_v2_corrected_plan(tmp_path):
+    """The v1 cache-reset run (commit 74f273b) called self.llm_engine.reset_encoder_cache(),
+    which does not exist on the pinned vLLM 0.11.0 runtime -- it would have hard-failed
+    immediately (EncoderCacheResetUnavailableError, at the startup check) and never produced
+    any real candidate rows, but even so its checkpoint identity/output_dir must remain
+    structurally disjoint from v2's.
+    """
+    v1_output_dir = tmp_path / "full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v1"
+    v1_output_dir.mkdir(parents=True)
+
+    corrected_plan = build_stage7b_plan(model_name="m", model_revision="rev1", output_root=tmp_path)
+
+    assert corrected_plan.output_dir != v1_output_dir
+    assert corrected_plan.multimodal_cache_policy == "full_encoder_reset_vllm011_verified_v2"
 
 
 # =================================================================================================
