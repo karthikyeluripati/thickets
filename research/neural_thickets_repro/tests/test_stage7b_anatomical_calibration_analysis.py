@@ -26,6 +26,7 @@ from neural_thickets_repro.run_stage7b_anatomical_calibration import (  # noqa: 
     FULL_CALIBRATION_N_PER_CELL,
     FULL_CALIBRATION_RADII,
     FULL_CALIBRATION_REGIONS,
+    MULTIMODAL_CACHE_POLICY,
     QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     RADIUS_REALIZATION_METHOD,
     REALIZED_RADIUS_TOLERANCE,
@@ -42,7 +43,7 @@ def _record(
     radius_acceptance_mode: str = "strict", quantization_limited: bool = False,
     absolute_radius_error: float = 1e-8, relative_radius_error: float = 1e-6,
     epsilon_region_l2_norm: float = 1.0, model_revision: str = "rev1", parameter_mask_hash: str = "mh",
-    realized_relative_l2: Optional[float] = None,
+    realized_relative_l2: Optional[float] = None, multimodal_cache_policy: str = MULTIMODAL_CACHE_POLICY,
 ) -> ExperimentResultRecord:
     realized_relative_l2 = radius if realized_relative_l2 is None else realized_relative_l2
     return ExperimentResultRecord(
@@ -54,6 +55,7 @@ def _record(
         parser_failure_rate=0.0, per_example_result_path=None, per_example_result_hash=per_example_result_hash,
         runtime_metadata={
             "radius_realization_method": RADIUS_REALIZATION_METHOD,
+            "multimodal_cache_policy": multimodal_cache_policy,
             "radius_acceptance_mode": radius_acceptance_mode, "quantization_limited": quantization_limited,
             "requested_relative_l2": radius, "realized_relative_l2": realized_relative_l2,
             "absolute_radius_error": absolute_radius_error, "relative_radius_error": relative_radius_error,
@@ -98,7 +100,7 @@ def _checkpoint_for(records) -> Stage7bCheckpointManifest:
     return Stage7bCheckpointManifest(
         experiment_id="stage7b_anatomical_calibration", run_signature="full_test",
         restoration_mode="fixed_base", perturbation_mode="anatomical_relative_l2",
-        radius_realization_method=RADIUS_REALIZATION_METHOD, multimodal_cache_policy="full_encoder_reset_vllm011_verified_v2",
+        radius_realization_method=RADIUS_REALIZATION_METHOD, multimodal_cache_policy=MULTIMODAL_CACHE_POLICY,
         enable_prefix_caching=False,
         model_revision="rev1", dataset_role="map",
         regions=FULL_CALIBRATION_REGIONS, radii=FULL_CALIBRATION_RADII, capabilities=CAPABILITIES,
@@ -176,6 +178,172 @@ def test_validate_run_integrity_reports_quantization_limited_acceptance_counts_b
     for key, c in counts.items():
         assert c["strict"] == FULL_CALIBRATION_N_PER_CELL
         assert c["quantization_limited"] == 0
+
+
+def test_validate_run_integrity_passes_multimodal_cache_policy_and_enable_prefix_caching_checks():
+    records = _build_full_records()
+    checkpoint = _checkpoint_for(records)
+    report = sca.validate_run_integrity(records, checkpoint, run_manifest={"run_complete": True})
+    assert report["multimodal_cache_policy_consistent_and_matches_checkpoint"] is True
+    assert report["multimodal_cache_policy"] == [MULTIMODAL_CACHE_POLICY]
+    assert report["enable_prefix_caching_is_false"] is True
+    assert report["enable_prefix_caching"] is False
+
+
+def test_validate_run_integrity_detects_multimodal_cache_policy_mismatch():
+    records = _build_full_records()
+    checkpoint = _checkpoint_for(records)
+    r0 = records[0]
+    bad_metadata = dict(r0.runtime_metadata)
+    bad_metadata["multimodal_cache_policy"] = "some_other_policy"
+    records[0] = _record(
+        perturbation_id=r0.perturbation_id, region=r0.anatomy_region, radius=r0.radius, seed=r0.seed,
+        capability=r0.capability, delta=0.0, parameter_mask_hash=f"mh_{r0.anatomy_region}",
+        multimodal_cache_policy="some_other_policy",
+    )
+    report = sca.validate_run_integrity(records, checkpoint, run_manifest={"run_complete": True})
+    assert report["multimodal_cache_policy_consistent_and_matches_checkpoint"] is False
+    assert report["overall_pass"] is False
+
+
+def test_validate_run_integrity_detects_enable_prefix_caching_true():
+    records = _build_full_records()
+    # A checkpoint identical to the valid one but with enable_prefix_caching=True.
+    d = _checkpoint_for(records).to_dict()
+    d["enable_prefix_caching"] = True
+    checkpoint = Stage7bCheckpointManifest.from_dict(d)
+    report = sca.validate_run_integrity(records, checkpoint, run_manifest={"run_complete": True})
+    assert report["enable_prefix_caching_is_false"] is False
+    assert report["overall_pass"] is False
+
+
+def test_validate_run_integrity_detects_duplicate_perturbation_capability_rows():
+    records = _build_full_records()
+    checkpoint = _checkpoint_for(records)
+    records.append(records[0])  # exact duplicate (same perturbation_id, same capability)
+    report = sca.validate_run_integrity(records, checkpoint, run_manifest={"run_complete": True})
+    assert report["no_duplicate_perturbation_capability_rows"] is False
+    assert report["duplicate_row_count"] == 1
+    assert report["overall_pass"] is False
+
+
+def test_validate_run_integrity_rejects_the_real_old_run_checkpoint_missing_new_fields():
+    """The ORIGINAL no-cache-reset run's real checkpoint predates multimodal_cache_policy/
+    enable_prefix_caching entirely -- validate_run_integrity must hard-fail it via the new
+    checks, confirming the stricter gate actually enforces isolation rather than merely
+    documenting it.
+    """
+    records = _build_full_records()
+    legacy_dict = _checkpoint_for(records).to_dict()
+    del legacy_dict["multimodal_cache_policy"]
+    del legacy_dict["enable_prefix_caching"]
+    legacy_checkpoint = Stage7bCheckpointManifest.from_dict(legacy_dict)
+
+    report = sca.validate_run_integrity(records, legacy_checkpoint, run_manifest={"run_complete": True})
+    assert report["multimodal_cache_policy_consistent_and_matches_checkpoint"] is False
+    assert report["enable_prefix_caching_is_false"] is False
+    assert report["overall_pass"] is False
+
+
+# =============================================================================================
+# validate_baseline_consistency_across_regions
+# =============================================================================================
+
+
+def test_baseline_consistency_passes_when_every_region_matches_the_canonical_score():
+    records = _build_full_records()
+    baseline = {"capabilities": {c: {"score": 0.5} for c in CAPABILITIES}}
+    report = sca.validate_baseline_consistency_across_regions(records, baseline)
+    assert report["consistent_across_all_regions"] is True
+    assert report["mismatches"] == []
+    assert report["canonical_baseline_by_capability"] == {c: 0.5 for c in CAPABILITIES}
+
+
+def test_baseline_consistency_detects_a_region_dependent_baseline():
+    records = _build_full_records()
+    r0 = records[0]
+    records[0] = _record(
+        perturbation_id=r0.perturbation_id, region=r0.anatomy_region, radius=r0.radius, seed=r0.seed,
+        capability=r0.capability, delta=0.0, base_score=0.999,  # differs from the canonical 0.5
+        parameter_mask_hash=f"mh_{r0.anatomy_region}",
+    )
+    baseline = {"capabilities": {c: {"score": 0.5} for c in CAPABILITIES}}
+    report = sca.validate_baseline_consistency_across_regions(records, baseline)
+    assert report["consistent_across_all_regions"] is False
+    assert len(report["mismatches"]) == 1
+    assert report["mismatches"][0]["capability"] == r0.capability
+    assert report["mismatches"][0]["region"] == r0.anatomy_region
+
+
+# =============================================================================================
+# build_stage8_radius_recommendation
+# =============================================================================================
+
+
+def test_stage8_recommendation_blocks_when_run_is_not_valid():
+    records = _build_full_records(contaminate_regions=["vision"])
+    integrity_report = sca.compute_data_integrity_report(records)
+    rec = sca.build_stage8_radius_recommendation(records, integrity_report)
+    assert rec["proceed_to_stage8"] is False
+    assert rec["selected_common_radii"] == []
+    assert "scientific_status" in rec["blocking_issue"]
+
+
+def test_stage8_recommendation_selects_r_small_and_r_active_when_available():
+    """Constructs deltas so the smallest radius is 'active' and a larger radius is also
+    'active' -- confirms R_small picks the smallest radius and R_active picks the LARGEST
+    active radius (maximal regime separation), not merely the first one found.
+    """
+    records = []
+    active_deltas = [0.05] * 6 + [-0.01] * 2  # mean>0, density>=.02 in 6/8=0.75>=0.3, P(<0)=0.25<0.5 -> "active"
+    near_base_deltas = [0.0] * 8  # P(>0)<0.1 and P(<0)<0.1 -> "near_base"
+    destructive_deltas = [-0.2] * 5 + [0.0] * 3  # P(<0)=0.625>=0.5 and mean<=-0.05 -> "destructive"
+    radii_and_deltas = {
+        FULL_CALIBRATION_RADII[0]: active_deltas,
+        FULL_CALIBRATION_RADII[1]: near_base_deltas,
+        FULL_CALIBRATION_RADII[2]: active_deltas,
+        FULL_CALIBRATION_RADII[3]: near_base_deltas,
+        FULL_CALIBRATION_RADII[4]: destructive_deltas,
+        FULL_CALIBRATION_RADII[5]: destructive_deltas,
+    }
+    for region in FULL_CALIBRATION_REGIONS:
+        for radius, deltas in radii_and_deltas.items():
+            for seed_idx, d in enumerate(deltas):
+                pid = f"{region}|{radius}|{seed_idx}"
+                for cap in CAPABILITIES:
+                    records.append(_record(
+                        perturbation_id=pid, region=region, radius=radius, seed=seed_idx, capability=cap,
+                        delta=d, parameter_mask_hash=f"mh_{region}",
+                    ))
+
+    integrity_report = sca.compute_data_integrity_report(records)
+    assert integrity_report["scientific_status"] == "valid"
+    rec = sca.build_stage8_radius_recommendation(records, integrity_report)
+
+    assert rec["proceed_to_stage8"] is True
+    assert rec["selected_common_radii"][0] == FULL_CALIBRATION_RADII[0]  # R_small: smallest overall
+    assert FULL_CALIBRATION_RADII[2] in rec["selected_common_radii"]  # R_active: the largest 'active' radius
+    assert str(FULL_CALIBRATION_RADII[4]) in rec["excluded_radii"]
+    assert str(FULL_CALIBRATION_RADII[5]) in rec["excluded_radii"]
+
+
+def test_stage8_recommendation_blocks_when_every_radius_is_destructive():
+    records = []
+    destructive_deltas = [-0.2] * 8
+    for region in FULL_CALIBRATION_REGIONS:
+        for radius in FULL_CALIBRATION_RADII:
+            for seed_idx, d in enumerate(destructive_deltas):
+                pid = f"{region}|{radius}|{seed_idx}"
+                for cap in CAPABILITIES:
+                    records.append(_record(
+                        perturbation_id=pid, region=region, radius=radius, seed=seed_idx, capability=cap,
+                        delta=d, parameter_mask_hash=f"mh_{region}",
+                    ))
+    integrity_report = sca.compute_data_integrity_report(records)
+    rec = sca.build_stage8_radius_recommendation(records, integrity_report)
+    assert rec["proceed_to_stage8"] is False
+    assert rec["selected_common_radii"] == []
+    assert "destructive" in rec["blocking_issue"]
 
 
 # =============================================================================================
@@ -523,7 +691,7 @@ def _write_full_synthetic_run(results_dir: Path, *, contaminate_regions: Sequenc
     }, indent=2))
 
 
-def test_main_writes_all_seven_expected_outputs(tmp_path):
+def test_main_writes_all_eight_expected_outputs(tmp_path):
     results_dir = tmp_path / "full_test"
     _write_full_synthetic_run(results_dir)
     rc = sca.main(["--results-dir", str(results_dir)])
@@ -532,12 +700,32 @@ def test_main_writes_all_seven_expected_outputs(tmp_path):
     for name in (
         "calibration_table.json", "matched_radius_anatomy_comparison.json", "radius_regime_summary.json",
         "exploratory_anatomy_signal.json", "diversity_by_region_radius.json", "quantization_audit.json",
-        "stage7b_analysis.md",
+        "stage8_radius_recommendation.json", "stage7b_analysis.md",
     ):
         path = analysis_dir / name
         assert path.exists(), f"missing {name}"
         if name.endswith(".json"):
             json.loads(path.read_text())  # must be valid JSON
+
+
+def test_main_stage8_recommendation_proceeds_for_a_clean_synthetic_run(tmp_path):
+    results_dir = tmp_path / "full_test"
+    _write_full_synthetic_run(results_dir)  # no contamination -- scientific_status will be "valid"
+    sca.main(["--results-dir", str(results_dir)])
+    rec = json.loads((results_dir / "analysis" / "stage8_radius_recommendation.json").read_text())
+    assert set(rec.keys()) == {"selected_common_radii", "classifications", "rationale", "excluded_radii", "proceed_to_stage8", "blocking_issue"}
+
+
+def test_main_markdown_contains_the_new_required_sections(tmp_path):
+    results_dir = tmp_path / "full_test"
+    _write_full_synthetic_run(results_dir)
+    sca.main(["--results-dir", str(results_dir)])
+    md = (results_dir / "analysis" / "stage7b_analysis.md").read_text()
+    assert "Cache-artifact regression check" in md
+    assert "Baseline consistency across regions" in md
+    assert "Comparison to Stage 6" in md
+    assert "Decision gate" in md
+    assert "old_cache_artifact_reproduced" in md
 
 
 def test_main_refuses_an_incomplete_run(tmp_path):
@@ -561,11 +749,29 @@ def test_main_outputs_are_deterministic_across_repeated_runs(tmp_path):
     first = {name: (analysis_dir / name).read_text() for name in (
         "calibration_table.json", "matched_radius_anatomy_comparison.json", "radius_regime_summary.json",
         "exploratory_anatomy_signal.json", "diversity_by_region_radius.json", "quantization_audit.json",
-        "stage7b_analysis.md",
+        "stage8_radius_recommendation.json", "stage7b_analysis.md",
     )}
     sca.main(["--results-dir", str(results_dir)])
     for name, content in first.items():
         assert (analysis_dir / name).read_text() == content, f"{name} was not deterministic across repeated runs"
+
+
+def test_main_refuses_a_legacy_checkpoint_missing_cache_policy_fields(tmp_path):
+    """A checkpoint predating multimodal_cache_policy/enable_prefix_caching entirely (the real
+    shape of the ORIGINAL no-cache-reset run's checkpoint_manifest.json) must be refused by
+    main()'s integrity gate -- confirms the isolation is structurally enforced, not just
+    documented.
+    """
+    results_dir = tmp_path / "full_test"
+    _write_full_synthetic_run(results_dir)
+    checkpoint_path = results_dir / "checkpoint_manifest.json"
+    legacy_dict = json.loads(checkpoint_path.read_text())
+    del legacy_dict["multimodal_cache_policy"]
+    del legacy_dict["enable_prefix_caching"]
+    checkpoint_path.write_text(json.dumps(legacy_dict, indent=2))
+
+    with pytest.raises(sca.RunIntegrityError):
+        sca.main(["--results-dir", str(results_dir)])
 
 
 def test_main_surfaces_the_data_integrity_warning_when_contaminated(tmp_path):
