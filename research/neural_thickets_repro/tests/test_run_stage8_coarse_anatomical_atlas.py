@@ -371,7 +371,7 @@ def test_baseline_preflight_passes_when_both_passes_agree(monkeypatch):
     engine = _FakeBaselineEngine()
     contexts = _fake_contexts(n=2)
 
-    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params):
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
         return _FakeRunResultDeterministic()
 
     report = run_baseline_repeatability_preflight_rpc(
@@ -389,7 +389,7 @@ def test_baseline_preflight_evaluates_twice_per_capability_with_reset_between(mo
     contexts = _fake_contexts(n=1)
     call_count = {"n": 0}
 
-    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params):
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
         call_count["n"] += 1
         return _FakeRunResultDeterministic()
 
@@ -407,7 +407,7 @@ def test_baseline_preflight_hard_fails_when_one_capability_disagrees(monkeypatch
     contexts = _fake_contexts(n=1)
     call_count = {"n": 0}
 
-    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params):
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
         call_count["n"] += 1
         # Make fine_grained_recognition's SECOND pass disagree -- named in the failure message,
         # matching the spec's "especially important for fine_grained_recognition" note.
@@ -482,7 +482,7 @@ class _FakeStage8RunResult:
         return "fakehash"
 
 
-def _fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params):
+def _fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
     return _FakeStage8RunResult(primary_metric=0.6)
 
 
@@ -671,3 +671,267 @@ def test_no_best_radius_or_capability_selection_logic_exists():
     source = inspect.getsource(module)
     for forbidden in ("best_radius", "select_best", "optimal_radius", "top_capability"):
         assert forbidden not in source
+
+
+# =================================================================================================
+# 9. Memory-bounded execution (this repair pass -- driver-RSS OOM audit)
+# =================================================================================================
+
+
+def test_stage8_generate_batch_size_is_10():
+    assert module.STAGE8_GENERATE_BATCH_SIZE == 10
+
+
+def test_batched_full_plan_has_the_v2_batched10_run_identity():
+    plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root="out", generation_batch_size=10)
+    assert plan.run_signature == "stage8_coarse_anatomical_atlas_3b_v2_batched10"
+    assert plan.generation_batch_size == 10
+
+
+def test_unbatched_full_plan_keeps_the_v1_identity_default():
+    plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert plan.generation_batch_size is None
+    assert plan.run_signature == "stage8_coarse_anatomical_atlas_3b_v1"
+
+
+def test_v1_and_v2_full_plans_never_share_an_output_directory(tmp_path):
+    v1_plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path))
+    v2_plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path), generation_batch_size=10)
+    assert v1_plan.output_dir != v2_plan.output_dir
+    assert v1_plan.run_signature != v2_plan.run_signature
+
+
+def test_failed_v1_full_identity_cannot_resume_into_batched_v2(tmp_path):
+    v1_plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path))
+    v2_plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path), generation_batch_size=10)
+    bank = build_stage8_direction_seed_bank(module.STAGE8_BASE_SEED, v1_plan.regions, v1_plan.n_directions_per_cell)
+
+    v1_checkpoint = build_stage8_checkpoint_manifest(v1_plan, _fake_contexts(), _region_mask_hashes(v1_plan), bank)
+    v1_checkpoint_path = v1_plan.output_dir / "checkpoint_manifest.json"
+    ensure_stage8_checkpoint_manifest(v1_checkpoint_path, v1_checkpoint)
+
+    v2_checkpoint = build_stage8_checkpoint_manifest(v2_plan, _fake_contexts(), _region_mask_hashes(v2_plan), bank)
+    # Different output_dir entirely -- v2 never even looks at v1's checkpoint file.
+    assert v1_plan.output_dir != v2_plan.output_dir
+    v2_checkpoint_path = v2_plan.output_dir / "checkpoint_manifest.json"
+    assert not v2_checkpoint_path.exists()
+    ensure_stage8_checkpoint_manifest(v2_checkpoint_path, v2_checkpoint)  # starts fresh, does not raise
+    assert v2_checkpoint.generation_batch_size == 10
+    assert v1_checkpoint.generation_batch_size is None
+
+
+def test_checkpoint_manifest_hard_fails_on_generation_batch_size_mismatch(tmp_path):
+    plan_unbatched = build_stage8_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path), regions=("language",), radii=(0.05,), n_directions_per_cell=2, d_map_n=5, generation_batch_size=None)
+    plan_batched = build_stage8_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path), regions=("language",), radii=(0.05,), n_directions_per_cell=2, d_map_n=5, generation_batch_size=5)
+    bank = build_stage8_direction_seed_bank(module.STAGE8_BASE_SEED, ("language",), 2)
+    mask_hashes = {"language": "hash_language"}
+
+    checkpoint_unbatched = build_stage8_checkpoint_manifest(plan_unbatched, _fake_contexts(), mask_hashes, bank)
+    checkpoint_batched = build_stage8_checkpoint_manifest(plan_batched, _fake_contexts(), mask_hashes, bank)
+    assert checkpoint_unbatched != checkpoint_batched
+    assert checkpoint_unbatched.generation_batch_size != checkpoint_batched.generation_batch_size
+
+
+def test_checkpoint_manifest_round_trips_generation_batch_size_through_json():
+    plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root="out", generation_batch_size=10)
+    bank = build_stage8_direction_seed_bank(module.STAGE8_BASE_SEED, plan.regions, plan.n_directions_per_cell)
+    checkpoint = build_stage8_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank)
+    restored = Stage8CheckpointManifest.from_dict(checkpoint.to_dict())
+    assert restored.generation_batch_size == 10
+    assert restored == checkpoint
+
+
+def test_legacy_checkpoint_dict_missing_generation_batch_size_still_parses():
+    plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root="out")
+    bank = build_stage8_direction_seed_bank(module.STAGE8_BASE_SEED, plan.regions, plan.n_directions_per_cell)
+    checkpoint = build_stage8_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank)
+    legacy_dict = checkpoint.to_dict()
+    del legacy_dict["generation_batch_size"]
+    restored = Stage8CheckpointManifest.from_dict(legacy_dict)
+    assert restored.generation_batch_size is None
+
+
+def test_full_stage8_science_unchanged_regardless_of_batch_size():
+    """The frozen scientific design (576 perturbations / 3456 rows) must not depend on
+    generation_batch_size at all -- batching is execution-only.
+    """
+    for batch_size in (None, 5, 10, 25):
+        plan = build_stage8_plan(model_name="m", model_revision="rev1", output_root="out", generation_batch_size=batch_size)
+        assert plan.regions == STAGE8_REGIONS
+        assert plan.radii == STAGE8_RADII
+        assert plan.capabilities == STAGE8_CAPABILITIES
+        assert plan.total_unique_perturbations == 576
+        assert plan.total_perturbation_capability_evaluations == 3456
+
+
+def test_evaluate_one_stage8_candidate_rpc_passes_generation_batch_size_through_to_run_benchmark(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+    seen_batch_sizes = []
+
+    def _capturing_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        seen_batch_sizes.append(kwargs.get("max_requests_per_generate"))
+        return _FakeStage8RunResult(primary_metric=0.6)
+
+    evaluate_one_stage8_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_capturing_run_benchmark, ray_get=_identity_ray_get, generation_batch_size=10,
+    )
+    assert seen_batch_sizes == [10] * 6  # once per capability
+    assert set(seen_batch_sizes) == {10}
+
+
+def test_evaluate_one_stage8_candidate_rpc_records_generation_batch_size_in_runtime_metadata(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+
+    records = evaluate_one_stage8_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get, generation_batch_size=10,
+    )
+    for r in records:
+        assert r.runtime_metadata["generation_batch_size"] == 10
+
+
+# --- Baseline preflight memory telemetry schema -----------------------------------------------
+
+
+def test_baseline_preflight_memory_telemetry_schema_present_per_capability_and_pass(monkeypatch):
+    monkeypatch.setattr(module, "reset_to_base_weights_via_rpc", _fake_reset_to_base_weights_via_rpc)
+    engine = _FakeBaselineEngine()
+    contexts = _fake_contexts(n=1)
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, rss_checkpoint=None, **kwargs):
+        if rss_checkpoint is not None:
+            rss_checkpoint("after_requests")
+            rss_checkpoint("after_generate")
+            rss_checkpoint("after_scoring")
+        return _FakeRunResultDeterministic()
+
+    report = run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    for cap, cap_report in report.items():
+        assert set(cap_report["memory_telemetry"].keys()) == {"pass_a", "pass_b"}
+        for pass_label in ("pass_a", "pass_b"):
+            telemetry = cap_report["memory_telemetry"][pass_label]
+            for key in (
+                "rss_before_mb", "rss_after_requests_mb", "rss_after_generate_mb",
+                "rss_after_scoring_mb", "rss_after_cleanup_mb", "peak_delta_mb",
+            ):
+                assert key in telemetry
+                assert isinstance(telemetry[key], float)
+
+
+def test_baseline_preflight_report_never_retains_raw_per_example_data(monkeypatch):
+    """Section 5 of the spec: after each pass, only score/generation_hash/parsed_prediction_hash
+    (+ compact memory telemetry) may be retained -- never the full RunResult/per_example data.
+    """
+    monkeypatch.setattr(module, "reset_to_base_weights_via_rpc", _fake_reset_to_base_weights_via_rpc)
+    engine = _FakeBaselineEngine()
+    contexts = _fake_contexts(n=1)
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        return _FakeRunResultDeterministic()
+
+    report = run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    for cap_report in report.values():
+        assert "per_example" not in cap_report
+        assert "raw_generation" not in json_dump_keys(cap_report)
+
+
+def json_dump_keys(d):
+    import json as _json
+
+    return _json.dumps(d, default=str)
+
+
+def test_baseline_preflight_threads_generation_batch_size_to_run_benchmark(monkeypatch):
+    monkeypatch.setattr(module, "reset_to_base_weights_via_rpc", _fake_reset_to_base_weights_via_rpc)
+    engine = _FakeBaselineEngine()
+    contexts = _fake_contexts(n=1)
+    seen = []
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        seen.append(kwargs.get("max_requests_per_generate"))
+        return _FakeRunResultDeterministic()
+
+    run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark,
+        ray_get=_identity_ray_get, generation_batch_size=10,
+    )
+    assert set(seen) == {10}
+    assert len(seen) == 2 * len(STAGE8_CAPABILITIES)  # 2 passes each
+
+
+# --- build_d_map_capability_contexts memory-release calls between capabilities -----------------
+
+
+def test_build_d_map_capability_contexts_releases_memory_and_checkpoints_rss_between_capabilities(monkeypatch, tmp_path):
+    release_calls = {"n": 0}
+
+    def _fake_release():
+        release_calls["n"] += 1
+
+    monkeypatch.setattr("neural_thickets_repro.mem_telemetry.release_transient_memory", _fake_release)
+
+    from neural_thickets_repro.benchmarks.base import Example
+
+    def _fake_load_capability_benchmark_config(path):
+        return SimpleNamespace(dataset=SimpleNamespace(adapter="fake"))
+
+    class _FakeBenchmark:
+        def load_examples(self, cfg):
+            return [Example(example_id=str(i), image=None, prompt_input={}, target=str(i)) for i in range(5)]
+
+        def subset_selection_rule(self):
+            return "prefix"
+
+    def _fake_load_adapter(path):
+        return _FakeBenchmark()
+
+    rss_labels = []
+    module.build_d_map_capability_contexts(
+        base_seed=1, subset_ids_dir=tmp_path, d_map_n=5,
+        load_capability_benchmark_config=_fake_load_capability_benchmark_config,
+        load_adapter=_fake_load_adapter,
+        rss_checkpoint=lambda label, value: rss_labels.append(label),
+    )
+    assert release_calls["n"] == len(STAGE8_CAPABILITIES)  # once per capability
+    assert rss_labels == [f"after_{cap}_context_built" for cap in STAGE8_CAPABILITIES] + ["after_all_capability_contexts_constructed"]
+
+
+# --- --baseline-memory-smoke CLI ----------------------------------------------------------------
+
+
+def test_baseline_memory_smoke_and_smoke_are_mutually_exclusive():
+    rc = module.main(["--smoke", "--baseline-memory-smoke", "--dry-run"])
+    assert rc == 1
+
+
+def test_baseline_memory_smoke_dry_run_uses_full_scientific_config(capsys):
+    config_path = str(module.REPO_ROOT / "configs" / "gqa_repro.yaml")
+    rc = module.main(["--baseline-memory-smoke", "--dry-run", "--config", config_path])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "total_unique_perturbations=576" in out
+    assert "ZERO perturbations will be evaluated" in out
+
+
+def test_generation_batch_size_cli_flag_defaults_to_10(capsys):
+    config_path = str(module.REPO_ROOT / "configs" / "gqa_repro.yaml")
+    rc = module.main(["--dry-run", "--config", config_path])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "generation_batch_size=10" in out
+    assert "stage8_coarse_anatomical_atlas_3b_v2_batched10" in out
+
+
+def test_generation_batch_size_cli_flag_rejects_non_positive(capsys):
+    config_path = str(module.REPO_ROOT / "configs" / "gqa_repro.yaml")
+    rc = module.main(["--dry-run", "--config", config_path, "--generation-batch-size", "0"])
+    assert rc == 1

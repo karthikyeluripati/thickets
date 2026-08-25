@@ -254,6 +254,132 @@ def test_bounded_disagreement_examples_respects_limit():
     assert len(examples) == 5
 
 
+# =================================================================================================
+# max_requests_per_generate / rss_checkpoint (this repair pass -- Stage-8 driver-RSS OOM audit).
+# Default (None) must remain byte-identical to the prior single-call behavior for every existing
+# caller (Stage 6/7 execution unchanged); batching is an execution-only parameter that must never
+# change ordering, raw generations, parsed predictions, scores, or hashes.
+# =================================================================================================
+
+
+def _fake_llm_ordered(all_texts):
+    """Returns exactly len(requests) outputs per generate() call, sliced in call order from
+    `all_texts` -- correctly models both a single unbatched call and several sequential
+    microbatches, since real vLLM's generate() returns one output per request in that SAME call.
+    """
+    calls = []
+    state = {"pos": 0}
+
+    def _generate(requests, sampling_params, use_tqdm=True):
+        calls.append(list(requests))
+        n = len(requests)
+        texts = all_texts[state["pos"]:state["pos"] + n]
+        state["pos"] += n
+        return [_fake_output(t) for t in texts]
+
+    return SimpleNamespace(generate=_generate, calls=calls)
+
+
+def _make_n_examples(n, image):
+    return [
+        Example(example_id=str(i), image=image, prompt_input={"question": f"q{i}"}, target=str(i))
+        for i in range(n)
+    ]
+
+
+def test_default_max_requests_per_generate_is_none_and_makes_exactly_one_generate_call(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    examples = _make_n_examples(7, image)
+    llm = _fake_llm_ordered([str(i) for i in range(7)])
+
+    run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None)
+
+    assert len(llm.calls) == 1
+    assert len(llm.calls[0]) == 7
+
+
+def test_n50_batch_size_10_yields_exactly_5_ordered_batches(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    examples = _make_n_examples(50, image)
+    llm = _fake_llm_ordered([str(i) for i in range(50)])
+
+    run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None, max_requests_per_generate=10)
+
+    assert len(llm.calls) == 5
+    assert [len(c) for c in llm.calls] == [10, 10, 10, 10, 10]
+
+
+def test_batching_drops_no_examples_and_duplicates_none(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    examples = _make_n_examples(23, image)  # not evenly divisible by the batch size
+    llm = _fake_llm_ordered([str(i) for i in range(23)])
+
+    result = run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None, max_requests_per_generate=10)
+
+    assert len(llm.calls) == 3
+    assert [len(c) for c in llm.calls] == [10, 10, 3]
+    ids_seen = [r.example_id for r in result.per_example]
+    assert ids_seen == [str(i) for i in range(23)]  # original order, no drops/duplicates
+
+
+def test_unbatched_and_batched_outputs_are_exactly_equivalent(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    # A realistic mix of correct/incorrect/empty generations so score/parsed-prediction/hash
+    # equivalence is actually exercised, not just a trivially all-correct run.
+    n = 17
+    examples = _make_n_examples(n, image)
+    texts = [str(i) if i % 3 != 0 else "" for i in range(n)]  # every 3rd generation is empty (parse failure)
+
+    llm_unbatched = _fake_llm_ordered(list(texts))
+    result_unbatched = run_benchmark(bench, examples, llm_unbatched, _fake_tokenizer(), sampling_params=None, max_requests_per_generate=None)
+
+    llm_batched = _fake_llm_ordered(list(texts))
+    result_batched = run_benchmark(bench, examples, llm_batched, _fake_tokenizer(), sampling_params=None, max_requests_per_generate=4)
+
+    assert [r.example_id for r in result_unbatched.per_example] == [r.example_id for r in result_batched.per_example]
+    assert [r.raw_generation for r in result_unbatched.per_example] == [r.raw_generation for r in result_batched.per_example]
+    assert [r.parsed.parsed for r in result_unbatched.per_example] == [r.parsed.parsed for r in result_batched.per_example]
+    assert [r.score.score for r in result_unbatched.per_example] == [r.score.score for r in result_batched.per_example]
+    assert result_unbatched.aggregate_metrics["primary_metric"] == result_batched.aggregate_metrics["primary_metric"]
+    assert result_unbatched.generation_hash() == result_batched.generation_hash()
+    assert result_unbatched.parsed_prediction_hash() == result_batched.parsed_prediction_hash()
+
+
+def test_max_requests_per_generate_zero_or_negative_raises(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    examples = _make_n_examples(3, image)
+    llm = _fake_llm_ordered(["a", "b", "c"])
+
+    with pytest.raises(ValueError):
+        run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None, max_requests_per_generate=0)
+
+
+def test_rss_checkpoint_default_none_never_called(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    examples = _make_n_examples(2, image)
+    llm = _fake_llm_ordered(["1", "2"])
+    # No rss_checkpoint passed -- must not raise even though the internal _checkpoint() calls happen.
+    run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None)
+
+
+def test_rss_checkpoint_receives_the_three_expected_labels_in_order(fake_capability_benchmark_factory, tiny_image_factory):
+    bench = fake_capability_benchmark_factory()
+    image = tiny_image_factory()
+    examples = _make_n_examples(2, image)
+    llm = _fake_llm_ordered(["1", "2"])
+    labels = []
+
+    run_benchmark(bench, examples, llm, _fake_tokenizer(), sampling_params=None, rss_checkpoint=labels.append)
+
+    assert labels == ["after_requests", "after_generate", "after_scoring"]
+
+
 def test_write_predictions_jsonl_contains_required_fields(fake_capability_benchmark_factory, tiny_image_factory, tmp_path):
     bench = fake_capability_benchmark_factory()
     image = tiny_image_factory()

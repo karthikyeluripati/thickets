@@ -222,7 +222,27 @@ STAGE8_SMOKE_D_MAP_N = 5
 
 _ALLOWED_D_MAP_SIZES: Tuple[int, ...] = (STAGE8_D_MAP_N, STAGE8_SMOKE_D_MAP_N)
 
-_FULL_RUN_SIGNATURE = "stage8_coarse_anatomical_atlas_3b_v1"
+# --- Bounded generation (this repair pass -- driver-RSS OOM audit) ---------------------------
+# The full v1 attempt (stage8_coarse_anatomical_atlas_3b_v1) OOM'd during the N=50
+# baseline-repeatability preflight: node RAM ~110.67/116.42 GB, DRIVER Python process RSS
+# ~100.86 GB, while the RayWorkerWrapper/RandOptNcclLLM actors themselves were only ~2.18/1.88
+# GB -- i.e. primarily driver/host RAM growth, not GPU VRAM. Code-inspection root cause (see
+# this module's own docstring "DRIVER MEMORY AUDIT" section below): every Stage-8 capability
+# adapter's load_examples() (benchmarks/adapters/*.py) decodes a PIL.Image for EVERY row of the
+# ENTIRE underlying dataset/split BEFORE subset selection reduces it to D_map N=50 --
+# HuggingFaceM4/the_cauldron's "tallyqa" config alone is ~98.7k rows. build_d_map_capability_
+# contexts() calls this once per capability (6x), sequentially, before the baseline preflight
+# even starts -- each call transiently materializes a full dataset's worth of decoded images,
+# and glibc's allocator does not necessarily return that freed memory to the OS between calls,
+# so driver RSS can ratchet upward across the 6 sequential builds even though each transient
+# list is logically freed the moment it goes out of scope. STAGE8_GENERATE_BATCH_SIZE bounds
+# the SEPARATE (and also contributing) per-capability llm.generate() driver-side request/output
+# materialization; benchmarks/runner.run_benchmark's own default (None) is untouched, so
+# Stage 6/7B's byte-identical single-call behavior is never affected.
+STAGE8_GENERATE_BATCH_SIZE = 10
+
+_FULL_RUN_SIGNATURE_V1_UNBATCHED = "stage8_coarse_anatomical_atlas_3b_v1"  # the OOM'd attempt's identity -- kept as permanent, never-resumed-into provenance
+_FULL_RUN_SIGNATURE_V2_BATCHED = "stage8_coarse_anatomical_atlas_3b_v2_batched10"  # valid only when generation_batch_size == STAGE8_GENERATE_BATCH_SIZE
 
 
 class DatasetRoleViolationError(RuntimeError):
@@ -243,17 +263,37 @@ class BaselineNondeterminismError(RuntimeError):
 
 def compute_stage8_run_signature(
     regions: Sequence[str], radii: Sequence[float], n_directions: int, d_map_n: int,
+    generation_batch_size: Optional[int] = None,
 ) -> str:
-    """`_FULL_RUN_SIGNATURE` ("stage8_coarse_anatomical_atlas_3b_v1") iff regions/radii/
-    n_directions/d_map_n exactly match the frozen full config; otherwise a deterministic
-    "stage8_smoke_..." descriptive string built from the ACTUAL values -- so a failed/partial
+    """Batching is an EXECUTION/reproducibility parameter (this repair pass), folded into the
+    signature exactly like radius_realization_method/multimodal_cache_policy are for Stage 7B --
+    so a checkpoint written under a different generation_batch_size (including the OOM'd v1
+    attempt's implicit "unbatched", generation_batch_size=None) can never be silently resumed
+    under a different one.
+
+    For the frozen full scientific config (regions/radii/n_directions/d_map_n exactly matching
+    STAGE8_REGIONS/STAGE8_RADII/STAGE8_N_DIRECTIONS_PER_CELL/STAGE8_D_MAP_N):
+        generation_batch_size=None                        -> _FULL_RUN_SIGNATURE_V1_UNBATCHED
+        generation_batch_size==STAGE8_GENERATE_BATCH_SIZE  -> _FULL_RUN_SIGNATURE_V2_BATCHED
+        any OTHER explicit batch size                      -> its own disjoint "..._batched{N}" label
+    Otherwise (any smoke/diagnostic-size config): a deterministic "stage8_smoke_..." descriptive
+    string built from the ACTUAL values, batch-size-suffixed when set -- so a failed/partial
     smoke run can never be resumed as (or mistaken for) the full run, and vice versa.
     """
-    if tuple(regions) == STAGE8_REGIONS and tuple(radii) == STAGE8_RADII and n_directions == STAGE8_N_DIRECTIONS_PER_CELL and d_map_n == STAGE8_D_MAP_N:
-        return _FULL_RUN_SIGNATURE
+    is_frozen_full_scientific_config = (
+        tuple(regions) == STAGE8_REGIONS and tuple(radii) == STAGE8_RADII
+        and n_directions == STAGE8_N_DIRECTIONS_PER_CELL and d_map_n == STAGE8_D_MAP_N
+    )
+    if is_frozen_full_scientific_config:
+        if generation_batch_size is None:
+            return _FULL_RUN_SIGNATURE_V1_UNBATCHED
+        if generation_batch_size == STAGE8_GENERATE_BATCH_SIZE:
+            return _FULL_RUN_SIGNATURE_V2_BATCHED
+        return f"stage8_coarse_anatomical_atlas_3b_batched{generation_batch_size}"
     region_label = "-".join(regions)
     radius_label = "-".join(f"{r:.6f}".replace(".", "") for r in radii)
-    return f"stage8_smoke_{region_label}_r{radius_label}_n{d_map_n}_dir{n_directions}"
+    batch_label = f"_batched{generation_batch_size}" if generation_batch_size is not None else ""
+    return f"stage8_smoke_{region_label}_r{radius_label}_n{d_map_n}_dir{n_directions}{batch_label}"
 
 
 # =============================================================================================
@@ -277,6 +317,11 @@ class Stage8Plan:
     enable_prefix_caching: bool
     run_signature: str
     output_dir: Path
+    # Execution-only (this repair pass, driver-RSS OOM audit): None reproduces the OOM'd v1
+    # attempt's exact unbatched llm.generate() call shape; STAGE8_GENERATE_BATCH_SIZE (10) is
+    # what every NEW real Stage-8 execution (main()'s default, --baseline-memory-smoke) uses.
+    # Never a scientific parameter -- see compute_stage8_run_signature's own docstring.
+    generation_batch_size: Optional[int] = None
 
     @property
     def total_unique_perturbations(self) -> int:
@@ -303,7 +348,13 @@ def build_stage8_plan(
     regions: Sequence[str] = STAGE8_REGIONS, radii: Sequence[float] = STAGE8_RADII,
     n_directions_per_cell: int = STAGE8_N_DIRECTIONS_PER_CELL, d_map_n: int = STAGE8_D_MAP_N,
     model_family: str = "qwen2_5_vl", model_scale: str = "3B",
+    generation_batch_size: Optional[int] = None,
 ) -> Stage8Plan:
+    """`generation_batch_size` defaults to None (preserves every existing caller/test's prior
+    behavior -- the frozen full config then resolves to the OOM'd v1 identity). Real Stage-8
+    executions (main()'s default CLI path, --baseline-memory-smoke) pass
+    generation_batch_size=STAGE8_GENERATE_BATCH_SIZE explicitly to get the v2_batched10 identity.
+    """
     if not regions:
         raise ValueError("Stage 8 requires at least one anatomy region.")
     if not radii:
@@ -312,24 +363,30 @@ def build_stage8_plan(
         raise ValueError(f"Stage 8 must never include the calibration-scale-destructive radii {_STAGE8_EXCLUDED_DESTRUCTIVE_RADII}.")
     if d_map_n not in _ALLOWED_D_MAP_SIZES:
         raise DatasetRoleViolationError(f"Stage 8 D_map size must be one of {_ALLOWED_D_MAP_SIZES}, got {d_map_n}")
+    if generation_batch_size is not None and generation_batch_size <= 0:
+        raise ValueError(f"generation_batch_size must be positive or None, got {generation_batch_size}")
 
-    run_signature = compute_stage8_run_signature(regions, radii, n_directions_per_cell, d_map_n)
+    run_signature = compute_stage8_run_signature(regions, radii, n_directions_per_cell, d_map_n, generation_batch_size)
     return Stage8Plan(
         model_name=model_name, model_revision=model_revision, model_family=model_family, model_scale=model_scale,
         regions=tuple(regions), radii=tuple(radii), capabilities=STAGE8_CAPABILITIES,
         n_directions_per_cell=n_directions_per_cell, d_map_n=d_map_n,
         radius_realization_method=RADIUS_REALIZATION_METHOD, multimodal_cache_policy=MULTIMODAL_CACHE_POLICY,
         enable_prefix_caching=ENABLE_PREFIX_CACHING, run_signature=run_signature, output_dir=Path(output_root) / run_signature,
+        generation_batch_size=generation_batch_size,
     )
 
 
-def build_stage8_smoke_plan(*, model_name: str, model_revision: str, output_root: "str | Path") -> Stage8Plan:
+def build_stage8_smoke_plan(
+    *, model_name: str, model_revision: str, output_root: "str | Path", generation_batch_size: Optional[int] = None,
+) -> Stage8Plan:
     """3 regions x 3 radii x 1 direction family x 6 capabilities x D_map N=5 = 9 perturbations,
     54 rows, 270 perturbed model-example evaluations.
     """
     return build_stage8_plan(
         model_name=model_name, model_revision=model_revision, output_root=output_root,
         regions=STAGE8_REGIONS, radii=STAGE8_RADII, n_directions_per_cell=STAGE8_SMOKE_N_DIRECTIONS, d_map_n=STAGE8_SMOKE_D_MAP_N,
+        generation_batch_size=generation_batch_size,
     )
 
 
@@ -473,6 +530,10 @@ class Stage8CheckpointManifest:
     direction_seed_bank_hash: str
     expected_unique_perturbations: int
     expected_result_rows: int
+    # Execution-only identity field (this repair pass) -- None for a checkpoint written before
+    # this field existed (or the OOM'd v1 unbatched attempt); a resume against a DIFFERENT
+    # batch size is rejected by ordinary dataclass equality just like any other mismatch.
+    generation_batch_size: Optional[int] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -488,6 +549,7 @@ class Stage8CheckpointManifest:
             "direction_seed_bank_hash": self.direction_seed_bank_hash,
             "expected_unique_perturbations": self.expected_unique_perturbations,
             "expected_result_rows": self.expected_result_rows,
+            "generation_batch_size": self.generation_batch_size,
         }
 
     @classmethod
@@ -502,6 +564,7 @@ class Stage8CheckpointManifest:
             subset_hashes=dict(d["subset_hashes"]), region_mask_hashes=dict(d["region_mask_hashes"]),
             direction_seed_bank_hash=d["direction_seed_bank_hash"],
             expected_unique_perturbations=d["expected_unique_perturbations"], expected_result_rows=d["expected_result_rows"],
+            generation_batch_size=d.get("generation_batch_size"),
         )
 
 
@@ -526,6 +589,7 @@ def build_stage8_checkpoint_manifest(
         direction_seed_bank_hash=compute_direction_seed_bank_hash(seed_bank),
         expected_unique_perturbations=plan.total_unique_perturbations,
         expected_result_rows=plan.total_perturbation_capability_evaluations,
+        generation_batch_size=plan.generation_batch_size,
     )
 
 
@@ -564,6 +628,7 @@ def build_stage8_run_manifest_summary(checkpoint: Stage8CheckpointManifest, reco
         "expected_unique_perturbations": checkpoint.expected_unique_perturbations,
         "actual_unique_perturbations": actual_unique_perturbations,
         "expected_result_rows": checkpoint.expected_result_rows, "actual_result_rows": actual_result_rows,
+        "generation_batch_size": checkpoint.generation_batch_size,
         "run_complete": run_complete,
     }
 
@@ -581,10 +646,39 @@ def write_stage8_run_manifest(output_dir: Path) -> Dict[str, Any]:
 
 def build_d_map_capability_contexts(
     base_seed: int, subset_ids_dir: "str | Path", d_map_n: int, *, load_capability_benchmark_config: Callable, load_adapter: Callable,
+    rss_checkpoint: Optional[Callable[[str, float], None]] = None,
 ) -> Dict[str, CapabilityContext]:
+    """DRIVER MEMORY AUDIT (this repair pass -- see STAGE8_GENERATE_BATCH_SIZE's own comment for
+    the full failure context): every Stage-8 adapter's load_examples() (confirmed by direct
+    source read of counting_tallyqa.py, fine_grained_recognition_cub.py,
+    ocr_text_recognition_textvqa.py, visual_grounding_refcoco.py, and the shared GQA
+    _gqa_filtered_base.py used by spatial_reasoning/relational_reasoning) iterates the ENTIRE
+    underlying dataset/split and attaches a decoded PIL.Image to an Example for EVERY row --
+    subset_selection.build_or_load_subset only reduces this to d_map_n AFTER the full candidate
+    pool already exists in memory. For HuggingFaceM4/the_cauldron's "tallyqa" config alone that
+    is ~98.7k rows/images, transiently materialized in full before being cut down to N=50. This
+    is called once per capability, sequentially, for all 6 STAGE8_CAPABILITIES, so a 6x
+    repeated multi-GB transient spike is architecturally built into this exact loop.
+    `CapabilityContext.examples` itself (the value actually kept resident for the rest of the
+    run) is NOT the problem -- it holds only the persisted d_map_n=50 subset, i.e. <=300 decoded
+    images total across all 6 capabilities, never the 6 full corpora simultaneously; refactoring
+    every adapter's load_examples() to defer image decoding until after subset selection would
+    fix the transient spike at its source but touches the frozen Gate-2 adapter contracts this
+    stage was told to reuse unchanged -- NOT done in this pass, flagged instead as the
+    identified root cause pending explicit sign-off. What IS done here, additively and without
+    touching any adapter: mem_telemetry.release_transient_memory() (gc.collect() +
+    glibc malloc_trim(0)) after each capability's context is built, so the freed-but-not-yet-
+    returned-to-the-OS memory from one capability's transient full-dataset materialization
+    cannot ratchet driver RSS upward into the next capability's own load.
+    """
     if d_map_n not in _ALLOWED_D_MAP_SIZES:
         raise DatasetRoleViolationError(f"Stage 8 D_map size must be one of {_ALLOWED_D_MAP_SIZES}, got {d_map_n}")
+    from .mem_telemetry import release_transient_memory, rss_mb
     from .run_global_visual_thicket_pilot import CAPABILITY_CONFIG_FILES
+
+    def _checkpoint(label: str) -> None:
+        if rss_checkpoint is not None:
+            rss_checkpoint(label, rss_mb())
 
     contexts: Dict[str, CapabilityContext] = {}
     for capability in STAGE8_CAPABILITIES:  # fixed order
@@ -593,6 +687,9 @@ def build_d_map_capability_contexts(
         benchmark = load_adapter(cfg.dataset.adapter)
         ctx = build_d_map_context(benchmark, cfg, capability, d_map_n, base_seed, subset_ids_dir)
         contexts[capability] = ctx
+        release_transient_memory()
+        _checkpoint(f"after_{capability}_context_built")
+    _checkpoint("after_all_capability_contexts_constructed")
     return contexts
 
 
@@ -622,41 +719,88 @@ def _collective_rpc_single_worker(engine: Any, method, args: tuple = (), *, labe
 # =============================================================================================
 
 
+def _run_one_baseline_pass(
+    engine: Any, llm_adapter: Any, ctx: CapabilityContext, tokenizer: Any, sampling_params: Any,
+    *, run_benchmark: Callable, ray_get: Optional[Callable], generation_batch_size: Optional[int],
+    capability: str, pass_label: str,
+) -> Dict[str, Any]:
+    """One pass (A or B) of the baseline-repeatability preflight for one capability, with full
+    RSS telemetry (Section 2 of the spec): rss_before / rss_after_requests / rss_after_generate
+    / rss_after_scoring / rss_after_cleanup / peak_delta, all in MB. Retains ONLY the compact
+    (score, generation_hash, parsed_prediction_hash) triple after this returns -- the RunResult
+    itself (per-example raw generations/parsed predictions/scores) is explicitly `del`eted and
+    mem_telemetry.release_transient_memory() is called before returning (Section 5 of the spec:
+    do not retain full baseline outputs).
+    """
+    from .mem_telemetry import release_transient_memory, rss_mb
+
+    telemetry: Dict[str, float] = {"rss_before_mb": rss_mb()}
+
+    def _rss_checkpoint(label: str) -> None:
+        telemetry[f"rss_{label}_mb"] = rss_mb()
+
+    reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
+    reset_vllm_encoder_cache_full(engine)
+
+    result = run_benchmark(
+        ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params,
+        max_requests_per_generate=generation_batch_size, rss_checkpoint=_rss_checkpoint,
+    )
+    score = result.aggregate_metrics["primary_metric"]
+    generation_hash = result.generation_hash()
+    parsed_prediction_hash = result.parsed_prediction_hash()
+    telemetry.setdefault("rss_after_scoring_mb", rss_mb())
+
+    del result
+    release_transient_memory()
+    telemetry["rss_after_cleanup_mb"] = rss_mb()
+    rss_values = [v for k, v in telemetry.items() if k.startswith("rss_")]
+    telemetry["peak_delta_mb"] = max(rss_values) - telemetry["rss_before_mb"]
+
+    return {
+        "capability": capability, "pass": pass_label, "n_examples": len(ctx.examples),
+        "score": score, "generation_hash": generation_hash, "parsed_prediction_hash": parsed_prediction_hash,
+        "memory_telemetry": telemetry,
+    }
+
+
 def run_baseline_repeatability_preflight_rpc(
     engine: Any, capability_contexts: Dict[str, CapabilityContext], tokenizer: Any, sampling_params: Any,
-    *, run_benchmark: Callable, ray_get: Optional[Callable] = None,
+    *, run_benchmark: Callable, ray_get: Optional[Callable] = None, generation_batch_size: Optional[int] = None,
 ) -> Dict[str, Any]:
     """For each of the 6 capabilities, in fixed order: reset theta_0, full verified encoder-
-    cache reset, evaluate D_map N=50, record score/generation_hash/parsed_prediction_hash --
-    TWICE -- and compare. Never averages across the two passes; every field is compared for
-    EXACT equality. Returns a per-capability report; raises nothing itself (see
-    ensure_baseline_repeatability below for the hard-stop gate) so a caller can persist the full
-    report before deciding whether to stop.
+    cache reset, evaluate D_map N=50 (via the SAME bounded-generation path candidate evaluation
+    uses -- generation_batch_size, default None preserves the original unbatched call shape),
+    record score/generation_hash/parsed_prediction_hash -- TWICE -- and compare. Never averages
+    across the two passes; every field is compared for EXACT equality. Returns a per-capability
+    report (including each pass's own RSS telemetry, Section 2 of the spec); raises nothing
+    itself (see ensure_baseline_repeatability below for the hard-stop gate) so a caller can
+    persist the full report before deciding whether to stop.
     """
     llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
     report: Dict[str, Any] = {}
     for capability, ctx in capability_contexts.items():
-        reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
-        reset_vllm_encoder_cache_full(engine)
-        result_a = run_benchmark(ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params)
+        pass_a = _run_one_baseline_pass(
+            engine, llm_adapter, ctx, tokenizer, sampling_params, run_benchmark=run_benchmark, ray_get=ray_get,
+            generation_batch_size=generation_batch_size, capability=capability, pass_label="A",
+        )
+        pass_b = _run_one_baseline_pass(
+            engine, llm_adapter, ctx, tokenizer, sampling_params, run_benchmark=run_benchmark, ray_get=ray_get,
+            generation_batch_size=generation_batch_size, capability=capability, pass_label="B",
+        )
 
-        reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
-        reset_vllm_encoder_cache_full(engine)
-        result_b = run_benchmark(ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params)
-
-        score_a = result_a.aggregate_metrics["primary_metric"]
-        score_b = result_b.aggregate_metrics["primary_metric"]
-        gen_hash_a, gen_hash_b = result_a.generation_hash(), result_b.generation_hash()
-        parsed_hash_a, parsed_hash_b = result_a.parsed_prediction_hash(), result_b.parsed_prediction_hash()
-        score_match = score_a == score_b
-        generation_hash_match = gen_hash_a == gen_hash_b
-        parsed_prediction_hash_match = parsed_hash_a == parsed_hash_b
+        score_match = pass_a["score"] == pass_b["score"]
+        generation_hash_match = pass_a["generation_hash"] == pass_b["generation_hash"]
+        parsed_prediction_hash_match = pass_a["parsed_prediction_hash"] == pass_b["parsed_prediction_hash"]
         report[capability] = {
-            "score_a": score_a, "score_b": score_b, "score_match": score_match,
-            "generation_hash_a": gen_hash_a, "generation_hash_b": gen_hash_b, "generation_hash_match": generation_hash_match,
-            "parsed_prediction_hash_a": parsed_hash_a, "parsed_prediction_hash_b": parsed_hash_b,
+            "score_a": pass_a["score"], "score_b": pass_b["score"], "score_match": score_match,
+            "generation_hash_a": pass_a["generation_hash"], "generation_hash_b": pass_b["generation_hash"],
+            "generation_hash_match": generation_hash_match,
+            "parsed_prediction_hash_a": pass_a["parsed_prediction_hash"], "parsed_prediction_hash_b": pass_b["parsed_prediction_hash"],
             "parsed_prediction_hash_match": parsed_prediction_hash_match,
             "deterministic": score_match and generation_hash_match and parsed_prediction_hash_match,
+            "memory_telemetry": {"pass_a": pass_a["memory_telemetry"], "pass_b": pass_b["memory_telemetry"]},
+            "n_examples": pass_a["n_examples"],
         }
     return report
 
@@ -687,7 +831,7 @@ def ensure_baseline_repeatability(report: Dict[str, Any]) -> None:
 def evaluate_one_stage8_candidate_rpc(
     engine: Any, assignment: Stage8DirectionAssignment, region_param_names: Sequence[str],
     capability_contexts: Dict[str, CapabilityContext], tokenizer: Any, sampling_params: Any,
-    *, run_benchmark: Callable, ray_get: Optional[Callable] = None,
+    *, run_benchmark: Callable, ray_get: Optional[Callable] = None, generation_batch_size: Optional[int] = None,
 ) -> List[ExperimentResultRecord]:
     """Identical lifecycle to run_stage7b_anatomical_calibration.evaluate_one_calibration_
     candidate_rpc (same v3 quantization-aware radius acceptance, same twice-per-candidate cache
@@ -695,6 +839,15 @@ def evaluate_one_stage8_candidate_rpc(
     to loop over all 6 STAGE8_CAPABILITIES and to persist direction-family identity
     (direction_family_id/direction_seed/direction_index/region) in runtime_metadata so Section
     13's radius trajectories can group rows by direction family across the 3 radii.
+
+    `generation_batch_size` (this repair pass, driver-RSS OOM audit): threaded straight through
+    to run_benchmark's own `max_requests_per_generate` for EVERY one of the 6 capabilities' N=50
+    evaluations -- the same bounded-generation path the baseline preflight uses (Section 7 of
+    the spec: "the same N=50 issue will affect all 576 candidates if only the baseline preflight
+    is fixed"). Weights are NOT reset and the encoder cache is NOT reset between microbatches
+    within one capability's own evaluation (only once before/after the whole candidate, as
+    before) -- the accepted perturbation's weights are unchanged across microbatches, so cached
+    encoder entries remain valid.
     """
     manifest = assignment.manifest
     if manifest.perturbation_mode != PERTURBATION_MODE:
@@ -732,7 +885,10 @@ def evaluate_one_stage8_candidate_rpc(
         for capability, ctx in capability_contexts.items():
             if ctx.partition.manifest_hash != ctx.subset_hash:
                 raise DatasetRoleViolationError(f"CapabilityContext for {capability!r} has an inconsistent subset_hash.")
-            result = run_benchmark(ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params)
+            result = run_benchmark(
+                ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params,
+                max_requests_per_generate=generation_batch_size,
+            )
             perturbed_score = result.aggregate_metrics["primary_metric"]
             base_score = ctx.base_score
             records.append(ExperimentResultRecord(
@@ -767,6 +923,7 @@ def evaluate_one_stage8_candidate_rpc(
                     "direction_seed": assignment.direction_seed,
                     "direction_index": assignment.direction_index,
                     "region": assignment.region,
+                    "generation_batch_size": generation_batch_size,
                 },
             ))
     finally:
@@ -818,7 +975,7 @@ def run_stage8_rpc(
                 continue
             records = evaluate_one_stage8_candidate_rpc(
                 engine, assignment, region_param_names, capability_contexts, tokenizer, sampling_params,
-                run_benchmark=run_benchmark, ray_get=ray_get,
+                run_benchmark=run_benchmark, ray_get=ray_get, generation_batch_size=plan.generation_batch_size,
             )
             append_candidate_rows(results_path, records)
             all_records.extend(records)
@@ -828,6 +985,20 @@ def run_stage8_rpc(
 # =============================================================================================
 # CLI entry point
 # =============================================================================================
+
+
+def _extract_all_rss_values(preflight_report: Dict[str, Any]) -> List[float]:
+    """Flattens every rss_*_mb value out of the nested per-capability/per-pass memory_telemetry
+    dicts in a baseline-repeatability preflight report -- used to compute the overall peak RSS
+    observed during the preflight (Section 9 of the spec).
+    """
+    values: List[float] = []
+    for cap_report in preflight_report.values():
+        for pass_telemetry in cap_report.get("memory_telemetry", {}).values():
+            for key, value in pass_telemetry.items():
+                if key.startswith("rss_") and key.endswith("_mb"):
+                    values.append(value)
+    return values
 
 
 def main(argv=None) -> int:
@@ -840,17 +1011,48 @@ def main(argv=None) -> int:
              f"{STAGE8_SMOKE_D_MAP_N} D_map examples/capability = 9 perturbations, 54 rows, 270 "
              f"perturbed model-example evaluations -- execution size only, same scientific protocol.",
     )
+    parser.add_argument(
+        "--baseline-memory-smoke", action="store_true",
+        help="Driver-RSS diagnostic (this repair pass, root-causing the v1 full-run OOM): launches "
+             "the exact Stage-8 engine, all 6 capabilities, D_map N=50, runs the two-pass baseline"
+             "-repeatability preflight under bounded generation, records RSS telemetry throughout, "
+             "and evaluates ZERO perturbations (6 capabilities x 50 examples x 2 passes = 600 "
+             "baseline model-example evaluations total).",
+    )
     parser.add_argument("--dry-run", action="store_true", help="print the plan and exit -- no model load, no GPU")
+    parser.add_argument(
+        "--generation-batch-size", type=int, default=STAGE8_GENERATE_BATCH_SIZE,
+        help=f"Bounded llm.generate() microbatch size (default {STAGE8_GENERATE_BATCH_SIZE}) -- "
+             f"execution/memory-bounding only, never a scientific parameter. Pass 0 or a negative "
+             f"value's caller should use None instead; this flag has no way to request the OOM'd "
+             f"v1 unbatched behavior on purpose.",
+    )
     args = parser.parse_args(argv)
+
+    if args.smoke and args.baseline_memory_smoke:
+        print("--smoke and --baseline-memory-smoke are mutually exclusive.", file=sys.stderr)
+        return 1
+    if args.generation_batch_size <= 0:
+        print(f"--generation-batch-size must be positive, got {args.generation_batch_size}.", file=sys.stderr)
+        return 1
 
     from .config import load_config
 
     cfg = load_config(args.config)
 
     if args.smoke:
-        plan = build_stage8_smoke_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
+        plan = build_stage8_smoke_plan(
+            model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root,
+            generation_batch_size=args.generation_batch_size,
+        )
     else:
-        plan = build_stage8_plan(model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root)
+        # Both the real full run AND --baseline-memory-smoke use the frozen full scientific
+        # config (all 6 capabilities, D_map N=50) -- baseline-memory-smoke differs only in that
+        # it never calls run_stage8_rpc (see below), never touching the perturbation population.
+        plan = build_stage8_plan(
+            model_name=cfg.model.name, model_revision=cfg.model.revision, output_root=args.output_root,
+            generation_batch_size=args.generation_batch_size,
+        )
 
     print(f"Stage 8 plan (run_signature={plan.run_signature}, is_smoke={plan.is_smoke}): regions={plan.regions} radii={plan.radii}")
     print(f"capabilities={plan.capabilities}")
@@ -860,14 +1062,22 @@ def main(argv=None) -> int:
     print(f"radius_realization_method={plan.radius_realization_method}")
     print(f"multimodal_cache_policy={plan.multimodal_cache_policy}")
     print(f"enable_prefix_caching={plan.enable_prefix_caching}")
+    print(f"generation_batch_size={plan.generation_batch_size}")
     print(f"output_dir={plan.output_dir}")
-    print(
-        "Lifecycle: baseline repeatability preflight (each of 6 capabilities evaluated TWICE "
-        "against theta_0, hard stop on any disagreement) -> for each candidate: "
-        "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 -> full encoder-cache "
-        "reset -> evaluate all 6 capabilities -> reset_to_base_weights -> verify exact "
-        "restoration -> full encoder-cache reset again -> checkpoint candidate rows."
-    )
+    if args.baseline_memory_smoke:
+        print(
+            "--baseline-memory-smoke: all 6 capabilities x D_map N=50 x 2 passes = 600 baseline "
+            "model-example evaluations; ZERO perturbations will be evaluated."
+        )
+    else:
+        print(
+            "Lifecycle: baseline repeatability preflight (each of 6 capabilities evaluated TWICE "
+            "against theta_0, hard stop on any disagreement) -> for each candidate: "
+            "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 -> full encoder-cache "
+            "reset -> evaluate all 6 capabilities (bounded generation microbatches) -> "
+            "reset_to_base_weights -> verify exact restoration -> full encoder-cache reset again "
+            "-> checkpoint candidate rows."
+        )
 
     if args.dry_run:
         return 0
@@ -896,21 +1106,31 @@ def main(argv=None) -> int:
     from .thicket.data_roles import write_data_role_manifest
     from .vlm_adapter import bootstrap_ray, verify_workers_can_import_external_root
 
+    from .mem_telemetry import rss_mb
+
+    start_rss_mb = rss_mb()
+
     plan.output_dir.mkdir(parents=True, exist_ok=True)
     subset_ids_dir = plan.output_dir / "d_map_subsets"
+    context_rss_log: Dict[str, float] = {}
     capability_contexts = build_d_map_capability_contexts(
         STAGE8_BASE_SEED, subset_ids_dir, plan.d_map_n,
         load_capability_benchmark_config=load_capability_benchmark_config, load_adapter=load_adapter,
+        rss_checkpoint=lambda label, value: context_rss_log.__setitem__(label, value),
     )
     for capability, ctx in capability_contexts.items():
         write_data_role_manifest(ctx.partition, plan.output_dir / "data_roles" / f"{capability}_d_map.json")
 
-    seed_bank = build_stage8_direction_seed_bank(STAGE8_BASE_SEED, plan.regions, plan.n_directions_per_cell)
-    (plan.output_dir / "direction_family_manifest.json").write_text(json.dumps(
-        {"regions": list(plan.regions), "n_directions_per_cell": plan.n_directions_per_cell,
-         "seed_bank": {r: list(s) for r, s in seed_bank.items()},
-         "direction_seed_bank_hash": compute_direction_seed_bank_hash(seed_bank)}, indent=2,
-    ))
+    seed_bank = None
+    if not args.baseline_memory_smoke:
+        # --baseline-memory-smoke never touches the perturbation population -- no direction
+        # seed bank is needed or persisted for that mode.
+        seed_bank = build_stage8_direction_seed_bank(STAGE8_BASE_SEED, plan.regions, plan.n_directions_per_cell)
+        (plan.output_dir / "direction_family_manifest.json").write_text(json.dumps(
+            {"regions": list(plan.regions), "n_directions_per_cell": plan.n_directions_per_cell,
+             "seed_bank": {r: list(s) for r, s in seed_bank.items()},
+             "direction_seed_bank_hash": compute_direction_seed_bank_hash(seed_bank)}, indent=2,
+        ))
 
     from transformers import AutoTokenizer
 
@@ -957,20 +1177,44 @@ def main(argv=None) -> int:
         print("Running baseline repeatability preflight (Section 4) before any Stage-8 perturbation...")
         preflight_report = run_baseline_repeatability_preflight_rpc(
             engine, capability_contexts, tokenizer, sampling_params, run_benchmark=run_benchmark,
+            generation_batch_size=plan.generation_batch_size,
         )
         (plan.output_dir / "baseline_repeatability_preflight.json").write_text(json.dumps(preflight_report, indent=2))
+
+        all_rss_values = [start_rss_mb, *context_rss_log.values(), *_extract_all_rss_values(preflight_report), rss_mb()]
+        peak_rss_mb = max(all_rss_values)
+        final_rss_mb_before_perturbations = rss_mb()
+        memory_diagnostic = {
+            "start_rss_mb": start_rss_mb, "capability_context_rss_mb": context_rss_log,
+            "peak_rss_mb": peak_rss_mb, "final_rss_mb": final_rss_mb_before_perturbations,
+            "peak_minus_start_mb": peak_rss_mb - start_rss_mb,
+            "generation_batch_size": plan.generation_batch_size,
+        }
+        (plan.output_dir / "baseline_memory_diagnostic.json").write_text(json.dumps(memory_diagnostic, indent=2))
+        print(
+            f"Memory diagnostic: start={start_rss_mb:.1f}MB peak={peak_rss_mb:.1f}MB "
+            f"final={final_rss_mb_before_perturbations:.1f}MB peak_minus_start={peak_rss_mb - start_rss_mb:.1f}MB"
+        )
+
         ensure_baseline_repeatability(preflight_report)
         print(f"Baseline repeatability preflight PASSED for all {len(preflight_report)} capabilities.")
 
-        records = run_stage8_rpc(
-            plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank,
-            region_param_names_by_region, parameter_mask_hash_by_region, run_benchmark=run_benchmark,
-        )
+        if args.baseline_memory_smoke:
+            print("--baseline-memory-smoke complete -- zero perturbations evaluated.")
+            records = None
+        else:
+            records = run_stage8_rpc(
+                plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank,
+                region_param_names_by_region, parameter_mask_hash_by_region, run_benchmark=run_benchmark,
+            )
     finally:
         if engines is not None:
             cleanup_engines(engines, pgs)
         elif ray_owned_by_us and ray.is_initialized():
             ray.shutdown()
+
+    if args.baseline_memory_smoke:
+        return 0
 
     manifest = write_stage8_run_manifest(plan.output_dir)
     print(f"Wrote {len(records)} result rows to {plan.output_dir / 'results.jsonl'}")

@@ -16,7 +16,7 @@ import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
 from .base import CapabilityBenchmark, Example, ExampleScore, ParsedPrediction
 from .box_iou import box_iou
@@ -145,7 +145,29 @@ def run_benchmark(
     tokenizer: Any,
     sampling_params: Any,
     allow_missing_image: bool = False,
+    max_requests_per_generate: Optional[int] = None,
+    rss_checkpoint: Optional[Callable[[str], None]] = None,
 ) -> RunResult:
+    """`max_requests_per_generate` (default None): when None, behaves EXACTLY as before -- one
+    single `llm.generate(requests, ...)` call over the whole example set, byte-identical to
+    every pre-existing caller (Stage 6/7 execution unchanged). When set to a positive int
+    (Stage 8, this repair pass -- the 576-candidate full run OOM'd at N=50 during the baseline
+    -repeatability preflight, driver RSS ~100.86 GB), `requests` is split into sequential
+    microbatches of that size, dispatched to `llm.generate` one at a time, with raw
+    generations concatenated in ORIGINAL example order -- execution/memory-bounding only, never
+    a scientific change: same prompts/images/tokenizer/sampling_params/parser/scorer, no
+    examples dropped or duplicated, identical final score.
+
+    `rss_checkpoint` (default None, zero overhead for every existing caller): an optional
+    `label -> None` callback invoked at "after_requests"/"after_generate"/"after_scoring" so a
+    caller (Stage 8's baseline-repeatability preflight) can record driver RSS at each stage
+    without this function importing psutil or knowing anything about Stage 8's own telemetry
+    schema.
+    """
+    def _checkpoint(label: str) -> None:
+        if rss_checkpoint is not None:
+            rss_checkpoint(label)
+
     prepared_images = [benchmark.prepare_image(ex) for ex in examples]
 
     if not allow_missing_image:
@@ -159,8 +181,22 @@ def run_benchmark(
 
     prompts_and_images = [(benchmark.build_prompt(ex), img) for ex, img in zip(examples, prepared_images)]
     requests = build_multimodal_requests(prompts_and_images, tokenizer)
-    outputs = llm.generate(requests, sampling_params, use_tqdm=True)
-    raw_generations = [o.outputs[0].text for o in outputs]
+    _checkpoint("after_requests")
+
+    if max_requests_per_generate is None or not requests:
+        outputs = llm.generate(requests, sampling_params, use_tqdm=True)
+        raw_generations = [o.outputs[0].text for o in outputs]
+        del outputs
+    else:
+        if max_requests_per_generate <= 0:
+            raise ValueError(f"max_requests_per_generate must be positive, got {max_requests_per_generate}")
+        raw_generations = []
+        for start in range(0, len(requests), max_requests_per_generate):
+            batch = requests[start:start + max_requests_per_generate]
+            outputs = llm.generate(batch, sampling_params, use_tqdm=True)
+            raw_generations.extend(o.outputs[0].text for o in outputs)
+            del outputs, batch
+    _checkpoint("after_generate")
 
     per_example: List[PerExampleResult] = []
     parser_failures = 0
@@ -178,6 +214,7 @@ def run_benchmark(
     if "primary_metric" not in metrics:
         raise ValueError(f"{type(benchmark).__name__}.aggregate_metrics() must include a 'primary_metric' key")
     metrics.setdefault("parser_failure_rate", parser_failures / len(per_example) if per_example else 0.0)
+    _checkpoint("after_scoring")
 
     return RunResult(per_example=per_example, aggregate_metrics=metrics)
 
