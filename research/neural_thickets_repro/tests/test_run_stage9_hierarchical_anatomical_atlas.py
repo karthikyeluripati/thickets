@@ -1,0 +1,678 @@
+"""Tests for run_stage9_hierarchical_anatomical_atlas.py -- CPU-only. The real GPU/Ray/vLLM
+engine is never launched; RPC dispatch is tested against a fake, persistent-worker-shaped
+engine (same philosophy as tests/test_run_stage8_coarse_anatomical_atlas.py), using REAL small
+torch tensors for the lifecycle tests that need genuine weight mutation/restoration.
+"""
+from types import SimpleNamespace
+
+import pytest
+import torch
+
+import neural_thickets_repro.run_stage9_hierarchical_anatomical_atlas as module
+from neural_thickets_repro.perturb_cpu import should_perturb
+from neural_thickets_repro.run_global_visual_thicket_pilot import CapabilityContext
+from neural_thickets_repro.run_stage7b_anatomical_calibration import (
+    ENABLE_PREFIX_CACHING,
+    MULTIMODAL_CACHE_POLICY,
+    PERTURBATION_MODE,
+    RADIUS_REALIZATION_METHOD,
+)
+from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import STAGE8_CAPABILITIES, STAGE8_RADII
+from neural_thickets_repro.thicket.anatomy_stage9 import STAGE9_CHILD_REGIONS, build_stage9_hierarchical_partition
+from neural_thickets_repro.thicket.data_roles import partition_data_roles
+from neural_thickets_repro.thicket.perturbation import PerturbationManifest
+from neural_thickets_repro.run_stage9_hierarchical_anatomical_atlas import (
+    STAGE8_AUTHORITATIVE_BASELINE,
+    STAGE9_CAPABILITIES,
+    STAGE9_D_MAP_N,
+    STAGE9_N_DIRECTIONS_PER_CELL,
+    STAGE9_RADII,
+    STAGE9_SMOKE_D_MAP_N,
+    STAGE9_SMOKE_N_DIRECTIONS,
+    DirectionSeedReuseViolationError,
+    IncompatibleStage9CheckpointError,
+    Stage9BaselineMismatchError,
+    Stage9CheckpointManifest,
+    Stage9DirectionAssignment,
+    build_stage9_checkpoint_manifest,
+    build_stage9_direction_seed_bank,
+    build_stage9_plan,
+    build_stage9_population,
+    build_stage9_smoke_plan,
+    compute_direction_seed_bank_hash,
+    compute_partition_audit_hash,
+    compute_stage9_run_signature,
+    ensure_stage9_baseline_matches_stage8,
+    ensure_stage9_checkpoint_manifest,
+    evaluate_one_stage9_candidate_rpc,
+    report_stage9_child_param_names,
+    run_stage9_baseline_equality_check,
+    run_stage9_rpc,
+    validate_stage9_direction_seed_reuse,
+)
+
+
+def _identity_ray_get(x):
+    return x
+
+
+@pytest.fixture(autouse=True)
+def _fake_encoder_cache_reset(monkeypatch):
+    def _fake_reset(engine):
+        if hasattr(engine, "calls"):
+            engine.calls.append("reset_vllm_encoder_cache_full")
+    monkeypatch.setattr(module, "reset_vllm_encoder_cache_full", _fake_reset)
+
+
+# =================================================================================================
+# 1. Frozen full config
+# =================================================================================================
+
+
+def test_stage9_uses_exactly_six_child_regions():
+    assert set(STAGE9_CHILD_REGIONS) == {
+        "vision_early", "vision_mid", "vision_late", "language_early", "language_mid", "language_late",
+    }
+    assert len(STAGE9_CHILD_REGIONS) == 6
+
+
+def test_stage9_radii_reused_by_identity_from_stage8():
+    assert STAGE9_RADII == STAGE8_RADII == (0.0035698828543799426, 0.017849414271899712, 0.07139765708759885)
+
+
+def test_stage9_capabilities_reused_by_identity_from_stage8():
+    assert STAGE9_CAPABILITIES == STAGE8_CAPABILITIES
+    assert len(STAGE9_CAPABILITIES) == 6
+
+
+def test_stage9_d_map_n_reused_by_identity_from_stage8():
+    assert STAGE9_D_MAP_N == 50
+
+
+def test_stage9_n_directions_per_cell_is_64():
+    assert STAGE9_N_DIRECTIONS_PER_CELL == 64
+
+
+def test_default_stage9_plan_is_the_frozen_full_identity():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert set(plan.child_regions) == set(STAGE9_CHILD_REGIONS)
+    assert plan.radii == STAGE9_RADII
+    assert plan.capabilities == STAGE9_CAPABILITIES
+    assert plan.n_directions_per_cell == 64
+    assert plan.d_map_n == 50
+    assert plan.generation_batch_size == 10
+    assert plan.is_smoke is False
+    assert plan.run_signature == "stage9_hierarchical_anatomical_atlas_3b_v1"
+
+
+def test_full_stage9_plan_totals_1152_perturbations_6912_rows_345600_evaluations():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert plan.total_unique_perturbations == 6 * 3 * 64 == 1152
+    assert plan.total_perturbation_capability_evaluations == 1152 * 6 == 6912
+    assert plan.total_perturbed_model_example_evaluations == 6912 * 50 == 345_600
+
+
+def test_stage9_plan_prefix_caching_and_batch_size():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert plan.enable_prefix_caching is False
+    assert plan.generation_batch_size == 10
+    assert module.ENABLE_PREFIX_CACHING == ENABLE_PREFIX_CACHING is False
+    assert module.MULTIMODAL_CACHE_POLICY == MULTIMODAL_CACHE_POLICY == "full_encoder_reset_vllm011_verified_v2"
+    assert module.RADIUS_REALIZATION_METHOD == RADIUS_REALIZATION_METHOD == "fixed_direction_bf16_quantization_aware_v3"
+
+
+def test_build_stage9_plan_rejects_empty_child_regions():
+    with pytest.raises(ValueError):
+        build_stage9_plan(model_name="m", model_revision="rev1", output_root="out", child_regions=())
+
+
+def test_build_stage9_plan_rejects_unrecognized_d_map_size():
+    with pytest.raises(module.DatasetRoleViolationError):
+        build_stage9_plan(model_name="m", model_revision="rev1", output_root="out", d_map_n=17)
+
+
+def test_build_stage9_plan_rejects_non_positive_batch_size():
+    with pytest.raises(ValueError):
+        build_stage9_plan(model_name="m", model_revision="rev1", output_root="out", generation_batch_size=0)
+
+
+# =================================================================================================
+# 2. Smoke config
+# =================================================================================================
+
+
+def test_smoke_plan_totals_18_perturbations_108_rows_540_evaluations():
+    plan = build_stage9_smoke_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert plan.is_smoke is True
+    assert set(plan.child_regions) == set(STAGE9_CHILD_REGIONS)
+    assert plan.radii == STAGE9_RADII
+    assert plan.capabilities == STAGE9_CAPABILITIES
+    assert plan.total_unique_perturbations == 6 * 3 * 1 == 18
+    assert plan.total_perturbation_capability_evaluations == 18 * 6 == 108
+    assert plan.total_perturbed_model_example_evaluations == 108 * 5 == 540
+
+
+def test_smoke_and_full_plans_never_share_an_output_directory():
+    full_plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    smoke_plan = build_stage9_smoke_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert full_plan.output_dir != smoke_plan.output_dir
+    assert full_plan.run_signature != smoke_plan.run_signature
+
+
+def test_compute_stage9_run_signature_never_returns_the_full_literal_for_any_deviation():
+    sig = compute_stage9_run_signature(STAGE9_CHILD_REGIONS, STAGE9_RADII, 1, 5)
+    assert sig != "stage9_hierarchical_anatomical_atlas_3b_v1"
+    assert sig.startswith("stage9_smoke_")
+
+
+# =================================================================================================
+# 3. Direction-family seed bank + population (per child region)
+# =================================================================================================
+
+
+def test_direction_seed_bank_has_64_seeds_per_child_region_for_the_full_config():
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, STAGE9_CHILD_REGIONS, 64)
+    assert set(bank.keys()) == set(STAGE9_CHILD_REGIONS)
+    for region, seeds in bank.items():
+        assert len(seeds) == 64
+        assert len(set(seeds)) == 64
+
+
+def test_direction_seed_bank_is_deterministic():
+    bank1 = build_stage9_direction_seed_bank(42, STAGE9_CHILD_REGIONS, 8)
+    bank2 = build_stage9_direction_seed_bank(42, STAGE9_CHILD_REGIONS, 8)
+    assert bank1 == bank2
+
+
+def test_stage9_seed_namespace_is_independent_of_stage8():
+    """Even for a superficially similar region label, Stage 9's seed bank must be an
+    independent stream from Stage 8's own (different derive_seed namespace string).
+    """
+    from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import build_stage8_direction_seed_bank
+
+    stage9_bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, ("vision_early",), 4)
+    stage8_bank = build_stage8_direction_seed_bank(module.STAGE9_BASE_SEED, ("vision_early",), 4)
+    assert stage9_bank["vision_early"] != stage8_bank["vision_early"]
+
+
+def test_same_direction_seed_reused_across_all_radii_within_a_child_region():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out", n_directions_per_cell=4)
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    mask_hashes = {r: f"hash_{r}" for r in plan.child_regions}
+    population = build_stage9_population(plan, bank, mask_hashes)
+
+    for region in plan.child_regions:
+        seeds_per_radius = [[a.direction_seed for a in population[(region, radius)]] for radius in plan.radii]
+        assert all(s == seeds_per_radius[0] for s in seeds_per_radius), f"region {region} seed sequence differs across radii"
+
+
+def test_population_has_1152_unique_perturbation_ids_for_the_full_config():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    mask_hashes = {r: f"hash_{r}" for r in plan.child_regions}
+    population = build_stage9_population(plan, bank, mask_hashes)
+    all_ids = [a.manifest.perturbation_id for cell in population.values() for a in cell]
+    assert len(all_ids) == 1152
+    assert len(set(all_ids)) == 1152
+
+
+def test_validate_stage9_direction_seed_reuse_passes_for_a_correct_population():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out", n_directions_per_cell=4)
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    mask_hashes = {r: f"hash_{r}" for r in plan.child_regions}
+    population = build_stage9_population(plan, bank, mask_hashes)
+    validate_stage9_direction_seed_reuse(plan, population)  # must not raise
+
+
+def test_validate_stage9_direction_seed_reuse_detects_wrong_repeat_count():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out", n_directions_per_cell=4)
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    mask_hashes = {r: f"hash_{r}" for r in plan.child_regions}
+    population = dict(build_stage9_population(plan, bank, mask_hashes))
+    del population[("vision_early", plan.radii[-1])]
+    with pytest.raises(DirectionSeedReuseViolationError):
+        validate_stage9_direction_seed_reuse(plan, population)
+
+
+def test_no_cross_child_region_direction_pairing_assumption():
+    """Direction index i in vision_early and direction index i in language_early must have
+    DIFFERENT seeds (no accidental cross-anatomy geometric pairing) -- confirmed empirically for
+    the frozen full config, since the two regions' name strings differ in derive_seed's input.
+    """
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, STAGE9_CHILD_REGIONS, 8)
+    assert bank["vision_early"] != bank["language_early"]
+    assert bank["vision_early"][0] != bank["language_early"][0]
+
+
+# =================================================================================================
+# 4. Checkpoint identity
+# =================================================================================================
+
+
+def _fake_contexts(n=5):
+    contexts = {}
+    for capability in STAGE9_CAPABILITIES:
+        ids = [f"{capability}_{i}" for i in range(n)]
+        partition = partition_data_roles(ids, sizes={"map": n}, seed=1)
+        contexts[capability] = CapabilityContext(capability=capability, benchmark=None, examples=[], partition=partition, subset_hash=partition.manifest_hash, base_score=0.5)
+    return contexts
+
+
+def _region_mask_hashes(plan):
+    return {r: f"hash_{r}" for r in plan.child_regions}
+
+
+def _fake_audits(plan):
+    children, audits = build_stage9_hierarchical_partition(_real_shaped_param_names())
+    return audits
+
+
+def _real_shaped_param_names(n_layers=12):
+    import torch.nn as nn
+
+    class DummyVisual32Blocks(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.patch_embed = nn.Linear(4, 4, bias=False)
+            self.blocks = nn.ModuleList([nn.Linear(4, 4, bias=False) for _ in range(32)])
+            self.merger = nn.Linear(4, 4, bias=False)
+
+    class LangLayer(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.self_attn = nn.Linear(4, 4, bias=False)
+
+    class LangModelInner(nn.Module):
+        def __init__(self, n):
+            super().__init__()
+            self.embed_tokens = nn.Embedding(10, 4)
+            self.layers = nn.ModuleList([LangLayer() for _ in range(n)])
+            self.norm = nn.Linear(4, 4, bias=False)
+
+    class LangModel(nn.Module):
+        def __init__(self, n):
+            super().__init__()
+            self.model = LangModelInner(n)
+
+    class VLM(nn.Module):
+        def __init__(self, n):
+            super().__init__()
+            self.visual = DummyVisual32Blocks()
+            self.language_model = LangModel(n)
+
+    return [n for n, _ in VLM(n_layers).named_parameters()]
+
+
+def test_checkpoint_manifest_includes_partition_audit_hash_and_stage8_parent_signature():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    audits = _fake_audits(plan)
+    checkpoint = build_stage9_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank, audits)
+    assert checkpoint.partition_audit_hash == compute_partition_audit_hash(audits)
+    assert checkpoint.stage8_parent_run_signature == module.STAGE8_PARENT_RUN_SIGNATURE
+    assert checkpoint.expected_unique_perturbations == 1152
+    assert checkpoint.expected_result_rows == 6912
+
+
+def test_checkpoint_manifest_round_trips_through_json():
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    audits = _fake_audits(plan)
+    checkpoint = build_stage9_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank, audits)
+    restored = Stage9CheckpointManifest.from_dict(checkpoint.to_dict())
+    assert restored == checkpoint
+
+
+def test_ensure_stage9_checkpoint_manifest_creates_when_absent(tmp_path):
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path))
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    audits = _fake_audits(plan)
+    checkpoint = build_stage9_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank, audits)
+    path = tmp_path / "checkpoint_manifest.json"
+    result = ensure_stage9_checkpoint_manifest(path, checkpoint)
+    assert path.exists()
+    assert result == checkpoint
+
+
+def test_ensure_stage9_checkpoint_manifest_hard_fails_on_partition_audit_mismatch(tmp_path):
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path))
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    audits_a = _fake_audits(plan)
+    audits_b = {k: v for k, v in audits_a.items()}
+    audits_b["vision"] = audits_b["vision"].__class__(
+        parent="vision", child_band_names=audits_b["vision"].child_band_names,
+        uncovered_tensors=("fake.tensor",), uncovered_tensor_assignment={"fake.tensor": "early"},
+        union_equals_parent=True, children_pairwise_disjoint=True,
+    )
+    checkpoint_a = build_stage9_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank, audits_a)
+    checkpoint_b = build_stage9_checkpoint_manifest(plan, _fake_contexts(), _region_mask_hashes(plan), bank, audits_b)
+    path = tmp_path / "checkpoint_manifest.json"
+    ensure_stage9_checkpoint_manifest(path, checkpoint_a)
+    with pytest.raises(IncompatibleStage9CheckpointError):
+        ensure_stage9_checkpoint_manifest(path, checkpoint_b)
+
+
+def test_ensure_stage9_checkpoint_manifest_hard_fails_on_generation_batch_size_mismatch(tmp_path):
+    plan_a = build_stage9_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path), generation_batch_size=10)
+    plan_b = build_stage9_plan(model_name="m", model_revision="rev1", output_root=str(tmp_path), generation_batch_size=5)
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan_a.child_regions, plan_a.n_directions_per_cell)
+    audits = _fake_audits(plan_a)
+    checkpoint_a = build_stage9_checkpoint_manifest(plan_a, _fake_contexts(), _region_mask_hashes(plan_a), bank, audits)
+    checkpoint_b = build_stage9_checkpoint_manifest(plan_b, _fake_contexts(), _region_mask_hashes(plan_b), bank, audits)
+    assert checkpoint_a != checkpoint_b
+    # Same output_dir would be forced here since batch size doesn't change run_signature by
+    # itself in this module (unlike Stage 8) -- confirm the checkpoint dataclass equality still
+    # catches the difference so a resume attempt would be rejected.
+    path = tmp_path / "checkpoint_manifest.json"
+    ensure_stage9_checkpoint_manifest(path, checkpoint_a)
+    with pytest.raises(IncompatibleStage9CheckpointError):
+        ensure_stage9_checkpoint_manifest(path, checkpoint_b)
+
+
+# =================================================================================================
+# 5. Stage-8 baseline equality hard gate
+# =================================================================================================
+
+
+def test_baseline_equality_check_passes_when_all_match():
+    baseline_scores = {"capabilities": {cap: {"score": score} for cap, score in STAGE8_AUTHORITATIVE_BASELINE.items()}}
+    report = run_stage9_baseline_equality_check(baseline_scores)
+    assert report["all_match"] is True
+    ensure_stage9_baseline_matches_stage8(report)  # must not raise
+
+
+def test_baseline_equality_check_hard_fails_on_a_single_mismatch():
+    baseline_scores = {"capabilities": {cap: {"score": score} for cap, score in STAGE8_AUTHORITATIVE_BASELINE.items()}}
+    baseline_scores["capabilities"]["fine_grained_recognition"]["score"] = 0.99
+    report = run_stage9_baseline_equality_check(baseline_scores)
+    assert report["all_match"] is False
+    assert report["fine_grained_recognition"]["matches"] is False
+    with pytest.raises(Stage9BaselineMismatchError, match="fine_grained_recognition"):
+        ensure_stage9_baseline_matches_stage8(report)
+
+
+def test_authoritative_stage8_baseline_values_match_the_frozen_spec():
+    assert STAGE8_AUTHORITATIVE_BASELINE == {
+        "visual_grounding": 0.880, "counting": 0.680, "spatial_reasoning": 0.700,
+        "ocr_text_recognition_grounded": 0.938, "relational_reasoning": 0.540, "fine_grained_recognition": 0.420,
+    }
+
+
+def test_baseline_equality_check_never_averages_missing_score():
+    baseline_scores = {"capabilities": {}}  # no scores at all
+    report = run_stage9_baseline_equality_check(baseline_scores)
+    assert report["all_match"] is False
+    with pytest.raises(Stage9BaselineMismatchError):
+        ensure_stage9_baseline_matches_stage8(report)
+
+
+# =================================================================================================
+# 6. report_stage9_child_param_names -- live partition audit inside the worker
+# =================================================================================================
+
+
+def test_report_stage9_child_param_names_returns_all_six_regions_with_hashes():
+    class _FakeModel:
+        def named_parameters(self_inner):
+            return [(n, None) for n in _real_shaped_param_names()]
+
+    worker_self = SimpleNamespace(model_runner=SimpleNamespace(model=_FakeModel()))
+    result = report_stage9_child_param_names(worker_self, STAGE9_CHILD_REGIONS)
+    assert set(result["regions"].keys()) == set(STAGE9_CHILD_REGIONS)
+    for region, info in result["regions"].items():
+        assert "param_names" in info and "mask_hash" in info
+    assert set(result["audits"].keys()) == {"vision", "language"}
+    for parent, audit in result["audits"].items():
+        assert audit["union_equals_parent"] is True
+        assert audit["children_pairwise_disjoint"] is True
+
+
+# =================================================================================================
+# 7. Real-tensor candidate lifecycle
+# =================================================================================================
+
+
+class _FakeStage9Engine:
+    def __init__(self, model):
+        self._model = model
+        self._base_weights = None
+        self.calls = []
+        self._worker_self = SimpleNamespace(
+            model_runner=SimpleNamespace(model=model),
+            reset_to_base_weights=self._reset_to_base_weights,
+            _should_perturb=should_perturb,
+        )
+        self.collective_rpc = SimpleNamespace(remote=self._collective_rpc)
+
+    def store_base_weights(self):
+        self._base_weights = {name: p.detach().clone() for name, p in self._model.named_parameters()}
+        self._worker_self._base_weights = self._base_weights
+
+    def _reset_to_base_weights(self):
+        if self._base_weights is None:
+            raise RuntimeError("store_base_weights not called")
+        with torch.no_grad():
+            for name, p in self._model.named_parameters():
+                p.copy_(self._base_weights[name])
+
+    def _collective_rpc(self, method, args=()):
+        label = method if isinstance(method, str) else getattr(method, "__name__", "callable")
+        self.calls.append(label)
+        if method == "reset_to_base_weights":
+            self._reset_to_base_weights()
+            return [True]
+        if callable(method):
+            return [method(self._worker_self, *args)]
+        raise ValueError(f"unsupported method {method!r}")
+
+
+class _FakeStage9RunResult:
+    def __init__(self, primary_metric=0.6):
+        self.aggregate_metrics = {"primary_metric": primary_metric, "parser_failure_rate": 0.0}
+
+    def generation_hash(self):
+        return "fakehash"
+
+
+def _fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+    return _FakeStage9RunResult(primary_metric=0.6)
+
+
+def _build_assignment_and_engine(model, *, child_region="language_mid", radius=0.05, seed=42, direction_index=0):
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    region = children[child_region]
+    manifest = PerturbationManifest(
+        seed=seed, perturbation_mode=PERTURBATION_MODE, model_family="qwen2_5_vl", model_scale="3B",
+        model_revision="rev1", parameter_mask_hash=region.mask_hash,
+        anatomy_region=child_region, radius=radius, sigma=None,
+    )
+    assignment = Stage9DirectionAssignment(manifest=manifest, child_region=child_region, direction_index=direction_index, direction_seed=seed)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+    return assignment, engine, region.param_names
+
+
+def test_evaluate_one_stage9_candidate_rpc_produces_a_record_per_capability(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+
+    records = evaluate_one_stage9_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+
+    assert len(records) == 6
+    assert {r.capability for r in records} == set(STAGE9_CAPABILITIES)
+    for r in records:
+        assert r.experiment_id == module.EXPERIMENT_ID
+        assert r.anatomy_region == "language_mid"
+        assert r.perturbed_score == pytest.approx(0.6)
+        assert r.runtime_metadata["child_region"] == "language_mid"
+        assert r.runtime_metadata["direction_family_id"] == "language_mid:0"
+        assert r.runtime_metadata["direction_seed"] == 42
+        assert r.runtime_metadata["cache_reset_after_restoration"] is True
+        assert r.runtime_metadata["generation_batch_size"] == 10
+
+
+def test_evaluate_one_stage9_candidate_rpc_restores_exactly(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    base_snapshot = {k: v.clone() for k, v in engine._base_weights.items()}
+    contexts = _fake_contexts()
+
+    evaluate_one_stage9_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+
+    for name, p in model.named_parameters():
+        assert torch.equal(p.detach(), base_snapshot[name])
+
+
+def test_evaluate_one_stage9_candidate_rpc_resets_cache_twice(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+    engine.calls.clear()
+
+    evaluate_one_stage9_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+
+    assert engine.calls[-3:] == ["reset_to_base_weights", "verify_exact_fixed_base_restoration_rpc", "reset_vllm_encoder_cache_full"]
+    assert engine.calls.count("reset_vllm_encoder_cache_full") == 2
+
+
+def test_evaluate_one_stage9_candidate_rpc_never_touches_outside_child_region(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model, child_region="vision_early")
+    contexts = _fake_contexts()
+    region_names = set(region_param_names)
+    outside_before = {n: p.detach().clone() for n, p in model.named_parameters() if n not in region_names}
+
+    evaluate_one_stage9_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+
+    for name, p in model.named_parameters():
+        if name not in region_names:
+            assert torch.equal(p.detach(), outside_before[name])
+
+
+def test_evaluate_one_stage9_candidate_rpc_threads_generation_batch_size(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    assignment, engine, region_param_names = _build_assignment_and_engine(model)
+    contexts = _fake_contexts()
+    seen = []
+
+    def _capturing_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        seen.append(kwargs.get("max_requests_per_generate"))
+        return _FakeStage9RunResult(primary_metric=0.6)
+
+    evaluate_one_stage9_candidate_rpc(
+        engine, assignment, region_param_names, contexts, tokenizer=None, sampling_params=None,
+        run_benchmark=_capturing_run_benchmark, ray_get=_identity_ray_get, generation_batch_size=10,
+    )
+    assert set(seen) == {10}
+    assert len(seen) == 6
+
+
+def test_evaluate_one_stage9_candidate_rpc_rejects_wrong_perturbation_mode(runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    bad_manifest = PerturbationManifest(
+        seed=1, perturbation_mode="global_gaussian_upstream", model_family="qwen2_5_vl", model_scale="3B",
+        model_revision="rev1", parameter_mask_hash="h", anatomy_region=None, radius=None, sigma=0.001,
+    )
+    assignment = Stage9DirectionAssignment(manifest=bad_manifest, child_region="language_mid", direction_index=0, direction_seed=1)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+
+    with pytest.raises(ValueError):
+        evaluate_one_stage9_candidate_rpc(
+            engine, assignment, children["language_mid"].param_names, _fake_contexts(), tokenizer=None,
+            sampling_params=None, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+
+
+# =================================================================================================
+# 8. run_stage9_rpc: checkpoint-only-after-full-success + resume
+# =================================================================================================
+
+
+def test_run_stage9_rpc_persists_rows_only_after_full_success(tmp_path, runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    region_param_names_by_region = {"language_mid": children["language_mid"].param_names}
+    mask_hashes = {"language_mid": children["language_mid"].mask_hash}
+
+    plan = build_stage9_plan(
+        model_name="qwen2_5_vl_3b", model_revision="rev1", output_root=str(tmp_path),
+        child_regions=("language_mid",), radii=(0.05,), n_directions_per_cell=2, d_map_n=5,
+    )
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    contexts = _fake_contexts(n=5)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+
+    records = run_stage9_rpc(
+        plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
+        audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+
+    assert len(records) == 2 * 6
+    results_path = plan.output_dir / "results.jsonl"
+    assert results_path.exists()
+    assert len(results_path.read_text().strip().split("\n")) == 12
+    assert (plan.output_dir / "checkpoint_manifest.json").exists()
+
+
+def test_run_stage9_rpc_resumes_skipping_completed_candidates(tmp_path, runtime_wrapped_vlm_32vision_factory):
+    model = runtime_wrapped_vlm_32vision_factory()
+    names = [n for n, _ in model.named_parameters()]
+    children, audits = build_stage9_hierarchical_partition(names)
+    region_param_names_by_region = {"language_mid": children["language_mid"].param_names}
+    mask_hashes = {"language_mid": children["language_mid"].mask_hash}
+
+    plan = build_stage9_plan(
+        model_name="qwen2_5_vl_3b", model_revision="rev1", output_root=str(tmp_path),
+        child_regions=("language_mid",), radii=(0.05,), n_directions_per_cell=2, d_map_n=5,
+    )
+    bank = build_stage9_direction_seed_bank(module.STAGE9_BASE_SEED, plan.child_regions, plan.n_directions_per_cell)
+    contexts = _fake_contexts(n=5)
+    engine = _FakeStage9Engine(model)
+    engine.store_base_weights()
+
+    run_stage9_rpc(
+        plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
+        audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    records_again = run_stage9_rpc(
+        plan, contexts, engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        child_region_param_names_by_region=region_param_names_by_region, child_mask_hash_by_region=mask_hashes,
+        audits=audits, run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    assert len(records_again) == 12
+    results_path = plan.output_dir / "results.jsonl"
+    assert len(results_path.read_text().strip().split("\n")) == 12  # never duplicated
+
+
+# =================================================================================================
+# 9. No best-radius / no capability-optimization selection logic
+# =================================================================================================
+
+
+def test_no_best_radius_or_capability_selection_logic_exists():
+    import inspect
+
+    source = inspect.getsource(module)
+    for forbidden in ("best_radius", "select_best", "optimal_radius", "top_capability"):
+        assert forbidden not in source
