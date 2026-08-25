@@ -676,3 +676,230 @@ def test_no_best_radius_or_capability_selection_logic_exists():
     source = inspect.getsource(module)
     for forbidden in ("best_radius", "select_best", "optimal_radius", "top_capability"):
         assert forbidden not in source
+
+
+# =================================================================================================
+# 10. Mode-aware baseline gate (this repair pass -- smoke N=5 vs full N=50 gate bug fix)
+# =================================================================================================
+
+
+def test_full_mode_still_uses_exact_stage8_n50_equality_check():
+    """Section 1: full mode must be UNCHANGED -- exact equality against the authoritative
+    Stage-8 N=50 baseline, still a hard stop on mismatch.
+    """
+    baseline_scores = {"capabilities": {cap: {"score": score} for cap, score in module.STAGE8_AUTHORITATIVE_BASELINE.items()}}
+    report = module.run_stage9_baseline_equality_check(baseline_scores)
+    assert report["all_match"] is True
+    module.ensure_stage9_baseline_matches_stage8(report)  # must not raise
+
+
+def test_full_mode_mismatch_still_hard_fails():
+    baseline_scores = {"capabilities": {cap: {"score": score} for cap, score in module.STAGE8_AUTHORITATIVE_BASELINE.items()}}
+    baseline_scores["capabilities"]["counting"]["score"] = 0.5  # not 0.680
+    report = module.run_stage9_baseline_equality_check(baseline_scores)
+    assert report["all_match"] is False
+    with pytest.raises(module.Stage9BaselineMismatchError):
+        module.ensure_stage9_baseline_matches_stage8(report)
+
+
+def test_full_mode_requires_stage8_n50_subset_hashes():
+    contexts = {
+        cap: SimpleNamespace(subset_hash=expected)
+        for cap, expected in module.STAGE8_AUTHORITATIVE_SUBSET_HASHES.items()
+    }
+    report = module.run_stage9_subset_hash_check(contexts)
+    assert report["all_match"] is True
+    module.ensure_stage9_subset_hashes_match_stage8(report)  # must not raise
+
+
+def test_full_mode_subset_hash_mismatch_hard_fails():
+    contexts = {
+        cap: SimpleNamespace(subset_hash=expected)
+        for cap, expected in module.STAGE8_AUTHORITATIVE_SUBSET_HASHES.items()
+    }
+    contexts["spatial_reasoning"] = SimpleNamespace(subset_hash="some_other_hash_from_a_reshuffled_subset")
+    report = module.run_stage9_subset_hash_check(contexts)
+    assert report["all_match"] is False
+    with pytest.raises(module.Stage9SubsetHashMismatchError):
+        module.ensure_stage9_subset_hashes_match_stage8(report)
+
+
+class _FakeStage9BaselineEngine:
+    def __init__(self):
+        self.calls = []
+
+
+class _FakeStage9RunResultDeterministic:
+    def __init__(self, primary_metric=0.5, gen="samehash", parsed="sameparsed"):
+        self.aggregate_metrics = {"primary_metric": primary_metric, "parser_failure_rate": 0.0}
+        self._gen = gen
+        self._parsed = parsed
+
+    def generation_hash(self):
+        return self._gen
+
+    def parsed_prediction_hash(self):
+        return self._parsed
+
+
+def _fake_reset_to_base_weights_via_rpc_stage8(engine, *, ray_get=None):
+    engine.calls.append("reset_to_base_weights_via_rpc")
+
+
+@pytest.fixture
+def _patch_stage8_reset_functions(monkeypatch):
+    """run_baseline_repeatability_preflight_rpc is reused BY IDENTITY from Stage 8's own
+    module -- its internal reset_vllm_encoder_cache_full/reset_to_base_weights_via_rpc calls
+    are bound in STAGE 8's namespace, not Stage 9's, so they must be patched there.
+    """
+    import neural_thickets_repro.run_stage8_coarse_anatomical_atlas as stage8_module
+
+    def _fake_reset_cache(engine):
+        if hasattr(engine, "calls"):
+            engine.calls.append("reset_vllm_encoder_cache_full")
+
+    monkeypatch.setattr(stage8_module, "reset_vllm_encoder_cache_full", _fake_reset_cache)
+    monkeypatch.setattr(stage8_module, "reset_to_base_weights_via_rpc", _fake_reset_to_base_weights_via_rpc_stage8)
+
+
+def test_smoke_mode_never_compares_n5_score_to_stage8_n50_baseline(_patch_stage8_reset_functions):
+    """The smoke repeatability report/gate never even RECEIVES the Stage-8 N=50 baseline values
+    as an input -- architecturally impossible for it to compare against them, unlike the prior
+    bug where the N=50 equality function was called on N=5 live data.
+    """
+    engine = _FakeStage9BaselineEngine()
+    contexts = _fake_contexts(n=5)  # smoke-shaped: N=5 examples per capability
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        return _FakeStage9RunResultDeterministic(primary_metric=0.8)  # deliberately NOT any Stage-8 N=50 value
+
+    from neural_thickets_repro.run_stage9_hierarchical_anatomical_atlas import build_stage9_baseline_gate_report
+
+    repeatability_report = module.run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    gate_report = build_stage9_baseline_gate_report(is_smoke=True, d_map_n=5, smoke_repeatability_report=repeatability_report)
+    assert gate_report["baseline_gate_mode"] == "smoke_n5_repeatability"
+    assert "baseline_equality" not in gate_report  # never present in smoke mode
+    assert gate_report["d_map_n"] == 5
+    module.ensure_stage9_baseline_gate_passes(gate_report)  # deterministic (0.8==0.8) -- must not raise
+
+
+def test_smoke_mode_performs_two_pass_theta0_repeatability(_patch_stage8_reset_functions):
+    engine = _FakeStage9BaselineEngine()
+    contexts = _fake_contexts(n=1)
+    call_count = {"n": 0}
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        call_count["n"] += 1
+        return _FakeStage9RunResultDeterministic()
+
+    module.run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    assert call_count["n"] == 2 * len(STAGE9_CAPABILITIES)
+    assert engine.calls.count("reset_to_base_weights_via_rpc") == 2 * len(STAGE9_CAPABILITIES)
+    assert engine.calls.count("reset_vllm_encoder_cache_full") == 2 * len(STAGE9_CAPABILITIES)
+
+
+def test_smoke_mode_hard_fails_on_generation_hash_mismatch(_patch_stage8_reset_functions):
+    from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import BaselineNondeterminismError
+
+    engine = _FakeStage9BaselineEngine()
+    contexts = _fake_contexts(n=1)
+    call_count = {"n": 0}
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] % 2 == 0:
+            return _FakeStage9RunResultDeterministic(gen="different_hash_pass_b")
+        return _FakeStage9RunResultDeterministic()
+
+    repeatability_report = module.run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    gate_report = module.build_stage9_baseline_gate_report(is_smoke=True, d_map_n=5, smoke_repeatability_report=repeatability_report)
+    with pytest.raises(BaselineNondeterminismError):
+        module.ensure_stage9_baseline_gate_passes(gate_report)
+
+
+def test_smoke_mode_hard_fails_on_parsed_prediction_hash_mismatch(_patch_stage8_reset_functions):
+    from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import BaselineNondeterminismError
+
+    engine = _FakeStage9BaselineEngine()
+    contexts = _fake_contexts(n=1)
+    call_count = {"n": 0}
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] % 2 == 0:
+            return _FakeStage9RunResultDeterministic(parsed="different_parsed_pass_b")
+        return _FakeStage9RunResultDeterministic()
+
+    repeatability_report = module.run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    gate_report = module.build_stage9_baseline_gate_report(is_smoke=True, d_map_n=5, smoke_repeatability_report=repeatability_report)
+    with pytest.raises(BaselineNondeterminismError):
+        module.ensure_stage9_baseline_gate_passes(gate_report)
+
+
+def test_smoke_mode_hard_fails_on_score_mismatch(_patch_stage8_reset_functions):
+    from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import BaselineNondeterminismError
+
+    engine = _FakeStage9BaselineEngine()
+    contexts = _fake_contexts(n=1)
+    call_count = {"n": 0}
+
+    def fake_run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        call_count["n"] += 1
+        if call_count["n"] % 2 == 0:
+            return _FakeStage9RunResultDeterministic(primary_metric=0.99)
+        return _FakeStage9RunResultDeterministic(primary_metric=0.5)
+
+    repeatability_report = module.run_baseline_repeatability_preflight_rpc(
+        engine, contexts, tokenizer=None, sampling_params=None, run_benchmark=fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    gate_report = module.build_stage9_baseline_gate_report(is_smoke=True, d_map_n=5, smoke_repeatability_report=repeatability_report)
+    with pytest.raises(BaselineNondeterminismError):
+        module.ensure_stage9_baseline_gate_passes(gate_report)
+
+
+def test_baseline_gate_mode_is_persisted_for_both_modes():
+    smoke_report = {"deterministic": True, "score_match": True, "generation_hash_match": True, "parsed_prediction_hash_match": True}
+    smoke_gate = module.build_stage9_baseline_gate_report(
+        is_smoke=True, d_map_n=5, smoke_repeatability_report={"visual_grounding": smoke_report},
+    )
+    assert smoke_gate["baseline_gate_mode"] == "smoke_n5_repeatability"
+
+    full_equality = module.run_stage9_baseline_equality_check(
+        {"capabilities": {cap: {"score": score} for cap, score in module.STAGE8_AUTHORITATIVE_BASELINE.items()}}
+    )
+    full_subset = module.run_stage9_subset_hash_check(
+        {cap: SimpleNamespace(subset_hash=h) for cap, h in module.STAGE8_AUTHORITATIVE_SUBSET_HASHES.items()}
+    )
+    full_gate = module.build_stage9_baseline_gate_report(
+        is_smoke=False, d_map_n=50, full_equality_report=full_equality, full_subset_hash_report=full_subset,
+    )
+    assert full_gate["baseline_gate_mode"] == "stage8_full_exact_equality"
+
+
+def test_build_stage9_baseline_gate_report_requires_the_right_arguments_per_mode():
+    with pytest.raises(ValueError):
+        module.build_stage9_baseline_gate_report(is_smoke=True, d_map_n=5)  # missing smoke_repeatability_report
+    with pytest.raises(ValueError):
+        module.build_stage9_baseline_gate_report(is_smoke=False, d_map_n=50)  # missing full reports
+
+
+def test_ensure_stage9_baseline_gate_passes_never_silently_skips_an_unknown_mode():
+    with pytest.raises(ValueError):
+        module.ensure_stage9_baseline_gate_passes({"baseline_gate_mode": "some_unknown_mode"})
+
+
+def test_stage9_design_counts_unchanged_by_this_repair_pass():
+    full_plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert full_plan.total_unique_perturbations == 1152
+    assert full_plan.total_perturbation_capability_evaluations == 6912
+    smoke_plan = build_stage9_smoke_plan(model_name="m", model_revision="rev1", output_root="out")
+    assert smoke_plan.total_unique_perturbations == 18
+    assert smoke_plan.total_perturbation_capability_evaluations == 108

@@ -146,6 +146,8 @@ from .run_stage8_coarse_anatomical_atlas import (
     STAGE8_CAPABILITIES,
     STAGE8_D_MAP_N,
     STAGE8_RADII,
+    ensure_baseline_repeatability,
+    run_baseline_repeatability_preflight_rpc,
     _FULL_RUN_SIGNATURE_V2_BATCHED as STAGE8_PARENT_RUN_SIGNATURE,
 )
 from .scoped_anatomical_perturbation import (
@@ -204,6 +206,21 @@ STAGE8_AUTHORITATIVE_BASELINE: Dict[str, float] = {
     "fine_grained_recognition": 0.420,
 }
 
+# Authoritative Stage-8 D_map N=50 subset hashes, per capability -- from the completed
+# stage8_coarse_anatomical_atlas_3b_v2_batched10 run's own checkpoint/run manifest. FULL-mode
+# only (see ensure_stage9_subset_hashes_match_stage8): Stage 9's full run must reuse Stage 8's
+# EXACT frozen D_map manifests, never a re-shuffled/re-sampled subset. Never checked in smoke
+# mode -- an N=5 subset's manifest hash legitimately differs from the N=50 hash by construction
+# (different sample count), never a defect.
+STAGE8_AUTHORITATIVE_SUBSET_HASHES: Dict[str, str] = {
+    "visual_grounding": "22b70bcf4d278dbce11f8b8be793f318937a5e1d17a2bf855a4b395b56dd4ac5",
+    "counting": "0c3c6c75944ecdd00ab2c4d406cf5da449d375976a377e9d49b7305d4a98e33b",
+    "spatial_reasoning": "e371fc3dff529b61766e87558e3bed68de51082ee57d8d6859a9a13a331801a4",
+    "ocr_text_recognition_grounded": "3117bd779516420d50c44c2155e1a4ccc589c2fd67237f6b3245a00a00802ecb",
+    "relational_reasoning": "cf507f2d18ab763415153222513f373839813c6427bab1a2e62bdcaa27e42917",
+    "fine_grained_recognition": "7f710b0c998e93188806fccadab6a0263fee2405da976a16b792381720674f99",
+}
+
 
 class DatasetRoleViolationError(RuntimeError):
     """Something other than the 'map' dataset role was requested, or an unrecognized D_map
@@ -212,9 +229,21 @@ class DatasetRoleViolationError(RuntimeError):
 
 
 class Stage9BaselineMismatchError(RuntimeError):
-    """The live theta_0 baseline computed under Stage 9's own execution policy does not exactly
-    match the authoritative Stage-8 baseline for at least one capability. Hard stop BEFORE any
-    of the 1152 Stage-9 perturbations are evaluated -- never averaged, never silently replaced.
+    """FULL MODE ONLY: the live theta_0 baseline computed under Stage 9's own execution policy
+    (D_map N=50, Stage 8's own frozen manifests) does not exactly match the authoritative
+    Stage-8 baseline for at least one capability. Hard stop BEFORE any of the 1152 Stage-9
+    perturbations are evaluated -- never averaged, never silently replaced. Never raised in
+    smoke mode (D_map N=5) -- comparing an N=5 live score against an N=50 baseline is not a
+    meaningful equality check at all (this repair pass fixes exactly that prior bug); see
+    Stage9SmokeBaselineNondeterminismError for smoke mode's own, sample-size-appropriate gate.
+    """
+
+
+class Stage9SubsetHashMismatchError(RuntimeError):
+    """FULL MODE ONLY: the live D_map N=50 subset hash for at least one capability does not
+    match the authoritative Stage-8 N=50 subset hash -- Stage 9's full run must reuse Stage 8's
+    exact frozen D_map manifests, never a re-shuffled/re-sampled subset. Never checked in smoke
+    mode (see STAGE8_AUTHORITATIVE_SUBSET_HASHES's own docstring).
     """
 
 
@@ -652,11 +681,39 @@ def report_stage9_child_param_names(worker_self, child_regions: Sequence[str]) -
 
 
 # =============================================================================================
-# Baseline equality gate (Section 11)
+# Baseline gate -- MODE-AWARE (this repair pass: the smoke-mode N=5-vs-N=50 gate bug fix)
+# =============================================================================================
+#
+# ROOT CAUSE (live Stage-9 --smoke run): main() unconditionally ran the FULL-mode exact-equality
+# check (run_stage9_baseline_equality_check/ensure_stage9_baseline_matches_stage8) regardless of
+# --smoke, comparing a D_map N=5 live score against the authoritative D_map N=50 Stage-8
+# baseline. Exact numerical equality between two DIFFERENT sample sizes is not a meaningful
+# check at all -- it was guaranteed to spuriously fail (or, worse, spuriously pass by
+# coincidence) regardless of whether Stage 9's execution policy was actually correct. This is a
+# gate-selection bug, not a scientific-design or execution-policy problem: nothing about the
+# frozen 6 capabilities/3 radii/64 directions/child masks/v3 realization/cache policy/prefix
+# caching/generation batch size/model revision/Stage-8 baseline VALUES changes here.
+#
+# FIX: the baseline gate is now explicitly mode-dispatched (build_stage9_baseline_gate_report /
+# ensure_stage9_baseline_gate_passes), never silently skipped in either mode:
+#   - FULL (D_map N=50): UNCHANGED exact-equality check against STAGE8_AUTHORITATIVE_BASELINE,
+#     PLUS (new) an exact match of the live D_map subset hashes against
+#     STAGE8_AUTHORITATIVE_SUBSET_HASHES -- Stage 9's full run must reuse Stage 8's own frozen
+#     N=50 manifests, never a re-shuffled/re-sampled subset. Either mismatch remains a HARD STOP.
+#   - SMOKE (D_map N=5): a sample-size-appropriate REPEATABILITY gate instead -- reuses Stage
+#     8's own already-proven run_baseline_repeatability_preflight_rpc/ensure_baseline_
+#     repeatability BY IDENTITY (two full theta_0 resets + full encoder-cache resets +
+#     bounded-generation evaluation passes, exact score/generation_hash/parsed_prediction_hash
+#     equality required between the two passes) -- never compares the resulting N=5 score
+#     numerically to the N=50 Stage-8 baseline at all, architecturally: the function's own
+#     signature never receives STAGE8_AUTHORITATIVE_BASELINE as an input.
 # =============================================================================================
 
 
 def run_stage9_baseline_equality_check(baseline_scores: Dict[str, Any]) -> Dict[str, Any]:
+    """FULL MODE ONLY. Exact-equality check against the authoritative Stage-8 N=50 baseline --
+    UNCHANGED from before this repair pass. Never call this against a smoke (N=5) baseline.
+    """
     report: Dict[str, Any] = {}
     for capability, expected in STAGE8_AUTHORITATIVE_BASELINE.items():
         live_score = baseline_scores.get("capabilities", {}).get(capability, {}).get("score")
@@ -666,6 +723,7 @@ def run_stage9_baseline_equality_check(baseline_scores: Dict[str, Any]) -> Dict[
 
 
 def ensure_stage9_baseline_matches_stage8(report: Dict[str, Any]) -> None:
+    """FULL MODE ONLY hard stop -- UNCHANGED from before this repair pass."""
     mismatched = {cap: row for cap, row in report.items() if isinstance(row, dict) and not row["matches"]}
     if mismatched:
         raise Stage9BaselineMismatchError(
@@ -673,6 +731,70 @@ def ensure_stage9_baseline_matches_stage8(report: Dict[str, Any]) -> None:
             f"{len(mismatched)} capability(ies): {mismatched}. Refusing to start the Stage-9 "
             f"hierarchical sweep -- never averaged, never silently replaced."
         )
+
+
+def run_stage9_subset_hash_check(capability_contexts: Dict[str, CapabilityContext]) -> Dict[str, Any]:
+    """FULL MODE ONLY: confirms the live D_map N=50 subset hashes exactly match Stage 8's own
+    frozen manifests (Section 1 of the spec: "require the Stage-9 full D_map manifests/subset
+    hashes to be the same authoritative Stage-8 N=50 manifests").
+    """
+    report: Dict[str, Any] = {}
+    for capability, expected in STAGE8_AUTHORITATIVE_SUBSET_HASHES.items():
+        ctx = capability_contexts.get(capability)
+        live_hash = ctx.subset_hash if ctx is not None else None
+        report[capability] = {"expected_stage8_subset_hash": expected, "live_subset_hash": live_hash, "matches": live_hash == expected}
+    report["all_match"] = all(row["matches"] for row in report.values() if isinstance(row, dict))
+    return report
+
+
+def ensure_stage9_subset_hashes_match_stage8(report: Dict[str, Any]) -> None:
+    """FULL MODE ONLY hard stop."""
+    mismatched = {cap: row for cap, row in report.items() if isinstance(row, dict) and not row["matches"]}
+    if mismatched:
+        raise Stage9SubsetHashMismatchError(
+            f"Stage-9 live D_map subset hash does not match the authoritative Stage-8 N=50 "
+            f"subset hash for {len(mismatched)} capability(ies): {mismatched}. Stage 9's full "
+            f"run must reuse Stage 8's exact frozen D_map manifests -- refusing to proceed with "
+            f"a re-shuffled/re-sampled subset."
+        )
+
+
+BASELINE_GATE_MODE_FULL = "stage8_full_exact_equality"
+BASELINE_GATE_MODE_SMOKE = "smoke_n5_repeatability"
+
+
+def build_stage9_baseline_gate_report(
+    *, is_smoke: bool, d_map_n: int,
+    full_equality_report: Optional[Dict[str, Any]] = None, full_subset_hash_report: Optional[Dict[str, Any]] = None,
+    smoke_repeatability_report: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Mode-explicit dispatch (Section 4 of the spec) -- persists `baseline_gate_mode` so a
+    reader of stage9_baseline_gate.json always knows which gate ran, never has to infer it.
+    """
+    if is_smoke:
+        if smoke_repeatability_report is None:
+            raise ValueError("smoke_repeatability_report is required when is_smoke=True")
+        return {"baseline_gate_mode": BASELINE_GATE_MODE_SMOKE, "d_map_n": d_map_n, "capability_repeatability": smoke_repeatability_report}
+    if full_equality_report is None or full_subset_hash_report is None:
+        raise ValueError("full_equality_report and full_subset_hash_report are both required when is_smoke=False")
+    return {
+        "baseline_gate_mode": BASELINE_GATE_MODE_FULL, "d_map_n": d_map_n,
+        "baseline_equality": full_equality_report, "subset_hash_equality": full_subset_hash_report,
+    }
+
+
+def ensure_stage9_baseline_gate_passes(gate_report: Dict[str, Any]) -> None:
+    """Single dispatch point -- never silently skips validation: an unrecognized
+    baseline_gate_mode is itself a hard failure, not a silent no-op.
+    """
+    mode = gate_report.get("baseline_gate_mode")
+    if mode == BASELINE_GATE_MODE_SMOKE:
+        ensure_baseline_repeatability(gate_report["capability_repeatability"])
+    elif mode == BASELINE_GATE_MODE_FULL:
+        ensure_stage9_baseline_matches_stage8(gate_report["baseline_equality"])
+        ensure_stage9_subset_hashes_match_stage8(gate_report["subset_hash_equality"])
+    else:
+        raise ValueError(f"Unknown baseline_gate_mode {mode!r} -- refusing to silently skip baseline validation.")
 
 
 # =============================================================================================
@@ -860,9 +982,15 @@ def main(argv=None) -> int:
     print(f"generation_batch_size={plan.generation_batch_size}")
     print(f"stage8_parent_run_signature={STAGE8_PARENT_RUN_SIGNATURE}")
     print(f"output_dir={plan.output_dir}")
+    baseline_gate_description = (
+        f"SMOKE baseline gate: D_map N={plan.d_map_n} two-pass theta_0 repeatability (score/"
+        f"generation_hash/parsed_prediction_hash), never compared to the Stage-8 N=50 baseline"
+        if plan.is_smoke else
+        "FULL baseline gate: exact equality + subset-hash match against the authoritative Stage-8 N=50 baseline"
+    )
+    print(f"baseline_gate_mode={'smoke_n5_repeatability' if plan.is_smoke else 'stage8_full_exact_equality'} ({baseline_gate_description})")
     print(
-        "Lifecycle: live theta_0 baseline computed and hard-gated against the authoritative "
-        "Stage-8 baseline for all 6 capabilities -> for each candidate: "
+        "Lifecycle: mode-aware baseline gate (see above) -> for each candidate: "
         "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (child region) -> full "
         "encoder-cache reset -> evaluate all 6 capabilities (bounded generation microbatches) -> "
         "reset_to_base_weights -> verify exact restoration -> full encoder-cache reset again -> "
@@ -959,12 +1087,38 @@ def main(argv=None) -> int:
         from .run_global_visual_thicket_pilot import load_or_compute_baseline_scores
         baseline_path = plan.output_dir / "baseline_scores.json"
         load_or_compute_baseline_scores(baseline_path, capability_contexts, plan.model_revision, plan.run_signature, llm_adapter, tokenizer, sampling_params)
-
         baseline_scores = json.loads(baseline_path.read_text())
-        baseline_equality_report = run_stage9_baseline_equality_check(baseline_scores)
-        (plan.output_dir / "stage8_baseline_equality_check.json").write_text(json.dumps(baseline_equality_report, indent=2))
-        ensure_stage9_baseline_matches_stage8(baseline_equality_report)
-        print("Confirmed: live Stage-9 baseline matches the authoritative Stage-8 baseline for all 6 capabilities.")
+
+        # MODE-AWARE baseline gate (this repair pass -- see this section's own module-level
+        # docstring above run_stage9_baseline_equality_check for the full root-cause writeup):
+        # FULL mode keeps the exact Stage-8 N=50 equality + subset-hash checks UNCHANGED; SMOKE
+        # mode (D_map N=5) never compares its score numerically to the N=50 Stage-8 baseline at
+        # all -- it runs a sample-size-appropriate two-pass repeatability check instead, reusing
+        # Stage 8's own already-proven run_baseline_repeatability_preflight_rpc BY IDENTITY.
+        if plan.is_smoke:
+            print(f"Running Stage-9 SMOKE baseline gate (D_map N={plan.d_map_n} two-pass repeatability -- never compared to the Stage-8 N=50 baseline)...")
+            smoke_repeatability_report = run_baseline_repeatability_preflight_rpc(
+                engine, capability_contexts, tokenizer, sampling_params, run_benchmark=run_benchmark,
+                generation_batch_size=plan.generation_batch_size,
+            )
+            gate_report = build_stage9_baseline_gate_report(
+                is_smoke=True, d_map_n=plan.d_map_n, smoke_repeatability_report=smoke_repeatability_report,
+            )
+            (plan.output_dir / "stage9_baseline_gate.json").write_text(json.dumps(gate_report, indent=2))
+            ensure_stage9_baseline_gate_passes(gate_report)
+            print(f"Confirmed: Stage-9 smoke D_map N={plan.d_map_n} baseline is exactly repeatable "
+                  f"(score/generation_hash/parsed_prediction_hash) across two theta_0 passes for all 6 capabilities.")
+        else:
+            print("Running Stage-9 FULL baseline gate (exact equality + subset-hash match against the authoritative Stage-8 N=50 baseline)...")
+            full_equality_report = run_stage9_baseline_equality_check(baseline_scores)
+            full_subset_hash_report = run_stage9_subset_hash_check(capability_contexts)
+            gate_report = build_stage9_baseline_gate_report(
+                is_smoke=False, d_map_n=plan.d_map_n,
+                full_equality_report=full_equality_report, full_subset_hash_report=full_subset_hash_report,
+            )
+            (plan.output_dir / "stage9_baseline_gate.json").write_text(json.dumps(gate_report, indent=2))
+            ensure_stage9_baseline_gate_passes(gate_report)
+            print("Confirmed: live Stage-9 baseline and D_map subset hashes match the authoritative Stage-8 N=50 manifests for all 6 capabilities.")
 
         records = run_stage9_rpc(
             plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank,
