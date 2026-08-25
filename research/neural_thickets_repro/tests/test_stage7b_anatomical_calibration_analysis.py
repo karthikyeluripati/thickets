@@ -470,6 +470,86 @@ def test_compute_calibration_table_is_deterministic():
 
 
 # =============================================================================================
+# compute_raw_audit_table -- independent recomputation from raw records (Issue A audit)
+# =============================================================================================
+
+
+def test_raw_audit_table_matches_manual_computation():
+    deltas = [0.1, -0.05, 0.0, 0.2, -0.1, 0.02, 0.0, 0.3]
+    records = [
+        _record(perturbation_id=f"p{i}", region="vision", radius=0.01, seed=i, capability="cap_a", delta=d, base_score=0.5)
+        for i, d in enumerate(deltas)
+    ]
+    audit = sca.compute_raw_audit_table(records)
+    cell = audit["cap_a"]["vision"][sca._radius_key(0.01)]
+    assert cell["n"] == 8
+    assert cell["base_score"] == [0.5]
+    assert cell["mean_delta"] == pytest.approx(sum(deltas) / 8)
+    assert cell["mean_candidate_score"] == pytest.approx(sum(0.5 + d for d in deltas) / 8)
+    assert cell["p_delta_gt_0"] == pytest.approx(4 / 8)
+    assert cell["density_ge_0.02"] == pytest.approx(4 / 8)  # 0.1, 0.2, 0.02, 0.3
+    assert cell["positive_thicket_mass"] == pytest.approx(sum(max(d, 0.0) for d in deltas) / 8)
+
+
+def test_raw_audit_table_summary_numbers_equal_calibration_table_numbers():
+    """compute_raw_audit_table (independent, plain-Python) and compute_calibration_table
+    (numpy/thicket_metrics-based) must agree exactly on every shared statistic, for every
+    capability x region x radius cell -- the actual regression guard for Issue A's root cause
+    (a narrative-summary error that cited the wrong table, not a code bug), verified here by
+    proving the TWO INDEPENDENT IMPLEMENTATIONS produce identical numbers.
+    """
+    records = _build_full_records()
+    calibration = sca.compute_calibration_table(records)
+    audit = sca.compute_raw_audit_table(records)
+    for cap in calibration:
+        for region in calibration[cap]:
+            for radius_key, cal_cell in calibration[cap][region].items():
+                audit_cell = audit[cap][region][radius_key]
+                assert audit_cell["n"] == cal_cell["n"]
+                assert audit_cell["mean_delta"] == pytest.approx(cal_cell["mean_delta"])
+                assert audit_cell["median_delta"] == pytest.approx(cal_cell["median_delta"])
+                assert audit_cell["p_delta_gt_0"] == pytest.approx(cal_cell["p_delta_gt_0"])
+                assert audit_cell["density_ge_0.02"] == pytest.approx(cal_cell["density"]["0.02"])
+                assert audit_cell["positive_thicket_mass"] == pytest.approx(cal_cell["positive_thicket_mass"])
+
+
+def test_raw_audit_table_regression_for_the_contradictory_spatial_language_cell():
+    """Explicit regression for the exact contradiction reported: language spatial_reasoning
+    mean Delta at the smallest radius must be +0.025 (matching calibration_table.json), NEVER
+    the -0.0088 pooled-across-all-3-capabilities value that a prior narrative summary
+    mistakenly cited for it (that value is language_only_radius_classification_supplementary's
+    OWN pooled statistic -- a different, valid, but DIFFERENT quantity: mean Delta across
+    visual_grounding+ocr+spatial together, not spatial_reasoning alone).
+    """
+    r = 0.01
+    spatial_deltas = [0.05, 0.0, 0.0, 0.0, 0.05, 0.0, 0.05, 0.05]  # mean = +0.025, matches the real cell shape
+    other_cap_deltas = {
+        "cap_b": [-0.05, -0.05, -0.10, 0.0, -0.05, -0.10, -0.05, -0.10],  # a strongly negative capability
+        "cap_c": [0.0, 0.015, 0.0, 0.015, 0.015, 0.015, 0.015, 0.015],
+    }
+    records = []
+    for seed_idx, d in enumerate(spatial_deltas):
+        records.append(_record(perturbation_id=f"p{seed_idx}", region="language", radius=r, seed=seed_idx, capability="spatial_reasoning", delta=d))
+    for cap, ds in other_cap_deltas.items():
+        for seed_idx, d in enumerate(ds):
+            records.append(_record(perturbation_id=f"p{seed_idx}", region="language", radius=r, seed=seed_idx, capability=cap, delta=d))
+
+    audit = sca.compute_raw_audit_table(records)
+    spatial_cell = audit["spatial_reasoning"]["language"][sca._radius_key(r)]
+    assert spatial_cell["mean_delta"] == pytest.approx(0.025)
+
+    calibration = sca.compute_calibration_table(records)
+    assert calibration["spatial_reasoning"]["language"][sca._radius_key(r)]["mean_delta"] == pytest.approx(0.025)
+
+    # The POOLED (all 3 capabilities together) language-only regime value is a DIFFERENT,
+    # smaller number -- must never be reported as if it were spatial_reasoning's own mean Delta.
+    pooled = sca.classify_language_only_radius_regime(records)[sca._radius_key(r)]
+    all_deltas = spatial_deltas + other_cap_deltas["cap_b"] + other_cap_deltas["cap_c"]
+    assert pooled["mean_delta"] == pytest.approx(sum(all_deltas) / len(all_deltas))
+    assert pooled["mean_delta"] != pytest.approx(spatial_cell["mean_delta"])
+
+
+# =============================================================================================
 # compute_matched_radius_comparison
 # =============================================================================================
 

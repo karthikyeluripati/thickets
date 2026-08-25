@@ -20,6 +20,7 @@ import numpy as np
 import pytest
 import torch
 
+import neural_thickets_repro.run_global_visual_thicket_pilot as pilot_mod
 from neural_thickets_repro.benchmarks.base import Example, ExampleScore, ParsedPrediction
 from neural_thickets_repro.perturb_cpu import _generate_noise
 from neural_thickets_repro.run_global_visual_thicket_pilot import (
@@ -87,6 +88,21 @@ def _raw_config(**overrides):
 
 def _identity_ray_get(x):
     return x
+
+
+@pytest.fixture(autouse=True)
+def _fake_encoder_cache_reset(monkeypatch):
+    """Autouse for this whole file: reset_vllm_encoder_cache_full is now called
+    unconditionally by evaluate_one_perturbation_rpc (this repair pass, prefix-KV-cache audit
+    -- see that function's own docstring), and it does `import ray` internally -- ray is not
+    installed in this CPU-only test environment. Records each call onto the fake engine's own
+    `.collective_rpc_calls` log (already used throughout this file for RPC-order assertions),
+    tagged distinctly from the collective_rpc-dispatched weight-manipulation calls.
+    """
+    def _fake_reset(engine):
+        if hasattr(engine, "collective_rpc_calls"):
+            engine.collective_rpc_calls.append(("reset_vllm_encoder_cache_full", ()))
+    monkeypatch.setattr(pilot_mod, "reset_vllm_encoder_cache_full", _fake_reset)
 
 
 # =============================================================================================
@@ -482,8 +498,12 @@ def test_evaluate_one_perturbation_rpc_calls_reset_before_and_after_perturb():
     assert labels[0] == WORKER_RESET_TO_BASE_METHOD  # reset before perturb
     assert labels[1] == WORKER_PERTURB_METHOD
     assert labels[1:].count(WORKER_RESET_TO_BASE_METHOD) == 1
-    assert labels[-2] == WORKER_RESET_TO_BASE_METHOD  # reset after evaluating, before verify
-    assert labels[-1] == "verify_exact_fixed_base_restoration_rpc"
+    # ... reset after evaluating, before verify, then the post-restoration cache reset (this
+    # repair pass) last of all.
+    assert labels[-3] == WORKER_RESET_TO_BASE_METHOD
+    assert labels[-2] == "verify_exact_fixed_base_restoration_rpc"
+    assert labels[-1] == "reset_vllm_encoder_cache_full"
+    assert labels.count("reset_vllm_encoder_cache_full") == 2  # once after perturb, once after restoration
 
 
 def test_evaluate_one_perturbation_rpc_receives_exactly_the_manifest_seed_and_sigma():
@@ -1224,6 +1244,7 @@ def test_main_real_run_calls_store_base_weights_exactly_once_and_resets_around_e
     monkeypatch.setattr(vlm_adapter, "resolve_model_snapshot", lambda name, rev: "/fake/snapshot/path")
     monkeypatch.setattr(vlm_adapter, "bootstrap_ray", lambda root: True)
     monkeypatch.setattr(vlm_adapter, "verify_workers_can_import_external_root", lambda root: None)
+    monkeypatch.setattr(pilot_mod, "ensure_full_encoder_cache_reset_exposed", lambda root: None)
 
     def _fake_build_d_map_context(benchmark, cfg, capability, n, seed, subset_ids_dir):
         from neural_thickets_repro.thicket.data_roles import partition_data_roles

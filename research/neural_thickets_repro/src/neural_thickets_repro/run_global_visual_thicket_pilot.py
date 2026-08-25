@@ -91,7 +91,7 @@ import argparse
 import json
 import os
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
@@ -110,6 +110,7 @@ from .thicket.perturbation import (
     validate_unique_worker_seeds,
 )
 from .thicket.schema import ExperimentResultRecord
+from .vlm_adapter import ensure_full_encoder_cache_reset_exposed, reset_vllm_encoder_cache_full
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXTERNAL_ROOT = REPO_ROOT / "external" / "RandOpt"
@@ -229,6 +230,12 @@ class PilotPlan:
     examples_per_capability: int
     output_dir: Path
     run_signature: str
+    # Cache-lifecycle identity (this repair pass, Stage-7B-precedent audit of Stage 6's own
+    # prefix-KV-cache exposure -- see compute_cache_safe_run_signature's own docstring for the
+    # full mechanism). None for every HISTORICAL Stage 6 plan (build_pilot_plan never sets
+    # these) -- defaulted so every existing PilotPlan(...) construction site stays unaffected.
+    multimodal_cache_policy: Optional[str] = None
+    enable_prefix_caching: Optional[bool] = None
 
     @property
     def total_unique_perturbations(self) -> int:
@@ -291,6 +298,124 @@ def build_pilot_plan(
     )
 
 
+# =============================================================================================
+# CACHE-SAFE STAGE-6 REPRODUCTION (this repair pass -- prefix-KV-cache audit)
+# =============================================================================================
+# Historical Stage 6 launched via launch_stage6_engine() without overriding enable_prefix_
+# caching -- vLLM's own default on the pinned build (confirmed True via Stage 7B's own live
+# log, same shared launcher/pinned environment) therefore applied. Source-traced (not
+# documentation-inferred): capability_contexts (and therefore every ctx.examples -- the same
+# D_map prompts/images) is built EXACTLY ONCE in main(), before the candidate loop, and passed
+# BY REFERENCE into every evaluate_one_perturbation_rpc call across the whole population (see
+# run_pilot_rpc's `for manifest in population: ... evaluate_one_perturbation_rpc(engine,
+# manifest, capability_contexts, ...)`) -- so identical prompt prefixes ARE reused across every
+# perturbation candidate, while language weights change between them (reset_to_base_weights ->
+# perturb_self_weights each iteration). reset_prefix_cache() is never called anywhere in this
+# project's actual code (grepped, zero hits outside comments/docstrings). Nothing in the traced
+# call path invalidates vLLM's own internal prefix-cache bookkeeping when weights are mutated
+# via collective_rpc -- architecturally identical to the multimodal-encoder-cache bug (vLLM's
+# caching layers have no hook for "weights changed underneath me"). This does not PROVE the
+# historical Stage 6 result is wrong (no A/B "did output change" check like Gate 2's own has
+# ever been run for this specific risk) -- stage6_cache_safety_status = "cache_suspect" (the
+# conservative default the source does not disprove), never "safe" or "invalid" outright.
+#
+# DOES NOT change perturbation_semantics=global_gaussian_upstream, the region (already proven
+# to equal language), the frozen UPSTREAM_SIGMA_GRID, DEFAULT_PERTURBATIONS_PER_SIGMA=64,
+# DEFAULT_SUBSET_SIZE=50, PILOT_CAPABILITIES, or fixed-base restoration -- ONLY the execution
+# -level cache lifecycle. Historical Stage 6 output (results/visual_thicket_global_3b_pilot/
+# full/) is untouched, preserved as provenance, marked cache_suspect (not invalid) until this
+# reproduction's own results are available; its checkpoint can never resume into this one (see
+# compute_cache_safe_run_signature below -- always structurally disjoint from bare "full").
+
+STAGE6_CACHE_SAFE_MULTIMODAL_CACHE_POLICY = "full_encoder_reset_vllm011_verified_v2"
+STAGE6_CACHE_SAFE_ENABLE_PREFIX_CACHING = False
+STAGE6_CACHE_SAFE_RUN_LABEL = "stage6_global_gaussian_upstream_cache_safe_v2"
+
+# PART 6's dedicated cache-safety smoke -- a genuinely REDUCED sigma SET (2 of the 6 frozen
+# sigmas), which build_pilot_plan's own sigma-grid validation (must equal UPSTREAM_SIGMA_GRID)
+# does not support -- build_cache_safe_smoke_pilot_plan() below constructs its PilotPlan
+# directly rather than going through build_pilot_plan, exactly mirroring Stage 7B's own
+# SMOKE_REGION/SMOKE_RADIUS frozen-constant pattern (execution size only, same protocol).
+STAGE6_CACHE_SAFE_SMOKE_SIGMA_GRID: Tuple[float, ...] = (0.0005, 0.001)
+STAGE6_CACHE_SAFE_SMOKE_PERTURBATIONS_PER_SIGMA = 2
+STAGE6_CACHE_SAFE_SMOKE_EXAMPLES_PER_CAPABILITY = 5
+
+
+def compute_cache_safe_run_signature(
+    perturbations_per_sigma: int, examples_per_capability: int, sigma_grid: Sequence[float],
+    *, paper_perturbations_per_sigma: int = DEFAULT_PERTURBATIONS_PER_SIGMA,
+    paper_examples_per_capability: int = DEFAULT_SUBSET_SIZE, paper_sigma_grid: Sequence[float] = UPSTREAM_SIGMA_GRID,
+) -> str:
+    """`STAGE6_CACHE_SAFE_RUN_LABEL` ("stage6_global_gaussian_upstream_cache_safe_v2") iff
+    sigma_grid/perturbations_per_sigma/examples_per_capability exactly match the frozen paper
+    values; otherwise a deterministic smoke-shaped variant built from the ACTUAL values.
+    Structurally disjoint from `compute_run_signature`'s own "full"/"smoke_..." identities by
+    construction (different prefix entirely) -- the historical run's checkpoint can therefore
+    never be silently resumed into a cache-safe run's output_dir, and vice versa.
+    """
+    if (
+        tuple(sorted(sigma_grid)) == tuple(sorted(paper_sigma_grid))
+        and perturbations_per_sigma == paper_perturbations_per_sigma and examples_per_capability == paper_examples_per_capability
+    ):
+        return STAGE6_CACHE_SAFE_RUN_LABEL
+    sigma_label = "-".join(str(s) for s in sorted(sigma_grid))
+    return f"{STAGE6_CACHE_SAFE_RUN_LABEL}_smoke_sigma{sigma_label}_p{perturbations_per_sigma}_n{examples_per_capability}"
+
+
+def build_stage6_cache_safe_engine_config() -> Dict[str, Any]:
+    """Reuses build_stage6_engine_config()'s own dict BY IDENTITY (never duplicated) plus ONE
+    additive override: enable_prefix_caching=False -- see this section's own module-level
+    docstring for why. Mirrors run_stage7b_anatomical_calibration.build_stage7b_engine_config
+    exactly.
+    """
+    config = dict(build_stage6_engine_config())
+    config["enable_prefix_caching"] = STAGE6_CACHE_SAFE_ENABLE_PREFIX_CACHING
+    return config
+
+
+def build_cache_safe_pilot_plan(
+    raw_config: dict, *, perturbations_per_sigma: Optional[int] = None, subset_size: Optional[int] = None,
+    output_dir: Optional[str] = None,
+) -> PilotPlan:
+    """The FULL cache-safe reproduction -- reuses build_pilot_plan()'s OWN validation
+    (capabilities must be exactly PILOT_CAPABILITIES, sigma_grid must be exactly
+    UPSTREAM_SIGMA_GRID) and base construction UNCHANGED, never duplicated or loosened, then
+    layers the cache-safe identity on top via `dataclasses.replace` -- never mutates the base
+    plan, never touches build_pilot_plan's own historical-default code path.
+    """
+    base_plan = build_pilot_plan(raw_config, perturbations_per_sigma=perturbations_per_sigma, subset_size=subset_size, output_dir=output_dir)
+    run_signature = compute_cache_safe_run_signature(base_plan.perturbations_per_sigma, base_plan.examples_per_capability, base_plan.sigma_grid)
+    base_output_root = Path(output_dir) if output_dir is not None else REPO_ROOT / raw_config["outputs"]["root"]
+    return replace(
+        base_plan, run_signature=run_signature, output_dir=base_output_root / run_signature,
+        multimodal_cache_policy=STAGE6_CACHE_SAFE_MULTIMODAL_CACHE_POLICY, enable_prefix_caching=STAGE6_CACHE_SAFE_ENABLE_PREFIX_CACHING,
+    )
+
+
+def build_cache_safe_smoke_pilot_plan(raw_config: dict) -> PilotPlan:
+    """PART 6's dedicated cache-safety smoke: sigma in {0.0005, 0.001} (2 of the 6 frozen
+    sigmas), 2 directions/sigma, D_map N=5, all 3 frozen capabilities -- 4 unique perturbations,
+    12 result rows, 60 perturbed model-example evaluations. Does NOT call build_pilot_plan
+    (whose sigma-grid validation requires the full 6-sigma set) -- constructs PilotPlan
+    directly. Execution/instrumentation validation only (verifies perturbation still works,
+    fixed-base restoration, prefix caching is False, full cache-reset lifecycle, output/
+    checkpoint identity) -- Delta improvement is never a pass criterion for this smoke.
+    """
+    model = raw_config["model"]
+    run_signature = compute_cache_safe_run_signature(
+        STAGE6_CACHE_SAFE_SMOKE_PERTURBATIONS_PER_SIGMA, STAGE6_CACHE_SAFE_SMOKE_EXAMPLES_PER_CAPABILITY, STAGE6_CACHE_SAFE_SMOKE_SIGMA_GRID,
+    )
+    output_root = REPO_ROOT / raw_config["outputs"]["root"]
+    return PilotPlan(
+        model_name=model["name"], model_revision=model["revision"], model_family=model.get("family", "qwen2_5_vl"),
+        model_scale=model.get("scale", "3B"), capabilities=PILOT_CAPABILITIES, sigma_grid=STAGE6_CACHE_SAFE_SMOKE_SIGMA_GRID,
+        perturbations_per_sigma=STAGE6_CACHE_SAFE_SMOKE_PERTURBATIONS_PER_SIGMA,
+        examples_per_capability=STAGE6_CACHE_SAFE_SMOKE_EXAMPLES_PER_CAPABILITY,
+        output_dir=output_root / run_signature, run_signature=run_signature,
+        multimodal_cache_policy=STAGE6_CACHE_SAFE_MULTIMODAL_CACHE_POLICY, enable_prefix_caching=STAGE6_CACHE_SAFE_ENABLE_PREFIX_CACHING,
+    )
+
+
 def format_pilot_plan(plan: PilotPlan) -> str:
     lines = [
         "=== Stage 6: 3B Global Visual-Thicket Pilot -- plan (printed before any GPU execution) ===",
@@ -320,6 +445,10 @@ def format_pilot_plan(plan: PilotPlan) -> str:
         "llm_engine.model_executor access anywhere in this path.",
         f"output_dir: {plan.output_dir}",
     ]
+    if plan.multimodal_cache_policy is not None:
+        lines.append(f"multimodal_cache_policy: {plan.multimodal_cache_policy}")
+    if plan.enable_prefix_caching is not None:
+        lines.append(f"enable_prefix_caching: {plan.enable_prefix_caching}")
     return "\n".join(lines)
 
 
@@ -493,10 +622,24 @@ def evaluate_one_perturbation_rpc(
     `restore_self_weights` is NEVER called here. Raising RestorationFailedError aborts the
     whole experiment rather than silently proceeding to the next candidate with possibly
     -drifted base weights.
+
+    CACHE LIFECYCLE (this repair pass, prefix-KV-cache audit -- see the CACHE-SAFE STAGE-6
+    REPRODUCTION section above for the full mechanism/evidence): reset_vllm_encoder_cache_full
+    is called TWICE per candidate -- once immediately after the accepted perturbation and
+    BEFORE any capability is evaluated, and once again immediately after the post-candidate
+    fixed-base restoration is verified -- UNCONDITIONALLY, for every Stage 6 execution
+    (historical-shaped or cache-safe), mirroring run_stage7b_anatomical_calibration.
+    evaluate_one_calibration_candidate_rpc exactly. This changes NO perturbation math or
+    scientific semantics -- it is purely an execution-safety addition (mathematically
+    unnecessary for a language-only perturbation with respect to the MULTIMODAL encoder cache
+    specifically, but removes cache ambiguity entirely per the task's own instruction, and
+    additionally forces a fresh generation state that cannot straddle a prefix-cache boundary
+    either way).
     """
     llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
     reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
     perturb_via_rpc(engine, manifest.seed, manifest.sigma, ray_get=ray_get)
+    reset_vllm_encoder_cache_full(engine)
     records: List[ExperimentResultRecord] = []
     try:
         for capability, ctx in capability_contexts.items():
@@ -525,6 +668,8 @@ def evaluate_one_perturbation_rpc(
             f"{verification['max_abs_drift']}, fraction_elements_differing="
             f"{verification['fraction_elements_differing']}"
         )
+
+    reset_vllm_encoder_cache_full(engine)
     return records
 
 
@@ -584,6 +729,11 @@ class CheckpointManifest:
     perturbations_per_sigma: int
     expected_unique_perturbations: int
     expected_result_rows: int
+    # Cache-lifecycle identity (this repair pass) -- see PilotPlan's own field docstring. None
+    # for every historical checkpoint (predates this field entirely); defaulted so every
+    # existing CheckpointManifest(...) construction site and legacy on-disk dict stays valid.
+    multimodal_cache_policy: Optional[str] = None
+    enable_prefix_caching: Optional[bool] = None
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -592,6 +742,7 @@ class CheckpointManifest:
             "model_revision": self.model_revision, "subset_hashes": dict(sorted(self.subset_hashes.items())),
             "subset_size": self.subset_size, "perturbations_per_sigma": self.perturbations_per_sigma,
             "expected_unique_perturbations": self.expected_unique_perturbations, "expected_result_rows": self.expected_result_rows,
+            "multimodal_cache_policy": self.multimodal_cache_policy, "enable_prefix_caching": self.enable_prefix_caching,
         }
 
     @classmethod
@@ -601,6 +752,7 @@ class CheckpointManifest:
             perturbation_semantics=d["perturbation_semantics"], model_revision=d["model_revision"],
             subset_hashes=dict(d["subset_hashes"]), subset_size=d["subset_size"], perturbations_per_sigma=d["perturbations_per_sigma"],
             expected_unique_perturbations=d["expected_unique_perturbations"], expected_result_rows=d["expected_result_rows"],
+            multimodal_cache_policy=d.get("multimodal_cache_policy"), enable_prefix_caching=d.get("enable_prefix_caching"),
         )
 
 
@@ -611,6 +763,7 @@ def build_stage6_checkpoint_manifest(plan: PilotPlan, capability_contexts: Dict[
         subset_hashes={c: ctx.subset_hash for c, ctx in capability_contexts.items()}, subset_size=plan.examples_per_capability,
         perturbations_per_sigma=plan.perturbations_per_sigma, expected_unique_perturbations=plan.total_unique_perturbations,
         expected_result_rows=plan.total_perturbation_capability_evaluations,
+        multimodal_cache_policy=plan.multimodal_cache_policy, enable_prefix_caching=plan.enable_prefix_caching,
     )
 
 
@@ -1024,12 +1177,40 @@ def main(argv=None) -> int:
         help="skip GPU execution entirely -- (re)build figure2/diversity summaries from an "
              "existing output_dir's results.jsonl + checkpoint_manifest.json (refuses if incomplete)",
     )
+    parser.add_argument(
+        "--cache-safe", action="store_true",
+        help="the FULL prefix-KV-cache-safe reproduction (this repair pass): SAME frozen "
+             "scientific config (perturbation_semantics=global_gaussian_upstream, sigma_grid, "
+             "n_per_sigma=64, capabilities, D_map N=50, fixed-base restoration) as historical "
+             "Stage 6, under a structurally disjoint run identity (stage6_global_gaussian_"
+             "upstream_cache_safe_v2) with enable_prefix_caching=False and the same verified "
+             "multimodal_cache_policy=full_encoder_reset_vllm011_verified_v2 lifecycle Stage 7B "
+             "uses -- never overwrites or resumes the historical (cache_suspect) run.",
+    )
+    parser.add_argument(
+        "--cache-safe-smoke", action="store_true",
+        help="tiny live GPU smoke validating the cache-safe Stage-6 lifecycle: sigma in "
+             "{0.0005, 0.001} x 2 directions/sigma x 3 capabilities x D_map N=5 -- 4 "
+             "perturbations, 12 rows, 60 perturbed model-example evaluations. Instrumentation/"
+             "lifecycle validation only, NOT a behavioral (Delta != 0) check.",
+    )
     args = parser.parse_args(argv)
 
+    if sum([args.cache_safe, args.cache_safe_smoke]) > 1:
+        print("--cache-safe and --cache-safe-smoke are mutually exclusive.", file=sys.stderr)
+        return 1
+
     raw_config = load_pilot_config(args.config)
-    plan = build_pilot_plan(
-        raw_config, perturbations_per_sigma=args.perturbations_per_sigma, subset_size=args.subset_size, output_dir=args.output_dir,
-    )
+    if args.cache_safe:
+        plan = build_cache_safe_pilot_plan(
+            raw_config, perturbations_per_sigma=args.perturbations_per_sigma, subset_size=args.subset_size, output_dir=args.output_dir,
+        )
+    elif args.cache_safe_smoke:
+        plan = build_cache_safe_smoke_pilot_plan(raw_config)
+    else:
+        plan = build_pilot_plan(
+            raw_config, perturbations_per_sigma=args.perturbations_per_sigma, subset_size=args.subset_size, output_dir=args.output_dir,
+        )
     print(format_pilot_plan(plan))
 
     if args.dry_run:
@@ -1043,7 +1224,9 @@ def main(argv=None) -> int:
     # --- Real GPU execution path: lazy-imports vllm/ray/transformers, not exercised by CPU
     # tests, not run in this Stage-6 repair-pass preparation session (see module docstring).
     model_resolution = resolve_and_report_model_snapshot(plan.model_name, plan.model_revision)
-    engine_config = build_stage6_engine_config()
+    # cache-safe modes use build_stage6_cache_safe_engine_config() (adds enable_prefix_caching=
+    # False on top of the SAME frozen Stage-6 config) -- historical default stays byte-identical.
+    engine_config = build_stage6_cache_safe_engine_config() if (args.cache_safe or args.cache_safe_smoke) else build_stage6_engine_config()
     print(format_runtime_compatibility_diagnostic(
         model_resolution, worker_extension_cls="utils.worker_extn.WorkerExtension",
         vllm_version=get_vllm_version(), engine_mode=detect_vllm_engine_mode(), engine_config=engine_config,
@@ -1085,15 +1268,35 @@ def main(argv=None) -> int:
     engines, pgs = None, None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
+
+        # HARD FAIL BEFORE EXPERIMENT if the full multimodal-encoder-cache reset mechanism
+        # cannot be exposed -- MUST run before launch_stage6_engine (see vlm_adapter.py's own
+        # ensure_full_encoder_cache_reset_exposed docstring). Unconditional: reset_vllm_
+        # encoder_cache_full is now called every candidate regardless of run mode.
+        ensure_full_encoder_cache_reset_exposed(EXTERNAL_ROOT)
+
         engines, pgs = launch_stage6_engine(
             model_resolution["resolved_snapshot_path"], precision=engine_config["precision"],
             gpu_memory_utilization=engine_config["gpu_memory_utilization"], max_model_len=engine_config["max_model_len"],
             tensor_parallel_size=engine_config["tensor_parallel_size"],
+            enable_prefix_caching=engine_config.get("enable_prefix_caching"),
         )
         engine = engines[0]
 
         store_base_weights_via_rpc(engine)
         print(format_base_snapshot_confirmation(engine_config["gpu_memory_utilization"], engine_config["base_snapshot_mode"]))
+
+        # HARD FAIL BEFORE EXPERIMENT if the cache reset mechanism doesn't actually WORK
+        # end-to-end against the LIVE engine (not merely that it was exposed pre-launch).
+        try:
+            reset_vllm_encoder_cache_full(engine)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"Stage 6 requires a working full multimodal-encoder-cache reset -- verification "
+                f"failed against the live engine ({type(exc).__name__}: {exc}). Refusing to start "
+                f"candidate evaluation without a proven-working cache-invalidation path."
+            ) from exc
+        print("Confirmed working multimodal-encoder-cache reset.")
 
         parameter_mask_hash = compute_mask_info_via_rpc(engine)["mask_hash"]
 

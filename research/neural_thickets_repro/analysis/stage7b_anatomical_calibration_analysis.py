@@ -465,6 +465,45 @@ def compute_calibration_table(records: Sequence[ExperimentResultRecord]) -> Dict
     return out
 
 
+def compute_raw_audit_table(records: Sequence[ExperimentResultRecord]) -> Dict[str, Any]:
+    """Independent raw-data audit (this repair pass, requested after a narrative-summary error
+    conflated the pooled-across-capabilities language-only regime table with the
+    spatial_reasoning-specific calibration_table cell): recomputes n / base_score / mean
+    candidate_score / mean Delta / median Delta / P(Delta>0) / density(>=.02) / positive
+    thicket mass DIRECTLY from raw ExperimentResultRecord fields (perturbed_score, base_score,
+    delta), using PLAIN PYTHON (deliberately not numpy, not thicket_metrics, not
+    group_by_capability_region_radius) -- genuinely independent of compute_calibration_table's
+    own implementation, so a future regression test asserting the two agree actually catches
+    both code bugs AND narrative-reporting errors that cite the wrong table.
+    """
+    by_cell: Dict[Tuple[str, str, float], List[ExperimentResultRecord]] = {}
+    for r in records:
+        by_cell.setdefault((r.capability, r.anatomy_region, r.radius), []).append(r)
+
+    out: Dict[str, Any] = {}
+    for (cap, region, radius), rows in by_cell.items():
+        n = len(rows)
+        base_scores = sorted({r.base_score for r in rows})
+        candidate_scores = [r.perturbed_score for r in rows]
+        deltas = [r.delta for r in rows]
+        mean_candidate = sum(candidate_scores) / n
+        mean_delta = sum(deltas) / n
+        sorted_deltas = sorted(deltas)
+        mid = n // 2
+        median_delta = sorted_deltas[mid] if n % 2 == 1 else (sorted_deltas[mid - 1] + sorted_deltas[mid]) / 2.0
+        p_gt0 = sum(1 for d in deltas if d > 0.0) / n
+        density_ge_002 = sum(1 for d in deltas if d >= 0.02) / n
+        positive_thicket_mass = sum(max(d, 0.0) for d in deltas) / n
+
+        out.setdefault(cap, {}).setdefault(region, {})[_radius_key(radius)] = {
+            "radius": radius, "n": n, "base_score": base_scores,
+            "mean_candidate_score": mean_candidate, "mean_delta": mean_delta, "median_delta": median_delta,
+            "p_delta_gt_0": p_gt0, "density_ge_0.02": density_ge_002, "positive_thicket_mass": positive_thicket_mass,
+            "raw_deltas": deltas,
+        }
+    return out
+
+
 # =============================================================================================
 # Section 4: matched-radius region comparison
 # =============================================================================================
