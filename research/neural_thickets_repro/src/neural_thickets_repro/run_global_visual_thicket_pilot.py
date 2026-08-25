@@ -125,6 +125,11 @@ CAPABILITY_CONFIG_FILES: Dict[str, str] = {
     "visual_grounding": "visual_grounding.yaml",
     "ocr_text_recognition_grounded": "ocr_text_recognition_grounded.yaml",
     "spatial_reasoning": "spatial_reasoning.yaml",
+    # Stage-8 additions (this repair pass) -- additive only, the 3 entries above are untouched
+    # and every existing Stage 6/7B caller only ever looks up its own frozen 3-key subset.
+    "counting": "counting.yaml",
+    "relational_reasoning": "relational_reasoning.yaml",
+    "fine_grained_recognition": "fine_grained_recognition.yaml",
 }
 
 DEFAULT_PERTURBATIONS_PER_SIGMA = 64
