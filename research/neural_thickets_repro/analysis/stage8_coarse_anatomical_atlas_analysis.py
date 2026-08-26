@@ -375,7 +375,9 @@ def benjamini_hochberg(pvalues: Sequence[float]) -> List[float]:
     return out.tolist()
 
 
-def compute_anatomical_contrasts(records: Sequence[ExperimentResultRecord]) -> Dict[str, Any]:
+def compute_anatomical_contrasts(
+    records: Sequence[ExperimentResultRecord], *, contrast_pairs: Optional[Sequence[Tuple[str, str]]] = None,
+) -> Dict[str, Any]:
     """D_map exploratory statistics only (never held-out D_confirm evidence). Reports, per
     capability x radius x anatomy-pair: bootstrap CIs (independent, direction-level resampling
     -- directions in different regions are NOT the same geometric direction, so resampling is
@@ -383,14 +385,20 @@ def compute_anatomical_contrasts(records: Sequence[ExperimentResultRecord]) -> D
     each of mean_delta / density>=.02 / positive_thicket_mass. BH-FDR correction is then applied
     SEPARATELY within each of the three statistic families (54 p-values per family: 6
     capabilities x 3 radii x 3 anatomy pairs) -- see apply_benjamini_hochberg_correction.
+
+    `contrast_pairs` defaults to Stage 8's own frozen 3 L1-region pairs (`_CONTRAST_PAIRS`) --
+    pass a different set of (region_a, region_b) pairs to reuse this EXACT statistical machinery
+    for a different partition of the same `anatomy_region` field (e.g. Stage 9's within-parent
+    depth-band pairs), without duplicating any of the bootstrap/permutation/effect-size logic.
     """
+    pairs = contrast_pairs if contrast_pairs is not None else _CONTRAST_PAIRS
     by_cell = group_by_capability_region_radius(records)
     out: Dict[str, Any] = {}
     capabilities = sorted({r.capability for r in records})
     radii = sorted({r.radius for r in records})
     for cap in capabilities:
         for radius in radii:
-            for region_a, region_b in _CONTRAST_PAIRS:
+            for region_a, region_b in pairs:
                 key_a, key_b = (cap, region_a, radius), (cap, region_b, radius)
                 if key_a not in by_cell or key_b not in by_cell:
                     continue
