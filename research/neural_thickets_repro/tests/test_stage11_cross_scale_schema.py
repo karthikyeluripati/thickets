@@ -10,6 +10,7 @@ import sys
 from pathlib import Path
 from typing import List
 
+import numpy as np
 import pytest
 
 ANALYSIS_ROOT = Path(__file__).resolve().parents[1] / "analysis"
@@ -61,6 +62,18 @@ def _build_records(model_scale: str, n_directions: int = N_DIRECTIONS) -> List[E
                     delta = _delta_fn(region, radius, direction_index, capability, model_scale)
                     records.append(_rec(capability=capability, region=region, radius=radius, direction_index=direction_index, delta=delta, model_scale=model_scale))
     return records
+
+
+# Multi-scale fixture used by the Section 8-14/18-19 tests below -- covers the 2-scale (3B/7B,
+# the only scales with real GPU data any time soon) AND the 4-scale (3B/7B/32B/72B, prepared
+# infrastructure) cases, since the terminology guard and scaling-relationship language gate
+# behave differently depending on n_scales.
+ALL_SCALES = ("3B", "7B", "32B", "72B")
+TOTAL_MODEL_ELEMENTS_BY_SCALE = {"3B": 3.75e9, "7B": 8.29e9, "32B": 33.0e9, "72B": 73.0e9}
+
+
+def _build_records_by_scale(scales=ALL_SCALES):
+    return {s: _build_records(s) for s in scales}
 
 
 # =================================================================================================
@@ -227,6 +240,261 @@ def test_build_cross_scale_report_uses_only_approved_terminology():
     if s11s.FORBIDDEN_TERM in note.lower():
         assert "never" in note.lower()
     assert any(term in note for term in s11s.APPROVED_TERMS)
+
+
+# =================================================================================================
+# Section 18 (rewritten): context-aware terminology guard -- replaces the blanket ban
+# =================================================================================================
+
+
+def test_classify_terminology_context_two_scales_disallows_scaling_law_as_conclusion():
+    ctx = s11s.classify_terminology_context(2)
+    assert ctx["may_use_scaling_relationship_language"] is False
+    assert s11s.FORBIDDEN_TERM in ctx["disallowed_as_empirical_conclusion"]
+    assert set(ctx["allowed_terms"]) == set(s11s.TWO_SCALE_ALLOWED_TERMS)
+
+
+def test_classify_terminology_context_four_scales_allows_scaling_relationship_language():
+    ctx = s11s.classify_terminology_context(4)
+    assert ctx["may_use_scaling_relationship_language"] is True
+    assert ctx["disallowed_as_empirical_conclusion"] == []
+    assert set(ctx["allowed_terms"]) == set(s11s.MANY_SCALE_ALLOWED_TERMS)
+
+
+def test_may_claim_specific_scaling_law_requires_all_three_gates():
+    assert s11s.may_claim_specific_scaling_law({"n_scales": 4, "monotonic": True, "fit_significant": True}) is True
+    assert s11s.may_claim_specific_scaling_law({"n_scales": 2, "monotonic": True, "fit_significant": True}) is False
+    assert s11s.may_claim_specific_scaling_law({"n_scales": 4, "monotonic": False, "fit_significant": True}) is False
+    assert s11s.may_claim_specific_scaling_law({"n_scales": 4, "monotonic": True, "fit_significant": False}) is False
+    assert s11s.may_claim_specific_scaling_law({}) is False
+
+
+def test_section_title_may_name_scaling_laws_without_being_a_claim():
+    # The chapter TITLE is explicitly allowed to name the question under test -- it is a string
+    # constant, never returned as part of an empirical report's "claim" fields.
+    assert "Scaling Laws" in s11s.SECTION_TITLE
+
+
+# =================================================================================================
+# Sections 8-9: solution-density scaling
+# =================================================================================================
+
+
+def test_build_solution_density_scaling_table_requires_at_least_two_scales():
+    with pytest.raises(ValueError):
+        s11s.build_solution_density_scaling_table({"3B": _build_records("3B")}, {"3B": 3.75e9})
+
+
+def test_build_solution_density_scaling_table_requires_total_elements_for_every_scale():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    with pytest.raises(ValueError):
+        s11s.build_solution_density_scaling_table(records_by_scale, {"3B": 3.75e9})
+
+
+def test_build_solution_density_scaling_table_two_scales():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    totals = {k: TOTAL_MODEL_ELEMENTS_BY_SCALE[k] for k in ("3B", "7B")}
+    table = s11s.build_solution_density_scaling_table(records_by_scale, totals)
+    assert table["scales"] == ["3B", "7B"]
+    assert len(table["cells"]) == len(STAGE8_REGIONS) * len(STAGE8_RADII) * len(STAGE8_CAPABILITIES)
+    sample = next(iter(table["fits"].values()))
+    assert sample["n_scales"] == 2
+    assert sample["terminology_context"]["may_use_scaling_relationship_language"] is False
+    # a linear fit through exactly 2 points is always R^2 == 1.0 (or undefined if x has zero variance)
+    assert sample["linear_in_log_n"]["r_squared"] in (1.0, None)
+
+
+def test_build_solution_density_scaling_table_four_scales_allows_scaling_relationship_language():
+    records_by_scale = _build_records_by_scale(ALL_SCALES)
+    table = s11s.build_solution_density_scaling_table(records_by_scale, TOTAL_MODEL_ELEMENTS_BY_SCALE)
+    sample = next(iter(table["fits"].values()))
+    assert sample["n_scales"] == 4
+    assert sample["terminology_context"]["may_use_scaling_relationship_language"] is True
+
+
+def test_solution_density_scaling_margins_include_frozen_thresholds():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    totals = {k: TOTAL_MODEL_ELEMENTS_BY_SCALE[k] for k in ("3B", "7B")}
+    table = s11s.build_solution_density_scaling_table(records_by_scale, totals, margins=(0.0, 0.02, 0.05))
+    cell = next(iter(table["cells"].values()))
+    for scale in ("3B", "7B"):
+        assert set(cell["by_scale"][scale]["at_frozen_margins"].keys()) == {"0.0", "0.02", "0.05"}
+
+
+def test_ols_fit_hand_computable_perfect_line():
+    x = np.array([0.0, 1.0, 2.0, 3.0])
+    y = 2.0 * x + 1.0
+    fit = s11s._ols_fit(x, y)
+    assert fit["slope"] == pytest.approx(2.0)
+    assert fit["intercept"] == pytest.approx(1.0)
+    assert fit["r_squared"] == pytest.approx(1.0)
+
+
+def test_ols_fit_degenerate_single_point_returns_none():
+    fit = s11s._ols_fit(np.array([1.0]), np.array([1.0]))
+    assert fit["slope"] is None
+
+
+def test_logistic_fit_requires_at_least_three_points():
+    fit = s11s._logistic_fit_grid_search(np.array([0.0, 1.0]), np.array([0.1, 0.2]))
+    assert fit["r_squared"] is None
+    assert fit["n"] == 2
+
+
+def test_logistic_fit_reasonable_r_squared_on_clean_sigmoid():
+    x = np.linspace(-5, 5, 8)
+    y = 1.0 / (1.0 + np.exp(-1.5 * (x - 0.0)))
+    fit = s11s._logistic_fit_grid_search(x, y, n_iterations=3000, lr=0.1)
+    assert fit["r_squared"] is not None
+    assert fit["r_squared"] > 0.8
+
+
+# =================================================================================================
+# Section 10: performance-density scaling
+# =================================================================================================
+
+
+def test_compute_performance_density_scaling_reports_quantiles_and_tails():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    perf = s11s.compute_performance_density_scaling(records_by_scale)
+    assert set(perf["by_scale"].keys()) == {"3B", "7B"}
+    sample = next(iter(perf["by_scale"]["3B"].values()))
+    for key in ("q50", "q75", "q90", "q95", "variance", "positive_mass", "negative_mass", "positive_tail_mean_top10pct", "negative_tail_mean_bottom10pct"):
+        assert key in sample
+
+
+def test_classify_specialist_scaling_labels_are_data_driven():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    perf = s11s.compute_performance_density_scaling(records_by_scale)
+    result = s11s.classify_specialist_scaling(perf, ["3B", "7B"])
+    allowed_labels = {"more_and_stronger_specialists", "more_not_stronger_specialists", "stronger_not_more_specialists", "neither_more_nor_stronger"}
+    for cell in result["per_cell"].values():
+        assert cell["label"] in allowed_labels
+
+
+def test_classify_specialist_scaling_requires_at_least_two_scales():
+    records_by_scale = _build_records_by_scale(("3B",))
+    perf = s11s.compute_performance_density_scaling(records_by_scale)
+    with pytest.raises(ValueError):
+        s11s.classify_specialist_scaling(perf, ["3B"])
+
+
+# =================================================================================================
+# Section 11: radius x model-scale landscape
+# =================================================================================================
+
+
+def test_build_radius_scale_landscape_never_pools_radii():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    landscape = s11s.build_radius_scale_landscape(records_by_scale)
+    cell = next(iter(landscape["matrix"].values()))
+    for scale, radius_map in cell["by_scale_radius"].items():
+        assert len(radius_map) <= len(STAGE8_RADII)
+        assert len(set(radius_map.keys())) == len(radius_map)  # every radius key distinct, never averaged together
+
+
+def test_assess_useful_neighborhood_change_reports_insufficient_resolution_or_a_classification():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    landscape = s11s.build_radius_scale_landscape(records_by_scale)
+    assessments = s11s.assess_useful_neighborhood_change(landscape)
+    allowed = {"insufficient_scales", "insufficient_resolution_to_define_thicket_radius", "stable_peak_radius_across_scale", "peak_radius_reorganizes_with_scale"}
+    for a in assessments.values():
+        assert a["classification"] in allowed
+
+
+# =================================================================================================
+# Section 12: diversity scaling
+# =================================================================================================
+
+
+def test_compute_diversity_scaling_two_scales_reports_direction_not_spearman():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    log_n = {"3B": np.log(TOTAL_MODEL_ELEMENTS_BY_SCALE["3B"]), "7B": np.log(TOTAL_MODEL_ELEMENTS_BY_SCALE["7B"])}
+    div = s11s.compute_diversity_scaling(records_by_scale, log_n)
+    sample = next(iter(div["scale_trend_by_region_radius"].values()))
+    assert sample["n_scales"] == 2
+    assert sample["spearman_log_n_vs_discordance"] is None
+    assert sample["two_point_direction"] in ("increasing", "decreasing", "flat")
+
+
+def test_compute_diversity_scaling_four_scales_reports_spearman():
+    records_by_scale = _build_records_by_scale(ALL_SCALES)
+    log_n = {s: np.log(TOTAL_MODEL_ELEMENTS_BY_SCALE[s]) for s in ALL_SCALES}
+    div = s11s.compute_diversity_scaling(records_by_scale, log_n)
+    sample = next(iter(div["scale_trend_by_region_radius"].values()))
+    assert sample["n_scales"] == 4
+    assert sample["spearman_log_n_vs_discordance"] is not None
+    assert -1.0 <= sample["spearman_log_n_vs_discordance"] <= 1.0
+
+
+# =================================================================================================
+# Section 13: anatomical scaling
+# =================================================================================================
+
+
+def test_compare_anatomical_scaling_slopes_covers_all_three_regions():
+    records_by_scale = _build_records_by_scale(ALL_SCALES)
+    table = s11s.build_solution_density_scaling_table(records_by_scale, TOTAL_MODEL_ELEMENTS_BY_SCALE)
+    result = s11s.compare_anatomical_scaling_slopes(table)
+    assert set(result["region_slope_summary"].keys()) == set(STAGE8_REGIONS)
+    assert isinstance(result["possible_anisotropic_scaling_of_expert_density"], bool)
+
+
+def test_compare_anatomical_scaling_slopes_never_asserts_the_named_concept_as_fact():
+    records_by_scale = _build_records_by_scale(ALL_SCALES)
+    table = s11s.build_solution_density_scaling_table(records_by_scale, TOTAL_MODEL_ELEMENTS_BY_SCALE)
+    result = s11s.compare_anatomical_scaling_slopes(table)
+    assert "never asserted as a finding" in result["note"]
+
+
+# =================================================================================================
+# Section 14: headroom sensitivity -- raw Delta primary, normalized_gain secondary only
+# =================================================================================================
+
+
+def test_headroom_sensitivity_reports_raw_as_primary():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    result = s11s.compute_headroom_sensitivity(records_by_scale)
+    assert result["primary_statistic"] == "raw_delta"
+    assert result["secondary_statistic"] == "normalized_gain_positive_only"
+    for scale_stats in result["by_scale"].values():
+        assert "raw_mean_delta" in scale_stats
+        assert "mean_normalized_gain_positive_only" in scale_stats
+
+
+def test_headroom_sensitivity_normalized_gain_hand_computable():
+    base = ExperimentResultRecord(
+        experiment_id="t", perturbation_id="p1", model_family="qwen2_5_vl", model_scale="3B", model_revision="r1",
+        perturbation_mode="anatomical_relative_l2", anatomy_region="vision", radius=0.01, sigma=None, seed=1,
+        parameter_mask_hash="m", capability="counting", dataset_role="map", subset_hash="s",
+        base_score=0.9, perturbed_score=0.95, delta=0.05, parser_failure_rate=0.0,
+        per_example_result_path=None, per_example_result_hash="h", runtime_metadata={},
+    )
+    result = s11s.compute_headroom_sensitivity({"3B": [base]})
+    # headroom = 1 - 0.9 = 0.1; normalized_gain = 0.05 / 0.1 = 0.5
+    assert result["by_scale"]["3B"]["mean_normalized_gain_positive_only"] == pytest.approx(0.5)
+
+
+# =================================================================================================
+# Section 19: figure data schemas
+# =================================================================================================
+
+
+def test_figure_builders_produce_documented_schema_keys():
+    records_by_scale = _build_records_by_scale(("3B", "7B"))
+    totals = {k: TOTAL_MODEL_ELEMENTS_BY_SCALE[k] for k in ("3B", "7B")}
+    table = s11s.build_solution_density_scaling_table(records_by_scale, totals)
+    perf = s11s.compute_performance_density_scaling(records_by_scale)
+    landscape = s11s.build_radius_scale_landscape(records_by_scale)
+    div = s11s.compute_diversity_scaling(records_by_scale, table["log_param_count_by_scale"])
+
+    fig1, fig2 = s11s.build_fig_s1_data(table), s11s.build_fig_s2_data(perf)
+    fig3, fig4, fig5 = s11s.build_fig_s3_data(landscape), s11s.build_fig_s4_data(div), s11s.build_fig_s5_data(perf)
+    for fig in (fig1, fig2, fig3, fig4, fig5):
+        assert "schema" in fig
+        assert "figure" in fig["schema"] and "title" in fig["schema"]
+    assert len(fig1["points"]) > 0
+    assert len(fig2["points"]) > 0
 
 
 # =================================================================================================
