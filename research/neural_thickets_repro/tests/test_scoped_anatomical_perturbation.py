@@ -10,6 +10,7 @@ import torch
 from neural_thickets_repro.scoped_anatomical_perturbation import (
     BF16_RADIUS_REALIZATION_METHOD,
     BF16_RADIUS_REALIZATION_METHOD_V2,
+    MAX_BRACKET_EXPANSION_STEPS,
     QUANTIZATION_AWARE_METHOD_V3,
     QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     CorrectionOutOfRegionDriftError,
@@ -21,6 +22,7 @@ from neural_thickets_repro.scoped_anatomical_perturbation import (
     diag_full_model_drift,
     diag_region_drift,
     diag_snapshot_base,
+    expand_bracket_and_resolve_bf16_radius,
     scoped_apply_anatomical_perturbation,
     scoped_apply_anatomical_perturbation_bf16_bracketed,
     scoped_apply_anatomical_perturbation_bf16_corrected,
@@ -923,3 +925,408 @@ def test_v3_hard_fails_on_out_of_region_drift_on_the_fallback_path_too(monkeypat
 
     with pytest.raises(CorrectionOutOfRegionDriftError):
         scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+
+# =================================================================================================
+# POST-V3-FAILURE DETERMINISTIC BRACKET EXPANSION (this repair pass): a real Stage-9 full run
+# (1129/1152 perturbations already checkpointed) hard-failed with RadiusCorrectionFailedError on
+# region=language_late, seed=980336641146292533, requested r=0.07139765708759885 -- ALL 20
+# original attempts realized the IDENTICAL value 0.07139927430659475 regardless of trial scalar
+# (a bf16 quantization staircase that never stepped below the target within the original
+# solver's tiny proportional-correction neighborhood), so no bracket ever formed and v3 refused
+# any fallback. expand_bracket_and_resolve_bf16_radius (see module docstring) activates ONLY in
+# that exact "no bracket ever formed" branch, deterministically searching farther via geometric
+# expansion before giving up, then handing off to the SAME bisection/plateau logic
+# solve_bf16_radius itself uses (never a re-derived acceptance rule).
+# =================================================================================================
+
+LANGUAGE_LATE_REQUESTED_R = 0.07139765708759885  # the exact live Stage-9 full-run failure radius
+LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU = 0.07139927430659475  # the exact live-observed constant realized value
+
+
+def test_bracket_expansion_constants_are_frozen():
+    assert MAX_BRACKET_EXPANSION_STEPS == 24
+
+
+def test_bracket_expansion_regression_reproduces_the_exact_live_language_late_failure_shape():
+    """Sanity-checks the fixture itself against the literal reported numbers: all 20 attempts
+    realize the SAME value, none within tolerance, and the reported absolute error matches.
+    """
+    assert abs(LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU - LANGUAGE_LATE_REQUESTED_R) == pytest.approx(1.6172189959001715e-06)
+    assert abs(LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU - LANGUAGE_LATE_REQUESTED_R) > RADIUS_REALIZATION_TOLERANCE
+
+
+def test_bracket_expansion_original_20_attempts_never_form_a_bracket_on_the_live_failure_shape():
+    """Confirms the ORIGINAL 20-attempt solve_bf16_radius call (byte-for-byte unchanged) really
+    does exhaust all 20 attempts with bracket_low never found and quantization_plateau False --
+    exactly the live failure, not a fabricated scenario -- before any expansion logic runs.
+    """
+
+    def _always_high(trial_r):
+        return {"realized_relative_l2": LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU, "designed_relative_l2": LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU}
+
+    result = solve_bf16_radius(_always_high, LANGUAGE_LATE_REQUESTED_R, max_iterations=20, tolerance=1e-6)
+
+    assert result["converged"] is False
+    assert result["quantization_plateau"] is False
+    assert len(result["attempts"]) == 20
+    assert result["bracket_low_scale"] is None
+    assert result["bracket_high_scale"] is not None
+    for a in result["attempts"]:
+        assert a["realized_relative_l2"] == LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU
+        assert a["bracket_low_scale"] is None
+
+
+def test_bracket_expansion_regression_finds_a_lower_plateau_and_accepts_quantization_limited():
+    """Item 6's exact regression fixture: the original 20 attempts are stuck on the SAME
+    (real, live) high value; a lower attainable BF16 state exists but only becomes visible below
+    a crossover scalar reachable solely via bracket expansion (never within the original 20 tiny
+    proportional steps, confirmed above). Must: (1) run the original 20 unchanged, (2) enter
+    expansion, (3) discover the lower attainable value, (4) prove the bracket via the EXISTING
+    plateau rule, (5) select the nearer endpoint, (6) accept only because relative error <=1e-3.
+    """
+
+    def _always_high(trial_r):
+        return {"realized_relative_l2": LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU, "designed_relative_l2": LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU}
+
+    original_result = solve_bf16_radius(_always_high, LANGUAGE_LATE_REQUESTED_R, max_iterations=20, tolerance=1e-6)
+    last_original_scalar = original_result["attempts"][-1]["scalar"]
+    crossover = last_original_scalar / 2.0  # unreachable within the original 20 attempts by construction
+    # Closer to target than the high plateau's own 1.6172189959001715e-06 gap, so "below" wins.
+    low_plateau = LANGUAGE_LATE_REQUESTED_R - 1.2e-6
+
+    def _staircase(trial_r):
+        v = LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU if trial_r >= crossover else low_plateau
+        return {"realized_relative_l2": v, "designed_relative_l2": v}
+
+    expansion_result = expand_bracket_and_resolve_bf16_radius(
+        _staircase, LANGUAGE_LATE_REQUESTED_R, original_result, tolerance=1e-6, max_expansion_steps=24, max_bisection_iterations=20,
+    )
+
+    assert expansion_result["expansion_used"] is True
+    assert expansion_result["converged"] is False
+    assert expansion_result["quantization_plateau"] is True
+    assert expansion_result["nearest_realized_below"] == pytest.approx(low_plateau)
+    assert expansion_result["nearest_realized_above"] == pytest.approx(LANGUAGE_LATE_OBSERVED_HIGH_PLATEAU)
+    # original 20 attempts are present, unmodified, as the prefix of the combined history
+    assert expansion_result["attempts"][:20] == original_result["attempts"]
+
+    selection = select_quantization_limited_acceptance(
+        expansion_result["nearest_realized_below"], expansion_result["nearest_realized_above"], LANGUAGE_LATE_REQUESTED_R,
+    )
+    assert selection["accepted"] is True
+    assert selection["which"] == "below"
+    assert selection["relative_error"] <= QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE
+
+
+def test_bracket_expansion_real_bf16_end_to_end_resolves_a_confirmed_real_no_bracket_case():
+    """Confirmed directly (not assumed): region_elements=50, seed=4, DIRECTION_SEED-independent
+    of DIRECTION_SEED (uses its own literal seed=4) at LANGUAGE_LATE_REQUESTED_R produces a REAL
+    bf16 no-bracket original-20-attempt failure (bracket_low never found). The full v3 wrapper,
+    with real bf16 tensors end-to-end (no scripted/mocked evaluate_fn), must now resolve it via
+    bracket expansion rather than hard-failing.
+    """
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=50)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, 4, LANGUAGE_LATE_REQUESTED_R, "region", region_names)
+
+    assert result["bracket_expansion_used"] is True
+    assert result["bracket_expansion_steps_taken"] >= 1
+    assert result["radius_acceptance_mode"] in ("strict", "quantization_limited")
+    if result["radius_acceptance_mode"] == "quantization_limited":
+        assert result["relative_radius_error"] <= QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE
+    else:
+        assert result["realized_abs_error"] <= RADIUS_REALIZATION_TOLERANCE
+
+    theta_before = base_weights["region_layer.weight"].float()
+    theta_after = model.region_layer.weight.detach().float()
+    realized_delta_l2 = (theta_after - theta_before).pow(2).sum().sqrt().item()
+    independently_measured_ratio = realized_delta_l2 / result["theta_l2_norm"]
+    # A small (50-element) region -- summation-order float noise is proportionally larger than
+    # in the file's other 500,000-element checks, which use abs=1e-9; still far tighter than the
+    # 1e-3 quantization-limited admissibility bound this result is judged against.
+    assert independently_measured_ratio == pytest.approx(result["realized_relative_l2"], abs=1e-7)
+    assert torch.equal(model.outside_layer.weight.detach(), base_weights["outside_layer.weight"])
+
+
+def test_bracket_expansion_never_invoked_when_original_20_attempts_converge_strictly(monkeypatch):
+    """Negative/preservation test: for a candidate that converges strictly within the original 20
+    attempts (the same 500,000-element case already confirmed to converge), bracket expansion
+    must NEVER be called at all -- monkeypatched to raise if it is.
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    def _must_not_be_called(*args, **kwargs):
+        raise AssertionError("expand_bracket_and_resolve_bf16_radius must not be called when the original solver converges")
+
+    monkeypatch.setattr(module, "expand_bracket_and_resolve_bf16_radius", _must_not_be_called)
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert result["radius_acceptance_mode"] == "strict"
+    assert result["bracket_expansion_used"] is False
+
+
+def test_bracket_expansion_never_invoked_when_original_20_attempts_already_prove_a_plateau(monkeypatch):
+    """Negative/preservation test: for a candidate that already proves a two-sided plateau within
+    the original 20 attempts (the same 2,000-element case already confirmed to plateau),
+    bracket expansion must NEVER be called -- monkeypatched to raise if it is.
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    def _must_not_be_called(*args, **kwargs):
+        raise AssertionError("expand_bracket_and_resolve_bf16_radius must not be called when the original solver already proved a plateau")
+
+    monkeypatch.setattr(module, "expand_bracket_and_resolve_bf16_radius", _must_not_be_called)
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=2_000)
+    region_names = ["region_layer.weight"]
+
+    result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert result["radius_acceptance_mode"] == "quantization_limited"
+    assert result["bracket_expansion_used"] is False
+
+
+def test_bracket_expansion_negative_A_solver_succeeding_within_20_attempts_is_untouched(monkeypatch):
+    """Negative test A: if the original solver succeeds at attempt <=20, the patched wrapper's
+    output must be identical to what it always was -- proven by literally not invoking expansion
+    (see test above) and reproducing the exact same accepted realized value/scale as a fresh,
+    independently-run worker.
+    """
+    worker_1, model_1, base_weights_1, _ = _bf16_worker(region_elements=500_000)
+    worker_2, model_2, base_weights_2, _ = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    result_1 = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker_1, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    result_2 = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker_2, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+    assert result_1["radius_acceptance_mode"] == result_2["radius_acceptance_mode"] == "strict"
+    assert result_1["realized_relative_l2"] == result_2["realized_relative_l2"]
+    assert result_1["bracket_expansion_used"] is False and result_2["bracket_expansion_used"] is False
+
+
+def test_bracket_expansion_pure_never_crosses_still_reports_no_bracket_after_max_steps():
+    """Negative test B (pure logic): a one-sided original result whose evaluate_fn ALWAYS
+    returns the same overshoot value, regardless of scalar, never crosses to the missing side --
+    expand_bracket_and_resolve_bf16_radius must exhaust max_expansion_steps and report
+    converged=False, quantization_plateau=False (never inventing a bracket), with an explicit
+    exhausted_reason -- never silently accepted. Uses a hand-built one-sided original_result
+    (rather than a real solve_bf16_radius run, whose own aggressive proportional shrink would
+    otherwise search the ENTIRE positive scalar domain within 1-2 doublings) so the expansion
+    genuinely consumes several steps before giving up.
+    """
+    requested_r = REQUESTED_R
+    high_value = requested_r * 1.001
+    last_original_scalar = requested_r * 0.999  # tiny displacement already explored -- realistic shape
+
+    original_result = {
+        "converged": False, "quantization_plateau": False,
+        "attempts": [{
+            "iteration": 20, "scalar": last_original_scalar, "designed_relative_l2": high_value,
+            "realized_relative_l2": high_value, "absolute_error": abs(high_value - requested_r),
+            "bracket_low_scale": None, "bracket_high_scale": last_original_scalar,
+            "bracket_low_realized": None, "bracket_high_realized": high_value,
+        }],
+        "best_iteration": 20, "best_scalar": last_original_scalar, "best_designed_relative_l2": high_value,
+        "best_realized_relative_l2": high_value, "best_absolute_error": abs(high_value - requested_r),
+        "accepted_scalar": None, "nearest_realized_below": None, "nearest_realized_above": high_value,
+        "bracket_low_scale": None, "bracket_high_scale": last_original_scalar,
+    }
+
+    def _always_high(trial_r):
+        return {"realized_relative_l2": high_value, "designed_relative_l2": high_value}
+
+    expansion_result = expand_bracket_and_resolve_bf16_radius(
+        _always_high, requested_r, original_result, tolerance=1e-6, max_expansion_steps=8, max_bisection_iterations=20,
+    )
+
+    assert expansion_result["converged"] is False
+    assert expansion_result["quantization_plateau"] is False
+    assert expansion_result["bracket_expansion_exhausted_reason"] == "max_expansion_steps_exhausted_without_crossing"
+    assert expansion_result["expansion_steps_taken"] == 8
+
+
+def test_bracket_expansion_negative_B_wrapper_hard_fails_when_expansion_never_crosses(monkeypatch):
+    """Negative test B (wrapper level): when bracket expansion itself reports it never found a
+    crossing, the wrapper must still hard-fail with RadiusCorrectionFailedError (never
+    QuantizationToleranceExceededError, since no plateau was ever proven), exactly like the
+    pre-existing "no plateau proven" hard-fail this branch has always had.
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    def _fake_solve(evaluate_fn, r, max_iterations, tolerance):
+        evaluate_fn(r)
+        return {
+            "converged": False, "quantization_plateau": False,
+            "attempts": [{"iteration": 1, "scalar": r, "designed_relative_l2": r * 2, "realized_relative_l2": r * 2, "absolute_error": r,
+                          "bracket_low_scale": None, "bracket_high_scale": r, "bracket_low_realized": None, "bracket_high_realized": r * 2}],
+            "best_iteration": 1, "best_scalar": r, "best_designed_relative_l2": r * 2, "best_realized_relative_l2": r * 2,
+            "best_absolute_error": r, "accepted_scalar": None, "nearest_realized_below": None, "nearest_realized_above": r * 2,
+            "bracket_low_scale": None, "bracket_high_scale": r,
+        }
+
+    def _fake_expand(evaluate_fn, r, original_solver_result, **kwargs):
+        return {
+            "converged": False, "quantization_plateau": False, "attempts": original_solver_result["attempts"],
+            "best_iteration": 1, "best_scalar": r, "best_designed_relative_l2": r * 2, "best_realized_relative_l2": r * 2,
+            "best_absolute_error": r, "accepted_scalar": None, "nearest_realized_below": None, "nearest_realized_above": r * 2,
+            "bracket_low_scale": None, "bracket_high_scale": r,
+            "expansion_used": True, "expansion_steps_taken": 24,
+            "bracket_expansion_exhausted_reason": "max_expansion_steps_exhausted_without_crossing",
+        }
+
+    monkeypatch.setattr(module, "solve_bf16_radius", _fake_solve)
+    monkeypatch.setattr(module, "expand_bracket_and_resolve_bf16_radius", _fake_expand)
+
+    with pytest.raises(RadiusCorrectionFailedError) as exc_info:
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+    assert not isinstance(exc_info.value, QuantizationToleranceExceededError)
+
+
+def test_bracket_expansion_negative_C_bracket_found_but_relative_error_too_large_still_hard_fails():
+    """Negative test C: given a PROVEN plateau (a genuine two-sided bracket) whose nearest
+    attainable relative error exceeds the 1e-3 admissibility bound, the acceptance layer must
+    still refuse the fallback -- proven directly on the pure decision function, exactly as the
+    existing v2/v3 plateau-but-too-far case already does (select_quantization_limited_acceptance
+    is completely unchanged by this repair pass).
+    """
+    # Both endpoints 5e-3 away from a requested r=1.0 -> relative error 0.5%, well above 0.1%.
+    result = select_quantization_limited_acceptance(0.995, 1.005, 1.0)
+    assert result["accepted"] is False
+    assert result["relative_error"] == pytest.approx(0.005)
+
+
+def test_bracket_expansion_wrapper_hard_fails_when_plateau_found_but_relative_error_too_large(monkeypatch):
+    """Negative test C (wrapper level): expansion reports a genuinely proven plateau, but the
+    nearest attainable state's relative error exceeds tolerance -- the wrapper must refuse via
+    QuantizationToleranceExceededError (never silently accept a looser bound), exactly like the
+    pre-existing plateau-too-far case.
+    """
+    import neural_thickets_repro.scoped_anatomical_perturbation as module
+
+    worker, model, base_weights, reset_calls = _bf16_worker(region_elements=500_000)
+    region_names = ["region_layer.weight"]
+
+    def _fake_solve(evaluate_fn, r, max_iterations, tolerance):
+        evaluate_fn(r)
+        return {
+            "converged": False, "quantization_plateau": False,
+            "attempts": [{"iteration": 1, "scalar": r, "designed_relative_l2": r * 1.02, "realized_relative_l2": r * 1.02, "absolute_error": r * 0.02,
+                          "bracket_low_scale": None, "bracket_high_scale": r, "bracket_low_realized": None, "bracket_high_realized": r * 1.02}],
+            "best_iteration": 1, "best_scalar": r, "best_designed_relative_l2": r * 1.02, "best_realized_relative_l2": r * 1.02,
+            "best_absolute_error": r * 0.02, "accepted_scalar": None, "nearest_realized_below": None, "nearest_realized_above": r * 1.02,
+            "bracket_low_scale": None, "bracket_high_scale": r,
+        }
+
+    def _fake_expand(evaluate_fn, r, original_solver_result, **kwargs):
+        below, above = r * 0.99, r * 1.02  # both ~1-2% away -- well past the 0.1% admissibility bound
+        attempts = list(original_solver_result["attempts"]) + [{
+            "iteration": 21, "scalar": r * 0.99, "designed_relative_l2": below, "realized_relative_l2": below,
+            "absolute_error": abs(below - r), "bracket_low_scale": r * 0.99, "bracket_high_scale": r,
+            "bracket_low_realized": below, "bracket_high_realized": above,
+        }]
+        return {
+            "converged": False, "quantization_plateau": True, "attempts": attempts,
+            "best_iteration": 21, "best_scalar": r * 0.99, "best_designed_relative_l2": below, "best_realized_relative_l2": below,
+            "best_absolute_error": abs(below - r), "accepted_scalar": None,
+            "nearest_realized_below": below, "nearest_realized_above": above,
+            "bracket_low_scale": r * 0.99, "bracket_high_scale": r,
+            "expansion_used": True, "expansion_steps_taken": 1, "bracket_expansion_exhausted_reason": None,
+        }
+
+    monkeypatch.setattr(module, "solve_bf16_radius", _fake_solve)
+    monkeypatch.setattr(module, "expand_bracket_and_resolve_bf16_radius", _fake_expand)
+
+    with pytest.raises(QuantizationToleranceExceededError):
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(worker, DIRECTION_SEED, REQUESTED_R, "region", region_names)
+
+
+def test_bracket_expansion_negative_D_strict_hit_during_expansion_accepted_as_strict_not_quantization_limited():
+    """Negative/positive test D: if expansion finds an exact <=1e-6 solution during the crossing
+    search itself (before ever reaching bisection), it must be accepted as STRICT
+    (radius_acceptance_mode="strict", quantization_limited=False), never mischaracterized as
+    quantization_limited.
+    """
+    requested_r = REQUESTED_R
+    high_value = requested_r * 1.001
+
+    def _overshoot_only(trial_r):
+        return {"realized_relative_l2": high_value, "designed_relative_l2": high_value}
+
+    original_result = solve_bf16_radius(_overshoot_only, requested_r, max_iterations=20, tolerance=1e-6)
+    assert original_result["converged"] is False
+    assert original_result["bracket_low_scale"] is None
+
+    # Derive the EXACT scalar the geometric expansion will try on step 3 (using the identical
+    # formula the implementation uses), then script that specific step to hit the target exactly.
+    last_scalar = original_result["attempts"][-1]["scalar"]
+    base_displacement = abs(requested_r - last_scalar)
+    exact_hit_scalar = requested_r - base_displacement * (2 ** 3)
+
+    def _exact_hit_on_step_3(trial_r):
+        if trial_r == exact_hit_scalar:
+            return {"realized_relative_l2": requested_r, "designed_relative_l2": requested_r}
+        return {"realized_relative_l2": high_value, "designed_relative_l2": high_value}
+
+    expansion_result = expand_bracket_and_resolve_bf16_radius(
+        _exact_hit_on_step_3, requested_r, original_result, tolerance=1e-6, max_expansion_steps=24, max_bisection_iterations=20,
+    )
+    assert expansion_result["converged"] is True
+    assert expansion_result["quantization_plateau"] is False
+    assert expansion_result["best_absolute_error"] == 0.0
+    assert expansion_result["accepted_scalar"] == exact_hit_scalar
+    assert expansion_result["expansion_steps_taken"] == 3
+
+
+def test_bracket_expansion_negative_E_no_unbracketed_candidate_is_ever_accepted():
+    """Negative test E: whenever expand_bracket_and_resolve_bf16_radius reports
+    quantization_plateau=False (no proven bracket, whether from the original solver or after
+    expansion), both nearest_realized_below and nearest_realized_above are never BOTH non-None
+    at the same time -- a "bracket" is never reported as proven without genuine two-sided
+    evidence.
+    """
+    requested_r = REQUESTED_R
+
+    def _always_high(trial_r):
+        return {"realized_relative_l2": requested_r * 2, "designed_relative_l2": requested_r * 2}
+
+    original_result = solve_bf16_radius(_always_high, requested_r, max_iterations=20, tolerance=1e-6)
+    expansion_result = expand_bracket_and_resolve_bf16_radius(
+        _always_high, requested_r, original_result, tolerance=1e-6, max_expansion_steps=8, max_bisection_iterations=20,
+    )
+    assert expansion_result["quantization_plateau"] is False
+    assert not (expansion_result["nearest_realized_below"] is not None and expansion_result["nearest_realized_above"] is not None)
+
+
+def test_bracket_expansion_negative_F_no_tolerance_values_changed():
+    """Negative test F: the frozen strict tolerance and quantization-limited relative-error bound
+    are untouched by this repair pass.
+    """
+    assert RADIUS_REALIZATION_TOLERANCE == 1e-6
+    assert QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE == 1e-3
+    assert MAX_RADIUS_SOLVER_ITERATIONS == 20
+
+
+def test_bracket_expansion_raises_on_an_already_fully_bracketed_original_result():
+    """expand_bracket_and_resolve_bf16_radius must refuse to run at all if handed a
+    solver_result that already has a full bracket (a caller bug, not a numerical scenario --
+    that result should have proven a quantization_plateau on its own).
+    """
+    x_high, x_low = 0.0100050, 0.0099950
+    sequence = iter([x_high, x_low, x_low])  # 3rd repeats -> plateau, matching the existing solve_bf16_radius test fixture
+
+    def _evaluate(trial_r):
+        return {"realized_relative_l2": next(sequence), "designed_relative_l2": 0.0}
+
+    original_result = solve_bf16_radius(_evaluate, 0.01, max_iterations=20, tolerance=1e-6)
+    assert original_result["bracket_low_scale"] is not None and original_result["bracket_high_scale"] is not None
+    assert original_result["quantization_plateau"] is True
+
+    with pytest.raises(ValueError):
+        expand_bracket_and_resolve_bf16_radius(_evaluate, 0.01, original_result)

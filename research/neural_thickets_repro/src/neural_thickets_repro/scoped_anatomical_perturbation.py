@@ -223,6 +223,106 @@ class QuantizationPlateauError(RuntimeError):
     """
 
 
+def _update_bracket(
+    bracket_low: Optional[Tuple[float, float]], bracket_high: Optional[Tuple[float, float]],
+    current_r: float, realized_r: float, requested_r: float,
+) -> Tuple[Optional[Tuple[float, float]], Optional[Tuple[float, float]]]:
+    """The exact bracket-tightening rule solve_bf16_radius has always used, factored out so the
+    post-expansion bisection resume (expand_bracket_and_resolve_bf16_radius, below) applies
+    IDENTICAL bracket bookkeeping, never a re-derived analog. Never widens either side.
+    """
+    if realized_r <= requested_r and (bracket_low is None or current_r > bracket_low[0]):
+        bracket_low = (current_r, realized_r)
+    if realized_r >= requested_r and (bracket_high is None or current_r < bracket_high[0]):
+        bracket_high = (current_r, realized_r)
+    return bracket_low, bracket_high
+
+
+def _next_bisection_scalar_or_plateau(
+    bracket_low: Tuple[float, float], bracket_high: Tuple[float, float],
+    realized_r: float, seen_bisection_realized: set,
+) -> Tuple[Optional[float], bool]:
+    """The exact bisection-step / plateau-detection rule solve_bf16_radius has always used,
+    factored out for the same reason as _update_bracket above. Returns (next_scalar, plateau);
+    next_scalar is None when plateau is True. Mutates seen_bisection_realized in place.
+    """
+    if realized_r in seen_bisection_realized:
+        return None, True
+    seen_bisection_realized.add(realized_r)
+    next_r = (bracket_low[0] + bracket_high[0]) / 2.0
+    if next_r == bracket_low[0] or next_r == bracket_high[0]:
+        return None, True
+    return next_r, False
+
+
+def _bf16_radius_core_loop(
+    evaluate_fn: Callable[[float], Dict[str, float]], requested_r: float, *,
+    max_iterations: int, tolerance: float, start_iteration: int, current_r: float,
+    bracket_low: Optional[Tuple[float, float]] = None, bracket_high: Optional[Tuple[float, float]] = None,
+    seen_bisection_realized: Optional[set] = None, attempts: Optional[List[Dict[str, Any]]] = None,
+    best_index: Optional[int] = None,
+) -> Dict[str, Any]:
+    """The exact per-iteration body solve_bf16_radius has always run (phase-1 proportional
+    correction before a bracket exists, phase-2 bisection once one forms, the same plateau
+    checks) -- generalized ONLY over its starting state so it can be (a) called with empty state
+    by solve_bf16_radius itself (byte-for-byte the original algorithm) and (b) RESUMED, after
+    deterministic bracket expansion finds the missing side, with a pre-populated two-sided
+    bracket -- i.e. "feed the new samples into the EXISTING bracket/plateau proof logic" is
+    literal shared code, never a re-derived analog. When both `bracket_low`/`bracket_high` are
+    already set on entry (the resume case), the phase-1 branch below is simply never taken.
+    """
+    if seen_bisection_realized is None:
+        seen_bisection_realized = set()
+    if attempts is None:
+        attempts = []
+    converged = False
+    plateau = False
+
+    for iteration in range(start_iteration, start_iteration + max_iterations):
+        measurement = evaluate_fn(current_r)
+        realized_r = measurement["realized_relative_l2"]
+        designed_r = measurement.get("designed_relative_l2", realized_r)
+        absolute_error = abs(realized_r - requested_r)
+
+        bracket_low, bracket_high = _update_bracket(bracket_low, bracket_high, current_r, realized_r, requested_r)
+
+        attempts.append({
+            "iteration": iteration, "scalar": current_r, "designed_relative_l2": designed_r,
+            "realized_relative_l2": realized_r, "absolute_error": absolute_error,
+            "bracket_low_scale": bracket_low[0] if bracket_low else None,
+            "bracket_high_scale": bracket_high[0] if bracket_high else None,
+            "bracket_low_realized": bracket_low[1] if bracket_low else None,
+            "bracket_high_realized": bracket_high[1] if bracket_high else None,
+        })
+
+        if best_index is None or absolute_error < attempts[best_index]["absolute_error"]:
+            best_index = len(attempts) - 1
+
+        if absolute_error <= tolerance:
+            converged = True
+            break
+
+        if bracket_low is not None and bracket_high is not None:
+            next_r, is_plateau = _next_bisection_scalar_or_plateau(bracket_low, bracket_high, realized_r, seen_bisection_realized)
+            if is_plateau:
+                plateau = True
+                break
+            current_r = next_r
+        else:
+            if realized_r == 0:
+                plateau = True
+                break
+            current_r = current_r * requested_r / realized_r
+    else:
+        if bracket_low is not None and bracket_high is not None:
+            plateau = True
+
+    return {
+        "converged": converged, "plateau": plateau, "attempts": attempts, "best_index": best_index,
+        "bracket_low": bracket_low, "bracket_high": bracket_high, "seen_bisection_realized": seen_bisection_realized,
+    }
+
+
 def solve_bf16_radius(
     evaluate_fn: Callable[[float], Dict[str, float]], requested_r: float, *,
     max_iterations: int = MAX_RADIUS_SOLVER_ITERATIONS, tolerance: float = RADIUS_REALIZATION_TOLERANCE,
@@ -253,64 +353,22 @@ def solve_bf16_radius(
     midpoint is no longer distinguishable in floating point from either endpoint (the bracket
     cannot be subdivided any further at all). Either way this is treated as a genuine numerical
     floor, never silently accepted as "close enough".
+
+    THIS FUNCTION'S BODY (this repair pass) is now a thin call into the shared
+    `_bf16_radius_core_loop` with EMPTY starting state (start_iteration=1, current_r=requested_r,
+    no bracket) -- a pure refactor, byte-for-byte identical behavior to before (see
+    `_bf16_radius_core_loop`'s docstring and the module docstring's "POST-V3-FAILURE
+    DETERMINISTIC BRACKET EXPANSION" section for why this was factored out).
     """
-    attempts: List[Dict[str, Any]] = []
-    bracket_low: Optional[Tuple[float, float]] = None  # (scale, realized) with realized <= requested_r, tightest (largest scale) so far
-    bracket_high: Optional[Tuple[float, float]] = None  # (scale, realized) with realized >= requested_r, tightest (smallest scale) so far
-    seen_bisection_realized: set = set()
-
-    current_r = requested_r
-    converged = False
-    plateau = False
-    best_index: Optional[int] = None
-
-    for iteration in range(1, max_iterations + 1):
-        measurement = evaluate_fn(current_r)
-        realized_r = measurement["realized_relative_l2"]
-        designed_r = measurement.get("designed_relative_l2", realized_r)
-        absolute_error = abs(realized_r - requested_r)
-
-        if realized_r <= requested_r and (bracket_low is None or current_r > bracket_low[0]):
-            bracket_low = (current_r, realized_r)
-        if realized_r >= requested_r and (bracket_high is None or current_r < bracket_high[0]):
-            bracket_high = (current_r, realized_r)
-
-        attempts.append({
-            "iteration": iteration, "scalar": current_r, "designed_relative_l2": designed_r,
-            "realized_relative_l2": realized_r, "absolute_error": absolute_error,
-            "bracket_low_scale": bracket_low[0] if bracket_low else None,
-            "bracket_high_scale": bracket_high[0] if bracket_high else None,
-            "bracket_low_realized": bracket_low[1] if bracket_low else None,
-            "bracket_high_realized": bracket_high[1] if bracket_high else None,
-        })
-
-        if best_index is None or absolute_error < attempts[best_index]["absolute_error"]:
-            best_index = iteration - 1
-
-        if absolute_error <= tolerance:
-            converged = True
-            break
-
-        if bracket_low is not None and bracket_high is not None:
-            if realized_r in seen_bisection_realized:
-                plateau = True
-                break
-            seen_bisection_realized.add(realized_r)
-            next_r = (bracket_low[0] + bracket_high[0]) / 2.0
-            if next_r == bracket_low[0] or next_r == bracket_high[0]:
-                plateau = True
-                break
-            current_r = next_r
-        else:
-            if realized_r == 0:
-                plateau = True
-                break
-            current_r = current_r * requested_r / realized_r
-    else:
-        if bracket_low is not None and bracket_high is not None:
-            plateau = True
-
-    best = attempts[best_index]
+    core = _bf16_radius_core_loop(
+        evaluate_fn, requested_r, max_iterations=max_iterations, tolerance=tolerance,
+        start_iteration=1, current_r=requested_r,
+    )
+    attempts = core["attempts"]
+    best = attempts[core["best_index"]]
+    bracket_low, bracket_high = core["bracket_low"], core["bracket_high"]
+    converged = core["converged"]
+    plateau = core["plateau"]
     return {
         "converged": converged,
         "quantization_plateau": bool(plateau and not converged),
@@ -323,6 +381,8 @@ def solve_bf16_radius(
         "accepted_scalar": (best["scalar"] if converged else None),
         "nearest_realized_below": bracket_low[1] if bracket_low else None,
         "nearest_realized_above": bracket_high[1] if bracket_high else None,
+        "bracket_low_scale": bracket_low[0] if bracket_low else None,
+        "bracket_high_scale": bracket_high[0] if bracket_high else None,
     }
 
 
@@ -457,10 +517,54 @@ scalar) -> remeasure -> verify-exact-reproduction -> verify-outside-region-invar
 before any capability evaluation is allowed to see the fallback state -- implemented literally
 below, never skipped for the fallback path.
 =================================================================================================
+
+POST-V3-FAILURE DETERMINISTIC BRACKET EXPANSION (this repair pass -- a real Stage-9 full run,
+1129/1152 perturbations already checkpointed, hard-failed with RadiusCorrectionFailedError on
+region=language_late, seed=980336641146292533, requested r=0.07139765708759885: ALL 20 original
+attempts realized the IDENTICAL value 0.07139927430659475 (abs error 1.6172189959001715e-06,
+just over the 1e-6 tolerance) regardless of trial scalar, with bracket_low_scale=None on every
+attempt -- i.e. the map is a bf16 quantization "staircase" that never took a single step down to
+an attainable value below the target within the original solver's tiny proportional-correction
+neighborhood, so no bracket was ever formed and v3 correctly refused any fallback (the "not
+solver_result['quantization_plateau']" branch below). This is a SEARCH-RANGE failure of the
+original 20-attempt neighborhood, not an acceptance-policy failure -- solve_bf16_radius's own
+bisection/plateau-detection rules (now factored into `_bf16_radius_core_loop`, above) are
+REUSED UNCHANGED, never re-derived or loosened.
+
+`expand_bracket_and_resolve_bf16_radius` (below) activates ONLY when the original
+MAX_RADIUS_SOLVER_ITERATIONS-attempt solve_bf16_radius call neither converged NOR proved a
+quantization_plateau (i.e. never observed both a realized value <= requested_r and one >=
+requested_r) -- it never runs, and the original 20-attempt attempt sequence is never touched,
+for any candidate that converges or plateaus within those 20 attempts (proven by
+test_v3_original_20_attempt_convergent_path_never_calls_bracket_expansion and
+test_v3_plateau_found_within_original_20_never_calls_bracket_expansion). It continues searching
+with the SAME evaluate_fn (same fixed seeded direction -- never resampled, never a new scalar
+formula for the direction itself) using DETERMINISTIC GEOMETRIC expansion of the scalar
+displacement the original solver already explored (`base_displacement = |requested_r -
+last_original_scalar|`, then trial displacements 2x/4x/8x/.../2^MAX_BRACKET_EXPANSION_STEPS x
+that base, in whichever direction the missing bracket side requires -- lower if every observed
+realized value was > requested_r, higher if every one was < requested_r) until EITHER an
+opposite-side realized value is found (a genuine bf16 state on the missing side) or
+MAX_BRACKET_EXPANSION_STEPS is exhausted with no crossing, which still hard-fails exactly as v2/
+v3 always did for an unbracketed candidate -- there is no unconditional fallback.
+
+Once a crossing sample is found, the two endpoints are handed to `_bf16_radius_core_loop` --
+the SAME bisection/plateau-detection code path solve_bf16_radius itself runs, resumed with the
+now-two-sided bracket as its starting state -- to genuinely narrow/prove the bracket rather than
+accepting the first crossing sample outright. The final outcome (strict convergence during
+either phase, a PROVEN plateau handed to the existing `select_quantization_limited_acceptance`
+0.1%-relative-error rule, or a hard fail) is decided by exactly the same acceptance code already
+below (`scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3`'s existing
+converged / quantization_plateau branches) -- this is a completion of v3's SEARCH procedure, not
+a new radius policy: no new realization method name, no v4, no relaxed/looser tolerance. The
+frozen 1e-6 strict tolerance and 1e-3 (0.1%) quantization-limited relative-error bound are
+untouched.
+=================================================================================================
 """
 
 QUANTIZATION_AWARE_METHOD_V3 = "fixed_direction_bf16_quantization_aware_v3"
 QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE = 1e-3  # 0.1% -- numerical admissibility bound, frozen, never task-performance-derived
+MAX_BRACKET_EXPANSION_STEPS = 24  # deterministic, conservative cap on geometric expansion steps -- frozen
 
 
 class QuantizationToleranceExceededError(RadiusCorrectionFailedError):
@@ -499,14 +603,173 @@ def select_quantization_limited_acceptance(
     }
 
 
+def expand_bracket_and_resolve_bf16_radius(
+    evaluate_fn: Callable[[float], Dict[str, float]], requested_r: float, original_solver_result: Dict[str, Any],
+    *, tolerance: float = RADIUS_REALIZATION_TOLERANCE, max_expansion_steps: int = MAX_BRACKET_EXPANSION_STEPS,
+    max_bisection_iterations: int = MAX_RADIUS_SOLVER_ITERATIONS,
+) -> Dict[str, Any]:
+    """Completion of v3's search procedure (see module docstring's "POST-V3-FAILURE
+    DETERMINISTIC BRACKET EXPANSION" section) -- ONLY call this when `original_solver_result`
+    (a real `solve_bf16_radius` return value) has `converged=False` and `quantization_plateau=
+    False`, i.e. the original attempts never formed a two-sided bracket. Raises `ValueError` if
+    called with a result that already has a full bracket (that should have proven a plateau on
+    its own -- calling this here would be a caller bug, not a numerical one).
+
+    Returns a dict shaped like `solve_bf16_radius`'s own return value (same key names:
+    `converged`, `quantization_plateau`, `attempts`, `best_*`, `accepted_scalar`,
+    `nearest_realized_below/above`, `bracket_low_scale`/`bracket_high_scale`) so callers can
+    treat it as a drop-in continuation of the original solver_result -- plus additive
+    `expansion_used`/`expansion_steps_taken`/`bracket_expansion_exhausted_reason` provenance
+    fields. `attempts` is the FULL combined history (original 20 + expansion-search attempts +
+    any post-crossing bisection-resume attempts), continuing the same iteration numbering, for
+    complete audit provenance.
+    """
+    original_attempts = original_solver_result["attempts"]
+    bracket_low_scale = original_solver_result.get("bracket_low_scale")
+    bracket_high_scale = original_solver_result.get("bracket_high_scale")
+    bracket_low = (bracket_low_scale, original_solver_result.get("nearest_realized_below")) if bracket_low_scale is not None else None
+    bracket_high = (bracket_high_scale, original_solver_result.get("nearest_realized_above")) if bracket_high_scale is not None else None
+
+    if bracket_low is not None and bracket_high is not None:
+        raise ValueError(
+            "expand_bracket_and_resolve_bf16_radius: the original solver result already has a "
+            "two-sided bracket -- it should have proven a quantization_plateau on its own; "
+            "bracket expansion is only applicable when no bracket was ever formed."
+        )
+
+    combined_attempts: List[Dict[str, Any]] = list(original_attempts)
+    next_iteration = len(original_attempts) + 1
+
+    def _no_bracket_result(exhausted_reason: Optional[str], steps_taken: int = 0) -> Dict[str, Any]:
+        return {
+            "converged": False, "quantization_plateau": False, "attempts": combined_attempts,
+            "best_iteration": original_solver_result.get("best_iteration"),
+            "best_scalar": original_solver_result.get("best_scalar"),
+            "best_designed_relative_l2": original_solver_result.get("best_designed_relative_l2"),
+            "best_realized_relative_l2": original_solver_result.get("best_realized_relative_l2"),
+            "best_absolute_error": original_solver_result.get("best_absolute_error"),
+            "accepted_scalar": None,
+            "nearest_realized_below": bracket_low[1] if bracket_low else None,
+            "nearest_realized_above": bracket_high[1] if bracket_high else None,
+            "bracket_low_scale": bracket_low[0] if bracket_low else None,
+            "bracket_high_scale": bracket_high[0] if bracket_high else None,
+            "expansion_used": True, "expansion_steps_taken": steps_taken,
+            "bracket_expansion_exhausted_reason": exhausted_reason,
+        }
+
+    if bracket_low is None and bracket_high is None:
+        # Neither side ever observed -- no direction to expand toward (only reachable via a
+        # non-standard solver_result, e.g. a legacy/mocked attempt sequence).
+        return _no_bracket_result("no_initial_bracket_side_to_expand_from")
+
+    last_scalar = original_attempts[-1]["scalar"]
+    base_displacement = abs(requested_r - last_scalar)
+    if base_displacement <= 0.0:
+        # Degenerate (should not arise from a real, non-converged original solver run) --
+        # a deterministic, tiny non-zero seed avoids a stuck-at-zero geometric expansion.
+        base_displacement = abs(requested_r) * 1e-6 if requested_r != 0 else 1e-9
+
+    direction = -1.0 if bracket_low is None else 1.0  # Case A: search lower; Case B: search higher
+    crossed = False
+    steps_taken = 0
+
+    for step in range(1, max_expansion_steps + 1):
+        steps_taken = step
+        displacement = base_displacement * (2 ** step)
+        trial_r = requested_r + direction * displacement
+        if trial_r <= 0.0:
+            break  # cannot search a non-positive scalar magnitude -- deterministic hard stop
+
+        measurement = evaluate_fn(trial_r)
+        realized_r = measurement["realized_relative_l2"]
+        designed_r = measurement.get("designed_relative_l2", realized_r)
+        absolute_error = abs(realized_r - requested_r)
+
+        bracket_low, bracket_high = _update_bracket(bracket_low, bracket_high, trial_r, realized_r, requested_r)
+
+        combined_attempts.append({
+            "iteration": next_iteration, "scalar": trial_r, "designed_relative_l2": designed_r,
+            "realized_relative_l2": realized_r, "absolute_error": absolute_error,
+            "bracket_low_scale": bracket_low[0] if bracket_low else None,
+            "bracket_high_scale": bracket_high[0] if bracket_high else None,
+            "bracket_low_realized": bracket_low[1] if bracket_low else None,
+            "bracket_high_realized": bracket_high[1] if bracket_high else None,
+            "bracket_expansion_step": step, "bracket_expansion_displacement": displacement,
+        })
+        next_iteration += 1
+
+        if absolute_error <= tolerance:
+            return {
+                "converged": True, "quantization_plateau": False, "attempts": combined_attempts,
+                "best_iteration": combined_attempts[-1]["iteration"], "best_scalar": trial_r,
+                "best_designed_relative_l2": designed_r, "best_realized_relative_l2": realized_r,
+                "best_absolute_error": absolute_error, "accepted_scalar": trial_r,
+                "nearest_realized_below": bracket_low[1] if bracket_low else None,
+                "nearest_realized_above": bracket_high[1] if bracket_high else None,
+                "bracket_low_scale": bracket_low[0] if bracket_low else None,
+                "bracket_high_scale": bracket_high[0] if bracket_high else None,
+                "expansion_used": True, "expansion_steps_taken": step,
+                "bracket_expansion_exhausted_reason": None,
+            }
+
+        if bracket_low is not None and bracket_high is not None:
+            crossed = True
+            break
+
+    if not crossed:
+        return _no_bracket_result("max_expansion_steps_exhausted_without_crossing", steps_taken=steps_taken)
+
+    # Opposite side found -- hand off to the EXISTING bisection/plateau-detection core loop
+    # (identical code path solve_bf16_radius itself uses), never a new/independent acceptance
+    # rule; a fresh bisection-phase seen-value set, matching solve_bf16_radius's own semantics
+    # (only bisection-phase revisits count toward plateau detection).
+    resume_current_r = (bracket_low[0] + bracket_high[0]) / 2.0
+    core = _bf16_radius_core_loop(
+        evaluate_fn, requested_r, max_iterations=max_bisection_iterations, tolerance=tolerance,
+        start_iteration=next_iteration, current_r=resume_current_r,
+        bracket_low=bracket_low, bracket_high=bracket_high,
+        seen_bisection_realized=set(), attempts=combined_attempts, best_index=None,
+    )
+    attempts = core["attempts"]
+    best = attempts[core["best_index"]] if core["best_index"] is not None else None
+    bracket_low, bracket_high = core["bracket_low"], core["bracket_high"]
+    converged = core["converged"]
+    plateau = core["plateau"]
+    return {
+        "converged": converged,
+        "quantization_plateau": bool(plateau and not converged),
+        "attempts": attempts,
+        "best_iteration": best["iteration"] if best else None,
+        "best_scalar": best["scalar"] if best else None,
+        "best_designed_relative_l2": best["designed_relative_l2"] if best else None,
+        "best_realized_relative_l2": best["realized_relative_l2"] if best else None,
+        "best_absolute_error": best["absolute_error"] if best else None,
+        "accepted_scalar": (best["scalar"] if converged and best else None),
+        "nearest_realized_below": bracket_low[1] if bracket_low else None,
+        "nearest_realized_above": bracket_high[1] if bracket_high else None,
+        "bracket_low_scale": bracket_low[0] if bracket_low else None,
+        "bracket_high_scale": bracket_high[0] if bracket_high else None,
+        "expansion_used": True, "expansion_steps_taken": steps_taken,
+        "bracket_expansion_exhausted_reason": None,
+    }
+
+
 def scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(
     worker_self, seed: int, r: float, region_name: str, region_param_names: Sequence[str],
     *, max_iterations: int = MAX_RADIUS_SOLVER_ITERATIONS, strict_tolerance: float = RADIUS_REALIZATION_TOLERANCE,
     quantization_plateau_relative_tolerance: float = QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
+    max_bracket_expansion_steps: int = MAX_BRACKET_EXPANSION_STEPS,
 ) -> Dict:
     """v3: reuses solve_bf16_radius (v2's solver, UNCHANGED) and adds the two-tier acceptance
     rule described in the module docstring above. Requires worker_self._base_weights, same as
     v1/v2.
+
+    This repair pass additionally attempts `expand_bracket_and_resolve_bf16_radius` (module
+    docstring: "POST-V3-FAILURE DETERMINISTIC BRACKET EXPANSION") in the ONE branch that used to
+    hard-fail unconditionally -- solve_bf16_radius's original MAX_RADIUS_SOLVER_ITERATIONS
+    attempts (called exactly as before, completely unaffected by this addition) neither converged
+    nor proved a plateau. Every other branch (strict convergence within the original attempts,
+    or a plateau already proven within them) is untouched.
     """
     if not hasattr(worker_self, "_base_weights"):
         raise RuntimeError(
@@ -546,14 +809,34 @@ def scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3(
         )
 
     if not solver_result["quantization_plateau"]:
-        raise RadiusCorrectionFailedError(
-            f"BF16 quantization-aware solver did not converge within tolerance={strict_tolerance} "
-            f"after {len(solver_result['attempts'])} attempts for region {region_name!r} "
-            f"(seed={seed}, requested r={r}), and no quantization plateau was proven -- refusing "
-            f"the quantization-limited fallback, which requires a PROVEN plateau. "
-            f"best_realized={solver_result['best_realized_relative_l2']}, "
-            f"best_absolute_error={solver_result['best_absolute_error']}. Attempts: {solver_result['attempts']}"
+        # POST-V3-FAILURE DETERMINISTIC BRACKET EXPANSION (this repair pass): the original
+        # attempts above (UNCHANGED) never formed a two-sided bracket -- before giving up,
+        # deterministically search farther via expand_bracket_and_resolve_bf16_radius. See the
+        # module docstring's "POST-V3-FAILURE DETERMINISTIC BRACKET EXPANSION" section.
+        expansion_result = expand_bracket_and_resolve_bf16_radius(
+            _evaluate, r, solver_result, tolerance=strict_tolerance,
+            max_expansion_steps=max_bracket_expansion_steps, max_bisection_iterations=max_iterations,
         )
+        if expansion_result["converged"]:
+            record = last_record["value"]
+            return _build_quantization_aware_result(
+                region_name=region_name, seed=seed, r=r, radius_acceptance_mode="strict", quantization_limited=False,
+                accepted_scalar=expansion_result["accepted_scalar"], record=record, solver_result=expansion_result,
+                strict_tolerance=strict_tolerance, quantization_plateau_relative_tolerance=quantization_plateau_relative_tolerance,
+            )
+        if not expansion_result["quantization_plateau"]:
+            raise RadiusCorrectionFailedError(
+                f"BF16 quantization-aware solver did not converge within tolerance={strict_tolerance} "
+                f"after {len(solver_result['attempts'])} original attempts, and deterministic bracket "
+                f"expansion ({expansion_result.get('expansion_steps_taken', 0)} expansion steps, "
+                f"exhausted_reason={expansion_result.get('bracket_expansion_exhausted_reason')}) still "
+                f"found no quantization plateau for region {region_name!r} (seed={seed}, requested "
+                f"r={r}) -- refusing the quantization-limited fallback, which requires a PROVEN "
+                f"plateau. best_realized={expansion_result['best_realized_relative_l2']}, "
+                f"best_absolute_error={expansion_result['best_absolute_error']}. "
+                f"Attempts: {expansion_result['attempts']}"
+            )
+        solver_result = expansion_result
 
     nearest_below = solver_result["nearest_realized_below"]
     nearest_above = solver_result["nearest_realized_above"]
@@ -655,6 +938,8 @@ def _build_quantization_aware_result(
         "final_realized_relative_l2": realized_r,
         "final_absolute_radius_error": absolute_error,
         "attempts": solver_result["attempts"],
+        "bracket_expansion_used": bool(solver_result.get("expansion_used", False)),
+        "bracket_expansion_steps_taken": solver_result.get("expansion_steps_taken", 0),
     }
 
 

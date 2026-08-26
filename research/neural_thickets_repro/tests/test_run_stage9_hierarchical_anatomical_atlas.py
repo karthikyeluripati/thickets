@@ -49,6 +49,7 @@ from neural_thickets_repro.run_stage9_hierarchical_anatomical_atlas import (
     run_stage9_baseline_equality_check,
     run_stage9_rpc,
     validate_stage9_direction_seed_reuse,
+    write_numerical_solver_patch_provenance,
 )
 
 
@@ -1195,3 +1196,59 @@ def test_all_stage9_scientific_signatures_remain_identical():
         "expected_unique_perturbations", "expected_result_rows",
     }
     assert compute_stage9_run_signature(STAGE9_CHILD_REGIONS, STAGE9_RADII, 64, 50) == "stage9_hierarchical_anatomical_atlas_3b_v1"
+
+
+# =================================================================================================
+# Section 12 -- numerical solver bracket-expansion patch (this repair pass): the real Stage-9
+# full run (1129/1152 perturbations already checkpointed) hard-failed with
+# RadiusCorrectionFailedError on a genuine bf16 quantization-staircase search-range gap (region=
+# language_late, seed=980336641146292533) -- fixed in scoped_anatomical_perturbation.py
+# (expand_bracket_and_resolve_bf16_radius, see that module's own extensive test coverage). This
+# section only covers the Stage-9-runner-level provenance sidecar and re-confirms the scientific
+# design is completely untouched by that numerical fix.
+# =================================================================================================
+
+
+def test_write_numerical_solver_patch_provenance_writes_expected_sidecar(tmp_path):
+    record = write_numerical_solver_patch_provenance(tmp_path)
+
+    path = tmp_path / "numerical_solver_patch_provenance.json"
+    assert path.exists()
+    import json
+
+    on_disk = json.loads(path.read_text())
+    assert on_disk == record
+    assert record["radius_realization_method"] == "fixed_direction_bf16_quantization_aware_v3"
+    assert record["original_first_n_attempts_search_unchanged"] is True
+    assert record["original_acceptance_thresholds_unchanged"] is True
+    assert record["activates_only_after_legacy_v3_failure"] is True
+    assert record["completed_pre_patch_candidates_count_is_not_assumed_locally"] is True
+    assert record["strict_tolerance"] == 1e-6
+    assert record["quantization_plateau_relative_tolerance"] == 1e-3
+    assert "patch_commit_sha" in record
+
+
+def test_write_numerical_solver_patch_provenance_never_touches_results_jsonl(tmp_path):
+    results_path = tmp_path / "results.jsonl"
+    results_path.write_text('{"example": "row"}\n')
+
+    write_numerical_solver_patch_provenance(tmp_path)
+
+    assert results_path.read_text() == '{"example": "row"}\n'
+
+
+def test_numerical_solver_patch_does_not_change_stage9_scientific_design():
+    """The bracket-expansion numerical fix lives entirely in scoped_anatomical_perturbation.py
+    and is invoked transparently through the SAME scoped_apply_anatomical_perturbation_bf16_
+    quantization_aware_v3 dispatch Stage 9 has always used -- re-confirms the frozen scientific
+    counts and run signature are exactly as before this patch.
+    """
+    plan = build_stage9_plan(model_name="m", model_revision="rev1", output_root="/tmp/unused")
+    assert plan.n_directions_per_cell == STAGE9_N_DIRECTIONS_PER_CELL == 64
+    assert plan.d_map_n == STAGE9_D_MAP_N == 50
+    assert len(STAGE9_CHILD_REGIONS) == 6
+    assert len(STAGE9_RADII) == 3
+    assert len(STAGE9_CAPABILITIES) == 6
+    assert 6 * 3 * 64 == 1152
+    assert 1152 * 6 == 6912
+    assert 6912 * 50 == 345600

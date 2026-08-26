@@ -639,6 +639,58 @@ def build_stage9_run_manifest_summary(checkpoint: Stage9CheckpointManifest, reco
     }
 
 
+NUMERICAL_SOLVER_PATCH_REASON = "post-v3-failure deterministic bracket expansion"
+
+
+def _git_commit_sha() -> str:
+    import subprocess
+
+    repo_root = Path(__file__).resolve().parents[2]  # git walks up to find .git regardless -- matches run_capability_benchmark_gate.py's own convention
+    try:
+        return subprocess.check_output(["git", "-C", str(repo_root), "rev-parse", "HEAD"], text=True).strip()
+    except Exception as exc:  # noqa: BLE001
+        return f"unavailable ({exc})"
+
+
+def write_numerical_solver_patch_provenance(output_dir: Path) -> Dict[str, Any]:
+    """Provenance sidecar for the scoped_anatomical_perturbation.py bracket-expansion repair
+    pass (see that module's "POST-V3-FAILURE DETERMINISTIC BRACKET EXPANSION" docstring
+    section) -- written fresh at the start of every Stage-9 run so a resumed run's output
+    directory always records that the patched solver was in effect, without asserting anything
+    about how many pre-patch candidates exist locally (this function never inspects
+    results.jsonl for that count -- see module docstring: "completed pre-patch candidates count
+    is not assumed locally").
+    """
+    from .scoped_anatomical_perturbation import (
+        MAX_BRACKET_EXPANSION_STEPS,
+        QUANTIZATION_AWARE_METHOD_V3,
+        QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
+        RADIUS_REALIZATION_TOLERANCE,
+        MAX_RADIUS_SOLVER_ITERATIONS,
+    )
+
+    record = {
+        "patch_commit_sha": _git_commit_sha(),
+        "patch_commit_sha_note": (
+            "the commit that introduces/updates this file records the actual SHA -- see `git log "
+            "--follow -- src/neural_thickets_repro/scoped_anatomical_perturbation.py` if this run's "
+            "SHA above predates the patch landing"
+        ),
+        "reason": NUMERICAL_SOLVER_PATCH_REASON,
+        "radius_realization_method": QUANTIZATION_AWARE_METHOD_V3,  # unchanged by this patch -- no v4, no new method name
+        "original_first_n_attempts_search_unchanged": True,
+        "original_max_solver_iterations": MAX_RADIUS_SOLVER_ITERATIONS,
+        "original_acceptance_thresholds_unchanged": True,
+        "strict_tolerance": RADIUS_REALIZATION_TOLERANCE,
+        "quantization_plateau_relative_tolerance": QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
+        "max_bracket_expansion_steps": MAX_BRACKET_EXPANSION_STEPS,
+        "activates_only_after_legacy_v3_failure": True,
+        "completed_pre_patch_candidates_count_is_not_assumed_locally": True,
+    }
+    (output_dir / "numerical_solver_patch_provenance.json").write_text(json.dumps(record, indent=2))
+    return record
+
+
 def write_stage9_run_manifest(output_dir: Path) -> Dict[str, Any]:
     checkpoint_path = output_dir / "checkpoint_manifest.json"
     if not checkpoint_path.exists():
@@ -1198,6 +1250,7 @@ def main(argv=None) -> int:
     from .vlm_adapter import bootstrap_ray, verify_workers_can_import_external_root
 
     plan.output_dir.mkdir(parents=True, exist_ok=True)
+    write_numerical_solver_patch_provenance(plan.output_dir)
     subset_ids_dir = plan.output_dir / "d_map_subsets"
     capability_contexts = build_d_map_capability_contexts(
         STAGE8_BASE_SEED, subset_ids_dir, plan.d_map_n,  # Stage 8's OWN base seed -- reuses Stage 8's subset hashes exactly, never resamples
