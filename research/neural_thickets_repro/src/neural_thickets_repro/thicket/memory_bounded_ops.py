@@ -27,6 +27,21 @@ discrepancy against the legacy float32 path is quantified in tests/test_memory_b
 tests/test_thicket_perturbation.py, and shown to be many orders of magnitude below the frozen
 radius-acceptance tolerances (RADIUS_REALIZATION_TOLERANCE / QUANTIZATION_PLATEAU_RELATIVE_
 TOLERANCE in scoped_anatomical_perturbation.py) and to never change any v3 acceptance decision.
+
+FOLLOW-UP ROOT CAUSE (this repair pass, second live 7B whole_model smoke -- the perturbation-path
+fix above worked, confirmed: the run got past apply_anatomical_relative_l2 and all 6 capability
+evaluations, then OOM'd during POST-CANDIDATE exact-restoration verification instead):
+measure_drift's exact-difference count, `(p.detach() != orig).sum().item()`, was left UNCHUNKED
+in the first pass on the (correct, at the time) assumption that a boolean comparison is cheap.
+That assumption failed empirically at 7B: `.sum()` on a boolean tensor internally promotes to a
+wider accumulator dtype before reducing, and for the ~544.5M-element vocabulary projection this
+produced a ~4.06 GiB temporary (consistent with an int64-sized promotion buffer: 544.5M x 8 bytes
+~= 4.06 GiB) against a GPU already left with only ~2.76 GiB free by that point in the run.
+`chunked_count_differing` below fixes this the same way -- exact `!=` comparison and count,
+chunk-at-a-time, never a full-tensor boolean/promoted-dtype buffer -- while remaining an EXACT
+(never approximate/tolerance-based) equality count, because the restoration gate this feeds
+(`thicket/worker_rpc.py`'s verify_exact_fixed_base_restoration_rpc) must still detect a single
+differing element.
 """
 from __future__ import annotations
 
@@ -98,3 +113,23 @@ def chunked_abs_stats(a: torch.Tensor, b: torch.Tensor, *, chunk_elements: int =
         max_abs = max(max_abs, diff.max().item())
         sum_abs += diff.sum().item()
     return max_abs, sum_abs
+
+
+def chunked_count_differing(a: torch.Tensor, b: torch.Tensor, *, chunk_elements: int = DEFAULT_CHUNK_ELEMENTS) -> int:
+    """int(sum_j 1[a_j != b_j]) -- the EXACT (never floating-point-tolerance-based) elementwise
+    inequality count, computed chunk-at-a-time so no full-tensor boolean-comparison-and-reduction
+    buffer (including whatever wider dtype `.sum()` may internally promote a boolean tensor to)
+    is ever materialized at full tensor size. Returns a plain Python int, identical to what
+    `int((a != b).sum().item())` returns on tensors small enough for that expression to fit --
+    an exact-equality check is required here because a restoration-verification gate must detect
+    even a single differing element, never merely "close enough".
+    """
+    if a.shape != b.shape:
+        raise ValueError(f"chunked_count_differing requires matching shapes, got {tuple(a.shape)} and {tuple(b.shape)}")
+    flat_a, flat_b = _flatten_view(a), _flatten_view(b)
+    n = flat_a.numel()
+    total = 0
+    for start in range(0, n, chunk_elements):
+        end = start + chunk_elements
+        total += int((flat_a[start:end] != flat_b[start:end]).sum().item())
+    return total

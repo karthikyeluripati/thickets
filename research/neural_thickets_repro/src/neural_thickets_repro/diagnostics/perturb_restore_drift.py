@@ -40,7 +40,13 @@ import torch
 import torch.nn as nn
 
 from ..perturb_cpu import DEFAULT_VISUAL_PREFIXES, perturb, restore, should_perturb
-from ..thicket.memory_bounded_ops import DEFAULT_CHUNK_ELEMENTS, chunked_abs_stats, chunked_squared_l2_diff_sum, chunked_squared_l2_sum
+from ..thicket.memory_bounded_ops import (
+    DEFAULT_CHUNK_ELEMENTS,
+    chunked_abs_stats,
+    chunked_count_differing,
+    chunked_squared_l2_diff_sum,
+    chunked_squared_l2_sum,
+)
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -63,9 +69,17 @@ def measure_drift(
     which for the anatomical anatomy track (vision/connector/language, unlike whole_model, whose
     out-of-region set is empty by construction) can itself be most of a 7B+ model. Every
     reduction below now goes through the same chunked float64 accumulators used there, with a
-    peak temporary bounded by `chunk_elements` regardless of parameter size. `n_differing`'s
-    native-dtype exact comparison (`p.detach() != orig`) was already memory-cheap (no float
-    upcast) and is unchanged.
+    peak temporary bounded by `chunk_elements` regardless of parameter size.
+
+    SECOND repair pass (live Stage-11 7B whole_model smoke, second OOM -- see memory_bounded_ops.
+    py's own "FOLLOW-UP ROOT CAUSE" docstring section): `n_differing`'s exact comparison,
+    `(p.detach() != orig).sum().item()`, was assumed cheap (no float upcast) and left unchunked
+    in the first pass -- that assumption was empirically wrong at 7B, where `param_filter=None`
+    (the restoration-verification call site) measures EVERY parameter including the
+    vocabulary-sized projection, and boolean `.sum()` internally promotes to a wider accumulator
+    dtype before reducing (~4.06 GiB for that one tensor). Now goes through
+    chunked_count_differing -- an EXACT (never approximate) count, never a full-tensor
+    boolean/promoted-dtype buffer.
     """
     max_abs = 0.0
     sum_abs = 0.0
@@ -83,7 +97,7 @@ def measure_drift(
         n_elems += p.numel()
         sq_diff_sum += chunked_squared_l2_diff_sum(p.detach(), orig, chunk_elements=chunk_elements)
         orig_sq_sum += chunked_squared_l2_sum(orig, chunk_elements=chunk_elements)
-        n_differing += int((p.detach() != orig).sum().item())
+        n_differing += chunked_count_differing(p.detach(), orig, chunk_elements=chunk_elements)
     mean_abs = sum_abs / n_elems if n_elems else 0.0
     rel_norm = (sq_diff_sum**0.5) / (orig_sq_sum**0.5) if orig_sq_sum > 0 else 0.0
     fraction_differing = n_differing / n_elems if n_elems else 0.0

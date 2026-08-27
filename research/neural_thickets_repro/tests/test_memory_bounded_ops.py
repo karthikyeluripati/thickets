@@ -5,11 +5,13 @@ the source tensor's total size (the actual property the Stage-11 7B whole_model 
 on) -- proven via an instrumented torch.Tensor.double/float that records the largest tensor any
 call in this module ever upcasts.
 """
+import pytest
 import torch
 
 from neural_thickets_repro.thicket.memory_bounded_ops import (
     DEFAULT_CHUNK_ELEMENTS,
     chunked_abs_stats,
+    chunked_count_differing,
     chunked_squared_l2_diff_sum,
     chunked_squared_l2_sum,
 )
@@ -82,6 +84,124 @@ def test_chunked_abs_stats_matches_full_precision_reference():
     max_abs, sum_abs = chunked_abs_stats(a, b, chunk_elements=333)
     assert max_abs == ref_max
     assert sum_abs == ref_sum
+
+
+# =================================================================================================
+# chunked_count_differing -- EXACT elementwise inequality count (never a tolerance-based check)
+# =================================================================================================
+
+
+def test_chunked_count_differing_identical_tensors():
+    a = torch.arange(1000, dtype=torch.float32)
+    b = a.clone()
+    assert chunked_count_differing(a, b, chunk_elements=64) == 0
+
+
+def test_chunked_count_differing_one_changed_element_middle():
+    a = torch.zeros(1000)
+    b = a.clone()
+    b[500] += 1.0
+    assert chunked_count_differing(a, b, chunk_elements=64) == 1
+
+
+def test_chunked_count_differing_first_element_changed():
+    a = torch.zeros(1000)
+    b = a.clone()
+    b[0] += 1.0
+    assert chunked_count_differing(a, b, chunk_elements=64) == 1
+
+
+def test_chunked_count_differing_last_element_changed():
+    a = torch.zeros(1000)
+    b = a.clone()
+    b[-1] += 1.0
+    assert chunked_count_differing(a, b, chunk_elements=64) == 1
+
+
+def test_chunked_count_differing_dense_changes():
+    torch.manual_seed(0)
+    a = torch.randn(1000)
+    b = torch.randn(1000)  # independently drawn -- virtually certainly all differ
+    legacy = int((a != b).sum().item())
+    assert chunked_count_differing(a, b, chunk_elements=64) == legacy
+    assert legacy == 1000
+
+
+def test_chunked_count_differing_random_sparse_changes():
+    torch.manual_seed(2)
+    a = torch.zeros(2003)  # deliberately NOT a multiple of any tidy chunk size
+    b = a.clone()
+    changed_indices = torch.randperm(2003)[:37]
+    b[changed_indices] = 1.0
+    legacy = int((a != b).sum().item())
+    assert chunked_count_differing(a, b, chunk_elements=128) == legacy == 37
+
+
+@pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+def test_chunked_count_differing_matches_legacy_across_dtypes(dtype):
+    torch.manual_seed(3)
+    a = (torch.randn(4096) * 5.0).to(dtype)
+    b = a.clone()
+    mask = torch.zeros(4096, dtype=torch.bool)
+    mask[::7] = True  # touches roughly 1/7th of elements
+    with torch.no_grad():
+        b[mask] = b[mask] + torch.ones_like(b[mask])
+    legacy = int((a != b).sum().item())
+    assert chunked_count_differing(a, b, chunk_elements=500) == legacy
+
+
+@pytest.mark.parametrize("n,chunk_elements", [
+    (1, 64),          # single element
+    (63, 64),         # smaller than one chunk
+    (64, 64),         # exactly one chunk
+    (65, 64),         # one chunk + 1 remainder element
+    (1_000_003, 4096),  # large, NOT a multiple of chunk_elements
+])
+def test_chunked_count_differing_odd_and_chunk_aligned_sizes(n, chunk_elements):
+    torch.manual_seed(4)
+    a = torch.randn(n)
+    b = a.clone()
+    if n > 0:
+        b[0] += 1.0  # exactly one difference, regardless of size
+    legacy = int((a != b).sum().item())
+    assert chunked_count_differing(a, b, chunk_elements=chunk_elements) == legacy == (1 if n > 0 else 0)
+
+
+def test_chunked_count_differing_tensor_larger_than_multiple_chunks():
+    torch.manual_seed(5)
+    n = 50_000
+    chunk_elements = 4096  # tensor spans >12 chunks
+    a = torch.randn(n)
+    b = a.clone()
+    changed = torch.randperm(n)[:250]
+    b[changed] += 1.0
+    legacy = int((a != b).sum().item())
+    assert chunked_count_differing(a, b, chunk_elements=chunk_elements) == legacy == 250
+
+
+def test_chunked_count_differing_rejects_mismatched_shapes():
+    with pytest.raises(ValueError):
+        chunked_count_differing(torch.zeros(4), torch.zeros(5))
+
+
+def test_chunked_count_differing_never_upcasts_more_than_chunk_elements_at_once(monkeypatch):
+    """The boolean !=/`.sum()` comparison itself (not a `.double()` upcast) is the operation of
+    concern here -- instruments torch.Tensor.__ne__ instead of .double().
+    """
+    max_seen = {"n": 0}
+    original_ne = torch.Tensor.__ne__
+
+    def _tracking_ne(self, other):
+        max_seen["n"] = max(max_seen["n"], self.numel())
+        return original_ne(self, other)
+
+    monkeypatch.setattr(torch.Tensor, "__ne__", _tracking_ne)
+    torch.manual_seed(6)
+    a = torch.randn(500_000)
+    b = a.clone()
+    b[0] += 1.0
+    chunked_count_differing(a, b, chunk_elements=4096)
+    assert 0 < max_seen["n"] <= 4096
 
 
 # =================================================================================================

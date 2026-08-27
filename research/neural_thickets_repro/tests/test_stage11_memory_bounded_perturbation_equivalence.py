@@ -223,3 +223,96 @@ def test_v3_acceptance_decision_identical_legacy_vs_streaming(monkeypatch, regio
     assert result_new["accepted_scalar"] == pytest.approx(result_legacy["accepted_scalar"], rel=1e-6)
     # final BF16 weights bit-identical between the two acceptance paths too
     assert torch.equal(worker_new.model_runner.model.region_layer.weight, worker_legacy.model_runner.model.region_layer.weight)
+
+
+# =================================================================================================
+# measure_drift: full-function legacy-vs-streaming equivalence (second OOM fix -- exact-difference
+# counting). Reimplements the ORIGINAL (pre-either-repair-pass) measure_drift body here, verbatim
+# except for the rename, as a second reference oracle.
+# =================================================================================================
+
+
+def _legacy_measure_drift(model, original_state, param_filter=None) -> dict:
+    max_abs = 0.0
+    sum_abs = 0.0
+    n_elems = 0
+    sq_diff_sum = 0.0
+    orig_sq_sum = 0.0
+    n_differing = 0
+    for name, p in model.named_parameters():
+        if param_filter is not None and not param_filter(name):
+            continue
+        orig = original_state[name]
+        diff = (p.detach().float() - orig.float())
+        max_abs = max(max_abs, diff.abs().max().item())
+        sum_abs += diff.abs().sum().item()
+        n_elems += diff.numel()
+        sq_diff_sum += diff.pow(2).sum().item()
+        orig_sq_sum += orig.float().pow(2).sum().item()
+        n_differing += int((p.detach() != orig).sum().item())
+    mean_abs = sum_abs / n_elems if n_elems else 0.0
+    rel_norm = (sq_diff_sum**0.5) / (orig_sq_sum**0.5) if orig_sq_sum > 0 else 0.0
+    fraction_differing = n_differing / n_elems if n_elems else 0.0
+    return {
+        "max_abs_drift": max_abs, "mean_abs_drift": mean_abs,
+        "relative_norm_drift": rel_norm, "fraction_elements_differing": fraction_differing,
+    }
+
+
+class _DriftMultiTensorModel(torch.nn.Module):
+    def __init__(self, shapes):
+        super().__init__()
+        for name, shape in shapes.items():
+            setattr(self, name, torch.nn.Parameter(torch.empty(shape)))
+
+
+DRIFT_SHAPE_SETS = [
+    {"a": (41,), "b": (7, 7)},
+    {"big": (150, 220)},  # 33,000 elements
+    {"tiny": (2,), "mid": (64, 8)},
+]
+
+
+@pytest.mark.parametrize("shapes", DRIFT_SHAPE_SETS)
+def test_measure_drift_matches_legacy_when_unchanged(shapes):
+    from neural_thickets_repro.diagnostics.perturb_restore_drift import measure_drift
+
+    torch.manual_seed(21)
+    model = _DriftMultiTensorModel(shapes).to(torch.bfloat16)
+    with torch.no_grad():
+        for _, p in model.named_parameters():
+            p.copy_(torch.randn(p.shape).to(torch.bfloat16))
+    original = {n: p.detach().clone() for n, p in model.named_parameters()}
+
+    legacy = _legacy_measure_drift(model, original)
+    new = measure_drift(model, original)
+    assert new == legacy  # zero drift is exact in both implementations, no precision-dependent path taken
+
+
+@pytest.mark.parametrize("shapes", DRIFT_SHAPE_SETS)
+def test_measure_drift_matches_legacy_with_sparse_and_dense_changes(shapes):
+    from neural_thickets_repro.diagnostics.perturb_restore_drift import measure_drift
+
+    torch.manual_seed(22)
+    model = _DriftMultiTensorModel(shapes).to(torch.bfloat16)
+    with torch.no_grad():
+        for _, p in model.named_parameters():
+            p.copy_(torch.randn(p.shape).to(torch.bfloat16))
+    original = {n: p.detach().clone() for n, p in model.named_parameters()}
+
+    with torch.no_grad():
+        for _, p in model.named_parameters():
+            flat = p.view(-1)
+            flat[0].add_(1.0)  # sparse: one element per tensor
+            if flat.numel() > 3:
+                flat[1:3].add_(0.5)  # a couple more, dense-ish
+
+    legacy = _legacy_measure_drift(model, original)
+    new = measure_drift(model, original)
+    # fraction_elements_differing and n_differing-derived quantities are EXACT integers/counts --
+    # must match exactly; max/mean/relative drift may differ by the already-documented,
+    # far-below-tolerance float64-vs-float32 precision improvement.
+    assert new["fraction_elements_differing"] == legacy["fraction_elements_differing"]
+    assert new["max_abs_drift"] == pytest.approx(legacy["max_abs_drift"], abs=1e-6)
+    assert new["mean_abs_drift"] == pytest.approx(legacy["mean_abs_drift"], abs=1e-6)
+    assert new["relative_norm_drift"] == pytest.approx(legacy["relative_norm_drift"], abs=1e-6)

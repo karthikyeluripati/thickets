@@ -525,6 +525,47 @@ def test_run_whole_model_rpc_writes_zero_rows_when_the_first_candidate_ooms(tmp_
     assert (plan.output_dir / "checkpoint_manifest.json").exists()
 
 
+def test_run_whole_model_rpc_writes_zero_rows_when_restoration_verification_ooms(tmp_path, runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """Reproduces the SECOND reported failure class: an OOM during POST-CANDIDATE exact-
+    restoration verification (verify_exact_fixed_base_restoration_via_rpc, AFTER all 6
+    capabilities were already evaluated) must ALSO leave ZERO completed perturbations and ZERO
+    scientific result rows -- append_candidate_rows is only ever reached after
+    evaluate_one_whole_model_candidate_rpc RETURNS, and this exception happens before that
+    return, regardless of how much real evaluation work already happened for this candidate.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    spec = SCALING_MODEL_REGISTRY["7B"]
+    plan = build_whole_model_plan(spec=spec, model_revision="a" * 40, output_root=str(tmp_path), n_directions_per_cell=1)
+    from neural_thickets_repro.scaling_common import build_scaling_direction_seed_bank
+
+    bank = build_scaling_direction_seed_bank(1, "7B", (WHOLE_MODEL_REGION_LABEL,), 1)
+    atlas = build_anatomy_atlas([n for n, _ in model.named_parameters()])
+    mask_hash = atlas.region("full_model").mask_hash
+    region_param_names = atlas.region("full_model").param_names
+    audit = {"regions": {WHOLE_MODEL_REGION_LABEL: {"mask_hash": mask_hash, "n_tensors": len(region_param_names), "n_elements": 1}}}
+
+    engine = _FakeWholeModelEngine(model)
+    engine.store_base_weights()
+
+    def _simulated_verify_oom(*args, **kwargs):
+        raise RuntimeError("CUDA out of memory. Tried to allocate 4.06 GiB (simulated, no real GPU involved).")
+
+    monkeypatch.setattr(module, "verify_exact_fixed_base_restoration_via_rpc", _simulated_verify_oom)
+
+    with pytest.raises(RuntimeError, match="CUDA out of memory"):
+        run_whole_model_rpc(
+            plan, _fake_contexts(), engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+            region_param_names=region_param_names, mask_hash=mask_hash, anatomy_audit=audit,
+            run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+
+    results_path = plan.output_dir / "results.jsonl"
+    telemetry_path = plan.output_dir / "candidate_memory_telemetry.jsonl"
+    assert (not results_path.exists()) or results_path.read_text().strip() == ""
+    assert (not telemetry_path.exists()) or telemetry_path.read_text().strip() == ""
+    assert (plan.output_dir / "checkpoint_manifest.json").exists()
+
+
 def test_run_whole_model_rpc_persists_rows_and_resumes(tmp_path, runtime_wrapped_vlm_32vision_factory):
     model = runtime_wrapped_vlm_32vision_factory()
     spec = SCALING_MODEL_REGISTRY["7B"]
