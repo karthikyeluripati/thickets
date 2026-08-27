@@ -33,6 +33,7 @@ from typing import Dict, Optional, Sequence, Tuple
 import torch
 
 from ..perturb_cpu import DEFAULT_VISUAL_PREFIXES, _generate_noise, perturb, restore, should_perturb
+from .memory_bounded_ops import DEFAULT_CHUNK_ELEMENTS, chunked_squared_l2_diff_sum, chunked_squared_l2_sum
 
 PERTURBATION_MODES: Tuple[str, ...] = ("global_gaussian_upstream", "anatomical_relative_l2")
 
@@ -114,7 +115,7 @@ class DegenerateRegionError(RuntimeError):
 @torch.no_grad()
 def apply_anatomical_relative_l2(
     model: torch.nn.Module, region: str, region_param_names: Sequence[str], seed: int, r: float,
-    *, base_state: Optional[Dict[str, torch.Tensor]] = None,
+    *, base_state: Optional[Dict[str, torch.Tensor]] = None, chunk_elements: int = DEFAULT_CHUNK_ELEMENTS,
 ) -> AnatomicalRelativeL2Record:
     """Sampling procedure (spec C2):
       1. sample independent Gaussian noise over only `region_param_names` (per-tensor reseed,
@@ -132,6 +133,42 @@ def apply_anatomical_relative_l2(
     mutation instead -- correct either way, just more memory when the caller has no existing
     snapshot to reuse. Callers MUST have already reset the model to this exact `base_state`
     (or to whatever pre-mutation values are being cloned) before calling.
+
+    MEMORY-BOUNDED NORM/NOISE PATH (this repair pass -- ROOT CAUSE, live Stage-11 7B whole_model
+    smoke OOM: `p.detach().float().pow(2).sum()` on this function's ORIGINAL implementation
+    materializes a FULL float32 copy of a single parameter tensor; Qwen2.5-VL-7B-Instruct's
+    vocabulary-sized projection needs ~2.03 GiB for that one cast, which OOM'd against an
+    already ~97%-full 44 GiB GPU). All four per-tensor norm/diff reductions in this function
+    (theta norm, sampled-noise norm, designed-epsilon norm, realized-epsilon norm) now go through
+    thicket.memory_bounded_ops's CHUNKED float64 accumulators instead -- the SAME mathematical
+    quantities (see that module's own docstring), computed with a peak temporary bounded by
+    `chunk_elements` regardless of the region's or any single tensor's total size. Additionally,
+    sampled noise is no longer cached in a `{name: tensor}` dict spanning the ENTIRE region across
+    both passes (for `region="whole_model"` at 7B+ that dict alone would hold the noise for every
+    trainable parameter in the model simultaneously, ~15 GiB in bf16) -- `_generate_noise(p, seed)`
+    is called a second time in the second pass instead, which is EXACTLY reproducible (a fresh
+    `torch.Generator` is seeded from scratch on every call -- the same guarantee
+    `undo_anatomical_relative_l2` below already relies on to regenerate identical noise for
+    restoration, applied here one additional time within a single apply() call rather than only
+    across apply/undo). `theta_before`'s fallback clone (when `base_state` is None) is likewise
+    now taken one tensor at a time in the second pass rather than for the whole region up front,
+    which only ever REDUCES peak memory relative to before (each tensor's own before-value is
+    still captured prior to that SAME tensor's own mutation, exactly as before).
+
+    RESIDUAL, DELIBERATELY UNCHUNKED, RISK: `_generate_noise(p, seed)` itself still allocates ONE
+    full native-dtype tensor per PARAMETER TENSOR (bounded by the largest INDIVIDUAL tensor in the
+    region, not by the whole region -- e.g. ~1.09 GiB in bf16 for Qwen2.5-VL-7B-Instruct's
+    ~545M-element vocabulary projection), and `delta = scale * noise` is a second, same-size
+    temporary held briefly alongside it. This is NOT chunked, on purpose: splitting a single
+    `torch.randn(shape, generator=gen)` call into several smaller sequential calls against the
+    SAME generator is only bit-for-bit equivalent to one call if the underlying RNG algorithm's
+    per-call state advancement is independently verified to be chunk-granularity-invariant --
+    unverified here without live GPU hardware, and the task this repair pass implements explicitly
+    requires stopping rather than silently changing direction/Gaussian semantics if exact
+    reproduction cannot be proven. Removing the region-wide noise cache and the FP32 norm-cast
+    burst (the two dominant contributors to the live OOM) should leave enough freed headroom for
+    this smaller, per-tensor-bounded residual allocation to fit; if a future run OOMs specifically
+    here, a live-GPU-verified chunked-RNG scheme is the targeted next fix, not a default one.
     """
     region_param_names = tuple(sorted(set(region_param_names)))
     if not region_param_names:
@@ -146,17 +183,16 @@ def apply_anatomical_relative_l2(
         if missing_base:
             raise DegenerateRegionError(f"base_state is missing parameter name(s) for region {region!r}: {missing_base[:10]}")
 
+    # Pass 1: theta norm + sampled-noise norm. Noise is discarded immediately after contributing
+    # to noise_sq_sum -- never retained for the whole region simultaneously (see docstring above).
     theta_sq_sum = 0.0
-    noises: Dict[str, torch.Tensor] = {}
     noise_sq_sum = 0.0
-    theta_before: Dict[str, torch.Tensor] = {}
     for name in region_param_names:
         p = named[name]
-        theta_before[name] = base_state[name] if base_state is not None else p.detach().clone()
-        theta_sq_sum += p.detach().float().pow(2).sum().item()
+        theta_sq_sum += chunked_squared_l2_sum(p.detach(), chunk_elements=chunk_elements)
         noise = _generate_noise(p, seed)
-        noises[name] = noise
-        noise_sq_sum += noise.detach().float().pow(2).sum().item()
+        noise_sq_sum += chunked_squared_l2_sum(noise, chunk_elements=chunk_elements)
+        del noise
 
     theta_l2_norm = theta_sq_sum ** 0.5
     raw_noise_l2_norm = noise_sq_sum ** 0.5
@@ -165,15 +201,20 @@ def apply_anatomical_relative_l2(
 
     scale = (r * theta_l2_norm) / raw_noise_l2_norm
 
+    # Pass 2: regenerate the SAME noise (bit-identical -- see docstring above), apply, and
+    # measure designed/realized epsilon norms -- one tensor (and at most one chunk of it) at a
+    # time, never the whole region's noise or a whole tensor's float32 cast simultaneously.
     designed_sq_sum = 0.0
     realized_sq_sum = 0.0
     for name in region_param_names:
         p = named[name]
-        delta = scale * noises[name]
-        designed_sq_sum += delta.detach().float().pow(2).sum().item()
+        theta_before = base_state[name] if base_state is not None else p.detach().clone()
+        noise = _generate_noise(p, seed)
+        delta = scale * noise
+        designed_sq_sum += chunked_squared_l2_sum(delta.detach(), chunk_elements=chunk_elements)
         p.add_(delta.to(dtype=p.dtype))
-        realized_delta = p.detach().float() - theta_before[name].float()
-        realized_sq_sum += realized_delta.pow(2).sum().item()
+        realized_sq_sum += chunked_squared_l2_diff_sum(p.detach(), theta_before, chunk_elements=chunk_elements)
+        del noise, delta
     designed_epsilon_l2_norm = designed_sq_sum ** 0.5
     realized_epsilon_l2_norm = realized_sq_sum ** 0.5
 

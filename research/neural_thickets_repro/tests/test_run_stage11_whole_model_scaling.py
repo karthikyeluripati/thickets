@@ -482,6 +482,49 @@ def test_evaluate_one_whole_model_candidate_rpc_skips_restoration_rpc_on_ray_unr
     assert engine.calls.count("reset_to_base_weights") == reset_calls_before
 
 
+def test_run_whole_model_rpc_writes_zero_rows_when_the_first_candidate_ooms(tmp_path, runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """Reproduces the reported failure class structurally: an OOM (simulated here as a plain
+    RuntimeError, since a real torch.cuda.OutOfMemoryError needs a GPU) during the FIRST
+    candidate's scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 call must leave
+    ZERO completed perturbations and ZERO scientific result rows -- no capability was ever
+    evaluated for that candidate, and no later candidate runs either (the exception aborts the
+    whole run_whole_model_rpc loop, not just one iteration).
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    spec = SCALING_MODEL_REGISTRY["7B"]
+    plan = build_whole_model_plan(spec=spec, model_revision="a" * 40, output_root=str(tmp_path), n_directions_per_cell=1)
+    from neural_thickets_repro.scaling_common import build_scaling_direction_seed_bank
+
+    bank = build_scaling_direction_seed_bank(1, "7B", (WHOLE_MODEL_REGION_LABEL,), 1)
+    atlas = build_anatomy_atlas([n for n, _ in model.named_parameters()])
+    mask_hash = atlas.region("full_model").mask_hash
+    region_param_names = atlas.region("full_model").param_names
+    audit = {"regions": {WHOLE_MODEL_REGION_LABEL: {"mask_hash": mask_hash, "n_tensors": len(region_param_names), "n_elements": 1}}}
+
+    engine = _FakeWholeModelEngine(model)
+    engine.store_base_weights()
+
+    def _simulated_oom(*args, **kwargs):
+        raise RuntimeError("CUDA out of memory. Tried to allocate 2.03 GiB (simulated, no real GPU involved).")
+
+    monkeypatch.setattr(module, "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3", _simulated_oom)
+
+    with pytest.raises(RuntimeError, match="CUDA out of memory"):
+        run_whole_model_rpc(
+            plan, _fake_contexts(), engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+            region_param_names=region_param_names, mask_hash=mask_hash, anatomy_audit=audit,
+            run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+        )
+
+    results_path = plan.output_dir / "results.jsonl"
+    telemetry_path = plan.output_dir / "candidate_memory_telemetry.jsonl"
+    assert (not results_path.exists()) or results_path.read_text().strip() == ""
+    assert (not telemetry_path.exists()) or telemetry_path.read_text().strip() == ""
+    # checkpoint_manifest.json IS written (once, before the candidate loop) -- that's run
+    # IDENTITY/provenance, never a scientific candidate row.
+    assert (plan.output_dir / "checkpoint_manifest.json").exists()
+
+
 def test_run_whole_model_rpc_persists_rows_and_resumes(tmp_path, runtime_wrapped_vlm_32vision_factory):
     model = runtime_wrapped_vlm_32vision_factory()
     spec = SCALING_MODEL_REGISTRY["7B"]

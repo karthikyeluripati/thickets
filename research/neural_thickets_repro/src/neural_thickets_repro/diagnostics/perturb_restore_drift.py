@@ -40,6 +40,7 @@ import torch
 import torch.nn as nn
 
 from ..perturb_cpu import DEFAULT_VISUAL_PREFIXES, perturb, restore, should_perturb
+from ..thicket.memory_bounded_ops import DEFAULT_CHUNK_ELEMENTS, chunked_abs_stats, chunked_squared_l2_diff_sum, chunked_squared_l2_sum
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -48,11 +49,23 @@ def measure_drift(
     model: nn.Module,
     original_state: Dict[str, torch.Tensor],
     param_filter: Optional[Callable[[str], bool]] = None,
+    *, chunk_elements: int = DEFAULT_CHUNK_ELEMENTS,
 ) -> dict:
     """param_filter, if given, restricts the measurement to only the named parameters it
     accepts (e.g. an in-scope or out-of-scope subset for scope_isolation_gpu_check.py) --
     default None measures every parameter, exactly as before this option existed (existing
     callers/tests unaffected).
+
+    MEMORY-BOUNDED (this repair pass, same root cause as thicket.perturbation.
+    apply_anatomical_relative_l2 -- see thicket/memory_bounded_ops.py's own docstring): the
+    original implementation computed `diff = (p.detach().float() - orig.float())`, a FULL
+    float32 materialization per parameter tensor -- called here on the OUT-OF-region complement,
+    which for the anatomical anatomy track (vision/connector/language, unlike whole_model, whose
+    out-of-region set is empty by construction) can itself be most of a 7B+ model. Every
+    reduction below now goes through the same chunked float64 accumulators used there, with a
+    peak temporary bounded by `chunk_elements` regardless of parameter size. `n_differing`'s
+    native-dtype exact comparison (`p.detach() != orig`) was already memory-cheap (no float
+    upcast) and is unchanged.
     """
     max_abs = 0.0
     sum_abs = 0.0
@@ -64,12 +77,12 @@ def measure_drift(
         if param_filter is not None and not param_filter(name):
             continue
         orig = original_state[name]
-        diff = (p.detach().float() - orig.float())
-        max_abs = max(max_abs, diff.abs().max().item())
-        sum_abs += diff.abs().sum().item()
-        n_elems += diff.numel()
-        sq_diff_sum += diff.pow(2).sum().item()
-        orig_sq_sum += orig.float().pow(2).sum().item()
+        p_max_abs, p_sum_abs = chunked_abs_stats(p.detach(), orig, chunk_elements=chunk_elements)
+        max_abs = max(max_abs, p_max_abs)
+        sum_abs += p_sum_abs
+        n_elems += p.numel()
+        sq_diff_sum += chunked_squared_l2_diff_sum(p.detach(), orig, chunk_elements=chunk_elements)
+        orig_sq_sum += chunked_squared_l2_sum(orig, chunk_elements=chunk_elements)
         n_differing += int((p.detach() != orig).sum().item())
     mean_abs = sum_abs / n_elems if n_elems else 0.0
     rel_norm = (sq_diff_sum**0.5) / (orig_sq_sum**0.5) if orig_sq_sum > 0 else 0.0

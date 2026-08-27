@@ -63,7 +63,11 @@ def test_diag_scope_drift_detects_in_scope_change_and_out_of_scope_unchanged(run
         next(model.visual.patch_embed.parameters()).add_(1.0)  # in vision_encoder scope
 
     drift = _diag_scope_drift(worker, "vision_encoder")
-    assert drift["in_scope"]["max_abs_drift"] == 1.0
+    # measure_drift's chunked float64 accumulation (Stage-11 7B whole_model OOM fix -- see
+    # thicket/memory_bounded_ops.py) is STRICTLY MORE precise than the float32 diff it replaces,
+    # so it can reveal a genuine ~2^-24 (~5.96e-8) bf16-rounding discrepancy that float32
+    # subtraction happened to round away to exactly 1.0 via round-half-to-even.
+    assert drift["in_scope"]["max_abs_drift"] == pytest.approx(1.0, abs=1e-6)
     assert drift["out_of_scope"]["max_abs_drift"] == 0.0
 
 

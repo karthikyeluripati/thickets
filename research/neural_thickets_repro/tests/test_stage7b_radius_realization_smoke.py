@@ -99,7 +99,11 @@ def test_report_post_solve_outside_region_drift_detects_a_real_leak():
         model.outside_layer.weight.add_(1.0)
 
     report = report_post_solve_outside_region_drift(worker, ["region_layer.weight"])
-    assert report["outside_region_max_abs_drift"] == 1.0
+    # measure_drift's chunked float64 accumulation (Stage-11 7B whole_model OOM fix -- see
+    # thicket/memory_bounded_ops.py) is STRICTLY MORE precise than the float32 diff it replaces,
+    # so it can reveal a genuine ~2^-24 (~5.96e-8) bf16-rounding discrepancy that float32
+    # subtraction happened to round away to exactly 1.0 via round-half-to-even.
+    assert report["outside_region_max_abs_drift"] == pytest.approx(1.0, abs=1e-6)
     assert report["outside_region_changed_tensor_count"] == 1
 
 

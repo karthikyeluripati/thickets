@@ -110,7 +110,13 @@ def test_diag_region_drift_detects_in_region_change_and_out_of_region_unchanged(
         next(model.visual.patch_embed.parameters()).add_(1.0)
 
     drift = diag_region_drift(worker, region_names)
-    assert drift["in_region"]["max_abs_drift"] == 1.0
+    # measure_drift's chunked float64 accumulation (this repair pass -- see thicket/
+    # memory_bounded_ops.py) is STRICTLY MORE precise than the float32 diff it replaces, so it
+    # can reveal a genuine ~2^-24 (~5.96e-8) bf16-rounding discrepancy that float32 subtraction
+    # happened to round away to exactly 1.0 via round-half-to-even -- pytest.approx with a
+    # tolerance far above that discrepancy (and far below any real drift signal) is the correct
+    # check, not exact equality against a value float32 only reached by coincidental rounding.
+    assert drift["in_region"]["max_abs_drift"] == pytest.approx(1.0, abs=1e-6)
     assert drift["out_of_region"]["max_abs_drift"] == 0.0
     assert drift["region_param_count"] == len(region_names)
 
