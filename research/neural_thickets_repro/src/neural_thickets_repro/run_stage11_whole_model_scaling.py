@@ -303,9 +303,119 @@ def run_subset_hash_check(capability_contexts: Dict[str, CapabilityContext]) -> 
 
 
 def ensure_subset_hashes_match_stage8(report: Dict[str, Any]) -> None:
+    """FULL MODE ONLY hard stop -- UNCHANGED, kept strict. Comparing an N=5 smoke subset hash
+    against these N=50 authoritative hashes is architecturally meaningless (they are DIFFERENT
+    sample sizes by construction) -- see SUBSET_GATE_MODE_SMOKE below for the mode-appropriate
+    smoke check instead. Never call this function against a smoke (N=5) subset.
+    """
     if not report.get("all_match"):
         mismatches = {cap: v for cap, v in report.items() if cap != "all_match" and not v["matches"]}
         raise Stage11SubsetHashMismatchError(f"Whole-model D_map subset hashes do not match Stage-8's authoritative 3B manifests: {mismatches}")
+
+
+# =================================================================================================
+# Subset gate -- MODE-AWARE (this repair pass: ports Stage 9's own validated smoke/full
+# baseline-gate fix to Stage 11's whole-model subset-hash gate).
+#
+# ROOT CAUSE (live Stage-11 3B whole_model --smoke run): main() unconditionally ran
+# run_subset_hash_check/ensure_subset_hashes_match_stage8 -- the FULL-mode check that compares the
+# live D_map subset hash against STAGE8_AUTHORITATIVE_SUBSET_HASHES -- regardless of --smoke. The
+# authoritative hashes are keyed to Stage 8's own frozen D_map N=50 manifests; a smoke run's D_map
+# is N=5 BY DESIGN (STAGE8_SMOKE_D_MAP_N). An N=5 subset can never equal an N=50 subset hash, so
+# every one of the 6 capabilities mismatched -- a spurious, guaranteed failure caused by applying
+# the wrong gate to the wrong sample size, not a real subset-construction or dataset problem. This
+# is the exact bug class Stage 9's own run_stage9_hierarchical_anatomical_atlas.py already hit and
+# fixed (see that module's "Baseline gate -- MODE-AWARE" section) -- ported here rather than
+# reinvented.
+#
+# FIX: the subset gate is now explicitly mode-dispatched (build_subset_gate_report /
+# ensure_subset_gate_passes), never silently skipped in either mode:
+#   - FULL (D_map N=50): UNCHANGED exact-equality check against STAGE8_AUTHORITATIVE_SUBSET_
+#     HASHES via run_subset_hash_check/ensure_subset_hashes_match_stage8 -- still a HARD STOP on
+#     any mismatch, still comparing every one of the 6 capabilities.
+#   - SMOKE (D_map N=5): NEVER compared to the N=50 hashes at all -- instead, the D_map is built
+#     TWICE, independently (a second, distinct subset_ids_dir so no on-disk cache can substitute
+#     for genuine re-derivation from the same STAGE8_BASE_SEED), and the two passes' subset hashes
+#     (and example counts) must be IDENTICAL -- proving the smoke subset's own construction is
+#     deterministic, which is the property that actually matters at N=5.
+# =================================================================================================
+
+SUBSET_GATE_MODE_FULL = "stage8_full_n50_exact_equality"
+SUBSET_GATE_MODE_SMOKE = "smoke_n5_deterministic_repeatability"
+
+
+class Stage11SmokeSubsetNondeterminismError(RuntimeError):
+    """SMOKE MODE ONLY: the D_map N=5 subset was NOT reconstructed identically across two
+    independent builds (or some capability did not have exactly the expected N=5 examples) --
+    hard stop. Never compared to the N=50 Stage-8 authoritative hashes; that comparison is
+    architecturally meaningless at N=5 (different sample size by construction).
+    """
+
+
+def run_smoke_subset_determinism_check(
+    pass_a: Dict[str, CapabilityContext], pass_b: Dict[str, CapabilityContext], d_map_n: int,
+) -> Dict[str, Any]:
+    """SMOKE MODE ONLY: `pass_a` and `pass_b` must be built from two INDEPENDENT
+    build_d_map_capability_contexts() calls (distinct subset_ids_dir, same STAGE8_BASE_SEED) so a
+    persisted-ids-file cache can never substitute for genuine re-derivation. Reports, per
+    capability: both passes' subset hashes, whether they match, and whether both passes actually
+    have exactly `d_map_n` examples -- never a comparison to Stage-8's N=50 authoritative hashes.
+    """
+    report: Dict[str, Any] = {}
+    for capability, ctx_a in pass_a.items():
+        ctx_b = pass_b.get(capability)
+        n_a, n_b = len(ctx_a.examples), (len(ctx_b.examples) if ctx_b is not None else None)
+        matches = ctx_b is not None and ctx_a.subset_hash == ctx_b.subset_hash
+        n_matches_expected = n_a == d_map_n and n_b == d_map_n
+        report[capability] = {
+            "pass_a_subset_hash": ctx_a.subset_hash, "pass_b_subset_hash": ctx_b.subset_hash if ctx_b is not None else None,
+            "matches": matches, "n_examples_pass_a": n_a, "n_examples_pass_b": n_b, "n_examples_expected": d_map_n,
+            "n_matches_expected": n_matches_expected,
+        }
+    per_capability = list(report.values())
+    report["all_deterministic"] = all(v["matches"] for v in per_capability)
+    report["all_n_matches_expected"] = all(v["n_matches_expected"] for v in per_capability)
+    return report
+
+
+def ensure_smoke_subset_determinism(report: Dict[str, Any]) -> None:
+    if not report.get("all_deterministic") or not report.get("all_n_matches_expected"):
+        bad = {c: v for c, v in report.items() if isinstance(v, dict) and (not v["matches"] or not v["n_matches_expected"])}
+        raise Stage11SmokeSubsetNondeterminismError(
+            f"Stage-11 SMOKE D_map subset construction is not deterministic and/or does not have "
+            f"the expected N for {len(bad)} capability(ies): {bad}. Smoke mode NEVER compares "
+            f"subset hashes against the N=50 Stage-8 authoritative manifests."
+        )
+
+
+def build_subset_gate_report(
+    *, is_smoke: bool, d_map_n: int,
+    full_subset_hash_report: Optional[Dict[str, Any]] = None, smoke_determinism_report: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """Mode-explicit dispatch -- persists `subset_gate_mode` (plus `d_map_n` and the per-capability
+    subset hashes, nested under either `subset_hash_equality` or `smoke_determinism`) so a reader
+    of subset_gate.json always knows which gate ran and at which D_map size, never has to infer it.
+    """
+    if is_smoke:
+        if smoke_determinism_report is None:
+            raise ValueError("smoke_determinism_report is required when is_smoke=True")
+        return {"subset_gate_mode": SUBSET_GATE_MODE_SMOKE, "d_map_n": d_map_n, "smoke_determinism": smoke_determinism_report}
+    if full_subset_hash_report is None:
+        raise ValueError("full_subset_hash_report is required when is_smoke=False")
+    return {"subset_gate_mode": SUBSET_GATE_MODE_FULL, "d_map_n": d_map_n, "subset_hash_equality": full_subset_hash_report}
+
+
+def ensure_subset_gate_passes(gate_report: Dict[str, Any]) -> None:
+    """Single dispatch point -- never silently skips validation: an unrecognized subset_gate_mode
+    is itself a hard failure, not a silent no-op.
+    """
+    mode = gate_report.get("subset_gate_mode")
+    if mode == SUBSET_GATE_MODE_SMOKE:
+        ensure_smoke_subset_determinism(gate_report["smoke_determinism"])
+    elif mode == SUBSET_GATE_MODE_FULL:
+        ensure_subset_hashes_match_stage8(gate_report["subset_hash_equality"])
+    else:
+        raise ValueError(f"Unknown subset_gate_mode {mode!r} -- refusing to silently skip subset validation.")
 
 
 class IncompatibleWholeModelCheckpointError(RuntimeError):
@@ -682,10 +792,32 @@ def main(argv=None) -> int:
     for capability, ctx in capability_contexts.items():
         write_data_role_manifest(ctx.partition, plan.output_dir / "data_roles" / f"{capability}_d_map.json")
 
-    subset_hash_report = run_subset_hash_check(capability_contexts)
-    (plan.output_dir / "subset_hash_check.json").write_text(json.dumps(subset_hash_report, indent=2))
-    ensure_subset_hashes_match_stage8(subset_hash_report)
-    print("Confirmed: live whole-model D_map subset hashes exactly match Stage-8's authoritative 3B manifests for all 6 capabilities.")
+    # MODE-AWARE subset gate (this repair pass -- see this section's own module-level comment
+    # above SUBSET_GATE_MODE_FULL for the full root-cause writeup): FULL mode keeps the exact
+    # Stage-8 N=50 subset-hash equality check UNCHANGED; SMOKE mode (D_map N=5) never compares its
+    # subset hash numerically to the N=50 Stage-8 manifests at all -- it independently rebuilds
+    # the D_map a second time and requires both builds' subset hashes (and example counts) to
+    # match instead.
+    if plan.is_smoke:
+        print(f"Running Stage-11 SMOKE subset gate (D_map N={plan.d_map_n} deterministic reconstruction -- never compared to Stage-8's N=50 authoritative hashes)...")
+        second_subset_ids_dir = plan.output_dir / "d_map_subsets_smoke_pass_b"
+        capability_contexts_pass_b = build_d_map_capability_contexts(
+            STAGE8_BASE_SEED, second_subset_ids_dir, plan.d_map_n,
+            load_capability_benchmark_config=load_capability_benchmark_config, load_adapter=load_adapter,
+        )
+        smoke_determinism_report = run_smoke_subset_determinism_check(capability_contexts, capability_contexts_pass_b, plan.d_map_n)
+        del capability_contexts_pass_b
+        subset_gate_report = build_subset_gate_report(is_smoke=True, d_map_n=plan.d_map_n, smoke_determinism_report=smoke_determinism_report)
+        (plan.output_dir / "subset_gate.json").write_text(json.dumps(subset_gate_report, indent=2))
+        ensure_subset_gate_passes(subset_gate_report)
+        print(f"Confirmed: Stage-11 smoke D_map N={plan.d_map_n} subset construction is deterministic across two independent builds for all 6 capabilities "
+              f"(never compared to Stage-8's N=50 authoritative hashes).")
+    else:
+        full_subset_hash_report = run_subset_hash_check(capability_contexts)
+        subset_gate_report = build_subset_gate_report(is_smoke=False, d_map_n=plan.d_map_n, full_subset_hash_report=full_subset_hash_report)
+        (plan.output_dir / "subset_gate.json").write_text(json.dumps(subset_gate_report, indent=2))
+        ensure_subset_gate_passes(subset_gate_report)
+        print("Confirmed: live whole-model D_map subset hashes exactly match Stage-8's authoritative 3B manifests for all 6 capabilities.")
 
     seed_bank = build_scaling_direction_seed_bank(_base_seed_for_scale(plan.scale_label), plan.scale_label, WHOLE_MODEL_REGIONS, plan.n_directions_per_cell)
     (plan.output_dir / "direction_family_manifest.json").write_text(json.dumps(
