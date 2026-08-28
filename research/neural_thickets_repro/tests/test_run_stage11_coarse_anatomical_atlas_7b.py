@@ -4,6 +4,7 @@ a fake, persistent-worker-shaped engine (same philosophy as test_run_stage8_coar
 atlas.py / test_run_stage9_hierarchical_anatomical_atlas.py), using REAL small torch tensors for
 the lifecycle/anatomy-audit tests that need genuine weight mutation/restoration/norms.
 """
+import inspect
 from types import SimpleNamespace
 
 import pytest
@@ -27,6 +28,13 @@ from neural_thickets_repro.run_stage8_coarse_anatomical_atlas import (
     build_stage8_direction_seed_bank,
 )
 from neural_thickets_repro.run_stage9_hierarchical_anatomical_atlas import STAGE8_AUTHORITATIVE_SUBSET_HASHES
+from neural_thickets_repro.run_stage11_whole_model_scaling import (
+    SUBSET_GATE_MODE_FULL,
+    SUBSET_GATE_MODE_SMOKE,
+    Stage11SmokeSubsetNondeterminismError,
+    ensure_smoke_subset_determinism,
+    run_smoke_subset_determinism_check,
+)
 from neural_thickets_repro.thicket.anatomy import build_anatomy_atlas
 from neural_thickets_repro.thicket.data_roles import partition_data_roles
 from neural_thickets_repro.thicket.perturbation import PerturbationManifest
@@ -49,11 +57,13 @@ from neural_thickets_repro.run_stage11_coarse_anatomical_atlas_7b import (
     build_stage11_plan,
     build_stage11_population,
     build_stage11_smoke_plan,
+    build_stage11_subset_gate_report,
     compute_anatomy_audit_hash,
     compute_direction_seed_bank_hash,
     compute_stage11_run_signature,
     ensure_stage11_anatomy_audit_passes,
     ensure_stage11_checkpoint_manifest,
+    ensure_stage11_subset_gate_passes,
     ensure_stage11_subset_hashes_match_stage8,
     evaluate_one_stage11_candidate_rpc,
     report_stage11_anatomy_audit,
@@ -397,7 +407,9 @@ def _fake_contexts(n=5, subset_hashes=None):
         ids = [f"{capability}_{i}" for i in range(n)]
         partition = partition_data_roles(ids, sizes={"map": n}, seed=1)
         subset_hash = subset_hashes.get(capability) if subset_hashes else partition.manifest_hash
-        contexts[capability] = CapabilityContext(capability=capability, benchmark=None, examples=[], partition=partition, subset_hash=subset_hash, base_score=0.5)
+        # examples length == n (not always []) so tests can check example counts (e.g. the
+        # smoke subset-determinism gate, which asserts every capability has exactly N=5 examples).
+        contexts[capability] = CapabilityContext(capability=capability, benchmark=None, examples=list(ids), partition=partition, subset_hash=subset_hash, base_score=0.5)
     return contexts
 
 
@@ -414,6 +426,153 @@ def test_subset_hash_check_fails_when_a_capability_uses_a_different_subset():
     assert report["all_match"] is False
     with pytest.raises(Stage11SubsetHashMismatchError):
         ensure_stage11_subset_hashes_match_stage8(report)
+
+
+# =================================================================================================
+# 6b. MODE-AWARE subset gate -- reproduces and fixes the live 7B-anatomy-smoke N=5-vs-N=50 failure
+# (the same bug class already fixed for run_stage11_whole_model_scaling.py; the smoke-determinism
+# machinery below is reused BY IMPORT from that module, never reimplemented).
+# =================================================================================================
+
+
+def test_full_mode_subset_gate_still_hard_fails_on_a_single_mismatched_n50_hash():
+    """(6D/6E) FULL mode must remain strict -- even ONE of the six N=50 live subset hashes
+    differing from STAGE8_AUTHORITATIVE_SUBSET_HASHES is a hard stop.
+    """
+    contexts = _fake_contexts(subset_hashes=dict(STAGE8_AUTHORITATIVE_SUBSET_HASHES))
+    from dataclasses import replace as _dc_replace
+    one_capability = next(iter(contexts))
+    contexts[one_capability] = _dc_replace(contexts[one_capability], subset_hash="corrupted" * 4)
+
+    full_report = run_stage11_subset_hash_check(contexts)
+    assert full_report["all_match"] is False
+    gate_report = build_stage11_subset_gate_report(is_smoke=False, d_map_n=STAGE11_D_MAP_N, full_subset_hash_report=full_report)
+    assert gate_report["subset_gate_mode"] == SUBSET_GATE_MODE_FULL
+    with pytest.raises(Stage11SubsetHashMismatchError):
+        ensure_stage11_subset_gate_passes(gate_report)
+
+
+def test_full_mode_subset_gate_passes_when_all_six_hashes_match():
+    contexts = _fake_contexts(subset_hashes=dict(STAGE8_AUTHORITATIVE_SUBSET_HASHES))
+    full_report = run_stage11_subset_hash_check(contexts)
+    gate_report = build_stage11_subset_gate_report(is_smoke=False, d_map_n=STAGE11_D_MAP_N, full_subset_hash_report=full_report)
+    ensure_stage11_subset_gate_passes(gate_report)  # must not raise
+
+
+def test_smoke_mode_never_raises_subset_hash_mismatch_merely_because_n5_differs_from_n50():
+    """(6A) Reproduces the EXACT reported failure class: an N=5 smoke subset hash will NEVER equal
+    the N=50 authoritative Stage-8 hash (different sample sizes by construction) -- smoke mode
+    must not raise Stage11SubsetHashMismatchError over this, and must instead pass its own
+    deterministic-reconstruction gate.
+    """
+    n5_hash_by_cap = {cap: f"n5_hash_{cap}" for cap in STAGE11_CAPABILITIES}
+    pass_a = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)
+    pass_b = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)  # independently "rebuilt", same deterministic hashes
+
+    for cap in STAGE11_CAPABILITIES:
+        assert pass_a[cap].subset_hash != STAGE8_AUTHORITATIVE_SUBSET_HASHES[cap]
+
+    determinism_report = run_smoke_subset_determinism_check(pass_a, pass_b, d_map_n=5)
+    assert determinism_report["all_deterministic"] is True
+    assert determinism_report["all_n_matches_expected"] is True
+    gate_report = build_stage11_subset_gate_report(is_smoke=True, d_map_n=5, smoke_determinism_report=determinism_report)
+    assert gate_report["subset_gate_mode"] == SUBSET_GATE_MODE_SMOKE
+    ensure_stage11_subset_gate_passes(gate_report)  # must NOT raise Stage11SubsetHashMismatchError (or anything else)
+
+
+def test_two_independent_smoke_manifest_builds_are_identical():
+    """(6B) Two independently built N=5 smoke manifests must match exactly."""
+    n5_hash_by_cap = {cap: f"n5_hash_{cap}" for cap in STAGE11_CAPABILITIES}
+    pass_a = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)
+    pass_b = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)
+    report = run_smoke_subset_determinism_check(pass_a, pass_b, d_map_n=5)
+    for cap in STAGE11_CAPABILITIES:
+        assert report[cap]["pass_a_subset_hash"] == report[cap]["pass_b_subset_hash"]
+        assert report[cap]["matches"] is True
+
+
+def test_changing_one_smoke_example_breaks_determinism_check():
+    """(6C) Changing one N=5 example fails smoke determinism."""
+    n5_hash_by_cap = {cap: f"n5_hash_{cap}" for cap in STAGE11_CAPABILITIES}
+    pass_a = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)
+    changed_hashes = dict(n5_hash_by_cap)
+    one_capability = STAGE11_CAPABILITIES[0]
+    changed_hashes[one_capability] = "a_different_n5_hash_from_a_changed_example"
+    pass_b = _fake_contexts(n=5, subset_hashes=changed_hashes)
+
+    determinism_report = run_smoke_subset_determinism_check(pass_a, pass_b, d_map_n=5)
+    assert determinism_report["all_deterministic"] is False
+    assert determinism_report[one_capability]["matches"] is False
+    gate_report = build_stage11_subset_gate_report(is_smoke=True, d_map_n=5, smoke_determinism_report=determinism_report)
+    with pytest.raises(Stage11SmokeSubsetNondeterminismError):
+        ensure_stage11_subset_gate_passes(gate_report)
+
+
+def test_subset_gate_report_requires_the_matching_sub_report_for_its_mode():
+    with pytest.raises(ValueError):
+        build_stage11_subset_gate_report(is_smoke=True, d_map_n=5, smoke_determinism_report=None)
+    with pytest.raises(ValueError):
+        build_stage11_subset_gate_report(is_smoke=False, d_map_n=50, full_subset_hash_report=None)
+
+
+def test_ensure_stage11_subset_gate_passes_rejects_an_unknown_mode():
+    with pytest.raises(ValueError):
+        ensure_stage11_subset_gate_passes({"subset_gate_mode": "not_a_real_mode"})
+
+
+def test_subset_gate_runs_before_engine_launch_and_before_any_candidate_row():
+    """(6G) A failing subset gate must exit BEFORE any GPU engine is launched, before the live
+    anatomy audit, and before any Stage-11 candidate row is evaluated/checkpointed -- proven
+    structurally from main()'s own source ordering.
+    """
+    source = inspect.getsource(module.main)
+    gate_pos = source.index("ensure_stage11_subset_gate_passes(subset_gate_report)")
+    engine_launch_pos = source.index("launch_stage6_engine(")
+    anatomy_audit_pos = source.index("report_stage11_anatomy_audit")
+    run_rpc_pos = source.index("run_stage11_rpc(")
+    assert gate_pos < engine_launch_pos < anatomy_audit_pos < run_rpc_pos
+
+
+def test_smoke_subset_gate_never_calls_full_mode_equality_check(monkeypatch):
+    """(6F) Structural proof the smoke path cannot accidentally fall through to the N=50
+    comparison.
+    """
+    n5_hash_by_cap = {cap: f"n5_hash_{cap}" for cap in STAGE11_CAPABILITIES}
+    pass_a = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)
+    pass_b = _fake_contexts(n=5, subset_hashes=n5_hash_by_cap)
+    determinism_report = run_smoke_subset_determinism_check(pass_a, pass_b, d_map_n=5)
+    gate_report = build_stage11_subset_gate_report(is_smoke=True, d_map_n=5, smoke_determinism_report=determinism_report)
+
+    def _should_never_be_called(report):
+        raise AssertionError("ensure_stage11_subset_hashes_match_stage8 must never be called for a smoke gate report")
+
+    monkeypatch.setattr(module, "ensure_stage11_subset_hashes_match_stage8", _should_never_be_called)
+    ensure_stage11_subset_gate_passes(gate_report)  # must not raise -- dispatches to the smoke path only
+
+
+def test_smoke_and_full_gate_modes_share_the_imported_whole_model_smoke_machinery():
+    """(2) Proof the 7B-anatomy runner reuses run_stage11_whole_model_scaling's smoke-determinism
+    helper BY IDENTITY rather than a duplicated reimplementation -- the two tracks cannot drift
+    into different smoke policies again.
+    """
+    import neural_thickets_repro.run_stage11_whole_model_scaling as whole_model_module
+    assert module.run_smoke_subset_determinism_check is whole_model_module.run_smoke_subset_determinism_check
+    assert module.ensure_smoke_subset_determinism is whole_model_module.ensure_smoke_subset_determinism
+
+
+def test_stage11_full_and_smoke_design_totals_unchanged_by_this_repair_pass():
+    """(6H/6I) This repair pass touches gate SELECTION only -- the frozen 576/3456/N50 full design
+    and 9/54/N5 smoke design must be byte-identical to before.
+    """
+    full_plan = build_stage11_plan(model_name="m", model_revision="a" * 40, output_root="out")
+    assert full_plan.total_unique_perturbations == 576
+    assert full_plan.total_perturbation_capability_evaluations == 3456
+    assert full_plan.d_map_n == 50
+
+    smoke_plan = build_stage11_smoke_plan(model_name="m", model_revision="a" * 40, output_root="out")
+    assert smoke_plan.total_unique_perturbations == 9
+    assert smoke_plan.total_perturbation_capability_evaluations == 54
+    assert smoke_plan.d_map_n == 5
 
 
 # =================================================================================================
