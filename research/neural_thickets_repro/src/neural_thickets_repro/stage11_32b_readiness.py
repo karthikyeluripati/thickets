@@ -274,6 +274,21 @@ def ensure_32b_smoke_permitted(gate_results: Dict[str, str]) -> None:
         raise Stage32BSmokeNotPermittedError(f"32B smoke NOT permitted -- gate(s) not PASS: {not_passing}")
 
 
+def ensure_32b_scale_runnable_for_smoke(*, is_smoke: bool, is_anatomy_track: bool, gate_results: Dict[str, str]) -> None:
+    """The SINGLE 32B entry-point check a runner's main() calls -- 32B is runnable ONLY when ALL
+    of: (a) --smoke was explicitly requested (a full 32B run is never permitted through this
+    path, structurally, regardless of gate status), (b) the track is whole_model, never anatomy
+    ("DO NOT RUN 32B ANATOMY" -- task spec), (c) every G1-G8 gate is GATE_PASS. Raising here
+    means main() must abort BEFORE launching an engine or evaluating any candidate -- 'refuse to
+    start perturbations' (task spec Section 14).
+    """
+    if not is_smoke:
+        raise Stage32BSmokeNotPermittedError("32B is runnable ONLY via --smoke -- a full 32B run is not permitted through this path regardless of gate status.")
+    if is_anatomy_track:
+        raise Stage32BSmokeNotPermittedError("32B anatomy is not permitted -- only track=whole_model smoke may be attempted (task spec: 'DO NOT RUN 32B ANATOMY').")
+    ensure_32b_smoke_permitted(gate_results)
+
+
 # =================================================================================================
 # Section 13: pre-flight readiness manifest
 # =================================================================================================
@@ -340,3 +355,87 @@ def build_32b_readiness_manifest(
         subset_gate_policy="mode_aware_shared_gate", cache_policy="full_encoder_reset_vllm011_verified_v2",
         prefix_caching_policy=False, restoration_policy="fixed_base_exact", gate_results=resolved_gates,
     )
+
+
+# =================================================================================================
+# 32B engine configuration (task spec Section 3) -- a SEPARATE builder, never a modification of
+# run_global_visual_thicket_pilot.build_stage6_engine_config (which 3B/7B still use, unchanged,
+# hardcoded tensor_parallel_size=1 and base_snapshot_mode=BASE_SNAPSHOT_MODE="store_base_weights").
+# =================================================================================================
+
+
+def build_32b_engine_config(*, tensor_parallel_size: int = 4, gpu_memory_utilization: float = 0.60) -> Dict[str, Any]:
+    """Task spec Section 3, applied literally: BF16 (never quantized), TP=4 default,
+    gpu_memory_utilization=0.60 initially, max_model_len=4096, enforce_eager=True (skips
+    CUDA-graph capture -- safer first attempt at an unfamiliar memory footprint; graphs can be
+    re-enabled once a real smoke has actually succeeded once), prefix caching False,
+    base_snapshot_mode=cpu_base_weights (this milestone's fix -- never the legacy GPU-doubling
+    mode for 32B).
+    """
+    if tensor_parallel_size < 1:
+        raise ValueError(f"tensor_parallel_size must be >= 1, got {tensor_parallel_size}")
+    return {
+        "max_model_len": 4096, "gpu_memory_utilization": gpu_memory_utilization, "tensor_parallel_size": tensor_parallel_size,
+        "precision": "bfloat16", "enforce_eager": True, "enable_prefix_caching": False,
+        "restoration_mode": "fixed_base", "perturbation_semantics": "anatomical_relative_l2", "base_snapshot_mode": "cpu_base_weights",
+    }
+
+
+# =================================================================================================
+# THE ONE STRUCTURAL BLOCKER (task spec Section 7's own contingency: "If live TP parameter layout
+# makes the current full-shape-noise strategy incorrect or infeasible: STOP AND REPORT. Do NOT
+# silently invent a different Gaussian protocol.") -- found by reading the real candidate-lifecycle
+# code, not assumed. The ACTUAL per-candidate perturbation call
+# (evaluate_one_whole_model_candidate_rpc, run_stage11_whole_model_scaling.py) dispatches
+# scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 -- the ITERATIVE bf16-aware
+# bracketed radius solver every real 3B/7B run actually used (never the simpler one-shot
+# apply_anatomical_relative_l2 thicket.distributed_perturbation.apply_anatomical_relative_l2_
+# distributed extends). That solver's bisection loop was built empirically, against REAL bf16
+# rounding behavior observed on real GPU hardware (see scoped_anatomical_perturbation.py's own
+# "BF16 BRACKETED SOLVER v2" docstring) -- extending IT to a distributed, collective-reduced,
+# multi-rank version cannot be responsibly designed blind, without live GPU/TP hardware to verify
+# convergence against. Silently swapping 32B onto the simpler one-shot distributed primitive
+# instead would use a DIFFERENT radius-realization method than 3B/7B -- breaking cross-scale
+# comparability, the exact "silently invent a different protocol" outcome forbidden above.
+# =================================================================================================
+
+V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE = False
+V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE = (
+    "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (the iterative bf16-bracketed "
+    "radius solver the real whole-model candidate lifecycle actually calls) has NOT been extended "
+    "to a distributed, collective-reduced, multi-TP-rank version. thicket.distributed_perturbation "
+    "provides the one-shot apply_anatomical_relative_l2_distributed primitive and proves the "
+    "global-norm/RNG/restoration DESIGN is correct, but the v3 solver's bisection loop -- built "
+    "empirically against real bf16 rounding behavior on real GPU hardware -- has not itself been "
+    "made TP-aware, and doing so blind (without live GPU/TP hardware to verify convergence) risks "
+    "either incorrect radius realization or a silent protocol change relative to 3B/7B. STOP AND "
+    "REPORT, per task spec Section 7, rather than substitute a different realization method for 32B."
+)
+
+
+def check_v3_solver_distributed_readiness() -> str:
+    return GATE_PASS if V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE else GATE_FAIL
+
+
+def run_32b_readiness_preflight_and_report(*, resolved_revision: str, tensor_parallel_size: int, output_dir: Any) -> Dict[str, Any]:
+    """The function run_stage11_whole_model_scaling.main() calls for scale=='32B', BEFORE any
+    engine launch -- evaluates every gate that can be determined WITHOUT live GPU evidence
+    (today: only G1 partially, via the resolved revision + frozen spec; everything else stays
+    NOT_YET_VERIFIED or is forced FAIL by the v3-solver gap above), persists the manifest, and
+    returns it. Deliberately does NOT attempt to launch a TP=4 engine just to immediately abort --
+    the v3-solver gap is knowable with zero GPU time spent.
+    """
+    import json
+    from pathlib import Path
+
+    gate_results = {g: GATE_NOT_YET_VERIFIED for g in GATE_IDS}
+    gate_results["G1"] = g1_model_family_audit(FROZEN_32B_MODEL_NAME, FROZEN_32B_MODEL_FAMILY)  # NOT_YET_VERIFIED without a live config fetch on the pod
+    gate_results["G4"] = check_v3_solver_distributed_readiness()  # structurally FAIL today -- see V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE
+
+    manifest = build_32b_readiness_manifest(resolved_revision=resolved_revision, intended_tp_size=tensor_parallel_size, gate_results=gate_results)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    report_path = output_dir / "stage11_32b_readiness_gate_report.json"
+    report_path.write_text(json.dumps(manifest.to_dict(), indent=2))
+
+    return {"manifest": manifest, "report_path": report_path, "blocked_by_v3_solver_gap": not V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE}

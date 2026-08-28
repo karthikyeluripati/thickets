@@ -91,11 +91,30 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     print(f"[{PARENT_RUN_SIGNATURE}] dispatching scale={args.scale!r} track={args.track!r} child_run_signature={_child_run_signature(args.scale, args.track)!r}")
 
-    try:
-        ensure_scale_runnable(args.scale)
-    except ScaleNotYetEnabledError as exc:
-        print(str(exc), file=sys.stderr)
-        return 1
+    if args.scale == "32B":
+        # 32B is NEVER rejected here by ensure_scale_runnable (which would always raise for it,
+        # exactly as it still does for 72B below) -- it is runnable ONLY through the readiness
+        # gate, evaluated with LIVE evidence inside run_stage11_whole_model_scaling.main() (the
+        # only place an actual engine/worker exists to gather that evidence). This dispatcher's
+        # OWN job is the two checks that need no live evidence at all: --smoke must be present,
+        # and the track must be whole_model ("DO NOT RUN 32B ANATOMY") -- both structural, both
+        # enforced before any GPU/Hub call, mirroring
+        # stage11_32b_readiness.ensure_32b_scale_runnable_for_smoke's own checks (that function
+        # is called again, for real, inside the runner once live gate evidence exists).
+        is_smoke = "--smoke" in remaining
+        if not is_smoke:
+            print("32B is runnable ONLY via --smoke -- refusing to dispatch a full 32B run.", file=sys.stderr)
+            return 1
+        if args.track != "whole_model":
+            print("32B anatomy is not permitted -- only --track whole_model --smoke may be attempted.", file=sys.stderr)
+            return 1
+        print("32B whole_model smoke requested -- readiness gates (G1-G8) will be evaluated with live evidence inside the runner before any perturbation starts.")
+    else:
+        try:
+            ensure_scale_runnable(args.scale)
+        except ScaleNotYetEnabledError as exc:
+            print(str(exc), file=sys.stderr)
+            return 1
 
     if args.track == "anatomy" and args.scale == "3B":
         print(REUSE_NOT_RERUN_NOTE)

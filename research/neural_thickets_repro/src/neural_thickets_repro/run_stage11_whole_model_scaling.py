@@ -123,6 +123,12 @@ from .scoped_anatomical_perturbation import (
     QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
 )
+from .stage11_32b_readiness import (
+    V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE,
+    Stage32BSmokeNotPermittedError,
+    ensure_32b_smoke_permitted,
+    run_32b_readiness_preflight_and_report,
+)
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest
 from .thicket.schema import ExperimentResultRecord
 from .vlm_adapter import reset_vllm_encoder_cache_full
@@ -725,14 +731,33 @@ def run_whole_model_rpc(
 
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--scale", required=True, choices=("3B", "7B"), help="Runnable scales only (32B/72B are registered but not yet enabled -- see scaling_common.RUNNABLE_SCALES).")
+    parser.add_argument(
+        "--scale", required=True, choices=("3B", "7B", "32B"),
+        help="3B/7B are runnable unconditionally. 32B is runnable ONLY via --smoke, and ONLY after "
+             "the Section-14 readiness gates pass -- see stage11_32b_readiness.py. 72B is not a "
+             "valid choice here at all (hard-disabled, not merely gated).",
+    )
+    parser.add_argument("--tensor-parallel-size", type=int, default=None, help="32B ONLY -- defaults to 4 (task spec Section 3). Ignored for 3B/7B, which remain TP=1 exactly as before this option existed.")
     parser.add_argument("--model-revision-ref", default=None, help="Overrides the registry's default revision_ref (\"main\") if given.")
     parser.add_argument("--output-root", default=str(REPO_ROOT / "results" / "stage11_whole_model_scaling"))
     parser.add_argument("--smoke", action="store_true", help="1 region x 3 radii x 1 direction family x 6 capabilities x 5 D_map examples = 3 perturbations, 18 rows, 90 evaluations.")
     parser.add_argument("--dry-run", action="store_true", help="print the plan and exit -- no model load, no GPU, no Hub call")
     args = parser.parse_args(argv)
 
-    ensure_scale_runnable(args.scale)
+    if args.scale == "32B":
+        # NEVER calls ensure_scale_runnable (which would unconditionally raise for 32B, exactly
+        # as it still does for any scale outside RUNNABLE_SCALES). Only the ONE structural,
+        # zero-evidence-needed requirement is enforced here (--smoke present -- this module is
+        # whole_model-only already, so the anatomy-track prohibition is automatically satisfied).
+        # The FULL gate requirement (ensure_32b_smoke_permitted, needing REAL evidence) is
+        # evaluated further below, only after the readiness pre-flight has actually produced a
+        # gate report -- evaluating it here, before any evidence exists, would just be a
+        # guaranteed-always-raise no-op that never lets the pre-flight report get written.
+        if not args.smoke:
+            print("32B is runnable ONLY via --smoke -- refusing to run a full 32B whole-model sweep.", file=sys.stderr)
+            return 1
+    else:
+        ensure_scale_runnable(args.scale)
     spec = get_scaling_model_spec(args.scale)
     if args.model_revision_ref is not None:
         spec = ScalingModelSpec(scale_label=spec.scale_label, model_name=spec.model_name, revision_ref=args.model_revision_ref, model_family=spec.model_family)
@@ -767,6 +792,35 @@ def main(argv=None) -> int:
 
     plan.output_dir.mkdir(parents=True, exist_ok=True)
     (plan.output_dir / "model_revision_resolution.json").write_text(json.dumps(resolution, indent=2))
+
+    if plan.scale_label == "32B":
+        # EARLY, DEDICATED 32B branch -- diverges completely from every line of 3B/7B code below
+        # (engine_config, launch_stage6_engine, store_base_weights_via_rpc, run_whole_model_rpc,
+        # ...none of which are TP-aware or cpu_base_weights-aware) rather than threading 32B
+        # conditionals through that existing, already-validated 3B/7B path. 3B/7B reaching this
+        # point never take this branch (plan.scale_label is "3B"/"7B" there) and fall straight
+        # through to the unchanged code that follows, byte-identical to before this milestone.
+        tp_size = args.tensor_parallel_size if args.tensor_parallel_size is not None else 4
+        preflight = run_32b_readiness_preflight_and_report(resolved_revision=resolution["resolved_revision"], tensor_parallel_size=tp_size, output_dir=plan.output_dir)
+        print(f"32B readiness gate report written to {preflight['report_path']}")
+        if preflight["blocked_by_v3_solver_gap"]:
+            print("32B whole-model smoke BLOCKED (G4: TP-aware radius-realization solver not yet available).", file=sys.stderr)
+            print(V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, file=sys.stderr)
+            print("STOP AND REPORT (task spec Section 7) -- no engine was launched, no GPU memory was touched, no scientific row can exist for this attempt.", file=sys.stderr)
+            return 0
+        try:
+            ensure_32b_smoke_permitted(preflight["manifest"].gate_results)
+        except Stage32BSmokeNotPermittedError as exc:
+            print(f"32B whole-model smoke BLOCKED: {exc}", file=sys.stderr)
+            return 0
+        # Unreachable today (the v3-solver gap above always returns first) -- kept as the single
+        # documented continuation point for the live-GPU integration step that follows once that
+        # solver has a distributed extension: launch a TP={tp_size} engine with
+        # build_32b_engine_config(tensor_parallel_size=tp_size), dispatch store_base_weights_cpu_
+        # rpc/collective_rpc_all_workers in place of the legacy single-worker calls below, and run
+        # the (then-distributed-aware) candidate loop. Never reached without a code change that
+        # first flips V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE to True with real evidence.
+        raise RuntimeError("Unreachable: 32B gate evaluation must have already returned above.")
 
     engine_config = build_stage7b_engine_config()
     assert engine_config["enable_prefix_caching"] is False, "Whole-model track must never run with prefix caching enabled."

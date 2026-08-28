@@ -34,13 +34,29 @@ def test_dispatch_3b_anatomy_is_reuse_not_rerun_and_never_executes(capsys):
     assert "never rerun" in captured.out.lower() or "NEVER rerun" in captured.out
 
 
-@pytest.mark.parametrize("scale", ["32B", "72B"])
 @pytest.mark.parametrize("track", ["whole_model", "anatomy"])
-def test_dispatch_blocks_unrunnable_scales(scale, track, capsys):
-    exit_code = dispatcher.main(["--scale", scale, "--track", track])
+def test_dispatch_blocks_72b_unconditionally(track, capsys):
+    """72B remains hard-disabled exactly as before the 32B-readiness milestone -- still routed
+    through the unmodified ensure_scale_runnable, still the same message.
+    """
+    exit_code = dispatcher.main(["--scale", "72B", "--track", track])
     assert exit_code == 1
     captured = capsys.readouterr()
     assert "not yet enabled" in (captured.out + captured.err).lower() or "NOT in RUNNABLE_SCALES" in (captured.out + captured.err)
+
+
+@pytest.mark.parametrize("track", ["whole_model", "anatomy"])
+def test_dispatch_blocks_32b_without_smoke(track, capsys):
+    """32B is no longer routed through ensure_scale_runnable at all (see
+    stage11_32b_readiness.py) -- it is still blocked (exit_code==1) whenever --smoke is absent
+    or the track is anatomy, but with a DIFFERENT, intentional message reflecting its own
+    gate-based path, never the old blanket 'not yet enabled' text.
+    """
+    exit_code = dispatcher.main(["--scale", "32B", "--track", track])
+    assert exit_code == 1
+    captured = capsys.readouterr()
+    combined = (captured.out + captured.err).lower()
+    assert "runnable only via --smoke" in combined or "anatomy is not permitted" in combined
 
 
 def test_dispatch_7b_whole_model_dry_run_produces_correct_counts(capsys):

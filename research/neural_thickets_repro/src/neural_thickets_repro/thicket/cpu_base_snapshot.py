@@ -178,6 +178,51 @@ def classify_snapshot_equivalence(
     return EQUIVALENCE_SEMANTICS_CHANGED
 
 
+def g3_live_cpu_cuda_equivalence_check_rpc(worker_self, *, probe_param_name: str, seed: int, delta: float = 0.01) -> Dict:
+    """LIVE (real GPU-worker) analog of the CPU-only equivalence test in
+    tests/test_stage11_32b_readiness.py -- the function a pod-side G3 pre-flight step would
+    dispatch via collective_rpc before permitting a real 32B smoke. Runs BOTH paths against the
+    SAME live model, on ONE probe parameter (never the whole model -- this is a pre-flight
+    correctness probe, not the actual candidate lifecycle): upstream's legacy GPU-clone
+    store/perturb/restore, then this module's CPU-snapshot store/perturb/restore, comparing at
+    each stage. Returns the four raw facts `classify_snapshot_equivalence` needs -- the CALLER
+    classifies (kept separate so the classification logic stays in one, already-tested place).
+    """
+    model = worker_self.model_runner.model
+    named = dict(model.named_parameters())
+    if probe_param_name not in named:
+        raise RuntimeError(f"g3_live_cpu_cuda_equivalence_check_rpc: probe parameter {probe_param_name!r} not found on the model.")
+    p = named[probe_param_name]
+    original = p.data.detach().clone()
+
+    legacy_base = p.data.clone()  # upstream's own semantics: clone() preserves device (GPU)
+    store_base_weights_cpu_rpc(worker_self, pin_memory=True)
+    cpu_base = worker_self._base_weights_cpu[probe_param_name]
+    initial_snapshots_equal = bool(torch.equal(legacy_base.cpu(), cpu_base.cpu()))
+
+    from ..perturb_cpu import _generate_noise
+
+    noise = _generate_noise(p, seed)
+    p.data.add_(delta * noise)
+    legacy_perturbed = p.data.detach().clone()
+
+    p.data.copy_(legacy_base)  # reset to the (identical) starting point before the second path
+    noise2 = _generate_noise(p, seed)
+    p.data.add_(delta * noise2)
+    cpu_path_perturbed = p.data.detach().clone()
+    perturbed_weights_equal = bool(torch.equal(legacy_perturbed, cpu_path_perturbed))
+
+    p.data.copy_(legacy_base)
+    reset_to_base_weights_cpu_rpc(worker_self)
+    restored_weights_equal = bool(torch.equal(p.data, original)) and bool(torch.equal(p.data, legacy_base))
+    n_differing_after_restore = int((p.data != original).sum().item())
+
+    return {
+        "initial_snapshots_equal": initial_snapshots_equal, "perturbed_weights_equal": perturbed_weights_equal,
+        "restored_weights_equal": restored_weights_equal, "n_differing_after_restore": n_differing_after_restore,
+    }
+
+
 def ensure_bit_exact_before_32b(equivalence_class: str) -> None:
     """32B may use cpu_base_weights ONLY if classify_snapshot_equivalence() returned class A.
     Hard stop otherwise -- see task spec Section 5 ("We require A before using this for 32B. If

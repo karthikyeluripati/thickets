@@ -265,6 +265,89 @@ def _param_noise_seed(seed: int, name: str) -> int:
 # =================================================================================================
 
 
+def _validate_collective_rpc_results_multi_worker(results: Any, *, label: str, expected_world_size: int) -> List:
+    """Multi-worker analog of run_global_visual_thicket_pilot._validate_collective_rpc_results --
+    that function hard-asserts `len(results) == 1` (TP=1-only, unchanged, still used by every
+    existing 3B/7B call site). This one requires `len(results) == expected_world_size` instead,
+    for the NEW TP>1 dispatch path -- a distinct function, never a relaxation of the existing one.
+    """
+    if not isinstance(results, list):
+        raise TypeError(f"collective_rpc({label!r}) returned {type(results).__name__}, expected vLLM's own list-of-per-worker-results contract. Got: {results!r}")
+    if len(results) != expected_world_size:
+        raise RuntimeError(f"collective_rpc({label!r}) returned {len(results)} per-worker results; expected exactly {expected_world_size} (the configured tensor_parallel_size).")
+    return results
+
+
+def collective_rpc_all_workers(engine: Any, method: Any, args: tuple = (), *, label: str, expected_world_size: int, ray_get: Optional[Any] = None) -> List:
+    """TP>1 collective dispatch -- returns ALL per-worker results (never unwraps to a single
+    value, unlike the TP=1-only `_collective_rpc_single_worker`). Same `ray_get`-injection
+    pattern already established project-wide for CPU testability.
+    """
+    if ray_get is None:
+        import ray
+        ray_get = ray.get
+    results = ray_get(engine.collective_rpc.remote(method, args=args))
+    return _validate_collective_rpc_results_multi_worker(results, label=label, expected_world_size=expected_world_size)
+
+
+# =================================================================================================
+# Live G4/G5 gate-check (worker-side RPC callable) -- Section 14: "live TP global-relative-L2" /
+# "live TP RNG/direction semantics" verification, run against REAL sharded parameters on a REAL
+# TP>1 engine before any real candidate is evaluated. NOT executed this session (no GPU) -- this
+# is the function a pod-side pre-flight step would call via collective_rpc_all_workers.
+# =================================================================================================
+
+
+def g4_g5_live_relative_l2_check_rpc(
+    worker_self, region_param_names: Sequence[str], seed: int, r: float, process_group: Any = None, *, all_reduce_sum: Optional[AllReduceSumFn] = None,
+) -> Dict[str, Any]:
+    """Runs ONE real apply_anatomical_relative_l2_distributed call against `worker_self`'s own
+    live (possibly sharded) parameters, using vllm_shard_mapping to build real ShardSpecs rather
+    than injected fakes, and reports whether the realized global relative-L2 lands within
+    tolerance of `r` -- the live evidence stage11_32b_readiness.g4_distributed_relative_l2_
+    semantics()/g5_distributed_rng_semantics() need to move off NOT_YET_VERIFIED. Every rank
+    calls this identically; the caller (collective_rpc_all_workers) collects one dict per rank.
+
+    `all_reduce_sum` defaults to `identity_all_reduce_sum` at tensor_parallel_size<=1 (nothing to
+    reduce across -- and no real `torch.distributed` process group is required in that case) and
+    to the real `torch_distributed_all_reduce_sum` at tensor_parallel_size>1 (a genuine live
+    multi-rank run always has one). Pass it explicitly to substitute a test double.
+    """
+    from .vllm_shard_mapping import build_shard_specs_for_region, ensure_uniform_tp_size
+
+    tp_size = getattr(worker_self, "tensor_parallel_size", 1)
+    if all_reduce_sum is None:
+        all_reduce_sum = identity_all_reduce_sum if tp_size <= 1 else torch_distributed_all_reduce_sum
+    shard_specs = build_shard_specs_for_region(worker_self.model_runner.model, region_param_names)
+    ensure_uniform_tp_size(shard_specs, tp_size if tp_size > 1 else next((s.world_size for s in shard_specs.values() if not s.is_replicated), 1))
+
+    record = apply_anatomical_relative_l2_distributed(
+        worker_self.model_runner.model, "g4_g5_live_probe", region_param_names, seed=seed, r=r,
+        shard_specs=shard_specs, all_reduce_sum=all_reduce_sum, process_group=process_group,
+    )
+    realized_relative_l2 = record.realized_epsilon_l2_norm / record.theta_l2_norm if record.theta_l2_norm else float("inf")
+    return {
+        "requested_r": r, "realized_relative_l2": realized_relative_l2, "theta_l2_norm": record.theta_l2_norm,
+        "raw_noise_l2_norm": record.raw_noise_l2_norm, "scale": record.scale, "tp_rank": getattr(worker_self, "rank", 0),
+    }
+
+
+def classify_g4_g5_live_check(per_rank_results: List[Dict[str, Any]], *, tolerance: float = 1e-6) -> bool:
+    """Every rank must report the SAME theta_l2_norm/raw_noise_l2_norm/scale (proving the
+    all-reduce genuinely synchronized them) AND the realized relative-L2 must land within
+    `tolerance` of the requested r -- both conditions are required for a PASS.
+    """
+    if not per_rank_results:
+        return False
+    first = per_rank_results[0]
+    same_across_ranks = all(
+        abs(r["theta_l2_norm"] - first["theta_l2_norm"]) < 1e-9 and abs(r["raw_noise_l2_norm"] - first["raw_noise_l2_norm"]) < 1e-9 and abs(r["scale"] - first["scale"]) < 1e-9
+        for r in per_rank_results
+    )
+    within_tolerance = all(abs(r["realized_relative_l2"] - r["requested_r"]) <= tolerance for r in per_rank_results)
+    return same_across_ranks and within_tolerance
+
+
 def aggregate_distributed_restoration_verification(local_results: List[Dict]) -> Dict:
     """Combines each rank's LOCAL restoration-verification dict (each already computed by the
     existing, memory-bounded per-rank check -- e.g. thicket.worker_rpc.
