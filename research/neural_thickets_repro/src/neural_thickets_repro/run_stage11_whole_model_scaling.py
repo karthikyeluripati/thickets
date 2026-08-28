@@ -123,12 +123,7 @@ from .scoped_anatomical_perturbation import (
     QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
 )
-from .stage11_32b_readiness import (
-    V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE,
-    Stage32BSmokeNotPermittedError,
-    ensure_32b_smoke_permitted,
-    run_32b_readiness_preflight_and_report,
-)
+from .stage11_32b_readiness import V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, run_32b_readiness_preflight_and_report
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest
 from .thicket.schema import ExperimentResultRecord
 from .vlm_adapter import reset_vllm_encoder_cache_full
@@ -803,23 +798,27 @@ def main(argv=None) -> int:
         tp_size = args.tensor_parallel_size if args.tensor_parallel_size is not None else 4
         preflight = run_32b_readiness_preflight_and_report(resolved_revision=resolution["resolved_revision"], tensor_parallel_size=tp_size, output_dir=plan.output_dir)
         print(f"32B readiness gate report written to {preflight['report_path']}")
-        if preflight["blocked_by_v3_solver_gap"]:
-            print("32B whole-model smoke BLOCKED (G4: TP-aware radius-realization solver not yet available).", file=sys.stderr)
+        print(f"32B gate results: {preflight['gate_results']}")
+        if not preflight["smoke_permitted"]:
+            print("32B whole-model smoke BLOCKED -- not all G1-G8 gates report PASS.", file=sys.stderr)
             print(V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, file=sys.stderr)
-            print("STOP AND REPORT (task spec Section 7) -- no engine was launched, no GPU memory was touched, no scientific row can exist for this attempt.", file=sys.stderr)
+            print(
+                "The distributed v3 solver now EXISTS and is proven correct on CPU (world_size=1 "
+                "equivalence + simulated 2-rank equivalence, tests/test_thicket_distributed_v3_solver.py) "
+                "-- G4/G5 report READY_FOR_LIVE_VERIFICATION, not PASS, because CPU tests alone can never "
+                "satisfy a gate that requires live TP hardware evidence (task spec Section 11). "
+                "No engine was launched, no GPU memory was touched, no scientific row can exist for this attempt.",
+                file=sys.stderr,
+            )
             return 0
-        try:
-            ensure_32b_smoke_permitted(preflight["manifest"].gate_results)
-        except Stage32BSmokeNotPermittedError as exc:
-            print(f"32B whole-model smoke BLOCKED: {exc}", file=sys.stderr)
-            return 0
-        # Unreachable today (the v3-solver gap above always returns first) -- kept as the single
-        # documented continuation point for the live-GPU integration step that follows once that
-        # solver has a distributed extension: launch a TP={tp_size} engine with
+        # Unreachable today (smoke_permitted requires literal PASS on every gate, and G4/G5 can
+        # only ever be PASS given a real `live_test_passed` result this module never fabricates)
+        # -- kept as the single documented continuation point for the live-GPU integration step
+        # that follows once real TP hardware evidence exists: launch a TP={tp_size} engine with
         # build_32b_engine_config(tensor_parallel_size=tp_size), dispatch store_base_weights_cpu_
-        # rpc/collective_rpc_all_workers in place of the legacy single-worker calls below, and run
-        # the (then-distributed-aware) candidate loop. Never reached without a code change that
-        # first flips V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE to True with real evidence.
+        # rpc/collective_rpc_all_workers/scoped_apply_anatomical_perturbation_bf16_quantization_
+        # aware_v3_distributed in place of the legacy single-worker calls below, and run the
+        # (now distributed-aware) candidate loop.
         raise RuntimeError("Unreachable: 32B gate evaluation must have already returned above.")
 
     engine_config = build_stage7b_engine_config()

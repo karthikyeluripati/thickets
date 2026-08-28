@@ -81,10 +81,13 @@ def test_32b_full_run_without_smoke_refused():
     assert rc == 1
 
 
-def test_32b_smoke_blocked_by_v3_solver_gap_writes_gate_report(tmp_path, monkeypatch):
-    """Full (non-dry-run) 32B path with the environment/Hub gates faked open, to reach the new
-    readiness pre-flight branch -- must write a real gate report and return 0 (a clean,
-    honest 'blocked' exit), never crash, never proceed toward an engine launch.
+def test_32b_smoke_blocked_pending_live_evidence_writes_gate_report(tmp_path, monkeypatch):
+    """Full (non-dry-run) 32B path with the environment/Hub gates faked open, to reach the
+    readiness pre-flight branch -- must write a real gate report and return 0 (a clean, honest
+    'blocked' exit), never crash, never proceed toward an engine launch. G4/G5 now read
+    READY_FOR_LIVE_VERIFICATION (the distributed v3 solver exists and is CPU-proven, see
+    thicket.distributed_v3_solver) rather than FAIL -- real progress -- but the smoke remains
+    blocked because READY_FOR_LIVE_VERIFICATION is never PASS.
     """
     monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
     monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": "a" * 40, "requested_revision": "main"})
@@ -94,7 +97,8 @@ def test_32b_smoke_blocked_by_v3_solver_gap_writes_gate_report(tmp_path, monkeyp
     assert len(report_files) == 1
     import json
     report = json.loads(report_files[0].read_text())
-    assert report["gate_results"]["G4"] == readiness.GATE_FAIL
+    assert report["gate_results"]["G4"] == readiness.GATE_READY_FOR_LIVE_VERIFICATION
+    assert report["gate_results"]["G5"] == readiness.GATE_READY_FOR_LIVE_VERIFICATION
     assert report["all_gates_pass"] is False
 
 

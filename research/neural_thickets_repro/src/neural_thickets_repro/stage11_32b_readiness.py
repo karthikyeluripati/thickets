@@ -28,7 +28,14 @@ from typing import Any, Dict, List, Optional, Sequence
 GATE_PASS = "PASS"
 GATE_FAIL = "FAIL"
 GATE_NOT_YET_VERIFIED = "NOT_YET_VERIFIED"
-GATE_VERDICTS = (GATE_PASS, GATE_FAIL, GATE_NOT_YET_VERIFIED)
+# A gate whose DESIGN has been proven correct by CPU-only tests (world_size=1 equivalence,
+# simulated multi-rank equivalence, ...) but has NOT been confirmed against live TP/GPU hardware
+# -- CPU tests alone can NEVER produce GATE_PASS (task spec Section 11: "Do NOT mark PASS from
+# CPU tests alone... CPU tests make it READY_FOR_LIVE_VERIFICATION. Actual PASS requires live TP
+# evidence."). This is a STRICTLY WEAKER status than PASS -- ensure_32b_smoke_permitted still
+# blocks the smoke on any gate in this state, exactly as it blocks NOT_YET_VERIFIED/FAIL.
+GATE_READY_FOR_LIVE_VERIFICATION = "READY_FOR_LIVE_VERIFICATION"
+GATE_VERDICTS = (GATE_PASS, GATE_FAIL, GATE_NOT_YET_VERIFIED, GATE_READY_FOR_LIVE_VERIFICATION)
 
 GATE_IDS: Sequence[str] = ("G1", "G2", "G3", "G4", "G5", "G6", "G7", "G8")
 
@@ -206,22 +213,26 @@ def g3_cpu_snapshot_bit_equivalence(equivalence_class: Optional[str]) -> str:
     return GATE_PASS if equivalence_class == EQUIVALENCE_BIT_EXACT else GATE_FAIL
 
 
-def g4_distributed_relative_l2_semantics(live_test_passed: Optional[bool]) -> str:
+def g4_distributed_relative_l2_semantics(live_test_passed: Optional[bool], *, cpu_tests_passed: bool = False) -> str:
     """Requires a LIVE (multi-rank or genuinely-simulated-multi-shard) confirmation that the
-    global relative-L2 ratio holds -- this project's own CPU test suite proves the MATH is
-    correct against fake shards/reduces (see tests/test_thicket_distributed_perturbation.py);
-    it does NOT constitute live-hardware verification, so this gate defaults to
-    NOT_YET_VERIFIED until a caller explicitly supplies a live_test_passed result.
+    global relative-L2 ratio holds. This project's own CPU test suite (world_size=1 equivalence
+    against the unmodified legacy v3 solver, PLUS a simulated real 2-rank collective proving the
+    concatenated sharded weights reproduce a single-process reference exactly -- see
+    tests/test_thicket_distributed_v3_solver.py) proves the DESIGN is correct; it does NOT
+    constitute live-hardware verification (task spec Section 11: "Do NOT mark PASS from CPU
+    tests alone"). `cpu_tests_passed=True` with no live evidence yields
+    GATE_READY_FOR_LIVE_VERIFICATION (progress, but never PASS); real PASS/FAIL require an
+    explicit `live_test_passed` from a real TP run.
     """
-    if live_test_passed is None:
-        return GATE_NOT_YET_VERIFIED
-    return GATE_PASS if live_test_passed else GATE_FAIL
+    if live_test_passed is not None:
+        return GATE_PASS if live_test_passed else GATE_FAIL
+    return GATE_READY_FOR_LIVE_VERIFICATION if cpu_tests_passed else GATE_NOT_YET_VERIFIED
 
 
-def g5_distributed_rng_semantics(live_test_passed: Optional[bool]) -> str:
-    if live_test_passed is None:
-        return GATE_NOT_YET_VERIFIED
-    return GATE_PASS if live_test_passed else GATE_FAIL
+def g5_distributed_rng_semantics(live_test_passed: Optional[bool], *, cpu_tests_passed: bool = False) -> str:
+    if live_test_passed is not None:
+        return GATE_PASS if live_test_passed else GATE_FAIL
+    return GATE_READY_FOR_LIVE_VERIFICATION if cpu_tests_passed else GATE_NOT_YET_VERIFIED
 
 
 def g6_exact_restoration(aggregated_verification: Optional[Dict[str, Any]]) -> str:
@@ -382,55 +393,55 @@ def build_32b_engine_config(*, tensor_parallel_size: int = 4, gpu_memory_utiliza
 
 
 # =================================================================================================
-# THE ONE STRUCTURAL BLOCKER (task spec Section 7's own contingency: "If live TP parameter layout
-# makes the current full-shape-noise strategy incorrect or infeasible: STOP AND REPORT. Do NOT
-# silently invent a different Gaussian protocol.") -- found by reading the real candidate-lifecycle
-# code, not assumed. The ACTUAL per-candidate perturbation call
-# (evaluate_one_whole_model_candidate_rpc, run_stage11_whole_model_scaling.py) dispatches
-# scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 -- the ITERATIVE bf16-aware
-# bracketed radius solver every real 3B/7B run actually used (never the simpler one-shot
-# apply_anatomical_relative_l2 thicket.distributed_perturbation.apply_anatomical_relative_l2_
-# distributed extends). That solver's bisection loop was built empirically, against REAL bf16
-# rounding behavior observed on real GPU hardware (see scoped_anatomical_perturbation.py's own
-# "BF16 BRACKETED SOLVER v2" docstring) -- extending IT to a distributed, collective-reduced,
-# multi-rank version cannot be responsibly designed blind, without live GPU/TP hardware to verify
-# convergence against. Silently swapping 32B onto the simpler one-shot distributed primitive
-# instead would use a DIFFERENT radius-realization method than 3B/7B -- breaking cross-scale
-# comparability, the exact "silently invent a different protocol" outcome forbidden above.
+# THE FORMER STRUCTURAL BLOCKER (task spec Section 7's own contingency: "If live TP parameter
+# layout makes the current full-shape-noise strategy incorrect or infeasible: STOP AND REPORT. Do
+# NOT silently invent a different Gaussian protocol.") -- RESOLVED this pass, on CPU, not live.
+# scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (the iterative bf16-aware
+# bracketed radius solver every real 3B/7B run actually used) now has a distributed counterpart,
+# thicket.distributed_v3_solver.scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_
+# distributed, that mirrors it branch-for-branch (same solve_bf16_radius/expand_bracket_and_
+# resolve_bf16_radius/select_quantization_limited_acceptance, reused UNCHANGED by import), fed a
+# distributed evaluate_fn instead of a single-process one. tests/test_thicket_distributed_v3_
+# solver.py proves: (a) world_size=1 equivalence against the unmodified legacy solver across many
+# seed/radius cases -- including cases where BOTH algorithms correctly raise the identical
+# QuantizationToleranceExceededError with the identical numbers, not just cases that converge;
+# (b) a genuine simulated 2-rank collective (real all-reduce arithmetic, not a shortcut) whose
+# concatenated final BF16 weights reproduce a single-process reference exactly. This is DESIGN
+# correctness proven on CPU -- it is explicitly NOT live-hardware verification (task spec Section
+# 11), so G4/G5 report READY_FOR_LIVE_VERIFICATION, never PASS, until a real TP run confirms it.
 # =================================================================================================
 
-V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE = False
+V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE = True  # scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_distributed exists and is CPU-proven (see above) -- NOT live-verified
 V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE = (
-    "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3 (the iterative bf16-bracketed "
-    "radius solver the real whole-model candidate lifecycle actually calls) has NOT been extended "
-    "to a distributed, collective-reduced, multi-TP-rank version. thicket.distributed_perturbation "
-    "provides the one-shot apply_anatomical_relative_l2_distributed primitive and proves the "
-    "global-norm/RNG/restoration DESIGN is correct, but the v3 solver's bisection loop -- built "
-    "empirically against real bf16 rounding behavior on real GPU hardware -- has not itself been "
-    "made TP-aware, and doing so blind (without live GPU/TP hardware to verify convergence) risks "
-    "either incorrect radius realization or a silent protocol change relative to 3B/7B. STOP AND "
-    "REPORT, per task spec Section 7, rather than substitute a different realization method for 32B."
+    "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_distributed (thicket."
+    "distributed_v3_solver) now exists and mirrors the legacy v3 solver branch-for-branch, proven "
+    "world_size=1-equivalent and simulated-2-rank-correct on CPU (tests/test_thicket_distributed_"
+    "v3_solver.py). This is DESIGN correctness, not live-hardware verification -- G4/G5 read "
+    "READY_FOR_LIVE_VERIFICATION, never PASS, until a real TP run confirms convergence on real "
+    "sharded parameters (task spec Section 11: 'Do NOT mark PASS from CPU tests alone')."
 )
 
 
 def check_v3_solver_distributed_readiness() -> str:
-    return GATE_PASS if V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE else GATE_FAIL
+    return GATE_READY_FOR_LIVE_VERIFICATION if V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE else GATE_FAIL
 
 
 def run_32b_readiness_preflight_and_report(*, resolved_revision: str, tensor_parallel_size: int, output_dir: Any) -> Dict[str, Any]:
     """The function run_stage11_whole_model_scaling.main() calls for scale=='32B', BEFORE any
     engine launch -- evaluates every gate that can be determined WITHOUT live GPU evidence
-    (today: only G1 partially, via the resolved revision + frozen spec; everything else stays
-    NOT_YET_VERIFIED or is forced FAIL by the v3-solver gap above), persists the manifest, and
-    returns it. Deliberately does NOT attempt to launch a TP=4 engine just to immediately abort --
-    the v3-solver gap is knowable with zero GPU time spent.
+    (today: G1 partially, via the resolved revision + frozen spec; G4/G5 read READY_FOR_LIVE_
+    VERIFICATION per the CPU-proven distributed v3 solver; everything else stays NOT_YET_
+    VERIFIED), persists the manifest, and returns it. The smoke remains correctly BLOCKED
+    (ensure_32b_smoke_permitted requires literal PASS, and READY_FOR_LIVE_VERIFICATION is not
+    PASS) until real TP hardware evidence exists -- deliberately does not launch an engine here.
     """
     import json
     from pathlib import Path
 
     gate_results = {g: GATE_NOT_YET_VERIFIED for g in GATE_IDS}
     gate_results["G1"] = g1_model_family_audit(FROZEN_32B_MODEL_NAME, FROZEN_32B_MODEL_FAMILY)  # NOT_YET_VERIFIED without a live config fetch on the pod
-    gate_results["G4"] = check_v3_solver_distributed_readiness()  # structurally FAIL today -- see V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE
+    gate_results["G4"] = check_v3_solver_distributed_readiness()  # READY_FOR_LIVE_VERIFICATION -- see V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE
+    gate_results["G5"] = g5_distributed_rng_semantics(None, cpu_tests_passed=True)  # same CPU evidence covers the RNG/direction-preservation proof
 
     manifest = build_32b_readiness_manifest(resolved_revision=resolved_revision, intended_tp_size=tensor_parallel_size, gate_results=gate_results)
     output_dir = Path(output_dir)
@@ -438,4 +449,10 @@ def run_32b_readiness_preflight_and_report(*, resolved_revision: str, tensor_par
     report_path = output_dir / "stage11_32b_readiness_gate_report.json"
     report_path.write_text(json.dumps(manifest.to_dict(), indent=2))
 
-    return {"manifest": manifest, "report_path": report_path, "blocked_by_v3_solver_gap": not V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE}
+    try:
+        ensure_32b_smoke_permitted(gate_results)
+        smoke_permitted = True
+    except Stage32BSmokeNotPermittedError:
+        smoke_permitted = False
+
+    return {"manifest": manifest, "report_path": report_path, "smoke_permitted": smoke_permitted, "gate_results": gate_results}
