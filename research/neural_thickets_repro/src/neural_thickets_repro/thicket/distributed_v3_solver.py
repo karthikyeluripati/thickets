@@ -218,10 +218,20 @@ def _distributed_out_of_region_drift(
 def all_reduce_max(value: float, process_group: Any) -> float:
     """MAX-reduction analog of distributed_perturbation.torch_distributed_all_reduce_sum --
     max_abs_drift must be combined with MAX (the worst rank's drift), never SUM.
+
+    LIVE-VERIFIED FIX (real 4xL40S TP=4 32B run, distributed v3 solver probe): same bug already
+    fixed in torch_distributed_all_reduce_sum -- a bare `torch.tensor(...)` defaults to CPU,
+    which hard-fails (`RuntimeError: No backend type associated with device type cpu`) against
+    vLLM's NCCL-only default process group. This function was missed in that earlier fix (it
+    lives in this module, not distributed_perturbation.py) and only surfaced once the real
+    solver's out-of-region drift check (aggregate_distributed_out_of_region_drift) actually ran
+    live for the first time. Every caller runs inside a live GPU worker process, so the current
+    CUDA device is always correct here, exactly as in torch_distributed_all_reduce_sum.
     """
     import torch.distributed as dist
 
-    tensor = torch.tensor([value], dtype=torch.float64)
+    device = torch.device("cuda", torch.cuda.current_device()) if torch.cuda.is_available() else torch.device("cpu")
+    tensor = torch.tensor([value], dtype=torch.float64, device=device)
     dist.all_reduce(tensor, op=dist.ReduceOp.MAX, group=process_group)
     return float(tensor.item())
 
