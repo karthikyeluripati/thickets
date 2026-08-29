@@ -24,10 +24,29 @@ runtime inspection. The relevant, confirmed-from-source facts:
     on non-TP layers, etc.) are REPLICATED across ranks -- there is no explicit "is_replicated"
     flag; absence of both dim attributes is the signal.
 
-THIS IS RESEARCH-GROUNDED, NOT LIVE-VERIFIED. Gate G4/G5 (stage11_32b_readiness.py) require a
-live-hardware confirmation before this mapping is trusted for a real 32B run -- this module
-provides the mapping LOGIC (fully unit-tested against fakes that mimic the documented attribute
-convention exactly), not a live-runtime proof.
+LIVE-VERIFIED CORRECTION (real 4xL40S TP=4 32B run, this pod, vllm==0.11.0): the
+"never both" assumption above is WRONG for `VocabParallelEmbedding`/`ParallelLMHead` --
+confirmed by reading the actually-installed
+`vllm/model_executor/layers/vocab_parallel_embedding.py` on this pod after a real TP=4 run
+hard-failed on `language_model.lm_head.weight` reporting BOTH `output_dim=0` AND `input_dim=1`.
+`UnquantizedEmbeddingMethod.create_weights` sets `{"input_dim": 1, "output_dim": 0}`
+UNCONDITIONALLY on every embedding/lm_head weight -- `input_dim` there is an informational label
+(this row-parallel weight is `[vocab_shard, hidden_size]`; `hidden_size` is the "input"
+dimension), not a second, conflicting sharding claim. `output_dim` is the dimension the layer is
+ACTUALLY sharded along -- confirmed authoritative by that same file's own weight-loading slice,
+`loaded_weight.narrow(output_dim, start_idx, shard_size)` (never `input_dim`). `build_shard_spec_
+from_attributes` below therefore prefers `output_dim` when both are set, rather than treating it
+as unrecoverably ambiguous; `ColumnParallelLinear`/`RowParallelLinear` (the layers the original,
+CPU-only research this module started from was based on) still only ever set exactly one of the
+two, so this change is purely additive for the embedding/lm_head case, never a behavior change
+for those layers.
+
+Gate G4/G5 (stage11_32b_readiness.py) still require live-hardware confirmation before any
+DISTRIBUTED PERTURBATION is trusted end-to-end -- this module's own mapping logic is now
+LIVE-VERIFIED for actually locating and classifying every real qwen2_5_vl 32B parameter (the
+anatomy audit's `report_global_anatomy_audit_rpc` calls `build_shard_specs_for_region` over
+EVERY parameter in the model, so it exercises this exact edge case), not merely CPU-tested
+against fakes.
 """
 from __future__ import annotations
 
@@ -39,11 +58,12 @@ from .distributed_perturbation import ShardSpec
 
 
 class AmbiguousShardMappingError(RuntimeError):
-    """A parameter's sharding could not be confidently classified -- e.g. both output_dim and
-    input_dim are set (should never happen per the documented convention), or the owning module
+    """A parameter's sharding could not be confidently classified -- e.g. the owning module
     reports tp_size > 1 but neither dim attribute is present (an unrecognized parameter type
-    inside a TP-aware layer). Hard fails rather than guessing, per task spec Section 5 ("Hard
-    fail on ambiguous/incomplete mapping").
+    inside a TP-aware layer), or a reported dim is out of range for the tensor's own shape. Hard
+    fails rather than guessing, per task spec Section 5 ("Hard fail on ambiguous/incomplete
+    mapping"). NOTE: both output_dim and input_dim being set is NOT in this category -- see
+    build_shard_spec_from_attributes and this module's own live-verified docstring correction.
     """
 
 
@@ -53,10 +73,12 @@ def build_shard_spec_from_attributes(
     """Pure mapping logic (no vLLM/torch-module access) -- the part that is fully,
     deterministically testable without any live vLLM object. `local_shape` is the shape the
     live parameter ALREADY has (confirmed local-shard-only per this module's docstring).
-    """
-    if output_dim is not None and input_dim is not None:
-        raise AmbiguousShardMappingError(f"Parameter {param_name!r} has BOTH output_dim={output_dim} and input_dim={input_dim} set -- cannot determine the sharded dimension unambiguously.")
 
+    When BOTH output_dim and input_dim are set (VocabParallelEmbedding/ParallelLMHead, confirmed
+    live -- see module docstring), `output_dim` is authoritative: it is the dimension vLLM's own
+    weight loader actually shards along (`loaded_weight.narrow(output_dim, ...)`); `input_dim` is
+    an informational label for the OTHER (non-sharded) dimension, not a second sharding claim.
+    """
     dim = output_dim if output_dim is not None else input_dim
     if dim is None:
         if tp_size > 1:
