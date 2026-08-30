@@ -148,6 +148,10 @@ def main(argv=None) -> int:
     print(f"repo commit: {commit}")
     report["repo_commit"] = commit
 
+    from neural_thickets_repro.stage11_32b_live_evidence import query_live_gpu_uuids
+
+    report["gpu_uuids"] = query_live_gpu_uuids()  # optional hardware-fingerprint binding evidence -- see that module's own docstring for the "if available" framing
+
     from neural_thickets_repro.env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
 
     try:

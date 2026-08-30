@@ -171,6 +171,235 @@ def test_32b_revision_resolution_is_persisted_to_disk(tmp_path, monkeypatch):
     assert json.loads(revision_files[0].read_text()) == fake_resolution
 
 
+# =================================================================================================
+# Live-readiness-evidence wiring fix -- run_stage11_whole_model_scaling.py's 32B branch must
+# CONSUME a real, strictly identity-bound live G1-G8 + strict-v3-solver verification rather than
+# always rebuilding the CPU-only default gate_results (task spec: readiness-evidence
+# persistence/runner-integration bug).
+# =================================================================================================
+
+_FAKE_REVISION = "7cfb30d71a1f4f49a57592323337a4a4727301da"
+
+
+def _write_valid_live_evidence(evidence_dir, *, revision=_FAKE_REVISION):
+    import json
+
+    evidence_dir.mkdir(parents=True, exist_ok=True)
+    base = {
+        "resolved_revision": {"model_name": readiness.FROZEN_32B_MODEL_NAME, "resolved_revision": revision},
+        "model_load": {
+            "ok": True,
+            "config": {
+                "tensor_parallel_size": 4, "dtype": "bfloat16", "base_snapshot_mode": "cpu_base_weights",
+                "gpu_memory_utilization": 0.60, "max_model_len": 4096, "enable_prefix_caching": False,
+            },
+        },
+        "gate_results": {g: readiness.GATE_PASS for g in readiness.GATE_IDS},
+        "smoke_permitted": True,
+    }
+    solver = {
+        "resolved_revision": {"model_name": readiness.FROZEN_32B_MODEL_NAME, "resolved_revision": revision},
+        "solver_error": None, "acceptance_mode": "strict",
+        "rank_consensus": {"core_fields_ok": True, "full_bracket_trajectory": {"ok": True}},
+        "restoration": {"ok": True}, "g4_g5_final": {"G4": "PASS", "G5": "PASS"}, "scientific_rows_written": 0,
+    }
+    (evidence_dir / "stage11_32b_live_readiness_report.json").write_text(json.dumps(base))
+    (evidence_dir / "stage11_32b_live_v3_solver_probe_report.json").write_text(json.dumps(solver))
+    return base, solver
+
+
+def test_valid_live_evidence_authorizes_32b_smoke_all_gates_pass(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir)
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0  # authorized AND correctly stopped before the (separately-authorized) execution step -- never a crash
+
+    import json
+
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is True
+    assert all(v == readiness.GATE_PASS for v in report["gate_results"].values())
+    assert report["live_evidence_found"] is True
+    assert report["live_evidence_ok"] is True
+    assert report["live_evidence_reasons"] == []
+
+
+def test_runner_consumes_pass_rather_than_rebuilding_default_statuses(tmp_path, monkeypatch):
+    """The exact bug this fix addresses: with valid live evidence present, the runner's OWN gate
+    report must show real PASS values, never the CPU-only defaults (NOT_YET_VERIFIED / READY_FOR_
+    LIVE_VERIFICATION) it always wrote before this fix, regardless of what evidence existed.
+    """
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir)
+
+    whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+
+    import json
+
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    for gate in readiness.GATE_IDS:
+        assert report["gate_results"][gate] != readiness.GATE_NOT_YET_VERIFIED
+        assert report["gate_results"][gate] != readiness.GATE_READY_FOR_LIVE_VERIFICATION
+        assert report["gate_results"][gate] == readiness.GATE_PASS
+
+
+def test_mismatched_revision_evidence_blocks_32b_smoke(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir, revision="f" * 40)  # evidence for a DIFFERENT revision than requested
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0  # blocked cleanly, never a crash
+
+    import json
+
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is False
+    assert report["live_evidence_found"] is True
+    assert report["live_evidence_ok"] is False
+    assert report["live_evidence_reasons"]  # non-empty -- explains exactly why
+
+
+def test_missing_live_evidence_directory_blocks_and_reports_not_found(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    empty_evidence_dir = tmp_path / "no_such_evidence"
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(empty_evidence_dir)])
+    assert rc == 0
+
+    import json
+
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["live_evidence_found"] is False
+    assert report["all_gates_pass"] is False
+
+
+def test_one_gate_not_pass_in_evidence_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    base, solver = _write_valid_live_evidence(evidence_dir)
+    import json
+
+    base["gate_results"]["G2"] = readiness.GATE_FAIL
+    (evidence_dir / "stage11_32b_live_readiness_report.json").write_text(json.dumps(base))
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is False
+
+
+def test_missing_strict_v3_solver_evidence_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    evidence_dir.mkdir(parents=True)
+    import json
+
+    (evidence_dir / "stage11_32b_live_readiness_report.json").write_text(json.dumps({
+        "resolved_revision": {"model_name": readiness.FROZEN_32B_MODEL_NAME, "resolved_revision": _FAKE_REVISION},
+        "model_load": {"ok": True, "config": {"tensor_parallel_size": 4, "dtype": "bfloat16", "base_snapshot_mode": "cpu_base_weights", "gpu_memory_utilization": 0.60, "max_model_len": 4096, "enable_prefix_caching": False}},
+        "gate_results": {g: readiness.GATE_PASS for g in readiness.GATE_IDS}, "smoke_permitted": True,
+    }))
+    # NO solver artifact written at all
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is False
+    assert any("solver" in r for r in report["live_evidence_reasons"])
+
+
+def test_missing_restoration_evidence_in_solver_artifact_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    base, solver = _write_valid_live_evidence(evidence_dir)
+    import json
+
+    solver["restoration"] = {"ok": False}
+    (evidence_dir / "stage11_32b_live_v3_solver_probe_report.json").write_text(json.dumps(solver))
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is False
+
+
+def test_tp_size_mismatch_in_evidence_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    base, solver = _write_valid_live_evidence(evidence_dir)
+    import json
+
+    base["model_load"]["config"]["tensor_parallel_size"] = 1  # evidence gathered at a different TP size
+    (evidence_dir / "stage11_32b_live_readiness_report.json").write_text(json.dumps(base))
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is False
+
+
+def test_wrong_model_in_evidence_blocks(tmp_path, monkeypatch):
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    base, solver = _write_valid_live_evidence(evidence_dir)
+    import json
+
+    base["resolved_revision"]["model_name"] = "Qwen/Qwen2.5-VL-7B-Instruct"
+    (evidence_dir / "stage11_32b_live_readiness_report.json").write_text(json.dumps(base))
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is False
+
+
+def test_valid_and_invalid_evidence_never_writes_scientific_rows(tmp_path, monkeypatch):
+    """Section 5: regardless of whether evidence is valid, malformed, or absent, the 32B branch
+    must never write results.jsonl or any candidate row -- the execution step remains a
+    deliberately separate, unimplemented continuation point.
+    """
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir)
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    assert list((tmp_path / "out").rglob("results.jsonl")) == []
+    assert list((tmp_path / "out").rglob("*candidate*")) == []
+
+
+def test_3b_dry_run_never_touches_32b_readiness_preflight(monkeypatch):
+    """3B/7B must remain completely unaffected by this wiring fix -- structurally proven by never
+    even calling run_32b_readiness_preflight_and_report (which is where all the new live-evidence
+    logic lives).
+    """
+    def _should_never_be_called(**kwargs):
+        raise AssertionError("run_32b_readiness_preflight_and_report must never be called for scale=3B")
+
+    monkeypatch.setattr(whole_model, "run_32b_readiness_preflight_and_report", _should_never_be_called)
+    rc = whole_model.main(["--scale", "3B", "--dry-run"])
+    assert rc == 0  # would have raised AssertionError above if the 32B live-evidence path were reached
+
+
+def test_72b_remains_not_a_valid_scale_choice():
+    with pytest.raises(SystemExit):
+        whole_model.main(["--scale", "72B", "--smoke"])
+
+
 def test_resumed_checkpoint_manifest_rejects_a_different_revision():
     """Existing, unmodified mechanism: a checkpoint persisted under one model_revision must hard
     -fail if a later invocation tries to resume under a DIFFERENT one -- this is what makes

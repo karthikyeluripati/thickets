@@ -426,28 +426,57 @@ def check_v3_solver_distributed_readiness() -> str:
     return GATE_READY_FOR_LIVE_VERIFICATION if V3_SOLVER_DISTRIBUTED_EXTENSION_AVAILABLE else GATE_FAIL
 
 
-def run_32b_readiness_preflight_and_report(*, resolved_revision: str, tensor_parallel_size: int, output_dir: Any) -> Dict[str, Any]:
+def run_32b_readiness_preflight_and_report(
+    *, resolved_revision: str, tensor_parallel_size: int, output_dir: Any,
+    live_evidence_dir: Optional[Any] = None, current_gpu_uuids: Optional[Sequence[str]] = None,
+) -> Dict[str, Any]:
     """The function run_stage11_whole_model_scaling.main() calls for scale=='32B', BEFORE any
-    engine launch -- evaluates every gate that can be determined WITHOUT live GPU evidence
-    (today: G1 partially, via the resolved revision + frozen spec; G4/G5 read READY_FOR_LIVE_
-    VERIFICATION per the CPU-proven distributed v3 solver; everything else stays NOT_YET_
-    VERIFIED), persists the manifest, and returns it. The smoke remains correctly BLOCKED
-    (ensure_32b_smoke_permitted requires literal PASS, and READY_FOR_LIVE_VERIFICATION is not
-    PASS) until real TP hardware evidence exists -- deliberately does not launch an engine here.
+    engine launch.
+
+    LIVE-EVIDENCE WIRING FIX (see stage11_32b_live_evidence.py's own docstring for the full root
+    cause): FIRST attempts to find and strictly identity-bind a REAL, completed live-readiness
+    verification (diagnostics/stage11_32b_live_readiness.py's G1-G8 run + diagnostics/
+    stage11_32b_live_v3_solver_probe.py's strict solver run) to THIS invocation's exact model /
+    revision / TP size / dtype / base_snapshot_mode / gpu_memory_utilization / max_model_len /
+    enable_prefix_caching (and GPU UUIDs, when persisted). Only when NO valid evidence is found
+    does this fall back to the CPU-only default gate_results it always used before (G1/G2/G3/G6/
+    G7/G8 NOT_YET_VERIFIED, G4/G5 READY_FOR_LIVE_VERIFICATION from the CPU-proven distributed v3
+    solver design alone) -- it must NEVER overwrite genuinely valid PASS evidence with those
+    defaults. `live_evidence_dir`/`current_gpu_uuids` are explicit, injectable parameters (never
+    hidden global/filesystem state) so this stays fully unit-testable; omitting them uses the
+    real fixed evidence location and a real live nvidia-smi query, respectively.
     """
     import json
     from pathlib import Path
 
-    gate_results = {g: GATE_NOT_YET_VERIFIED for g in GATE_IDS}
-    gate_results["G1"] = g1_model_family_audit(FROZEN_32B_MODEL_NAME, FROZEN_32B_MODEL_FAMILY)  # NOT_YET_VERIFIED without a live config fetch on the pod
-    gate_results["G4"] = check_v3_solver_distributed_readiness()  # READY_FOR_LIVE_VERIFICATION -- see V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE
-    gate_results["G5"] = g5_distributed_rng_semantics(None, cpu_tests_passed=True)  # same CPU evidence covers the RNG/direction-preservation proof
+    from .stage11_32b_live_evidence import (
+        DEFAULT_LIVE_READINESS_EVIDENCE_DIR, LiveEvidenceIdentityRequirement,
+        load_and_validate_canonical_live_evidence, query_live_gpu_uuids,
+    )
+
+    requirement = LiveEvidenceIdentityRequirement(resolved_revision=resolved_revision, tensor_parallel_size=tensor_parallel_size)
+    evidence = load_and_validate_canonical_live_evidence(
+        requirement, evidence_dir=live_evidence_dir if live_evidence_dir is not None else DEFAULT_LIVE_READINESS_EVIDENCE_DIR,
+        current_gpu_uuids=current_gpu_uuids if current_gpu_uuids is not None else query_live_gpu_uuids(),
+    )
+
+    if evidence["ok"]:
+        gate_results = evidence["gate_results"]
+    else:
+        gate_results = {g: GATE_NOT_YET_VERIFIED for g in GATE_IDS}
+        gate_results["G1"] = g1_model_family_audit(FROZEN_32B_MODEL_NAME, FROZEN_32B_MODEL_FAMILY)  # NOT_YET_VERIFIED without a live config fetch on the pod
+        gate_results["G4"] = check_v3_solver_distributed_readiness()  # READY_FOR_LIVE_VERIFICATION -- see V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE
+        gate_results["G5"] = g5_distributed_rng_semantics(None, cpu_tests_passed=True)  # same CPU evidence covers the RNG/direction-preservation proof
 
     manifest = build_32b_readiness_manifest(resolved_revision=resolved_revision, intended_tp_size=tensor_parallel_size, gate_results=gate_results)
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
     report_path = output_dir / "stage11_32b_readiness_gate_report.json"
-    report_path.write_text(json.dumps(manifest.to_dict(), indent=2))
+    report_dict = manifest.to_dict()
+    report_dict["live_evidence_found"] = evidence["found"]
+    report_dict["live_evidence_ok"] = evidence["ok"]
+    report_dict["live_evidence_reasons"] = evidence["reasons"]
+    report_path.write_text(json.dumps(report_dict, indent=2))
 
     try:
         ensure_32b_smoke_permitted(gate_results)
@@ -455,4 +484,4 @@ def run_32b_readiness_preflight_and_report(*, resolved_revision: str, tensor_par
     except Stage32BSmokeNotPermittedError:
         smoke_permitted = False
 
-    return {"manifest": manifest, "report_path": report_path, "smoke_permitted": smoke_permitted, "gate_results": gate_results}
+    return {"manifest": manifest, "report_path": report_path, "smoke_permitted": smoke_permitted, "gate_results": gate_results, "live_evidence": evidence}

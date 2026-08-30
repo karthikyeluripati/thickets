@@ -734,6 +734,14 @@ def main(argv=None) -> int:
     )
     parser.add_argument("--tensor-parallel-size", type=int, default=None, help="32B ONLY -- defaults to 4 (task spec Section 3). Ignored for 3B/7B, which remain TP=1 exactly as before this option existed.")
     parser.add_argument("--model-revision-ref", default=None, help="Overrides the registry's default revision_ref (\"main\") if given.")
+    parser.add_argument(
+        "--live-evidence-dir", default=None,
+        help="32B ONLY -- overrides the fixed canonical live-readiness evidence location "
+             "(stage11_32b_live_evidence.DEFAULT_LIVE_READINESS_EVIDENCE_DIR) that diagnostics/"
+             "stage11_32b_live_readiness.py and diagnostics/stage11_32b_live_v3_solver_probe.py "
+             "write to. Omit for normal use; exists mainly for tests/reproducing against an "
+             "explicit evidence snapshot.",
+    )
     parser.add_argument("--output-root", default=str(REPO_ROOT / "results" / "stage11_whole_model_scaling"))
     parser.add_argument("--smoke", action="store_true", help="1 region x 3 radii x 1 direction family x 6 capabilities x 5 D_map examples = 3 perturbations, 18 rows, 90 evaluations.")
     parser.add_argument("--dry-run", action="store_true", help="print the plan and exit -- no model load, no GPU, no Hub call")
@@ -796,30 +804,55 @@ def main(argv=None) -> int:
         # point never take this branch (plan.scale_label is "3B"/"7B" there) and fall straight
         # through to the unchanged code that follows, byte-identical to before this milestone.
         tp_size = args.tensor_parallel_size if args.tensor_parallel_size is not None else 4
-        preflight = run_32b_readiness_preflight_and_report(resolved_revision=resolution["resolved_revision"], tensor_parallel_size=tp_size, output_dir=plan.output_dir)
+        preflight = run_32b_readiness_preflight_and_report(
+            resolved_revision=resolution["resolved_revision"], tensor_parallel_size=tp_size, output_dir=plan.output_dir,
+            live_evidence_dir=args.live_evidence_dir,
+        )
         print(f"32B readiness gate report written to {preflight['report_path']}")
         print(f"32B gate results: {preflight['gate_results']}")
+        live_evidence = preflight["live_evidence"]
+        print(f"32B live-evidence lookup: found={live_evidence['found']} ok={live_evidence['ok']} reasons={live_evidence['reasons']}")
         if not preflight["smoke_permitted"]:
             print("32B whole-model smoke BLOCKED -- not all G1-G8 gates report PASS.", file=sys.stderr)
-            print(V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, file=sys.stderr)
-            print(
-                "The distributed v3 solver now EXISTS and is proven correct on CPU (world_size=1 "
-                "equivalence + simulated 2-rank equivalence, tests/test_thicket_distributed_v3_solver.py) "
-                "-- G4/G5 report READY_FOR_LIVE_VERIFICATION, not PASS, because CPU tests alone can never "
-                "satisfy a gate that requires live TP hardware evidence (task spec Section 11). "
-                "No engine was launched, no GPU memory was touched, no scientific row can exist for this attempt.",
-                file=sys.stderr,
-            )
+            if live_evidence["found"] and not live_evidence["ok"]:
+                print(
+                    "A live-readiness evidence artifact WAS found but failed identity-binding/validation "
+                    "against THIS invocation -- it will never silently authorize a mismatched run. See the "
+                    "reasons printed above (e.g. wrong model revision, TP size, or a gate/solver check that "
+                    "did not pass) and either fix the mismatch or re-run the live readiness verification.",
+                    file=sys.stderr,
+                )
+            else:
+                print(V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, file=sys.stderr)
+                print(
+                    "No live-readiness evidence was found at all for this model/revision/TP configuration -- "
+                    "run diagnostics/stage11_32b_live_readiness.py and diagnostics/stage11_32b_live_v3_solver_"
+                    "probe.py on real TP hardware first (task spec Section 11: 'Do NOT mark PASS from CPU "
+                    "tests alone'). No engine was launched, no GPU memory was touched, no scientific row can "
+                    "exist for this attempt.",
+                    file=sys.stderr,
+                )
             return 0
-        # Unreachable today (smoke_permitted requires literal PASS on every gate, and G4/G5 can
-        # only ever be PASS given a real `live_test_passed` result this module never fabricates)
-        # -- kept as the single documented continuation point for the live-GPU integration step
-        # that follows once real TP hardware evidence exists: launch a TP={tp_size} engine with
-        # build_32b_engine_config(tensor_parallel_size=tp_size), dispatch store_base_weights_cpu_
-        # rpc/collective_rpc_all_workers/scoped_apply_anatomical_perturbation_bf16_quantization_
-        # aware_v3_distributed in place of the legacy single-worker calls below, and run the
-        # (now distributed-aware) candidate loop.
-        raise RuntimeError("Unreachable: 32B gate evaluation must have already returned above.")
+        # Reachable ONLY when a real, strictly identity-bound live-readiness verification (G1-G8
+        # PASS + the strict distributed-v3 solver probe) was found for THIS EXACT model/revision/
+        # TP/dtype/base_snapshot_mode/gpu_memory_utilization/max_model_len/enable_prefix_caching
+        # configuration -- see stage11_32b_live_evidence.py. Implementing the actual distributed
+        # TP=4 candidate-execution loop (engine launch, store_base_weights_cpu_rpc,
+        # scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_distributed per radius/
+        # capability/example, candidate-row writing) is a DELIBERATELY SEPARATE, explicitly-
+        # authorized step -- never bundled into this readiness-evidence wiring fix ("Fix ONLY the
+        # handoff... Do not change the scientific experiment... DO NOT EXECUTE THE SCIENTIFIC 32B
+        # SMOKE"). Stopping here, honestly and without launching anything, is therefore still
+        # correct even when every gate PASSes -- not a leftover placeholder.
+        print("32B readiness gates ALL PASS (validated live evidence) -- smoke_permitted=true.")
+        print(
+            "The distributed TP=4 candidate-execution loop for 32B is not implemented by this path yet -- "
+            "that is a deliberately separate, explicitly-authorized step, never bundled into a readiness-"
+            "evidence wiring fix. No engine was launched, no GPU memory was touched, no scientific row was "
+            "written for this invocation.",
+            file=sys.stderr,
+        )
+        return 0
 
     engine_config = build_stage7b_engine_config()
     assert engine_config["enable_prefix_caching"] is False, "Whole-model track must never run with prefix caching enabled."
