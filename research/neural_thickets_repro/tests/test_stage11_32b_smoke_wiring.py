@@ -118,14 +118,19 @@ def test_32b_never_reaches_legacy_engine_config(tmp_path, monkeypatch):
 
 
 def test_3b_7b_source_unchanged_by_32b_branch_presence():
-    """The 32B branch is an early return; confirms via source inspection that the existing
-    3B/7B code (build_stage7b_engine_config, store_base_weights_via_rpc, run_whole_model_rpc)
-    is still present, unparameterized by any 32B-specific conditional.
+    """Confirms via source inspection that the existing 3B/7B code (build_stage7b_engine_config,
+    store_base_weights_via_rpc, run_whole_model_rpc's default TP=1 evaluator) is still present,
+    reached via the `else` side of `is_32b` conditionals -- never removed or unconditionally
+    replaced by the 32B continuation wiring.
     """
     source = inspect.getsource(whole_model.main)
-    assert 'if plan.scale_label == "32B":' in source
-    # the existing 3B/7B call chain still appears exactly once, after the 32B branch's own `return`
+    assert 'is_32b = plan.scale_label == "32B"' in source
+    # the existing 3B/7B call chain still appears exactly once, in the `else` branch of each `is_32b` conditional
     assert source.count("build_stage7b_engine_config()") == 1
+    assert source.count("store_base_weights_via_rpc(engine)") == 1
+    # 32B's own analogs appear too, but as clearly separate, additively-injected branches
+    assert source.count("build_32b_engine_config(") == 1
+    assert "evaluate_one_whole_model_candidate_distributed_rpc" in source
 
 
 # =================================================================================================
@@ -208,14 +213,33 @@ def _write_valid_live_evidence(evidence_dir, *, revision=_FAKE_REVISION):
     return base, solver
 
 
+class _ReachedSharedLifecycleMarker(Exception):
+    """Raised by a patched resolve_model_snapshot (the FIRST real external call the shared
+    dataset/subset-gate/tokenizer/engine-launch lifecycle makes, immediately after the 32B
+    readiness gate) -- proves execution genuinely CONTINUED past the gate into the shared
+    lifecycle, without this test needing to actually download a model, load a dataset, start
+    Ray, or touch a GPU.
+    """
+
+
+def _patch_resolve_model_snapshot_to_raise_marker(monkeypatch):
+    import neural_thickets_repro.vlm_adapter as vlm_adapter
+
+    def _boom(*a, **k):
+        raise _ReachedSharedLifecycleMarker("resolve_model_snapshot reached -- continuation into the shared lifecycle confirmed")
+
+    monkeypatch.setattr(vlm_adapter, "resolve_model_snapshot", _boom)
+
+
 def test_valid_live_evidence_authorizes_32b_smoke_all_gates_pass(tmp_path, monkeypatch):
     monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
     monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
     evidence_dir = tmp_path / "evidence"
     _write_valid_live_evidence(evidence_dir)
+    _patch_resolve_model_snapshot_to_raise_marker(monkeypatch)
 
-    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
-    assert rc == 0  # authorized AND correctly stopped before the (separately-authorized) execution step -- never a crash
+    with pytest.raises(_ReachedSharedLifecycleMarker):
+        whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
 
     import json
 
@@ -227,6 +251,21 @@ def test_valid_live_evidence_authorizes_32b_smoke_all_gates_pass(tmp_path, monke
     assert report["live_evidence_reasons"] == []
 
 
+def test_invalid_live_evidence_never_reaches_shared_lifecycle(tmp_path, monkeypatch):
+    """The inverse of the above -- proves invalid/mismatched evidence blocks BEFORE the shared
+    lifecycle (and therefore before any engine launch) is ever reached, using the identical
+    marker technique so both tests are symmetric proof of the same boundary.
+    """
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir, revision="f" * 40)  # mismatched revision -- invalid
+    _patch_resolve_model_snapshot_to_raise_marker(monkeypatch)
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0  # blocked cleanly -- the marker was never raised, proving resolve_model_snapshot was never reached
+
+
 def test_runner_consumes_pass_rather_than_rebuilding_default_statuses(tmp_path, monkeypatch):
     """The exact bug this fix addresses: with valid live evidence present, the runner's OWN gate
     report must show real PASS values, never the CPU-only defaults (NOT_YET_VERIFIED / READY_FOR_
@@ -236,8 +275,10 @@ def test_runner_consumes_pass_rather_than_rebuilding_default_statuses(tmp_path, 
     monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
     evidence_dir = tmp_path / "evidence"
     _write_valid_live_evidence(evidence_dir)
+    _patch_resolve_model_snapshot_to_raise_marker(monkeypatch)
 
-    whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    with pytest.raises(_ReachedSharedLifecycleMarker):
+        whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
 
     import json
 
@@ -366,18 +407,36 @@ def test_wrong_model_in_evidence_blocks(tmp_path, monkeypatch):
     assert report["all_gates_pass"] is False
 
 
-def test_valid_and_invalid_evidence_never_writes_scientific_rows(tmp_path, monkeypatch):
-    """Section 5: regardless of whether evidence is valid, malformed, or absent, the 32B branch
-    must never write results.jsonl or any candidate row -- the execution step remains a
-    deliberately separate, unimplemented continuation point.
+def test_invalid_evidence_never_writes_scientific_rows(tmp_path, monkeypatch):
+    """Regardless of why evidence is invalid (malformed, mismatched, absent), the 32B branch must
+    never write results.jsonl or any candidate row before the readiness gate passes.
+    """
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir, revision="f" * 40)  # mismatched -- invalid
+
+    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+    assert rc == 0
+    assert list((tmp_path / "out").rglob("results.jsonl")) == []
+    assert list((tmp_path / "out").rglob("*candidate*")) == []
+
+
+def test_valid_evidence_reaches_lifecycle_without_writing_rows_before_an_engine_exists(tmp_path, monkeypatch):
+    """With valid evidence, execution DOES continue (see test_valid_live_evidence_authorizes_
+    32b_smoke_all_gates_pass) -- but must still not have written any scientific row by the time
+    it reaches the first real external call (resolve_model_snapshot), since no engine has been
+    launched and no candidate has been evaluated yet at that point.
     """
     monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
     monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
     evidence_dir = tmp_path / "evidence"
     _write_valid_live_evidence(evidence_dir)
+    _patch_resolve_model_snapshot_to_raise_marker(monkeypatch)
 
-    rc = whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
-    assert rc == 0
+    with pytest.raises(_ReachedSharedLifecycleMarker):
+        whole_model.main(["--scale", "32B", "--smoke", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+
     assert list((tmp_path / "out").rglob("results.jsonl")) == []
     assert list((tmp_path / "out").rglob("*candidate*")) == []
 

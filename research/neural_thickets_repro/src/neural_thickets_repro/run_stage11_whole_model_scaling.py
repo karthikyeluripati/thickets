@@ -123,7 +123,7 @@ from .scoped_anatomical_perturbation import (
     QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE,
     scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3,
 )
-from .stage11_32b_readiness import V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, run_32b_readiness_preflight_and_report
+from .stage11_32b_readiness import V3_SOLVER_DISTRIBUTED_EXTENSION_NOTE, build_32b_engine_config, run_32b_readiness_preflight_and_report
 from .thicket.perturbation import PERTURBATION_MODES, PerturbationManifest
 from .thicket.schema import ExperimentResultRecord
 from .vlm_adapter import reset_vllm_encoder_cache_full
@@ -654,12 +654,215 @@ def evaluate_one_whole_model_candidate_rpc(
     return records
 
 
+# =================================================================================================
+# 32B ONLY: TP=4-aware analogs of the reset/restore/candidate-evaluation steps above -- reuse,
+# by import, every already-existing distributed primitive (thicket.distributed_v3_solver,
+# thicket.cpu_base_snapshot, thicket.distributed_perturbation, thicket.vllm_shard_mapping), all of
+# it CPU-proven AND live-verified (real 4xL40S TP=4 runs -- see diagnostics/stage11_32b_live_
+# v3_solver_probe.py). NEVER a new, separately-invented 32B execution path or scientific
+# semantics change: same PERTURBATION_MODE, same RADIUS_REALIZATION_METHOD family (v3, distributed
+# variant), same acceptance-mode bounds (REALIZED_RADIUS_TOLERANCE / QUANTIZATION_PLATEAU_
+# RELATIVE_TOLERANCE, unchanged), same ExperimentResultRecord schema, same transactional ordering
+# (perturb -> reset cache -> evaluate 6 capabilities -> restore -> verify -> reset cache). 3B/7B
+# never import or call anything in this section -- run_whole_model_rpc's own `evaluate_one_
+# candidate`/run_baseline_repeatability_preflight_rpc's own `reset_fn` injection points are what
+# let 32B substitute these without touching a single line of the existing TP=1 path.
+# =================================================================================================
+
+
+def reset_to_base_weights_distributed_rpc(engine: Any, *, tensor_parallel_size: int, ray_get: Optional[Callable] = None) -> None:
+    """TP-aware analog of run_global_visual_thicket_pilot.reset_to_base_weights_via_rpc (TP=1-
+    only, unchanged) for run_baseline_repeatability_preflight_rpc's own `reset_fn` injection
+    point -- reset ONLY (no restoration-exactness verification; that is the candidate loop's own
+    job, matching the existing TP=1 baseline-preflight's identical division of responsibility).
+    """
+    from .thicket.cpu_base_snapshot import reset_to_base_weights_cpu_rpc
+    from .thicket.distributed_perturbation import collective_rpc_all_workers
+
+    collective_rpc_all_workers(engine, reset_to_base_weights_cpu_rpc, label="reset_to_base_weights_cpu_baseline_preflight", expected_world_size=tensor_parallel_size, ray_get=ray_get)
+
+
+def restore_and_verify_distributed_rpc(engine: Any, *, tensor_parallel_size: int, ray_get: Optional[Callable] = None) -> Dict[str, Any]:
+    """TP-aware analog of reset_to_base_weights_via_rpc + verify_exact_fixed_base_restoration_
+    via_rpc COMBINED (the exact pair the TP=1 candidate loop calls back to back) -- dispatches
+    the SAME restore/verify invariant to every TP rank via the already-existing, live-verified
+    distributed primitives (thicket.cpu_base_snapshot.reset_to_base_weights_cpu_rpc/verify_exact_
+    fixed_base_restoration_cpu_rpc, thicket.distributed_perturbation.collective_rpc_all_workers/
+    aggregate_distributed_restoration_verification), never a new restoration mechanism. Returns
+    the SAME shape aggregate_distributed_restoration_verification already returns (`ok`,
+    `global_max_abs_drift`, ...), so callers check `result["ok"]` exactly like the TP=1 path
+    checks `verification["ok"]`.
+    """
+    from .thicket.cpu_base_snapshot import reset_to_base_weights_cpu_rpc, verify_exact_fixed_base_restoration_cpu_rpc
+    from .thicket.distributed_perturbation import aggregate_distributed_restoration_verification, collective_rpc_all_workers
+
+    collective_rpc_all_workers(engine, reset_to_base_weights_cpu_rpc, label="reset_to_base_weights_cpu_candidate", expected_world_size=tensor_parallel_size, ray_get=ray_get)
+    per_rank_verification = collective_rpc_all_workers(
+        engine, verify_exact_fixed_base_restoration_cpu_rpc, label="verify_exact_fixed_base_restoration_cpu_candidate",
+        expected_world_size=tensor_parallel_size, ray_get=ray_get,
+    )
+    return aggregate_distributed_restoration_verification(per_rank_verification)
+
+
+def evaluate_one_whole_model_candidate_distributed_rpc(
+    engine: Any, assignment: WholeModelDirectionAssignment, region_param_names: Sequence[str],
+    capability_contexts: Dict[str, CapabilityContext], tokenizer: Any, sampling_params: Any,
+    *, run_benchmark: Callable, ray_get: Optional[Callable] = None, generation_batch_size: int = STAGE8_GENERATE_BATCH_SIZE,
+    rss_checkpoint: Optional[Callable[[str], None]] = None, tensor_parallel_size: int = 4,
+) -> List[ExperimentResultRecord]:
+    """TP=4-aware analog of evaluate_one_whole_model_candidate_rpc -- IDENTICAL transactional
+    ordering and IDENTICAL ExperimentResultRecord schema; only the weight-mutating/restoring/
+    verifying RPC dispatch differs:
+      - Perturbation: the REAL iterative bracket/bisection/plateau solver (thicket.
+        distributed_v3_solver.scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_
+        distributed), never the raw one-shot primitive the earlier readiness probe used for its
+        own (looser) sanity check -- dispatched to every TP rank and required to reach EXACT
+        rank consensus (thicket.distributed_v3_solver.verify_solver_rank_consensus) before its
+        result is trusted; a rank disagreement is a hard-fail, never averaged or taken from
+        rank 0 alone.
+      - Restoration: restore_and_verify_distributed_rpc (above), the distributed analog of the
+        TP=1 path's reset_to_base_weights_via_rpc + verify_exact_fixed_base_restoration_via_rpc.
+    Bound to a fixed `tensor_parallel_size` via functools.partial at the call site in main() so
+    run_whole_model_rpc's own call shape (identical to the TP=1 evaluator's) never needs to know
+    about it.
+    """
+    manifest = assignment.manifest
+    if manifest.perturbation_mode != PERTURBATION_MODE:
+        raise ValueError(f"Whole-model track only evaluates {PERTURBATION_MODE!r} manifests, got {manifest.perturbation_mode!r}")
+
+    from .mem_telemetry import release_transient_memory
+    from .thicket.distributed_perturbation import collective_rpc_all_workers
+    from .thicket.distributed_v3_solver import (
+        scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_distributed,
+        verify_solver_rank_consensus,
+    )
+    from .thicket.vllm_shard_mapping import build_shard_specs_for_region
+
+    def _checkpoint(label: str) -> None:
+        if rss_checkpoint is not None:
+            rss_checkpoint(label)
+
+    _checkpoint("before_candidate")
+
+    def _apply_distributed_v3_rpc(worker_self):
+        shard_specs = build_shard_specs_for_region(worker_self.model_runner.model, region_param_names)
+        result = scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_distributed(
+            worker_self, manifest.seed, manifest.radius, manifest.anatomy_region, region_param_names, shard_specs,
+        )
+        result["rank"] = getattr(worker_self, "rank", None)
+        return result
+
+    llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
+    records: List[ExperimentResultRecord] = []
+    try:
+        per_rank_results = collective_rpc_all_workers(
+            engine, _apply_distributed_v3_rpc, label="distributed_v3_solver_candidate", expected_world_size=tensor_parallel_size, ray_get=ray_get,
+        )
+        verify_solver_rank_consensus(per_rank_results)  # raises SolverRankConsensusError on disagreement -- hard-fail, never averaged
+        apply_result = per_rank_results[0]
+
+        realized_r = apply_result["realized_relative_l2"]
+        acceptance_mode = apply_result["radius_acceptance_mode"]
+        if acceptance_mode == "strict":
+            if abs(realized_r - manifest.radius) > REALIZED_RADIUS_TOLERANCE:
+                raise RuntimeError(
+                    f"Perturbation {manifest.perturbation_id!r} (whole_model, requested radius={manifest.radius}): "
+                    f"strict-mode realized relative-L2 {realized_r} still differs by more than {REALIZED_RADIUS_TOLERANCE}."
+                )
+        elif acceptance_mode == "quantization_limited":
+            if apply_result["relative_radius_error"] > QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE:
+                raise RuntimeError(
+                    f"Perturbation {manifest.perturbation_id!r} (whole_model, requested radius={manifest.radius}): "
+                    f"quantization-limited relative error {apply_result['relative_radius_error']} still exceeds "
+                    f"{QUANTIZATION_PLATEAU_RELATIVE_TOLERANCE}."
+                )
+        else:
+            raise RuntimeError(f"Unknown radius_acceptance_mode {acceptance_mode!r} for perturbation {manifest.perturbation_id!r}.")
+
+        reset_vllm_encoder_cache_full(engine)
+        _checkpoint("after_perturbation_applied")
+
+        for capability, ctx in capability_contexts.items():
+            if ctx.partition.manifest_hash != ctx.subset_hash:
+                raise DatasetRoleViolationError(f"CapabilityContext for {capability!r} has an inconsistent subset_hash.")
+            result = run_benchmark(
+                ctx.benchmark, ctx.examples, llm_adapter, tokenizer, sampling_params,
+                max_requests_per_generate=generation_batch_size,
+            )
+            perturbed_score = result.aggregate_metrics["primary_metric"]
+            base_score = ctx.base_score
+            per_example_hash = result.generation_hash()
+            parser_failure_rate = result.aggregate_metrics.get("parser_failure_rate")
+            records.append(ExperimentResultRecord(
+                experiment_id=EXPERIMENT_ID, perturbation_id=manifest.perturbation_id,
+                model_family=manifest.model_family, model_scale=manifest.model_scale, model_revision=manifest.model_revision,
+                perturbation_mode=manifest.perturbation_mode, anatomy_region=manifest.anatomy_region,
+                radius=manifest.radius, sigma=manifest.sigma, seed=manifest.seed, parameter_mask_hash=manifest.parameter_mask_hash,
+                capability=capability, dataset_role=DATASET_ROLE, subset_hash=ctx.subset_hash,
+                base_score=base_score, perturbed_score=perturbed_score, delta=perturbed_score - base_score,
+                parser_failure_rate=parser_failure_rate,
+                per_example_result_path=None, per_example_result_hash=per_example_hash,
+                runtime_metadata={
+                    "restoration_mode": RESTORATION_MODE, "perturbation_semantics": PERTURBATION_MODE,
+                    "radius_realization_method": apply_result["radius_realization_method"],
+                    "radius_acceptance_mode": apply_result["radius_acceptance_mode"],
+                    "quantization_limited": apply_result["quantization_limited"],
+                    "requested_relative_l2": manifest.radius, "designed_relative_l2": apply_result["designed_relative_l2"],
+                    "realized_relative_l2": realized_r, "realized_abs_error": apply_result["realized_abs_error"],
+                    "absolute_radius_error": apply_result["absolute_radius_error"],
+                    "relative_radius_error": apply_result["relative_radius_error"],
+                    "quantization_plateau": apply_result["quantization_plateau"],
+                    "region_param_count": apply_result["region_param_count"],
+                    "theta_region_l2_norm": apply_result["theta_l2_norm"], "epsilon_region_l2_norm": apply_result["realized_epsilon_l2_norm"],
+                    "multimodal_cache_policy": MULTIMODAL_CACHE_POLICY,
+                    "cache_reset_before_evaluation": True, "cache_reset_after_restoration": False,
+                    "direction_family_id": assignment.direction_family_id, "direction_seed": assignment.direction_seed,
+                    "direction_index": assignment.direction_index, "region": WHOLE_MODEL_REGION_LABEL,
+                    "generation_batch_size": generation_batch_size, "model_scale": manifest.model_scale, "track": TRACK,
+                    "tensor_parallel_size": tensor_parallel_size, "distributed_rank_consensus_verified": True,
+                },
+            ))
+            del result
+            release_transient_memory()
+            _checkpoint(f"after_capability_{capability}")
+    except Exception as exc:
+        if _is_ray_unrecoverable_error(exc):
+            raise
+        restore_and_verify_distributed_rpc(engine, tensor_parallel_size=tensor_parallel_size, ray_get=ray_get)
+        raise
+
+    verification = restore_and_verify_distributed_rpc(engine, tensor_parallel_size=tensor_parallel_size, ray_get=ray_get)
+    if not verification["ok"]:
+        raise RestorationFailedError(
+            f"Exact fixed-base restoration failed after whole-model candidate {manifest.perturbation_id!r} "
+            f"(radius={manifest.radius}, seed={manifest.seed}): global_max_abs_drift={verification['global_max_abs_drift']}"
+        )
+
+    reset_vllm_encoder_cache_full(engine)
+    for record in records:
+        record.runtime_metadata["cache_reset_after_restoration"] = True
+
+    return records
+
+
 def run_whole_model_rpc(
     plan: WholeModelPlan, capability_contexts: Dict[str, CapabilityContext], engine: Any, tokenizer: Any,
     sampling_params: Any, seed_bank: Dict[str, Tuple[int, ...]], region_param_names: Sequence[str],
     mask_hash: str, anatomy_audit: Dict[str, Any], *, run_benchmark: Callable, ray_get: Optional[Callable] = None,
+    evaluate_one_candidate: Optional[Callable] = None,
 ) -> int:
+    """`evaluate_one_candidate` is INJECTABLE (`None` resolves to the module-level
+    evaluate_one_whole_model_candidate_rpc AT CALL TIME, same late-binding rationale as
+    run_stage8_coarse_anatomical_atlas.run_baseline_repeatability_preflight_rpc's own `reset_fn`)
+    so Stage-11 32B can substitute evaluate_one_whole_model_candidate_distributed_rpc (TP=4-aware,
+    reusing the real distributed v3 solver + distributed restoration) without this outer
+    population/checkpoint/telemetry/results.jsonl loop -- the actual "existing whole-model
+    Stage-11 lifecycle" -- needing any scale-specific conditional of its own.
+    """
     from .mem_telemetry import release_transient_memory, rss_mb
+
+    if evaluate_one_candidate is None:
+        evaluate_one_candidate = evaluate_one_whole_model_candidate_rpc
 
     population_by_radius = build_whole_model_population(plan, seed_bank, mask_hash)
     validate_whole_model_direction_seed_reuse(plan, population_by_radius)
@@ -692,7 +895,7 @@ def run_whole_model_rpc(
                 elif label.startswith("after_capability_"):
                     _cap_rss.append(rss_mb())
 
-            records = evaluate_one_whole_model_candidate_rpc(
+            records = evaluate_one_candidate(
                 engine, assignment, region_param_names, capability_contexts, tokenizer, sampling_params,
                 run_benchmark=run_benchmark, ray_get=ray_get, generation_batch_size=plan.generation_batch_size,
                 rss_checkpoint=_rss_checkpoint,
@@ -796,13 +999,16 @@ def main(argv=None) -> int:
     plan.output_dir.mkdir(parents=True, exist_ok=True)
     (plan.output_dir / "model_revision_resolution.json").write_text(json.dumps(resolution, indent=2))
 
-    if plan.scale_label == "32B":
-        # EARLY, DEDICATED 32B branch -- diverges completely from every line of 3B/7B code below
-        # (engine_config, launch_stage6_engine, store_base_weights_via_rpc, run_whole_model_rpc,
-        # ...none of which are TP-aware or cpu_base_weights-aware) rather than threading 32B
-        # conditionals through that existing, already-validated 3B/7B path. 3B/7B reaching this
-        # point never take this branch (plan.scale_label is "3B"/"7B" there) and fall straight
-        # through to the unchanged code that follows, byte-identical to before this milestone.
+    is_32b = plan.scale_label == "32B"
+    tp_size = 4
+    if is_32b:
+        # 32B-ONLY READINESS GATE -- must pass before ANY of the shared lifecycle below runs.
+        # From this point on, 32B shares the SAME dataset/subset-gate/seed-bank/tokenizer/engine-
+        # launch/candidate-loop code 3B/7B already use -- diverging ONLY at the specific TP=1-vs-
+        # TP=4 RPC-dispatch points marked `if is_32b:` further down (engine_config,
+        # store_base_weights mechanism, anatomy-audit/region-info RPC dispatch shape, baseline-
+        # preflight reset_fn, candidate-loop evaluator) -- never a second, separately-invented 32B
+        # execution path. 3B/7B never enter this block (plan.scale_label is "3B"/"7B" there).
         tp_size = args.tensor_parallel_size if args.tensor_parallel_size is not None else 4
         preflight = run_32b_readiness_preflight_and_report(
             resolved_revision=resolution["resolved_revision"], tensor_parallel_size=tp_size, output_dir=plan.output_dir,
@@ -836,25 +1042,17 @@ def main(argv=None) -> int:
         # Reachable ONLY when a real, strictly identity-bound live-readiness verification (G1-G8
         # PASS + the strict distributed-v3 solver probe) was found for THIS EXACT model/revision/
         # TP/dtype/base_snapshot_mode/gpu_memory_utilization/max_model_len/enable_prefix_caching
-        # configuration -- see stage11_32b_live_evidence.py. Implementing the actual distributed
-        # TP=4 candidate-execution loop (engine launch, store_base_weights_cpu_rpc,
-        # scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3_distributed per radius/
-        # capability/example, candidate-row writing) is a DELIBERATELY SEPARATE, explicitly-
-        # authorized step -- never bundled into this readiness-evidence wiring fix ("Fix ONLY the
-        # handoff... Do not change the scientific experiment... DO NOT EXECUTE THE SCIENTIFIC 32B
-        # SMOKE"). Stopping here, honestly and without launching anything, is therefore still
-        # correct even when every gate PASSes -- not a leftover placeholder.
-        print("32B readiness gates ALL PASS (validated live evidence) -- smoke_permitted=true.")
-        print(
-            "The distributed TP=4 candidate-execution loop for 32B is not implemented by this path yet -- "
-            "that is a deliberately separate, explicitly-authorized step, never bundled into a readiness-"
-            "evidence wiring fix. No engine was launched, no GPU memory was touched, no scientific row was "
-            "written for this invocation.",
-            file=sys.stderr,
-        )
-        return 0
+        # configuration -- see stage11_32b_live_evidence.py. Continues into the scientific
+        # candidate lifecycle below; if live evidence ever becomes invalid on a later invocation
+        # (revision drift, a re-run on different hardware, ...) this same gate re-evaluates from
+        # scratch and blocks again -- there is no cached "already authorized" state that survives
+        # across invocations.
+        print("32B readiness gates ALL PASS (validated live evidence) -- continuing into the scientific candidate lifecycle.")
 
-    engine_config = build_stage7b_engine_config()
+    if is_32b:
+        engine_config = build_32b_engine_config(tensor_parallel_size=tp_size)
+    else:
+        engine_config = build_stage7b_engine_config()
     assert engine_config["enable_prefix_caching"] is False, "Whole-model track must never run with prefix caching enabled."
     print(format_runtime_compatibility_diagnostic(
         {"model_name": plan.model_name, "requested_revision": plan.model_revision, "resolved_snapshot_path": "<resolved below>"},
@@ -938,18 +1136,45 @@ def main(argv=None) -> int:
         )
         engine = engines[0]
 
-        store_base_weights_via_rpc(engine)
+        if is_32b:
+            from .thicket.cpu_base_snapshot import store_base_weights_cpu_rpc
+            from .thicket.distributed_perturbation import collective_rpc_all_workers
+
+            collective_rpc_all_workers(engine, store_base_weights_cpu_rpc, label="store_base_weights_cpu", expected_world_size=tp_size)
+        else:
+            store_base_weights_via_rpc(engine)
         print(format_base_snapshot_confirmation(engine_config["gpu_memory_utilization"], engine_config["base_snapshot_mode"]))
 
         ensure_encoder_cache_reset_available(engine)
 
-        anatomy_audit = _collective_rpc_single_worker(engine, report_scaling_anatomy_audit, args=(WHOLE_MODEL_REGIONS, MODEL_FAMILY), label="report_scaling_anatomy_audit")
+        if is_32b:
+            from .thicket.distributed_anatomy_audit import report_global_anatomy_audit_rpc, verify_anatomy_audit_rank_consensus
+            from .thicket.distributed_perturbation import collective_rpc_all_workers
+
+            per_rank_anatomy_audit = collective_rpc_all_workers(
+                engine, report_global_anatomy_audit_rpc, args=(WHOLE_MODEL_REGIONS, MODEL_FAMILY), label="report_global_anatomy_audit", expected_world_size=tp_size,
+            )
+            verify_anatomy_audit_rank_consensus(per_rank_anatomy_audit)  # hard-fails on any rank disagreement -- see thicket.distributed_anatomy_audit
+            anatomy_audit = per_rank_anatomy_audit[0]
+        else:
+            anatomy_audit = _collective_rpc_single_worker(engine, report_scaling_anatomy_audit, args=(WHOLE_MODEL_REGIONS, MODEL_FAMILY), label="report_scaling_anatomy_audit")
         (plan.output_dir / "anatomy_audit.json").write_text(json.dumps(anatomy_audit, indent=2))
         ensure_scaling_anatomy_audit_passes(anatomy_audit, WHOLE_MODEL_REGIONS)
         ensure_whole_model_covers_100_percent(anatomy_audit)
         print(f"Confirmed: live {plan.scale_label} whole_model audit passed (100% of {anatomy_audit['total_model_elements']} elements, mask_hash={anatomy_audit['regions']['whole_model']['mask_hash'][:12]}...).")
 
-        region_info = _collective_rpc_single_worker(engine, report_region_param_names_for_scaling, args=(WHOLE_MODEL_REGIONS, MODEL_FAMILY), label="report_region_param_names_for_scaling")
+        if is_32b:
+            from .thicket.distributed_perturbation import collective_rpc_all_workers
+
+            per_rank_region_info = collective_rpc_all_workers(
+                engine, report_region_param_names_for_scaling, args=(WHOLE_MODEL_REGIONS, MODEL_FAMILY), label="report_region_param_names_for_scaling", expected_world_size=tp_size,
+            )
+            mismatched_ranks = [r for r in per_rank_region_info if r != per_rank_region_info[0]]
+            if mismatched_ranks:
+                raise RuntimeError("Ranks disagree on report_region_param_names_for_scaling for whole_model -- this is purely name-based and rank-independent, so any disagreement indicates a real bug.")
+            region_info = per_rank_region_info[0]
+        else:
+            region_info = _collective_rpc_single_worker(engine, report_region_param_names_for_scaling, args=(WHOLE_MODEL_REGIONS, MODEL_FAMILY), label="report_region_param_names_for_scaling")
         region_param_names = tuple(region_info[WHOLE_MODEL_REGION_LABEL]["param_names"])
         mask_hash = anatomy_audit["regions"][WHOLE_MODEL_REGION_LABEL]["mask_hash"]
         if region_info[WHOLE_MODEL_REGION_LABEL]["mask_hash"] != mask_hash:
@@ -961,16 +1186,32 @@ def main(argv=None) -> int:
         load_or_compute_baseline_scores(baseline_path, capability_contexts, plan.model_revision, plan.run_signature, llm_adapter, tokenizer, sampling_params)
 
         print(f"Running baseline repeatability preflight for {plan.scale_label} whole_model before any perturbation...")
-        preflight_report = run_baseline_repeatability_preflight_rpc(
-            engine, capability_contexts, tokenizer, sampling_params, run_benchmark=run_benchmark, generation_batch_size=plan.generation_batch_size,
-        )
+        if is_32b:
+            import functools
+
+            preflight_report = run_baseline_repeatability_preflight_rpc(
+                engine, capability_contexts, tokenizer, sampling_params, run_benchmark=run_benchmark, generation_batch_size=plan.generation_batch_size,
+                reset_fn=functools.partial(reset_to_base_weights_distributed_rpc, tensor_parallel_size=tp_size),
+            )
+        else:
+            preflight_report = run_baseline_repeatability_preflight_rpc(
+                engine, capability_contexts, tokenizer, sampling_params, run_benchmark=run_benchmark, generation_batch_size=plan.generation_batch_size,
+            )
         (plan.output_dir / "baseline_repeatability_preflight.json").write_text(json.dumps(preflight_report, indent=2))
         ensure_baseline_repeatability(preflight_report)
         print(f"Baseline repeatability preflight PASSED for all {len(preflight_report)} capabilities.")
 
-        newly_written_rows = run_whole_model_rpc(
-            plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank, region_param_names, mask_hash, anatomy_audit, run_benchmark=run_benchmark,
-        )
+        if is_32b:
+            import functools
+
+            newly_written_rows = run_whole_model_rpc(
+                plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank, region_param_names, mask_hash, anatomy_audit, run_benchmark=run_benchmark,
+                evaluate_one_candidate=functools.partial(evaluate_one_whole_model_candidate_distributed_rpc, tensor_parallel_size=tp_size),
+            )
+        else:
+            newly_written_rows = run_whole_model_rpc(
+                plan, capability_contexts, engine, tokenizer, sampling_params, seed_bank, region_param_names, mask_hash, anatomy_audit, run_benchmark=run_benchmark,
+            )
     finally:
         if engines is not None:
             cleanup_engines(engines, pgs)

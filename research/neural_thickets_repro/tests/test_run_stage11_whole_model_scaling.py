@@ -82,6 +82,19 @@ def test_whole_model_plan_smoke_counts():
     assert plan.is_smoke is True
 
 
+def test_whole_model_smoke_plan_32b_counts_exactly_3_perturbations_18_rows():
+    """The frozen smoke design (1 direction x 3 radii = 3 perturbations, x 6 capabilities = 18
+    rows) is scale-generic -- 32B must produce the IDENTICAL counts 3B/7B already do, never a
+    separately-invented 32B-specific smoke size.
+    """
+    spec = SCALING_MODEL_REGISTRY["32B"]
+    plan = build_whole_model_smoke_plan(spec=spec, model_revision="a" * 40, output_root="/tmp/whatever")
+    assert plan.total_unique_perturbations == 3
+    assert plan.total_perturbation_capability_evaluations == 18
+    assert plan.is_smoke is True
+    assert plan.scale_label == "32B"
+
+
 def test_whole_model_run_signature_varies_by_scale():
     sig_3b = compute_whole_model_run_signature("3B", STAGE8_RADII, STAGE8_N_DIRECTIONS_PER_CELL, STAGE8_D_MAP_N, 10)
     sig_7b = compute_whole_model_run_signature("7B", STAGE8_RADII, STAGE8_N_DIRECTIONS_PER_CELL, STAGE8_D_MAP_N, 10)
@@ -480,6 +493,205 @@ def test_evaluate_one_whole_model_candidate_rpc_skips_restoration_rpc_on_ray_unr
             run_benchmark=_failing_run_benchmark, ray_get=_identity_ray_get,
         )
     assert engine.calls.count("reset_to_base_weights") == reset_calls_before
+
+
+# =================================================================================================
+# 32B ONLY: TP=4-aware candidate evaluator -- reuses collective_rpc_all_workers as its dispatch
+# mechanism (never engine.collective_rpc directly), so these tests intercept it and record call
+# order rather than needing a real TP-sharded model.
+# =================================================================================================
+
+import neural_thickets_repro.thicket.distributed_perturbation as dp_module
+from neural_thickets_repro.run_stage11_whole_model_scaling import (
+    evaluate_one_whole_model_candidate_distributed_rpc,
+    reset_to_base_weights_distributed_rpc,
+    restore_and_verify_distributed_rpc,
+)
+
+_FAKE_APPLY_RESULT_TEMPLATE = {
+    # realized == requested EXACTLY -- keeps this fake comfortably within REALIZED_RADIUS_TOLERANCE
+    # regardless of its exact value; this test is about dispatch/ordering, not radius-precision
+    # (that's the real solver's own, separately-tested job).
+    "region": "whole_model", "seed": 42, "direction_seed": 42, "requested_relative_l2": 0.05,
+    "designed_relative_l2": 0.05, "realized_relative_l2": 0.05, "absolute_radius_error": 0.0,
+    "relative_radius_error": 0.0, "realized_abs_error": 0.0,
+    "radius_acceptance_mode": "strict", "quantization_limited": False,
+    "accepted_scalar": 0.123, "final_scale": 0.123, "solver_iterations": 2, "correction_iterations": 2,
+    "quantization_plateau": False, "radius_realization_method": "fixed_direction_bf16_quantization_aware_v3_distributed",
+    "theta_l2_norm": 10.0, "raw_noise_l2_norm": 200.0, "realized_epsilon_l2_norm": 0.5, "region_param_count": 4,
+}
+
+
+def _build_distributed_assignment(*, radius=0.05, seed=42, direction_index=0):
+    manifest = PerturbationManifest(
+        seed=seed, perturbation_mode="anatomical_relative_l2", model_family="qwen2_5_vl", model_scale="32B",
+        model_revision="a" * 40, parameter_mask_hash="fakehash",
+        anatomy_region=WHOLE_MODEL_REGION_LABEL, radius=radius, sigma=None,
+    )
+    return WholeModelDirectionAssignment(manifest=manifest, direction_index=direction_index, direction_seed=seed)
+
+
+def _make_fake_collective_rpc_all_workers(call_order, *, tensor_parallel_size=4, restoration_ok=True, solver_rank_disagreement=False):
+    def _fake(engine, method, args=(), *, label, expected_world_size, ray_get=None):
+        call_order.append(label)
+        assert expected_world_size == tensor_parallel_size
+        if label == "distributed_v3_solver_candidate":
+            results = [dict(_FAKE_APPLY_RESULT_TEMPLATE) for _ in range(tensor_parallel_size)]
+            if solver_rank_disagreement:
+                results[1]["accepted_scalar"] = 999.0
+            return results
+        if label.startswith("reset_to_base_weights_cpu"):
+            return [None] * tensor_parallel_size
+        if label.startswith("verify_exact_fixed_base_restoration_cpu"):
+            return [
+                {"ok": restoration_ok, "max_abs_drift": 0.0 if restoration_ok else 0.05, "fraction_elements_differing": 0.0 if restoration_ok else 0.01}
+                for _ in range(tensor_parallel_size)
+            ]
+        raise AssertionError(f"unexpected collective_rpc_all_workers label {label!r}")
+    return _fake
+
+
+def _fake_run_benchmark_recording(call_order):
+    def _run(benchmark, examples, llm_adapter, tokenizer, sampling_params, **kwargs):
+        call_order.append("evaluate_capability")
+        return _FakeWholeModelRunResult(primary_metric=0.6)
+    return _run
+
+
+def test_evaluate_one_whole_model_candidate_distributed_rpc_transactional_ordering(monkeypatch):
+    """Exact same transactional ordering as the TP=1 evaluator (perturb -> reset cache -> evaluate
+    6 capabilities -> restore -> verify -> reset cache), reused end to end -- only the dispatch
+    mechanism differs.
+    """
+    call_order = []
+    monkeypatch.setattr(dp_module, "collective_rpc_all_workers", _make_fake_collective_rpc_all_workers(call_order))
+    monkeypatch.setattr(module, "reset_vllm_encoder_cache_full", lambda engine: call_order.append("reset_vllm_encoder_cache_full"))
+
+    assignment = _build_distributed_assignment()
+    records = evaluate_one_whole_model_candidate_distributed_rpc(
+        engine=object(), assignment=assignment, region_param_names=("a.weight", "b.weight"),
+        capability_contexts=_fake_contexts(), tokenizer=None, sampling_params=None,
+        run_benchmark=_fake_run_benchmark_recording(call_order), ray_get=_identity_ray_get, tensor_parallel_size=4,
+    )
+    assert len(records) == 6
+    assert {r.capability for r in records} == set(STAGE8_CAPABILITIES)
+    assert all(r.model_scale == "32B" for r in records)
+    assert all(r.runtime_metadata["tensor_parallel_size"] == 4 for r in records)
+    assert all(r.runtime_metadata["distributed_rank_consensus_verified"] is True for r in records)
+
+    expected_prefix = ["distributed_v3_solver_candidate", "reset_vllm_encoder_cache_full"] + ["evaluate_capability"] * 6
+    assert call_order[: len(expected_prefix)] == expected_prefix
+    remaining = call_order[len(expected_prefix):]
+    assert remaining[0].startswith("reset_to_base_weights_cpu")
+    assert remaining[1].startswith("verify_exact_fixed_base_restoration_cpu")
+    assert remaining[2] == "reset_vllm_encoder_cache_full"
+
+
+def test_evaluate_one_whole_model_candidate_distributed_rpc_hard_fails_on_rank_disagreement(monkeypatch):
+    """verify_solver_rank_consensus (the existing, unmodified consensus check) must actually be
+    invoked and must hard-fail on a real rank disagreement -- never silently accepted from rank 0
+    alone. Restore is still attempted (the except-block's own responsibility) before re-raising.
+    """
+    from neural_thickets_repro.thicket.distributed_v3_solver import SolverRankConsensusError
+
+    call_order = []
+    monkeypatch.setattr(dp_module, "collective_rpc_all_workers", _make_fake_collective_rpc_all_workers(call_order, solver_rank_disagreement=True))
+    monkeypatch.setattr(module, "reset_vllm_encoder_cache_full", lambda engine: call_order.append("reset_vllm_encoder_cache_full"))
+
+    assignment = _build_distributed_assignment()
+    with pytest.raises(SolverRankConsensusError):
+        evaluate_one_whole_model_candidate_distributed_rpc(
+            engine=object(), assignment=assignment, region_param_names=("a.weight",),
+            capability_contexts=_fake_contexts(), tokenizer=None, sampling_params=None,
+            run_benchmark=_fake_run_benchmark_recording(call_order), ray_get=_identity_ray_get, tensor_parallel_size=4,
+        )
+    # restore was attempted (proving the except-block's restore-on-failure path ran) even though
+    # the candidate never got past the consensus check to evaluate any capability
+    assert "evaluate_capability" not in call_order
+    assert any(label.startswith("reset_to_base_weights_cpu") for label in call_order)
+
+
+def test_evaluate_one_whole_model_candidate_distributed_rpc_raises_on_restoration_failure(monkeypatch):
+    call_order = []
+    monkeypatch.setattr(dp_module, "collective_rpc_all_workers", _make_fake_collective_rpc_all_workers(call_order, restoration_ok=False))
+    monkeypatch.setattr(module, "reset_vllm_encoder_cache_full", lambda engine: call_order.append("reset_vllm_encoder_cache_full"))
+
+    assignment = _build_distributed_assignment()
+    with pytest.raises(module.RestorationFailedError):
+        evaluate_one_whole_model_candidate_distributed_rpc(
+            engine=object(), assignment=assignment, region_param_names=("a.weight",),
+            capability_contexts=_fake_contexts(), tokenizer=None, sampling_params=None,
+            run_benchmark=_fake_run_benchmark_recording(call_order), ray_get=_identity_ray_get, tensor_parallel_size=4,
+        )
+
+
+def test_reset_to_base_weights_distributed_rpc_dispatches_to_every_rank(monkeypatch):
+    calls = []
+    monkeypatch.setattr(dp_module, "collective_rpc_all_workers", _make_fake_collective_rpc_all_workers(calls))
+    reset_to_base_weights_distributed_rpc(object(), tensor_parallel_size=4, ray_get=_identity_ray_get)
+    assert calls == ["reset_to_base_weights_cpu_baseline_preflight"]
+
+
+def test_restore_and_verify_distributed_rpc_aggregates_across_ranks(monkeypatch):
+    calls = []
+    monkeypatch.setattr(dp_module, "collective_rpc_all_workers", _make_fake_collective_rpc_all_workers(calls))
+    result = restore_and_verify_distributed_rpc(object(), tensor_parallel_size=4, ray_get=_identity_ray_get)
+    assert result["ok"] is True
+    assert result["global_max_abs_drift"] == 0.0
+    assert calls == ["reset_to_base_weights_cpu_candidate", "verify_exact_fixed_base_restoration_cpu_candidate"]
+
+
+def test_run_whole_model_rpc_uses_injected_evaluate_one_candidate(tmp_path):
+    """run_whole_model_rpc's own outer loop (population/checkpoint/telemetry/results.jsonl) is
+    REUSED unchanged for 32B -- only the per-candidate evaluator differs, via injection.
+    """
+    spec = SCALING_MODEL_REGISTRY["32B"]
+    plan = build_whole_model_smoke_plan(spec=spec, model_revision="a" * 40, output_root=str(tmp_path))
+    from neural_thickets_repro.scaling_common import build_scaling_direction_seed_bank
+
+    bank = build_scaling_direction_seed_bank(1, "32B", (WHOLE_MODEL_REGION_LABEL,), plan.n_directions_per_cell)
+    audit = {"regions": {WHOLE_MODEL_REGION_LABEL: {"mask_hash": "fakehash", "n_tensors": 1, "n_elements": 1}}}
+
+    calls = []
+
+    def _fake_evaluate_one_candidate(engine, assignment, region_param_names, capability_contexts, tokenizer, sampling_params, *, run_benchmark, ray_get=None, generation_batch_size=None, rss_checkpoint=None):
+        calls.append(assignment.manifest.perturbation_id)
+        return []
+
+    n_rows = run_whole_model_rpc(
+        plan, _fake_contexts(), object(), tokenizer=None, sampling_params=None, seed_bank=bank,
+        region_param_names=("a.weight",), mask_hash="fakehash", anatomy_audit=audit,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get, evaluate_one_candidate=_fake_evaluate_one_candidate,
+    )
+    assert len(calls) == plan.total_unique_perturbations == 3
+    assert n_rows == 0
+
+
+def test_run_whole_model_rpc_default_evaluator_is_the_legacy_tp1_one(runtime_wrapped_vlm_32vision_factory, tmp_path):
+    """Omitting evaluate_one_candidate entirely (the 3B/7B call shape, unchanged) must still use
+    evaluate_one_whole_model_candidate_rpc -- never silently fall back to the distributed one.
+    """
+    model = runtime_wrapped_vlm_32vision_factory()
+    spec = SCALING_MODEL_REGISTRY["7B"]
+    plan = build_whole_model_smoke_plan(spec=spec, model_revision="a" * 40, output_root=str(tmp_path))
+    from neural_thickets_repro.scaling_common import build_scaling_direction_seed_bank
+
+    bank = build_scaling_direction_seed_bank(1, "7B", (WHOLE_MODEL_REGION_LABEL,), plan.n_directions_per_cell)
+    atlas = build_anatomy_atlas([n for n, _ in model.named_parameters()])
+    mask_hash = atlas.region("full_model").mask_hash
+    region_param_names = atlas.region("full_model").param_names
+    audit = {"regions": {WHOLE_MODEL_REGION_LABEL: {"mask_hash": mask_hash, "n_tensors": len(region_param_names), "n_elements": 1}}}
+
+    engine = _FakeWholeModelEngine(model)
+    engine.store_base_weights()
+
+    n_rows = run_whole_model_rpc(
+        plan, _fake_contexts(), engine, tokenizer=None, sampling_params=None, seed_bank=bank,
+        region_param_names=region_param_names, mask_hash=mask_hash, anatomy_audit=audit,
+        run_benchmark=_fake_run_benchmark, ray_get=_identity_ray_get,
+    )
+    assert n_rows == 3 * 6  # 3 perturbations x 6 capabilities, evaluated via the real legacy single-worker RPC path
+    assert "scoped_apply_anatomical_perturbation_bf16_quantization_aware_v3" in engine.calls
 
 
 def test_run_whole_model_rpc_writes_zero_rows_when_the_first_candidate_ooms(tmp_path, runtime_wrapped_vlm_32vision_factory, monkeypatch):

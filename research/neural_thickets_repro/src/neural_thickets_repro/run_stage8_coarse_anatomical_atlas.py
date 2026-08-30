@@ -722,7 +722,7 @@ def _collective_rpc_single_worker(engine: Any, method, args: tuple = (), *, labe
 def _run_one_baseline_pass(
     engine: Any, llm_adapter: Any, ctx: CapabilityContext, tokenizer: Any, sampling_params: Any,
     *, run_benchmark: Callable, ray_get: Optional[Callable], generation_batch_size: Optional[int],
-    capability: str, pass_label: str,
+    capability: str, pass_label: str, reset_fn: Optional[Callable] = None,
 ) -> Dict[str, Any]:
     """One pass (A or B) of the baseline-repeatability preflight for one capability, with full
     RSS telemetry (Section 2 of the spec): rss_before / rss_after_requests / rss_after_generate
@@ -731,15 +731,27 @@ def _run_one_baseline_pass(
     itself (per-example raw generations/parsed predictions/scores) is explicitly `del`eted and
     mem_telemetry.release_transient_memory() is called before returning (Section 5 of the spec:
     do not retain full baseline outputs).
+
+    `reset_fn` is INJECTABLE (`None` resolves to the module-level reset_to_base_weights_via_rpc
+    AT CALL TIME, not at function-definition time -- a plain default-parameter value would bind
+    the ORIGINAL function object once at import and silently stop honoring
+    `monkeypatch.setattr(module, "reset_to_base_weights_via_rpc", ...)`, which this project's own
+    existing tests rely on) so a TP-aware caller (Stage-11 32B) can substitute a distributed
+    reset dispatched to every TP rank without this function needing to know or care which
+    mechanism it is -- same pattern already established project-wide for run_benchmark/ray_get
+    injection, never a scale-specific conditional inside this shared function.
     """
     from .mem_telemetry import release_transient_memory, rss_mb
+
+    if reset_fn is None:
+        reset_fn = reset_to_base_weights_via_rpc
 
     telemetry: Dict[str, float] = {"rss_before_mb": rss_mb()}
 
     def _rss_checkpoint(label: str) -> None:
         telemetry[f"rss_{label}_mb"] = rss_mb()
 
-    reset_to_base_weights_via_rpc(engine, ray_get=ray_get)
+    reset_fn(engine, ray_get=ray_get)
     reset_vllm_encoder_cache_full(engine)
 
     result = run_benchmark(
@@ -767,6 +779,7 @@ def _run_one_baseline_pass(
 def run_baseline_repeatability_preflight_rpc(
     engine: Any, capability_contexts: Dict[str, CapabilityContext], tokenizer: Any, sampling_params: Any,
     *, run_benchmark: Callable, ray_get: Optional[Callable] = None, generation_batch_size: Optional[int] = None,
+    reset_fn: Optional[Callable] = None,
 ) -> Dict[str, Any]:
     """For each of the 6 capabilities, in fixed order: reset theta_0, full verified encoder-
     cache reset, evaluate D_map N=50 (via the SAME bounded-generation path candidate evaluation
@@ -776,17 +789,20 @@ def run_baseline_repeatability_preflight_rpc(
     report (including each pass's own RSS telemetry, Section 2 of the spec); raises nothing
     itself (see ensure_baseline_repeatability below for the hard-stop gate) so a caller can
     persist the full report before deciding whether to stop.
+
+    `reset_fn` -- see _run_one_baseline_pass's own docstring; defaults to the existing TP=1-only
+    mechanism, byte-identical for every current (3B/7B) caller.
     """
     llm_adapter = RayEngineLLMAdapter(engine, ray_get=ray_get)
     report: Dict[str, Any] = {}
     for capability, ctx in capability_contexts.items():
         pass_a = _run_one_baseline_pass(
             engine, llm_adapter, ctx, tokenizer, sampling_params, run_benchmark=run_benchmark, ray_get=ray_get,
-            generation_batch_size=generation_batch_size, capability=capability, pass_label="A",
+            generation_batch_size=generation_batch_size, capability=capability, pass_label="A", reset_fn=reset_fn,
         )
         pass_b = _run_one_baseline_pass(
             engine, llm_adapter, ctx, tokenizer, sampling_params, run_benchmark=run_benchmark, ray_get=ray_get,
-            generation_batch_size=generation_batch_size, capability=capability, pass_label="B",
+            generation_batch_size=generation_batch_size, capability=capability, pass_label="B", reset_fn=reset_fn,
         )
 
         score_match = pass_a["score"] == pass_b["score"]
