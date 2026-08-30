@@ -931,9 +931,10 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--scale", required=True, choices=("3B", "7B", "32B"),
-        help="3B/7B are runnable unconditionally. 32B is runnable ONLY via --smoke, and ONLY after "
-             "the Section-14 readiness gates pass -- see stage11_32b_readiness.py. 72B is not a "
-             "valid choice here at all (hard-disabled, not merely gated).",
+        help="3B/7B are runnable unconditionally. 32B (--smoke or full) is runnable ONLY after "
+             "the Section-14 readiness gates pass against LIVE evidence -- see "
+             "stage11_32b_readiness.py / stage11_32b_live_evidence.py. 72B is not a valid choice "
+             "here at all (hard-disabled, not merely gated).",
     )
     parser.add_argument("--tensor-parallel-size", type=int, default=None, help="32B ONLY -- defaults to 4 (task spec Section 3). Ignored for 3B/7B, which remain TP=1 exactly as before this option existed.")
     parser.add_argument("--model-revision-ref", default=None, help="Overrides the registry's default revision_ref (\"main\") if given.")
@@ -952,16 +953,17 @@ def main(argv=None) -> int:
 
     if args.scale == "32B":
         # NEVER calls ensure_scale_runnable (which would unconditionally raise for 32B, exactly
-        # as it still does for any scale outside RUNNABLE_SCALES). Only the ONE structural,
-        # zero-evidence-needed requirement is enforced here (--smoke present -- this module is
-        # whole_model-only already, so the anatomy-track prohibition is automatically satisfied).
-        # The FULL gate requirement (ensure_32b_smoke_permitted, needing REAL evidence) is
-        # evaluated further below, only after the readiness pre-flight has actually produced a
-        # gate report -- evaluating it here, before any evidence exists, would just be a
-        # guaranteed-always-raise no-op that never lets the pre-flight report get written.
-        if not args.smoke:
-            print("32B is runnable ONLY via --smoke -- refusing to run a full 32B whole-model sweep.", file=sys.stderr)
-            return 1
+        # as it still does for any scale outside RUNNABLE_SCALES). This module is whole_model-only
+        # already, so the anatomy-track prohibition is automatically satisfied for 32B regardless
+        # of --smoke. Both --smoke and full 32B are gated the SAME way -- by the Section-14
+        # readiness pre-flight against REAL, strictly identity-bound live evidence, evaluated
+        # further below once a gate report actually exists (evaluating it here, before any
+        # evidence exists, would just be a guaranteed-always-raise no-op that never lets the
+        # pre-flight report get written). The former "--smoke required, unconditionally" guard
+        # here is REMOVED -- it predates any live 32B evidence ever existing; now that a real
+        # G1-G8 PASS + strict distributed-v3 solver run has actually happened, gating solely on
+        # live evidence (never on --smoke presence) is the correct, and only, enforcement point.
+        pass
     else:
         ensure_scale_runnable(args.scale)
     spec = get_scaling_model_spec(args.scale)

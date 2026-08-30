@@ -96,19 +96,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         # exactly as it still does for 72B below) -- it is runnable ONLY through the readiness
         # gate, evaluated with LIVE evidence inside run_stage11_whole_model_scaling.main() (the
         # only place an actual engine/worker exists to gather that evidence). This dispatcher's
-        # OWN job is the two checks that need no live evidence at all: --smoke must be present,
-        # and the track must be whole_model ("DO NOT RUN 32B ANATOMY") -- both structural, both
-        # enforced before any GPU/Hub call, mirroring
-        # stage11_32b_readiness.ensure_32b_scale_runnable_for_smoke's own checks (that function
-        # is called again, for real, inside the runner once live gate evidence exists).
-        is_smoke = "--smoke" in remaining
-        if not is_smoke:
-            print("32B is runnable ONLY via --smoke -- refusing to dispatch a full 32B run.", file=sys.stderr)
-            return 1
+        # OWN job is the ONE check that needs no live evidence at all: the track must be
+        # whole_model ("DO NOT RUN 32B ANATOMY") -- structural, enforced before any GPU/Hub call.
+        # A former "--smoke must be present" check also lived here -- REMOVED now that a real
+        # live G1-G8 PASS + strict distributed-v3 solver smoke has actually passed on real
+        # hardware: --smoke and full 32B are gated identically, by live evidence alone, never by
+        # which flag was passed. The runner itself still refuses BOTH unless that evidence
+        # validates for the current invocation.
         if args.track != "whole_model":
-            print("32B anatomy is not permitted -- only --track whole_model --smoke may be attempted.", file=sys.stderr)
+            print("32B anatomy is not permitted -- only --track whole_model may be attempted.", file=sys.stderr)
             return 1
-        print("32B whole_model smoke requested -- readiness gates (G1-G8) will be evaluated with live evidence inside the runner before any perturbation starts.")
+        is_smoke = "--smoke" in remaining
+        print(f"32B whole_model {'smoke' if is_smoke else 'full'} requested -- readiness gates (G1-G8) will be evaluated with live evidence inside the runner before any perturbation starts.")
     else:
         try:
             ensure_scale_runnable(args.scale)

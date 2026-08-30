@@ -45,18 +45,38 @@ def test_dispatch_blocks_72b_unconditionally(track, capsys):
     assert "not yet enabled" in (captured.out + captured.err).lower() or "NOT in RUNNABLE_SCALES" in (captured.out + captured.err)
 
 
-@pytest.mark.parametrize("track", ["whole_model", "anatomy"])
-def test_dispatch_blocks_32b_without_smoke(track, capsys):
-    """32B is no longer routed through ensure_scale_runnable at all (see
-    stage11_32b_readiness.py) -- it is still blocked (exit_code==1) whenever --smoke is absent
-    or the track is anatomy, but with a DIFFERENT, intentional message reflecting its own
-    gate-based path, never the old blanket 'not yet enabled' text.
+def test_dispatch_blocks_32b_anatomy_track_regardless_of_smoke(capsys):
+    """32B anatomy (S2) is never permitted through the dispatcher -- structural, needs no live
+    evidence, enforced regardless of --smoke/full ("DO NOT RUN 32B ANATOMY").
     """
-    exit_code = dispatcher.main(["--scale", "32B", "--track", track])
+    exit_code = dispatcher.main(["--scale", "32B", "--track", "anatomy"])
     assert exit_code == 1
     captured = capsys.readouterr()
-    combined = (captured.out + captured.err).lower()
-    assert "runnable only via --smoke" in combined or "anatomy is not permitted" in combined
+    assert "anatomy is not permitted" in (captured.out + captured.err).lower()
+
+
+def test_dispatch_no_longer_blocks_32b_whole_model_without_smoke_at_the_dispatcher_level(monkeypatch):
+    """The former dispatcher-level '--smoke required, unconditionally' guard is REMOVED -- 32B
+    whole_model (--smoke or full) now reaches the SAME live-evidence gate either way, evaluated
+    inside run_stage11_whole_model_scaling.main() (the only place real evidence can be gathered/
+    validated), never rejected here purely for lacking --smoke. Proven by patching that main()
+    with a marker so this test never touches real env/GPU/Hub checks -- it does not assert what
+    run_stage11_whole_model_scaling.main() itself ultimately decides (see test_stage11_32b_smoke_
+    wiring.py for that gate's own full/smoke-agnostic behavior).
+    """
+    import neural_thickets_repro.run_stage11_whole_model_scaling as whole_model_module
+
+    reached = {}
+
+    def _marker(argv=None):
+        reached["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(whole_model_module, "main", _marker)
+
+    exit_code = dispatcher.main(["--scale", "32B", "--track", "whole_model"])
+    assert exit_code == 0
+    assert reached["argv"] == ["--scale", "32B"]  # no --smoke passed through -- a FULL invocation reached the runner unmodified
 
 
 def test_dispatch_7b_whole_model_dry_run_produces_correct_counts(capsys):

@@ -37,9 +37,23 @@ def test_dispatcher_32b_anatomy_is_blocked():
     assert rc == 1
 
 
-def test_dispatcher_32b_without_smoke_is_blocked():
+def test_dispatcher_32b_without_smoke_no_longer_blocked_at_the_dispatcher(monkeypatch):
+    """The former '--smoke required, unconditionally' dispatcher guard is REMOVED -- full 32B
+    (no --smoke) now reaches run_stage11_whole_model_scaling.main() exactly like smoke does; that
+    function's OWN live-evidence gate is what may still block it (see test_32b_full_run_blocked_
+    without_valid_live_evidence / test_32b_full_run_authorized_by_valid_live_evidence below), not
+    this dispatcher.
+    """
+    reached = {}
+
+    def _marker_main(argv=None):
+        reached["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(whole_model, "main", _marker_main)
     rc = dispatcher.main(["--scale", "32B", "--track", "whole_model"])
-    assert rc == 1
+    assert rc == 0
+    assert reached["argv"] == ["--scale", "32B"]
 
 
 def test_dispatcher_72b_still_hard_rejected():
@@ -76,9 +90,66 @@ def test_32b_smoke_dry_run_matches_frozen_design_totals(capsys):
     assert "total_perturbation_x_capability_evaluations=18" in out
 
 
-def test_32b_full_run_without_smoke_refused():
-    rc = whole_model.main(["--scale", "32B"])
-    assert rc == 1
+def test_32b_full_run_blocked_without_valid_live_evidence(tmp_path, monkeypatch):
+    """Full 32B (no --smoke) is no longer refused merely for lacking --smoke -- it reaches the
+    SAME live-evidence gate smoke does, and is blocked by THAT (honestly, with reasons) when no
+    valid evidence exists, exactly like a smoke invocation would be.
+    """
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    empty_evidence_dir = tmp_path / "no_such_evidence"
+
+    rc = whole_model.main(["--scale", "32B", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(empty_evidence_dir)])
+    assert rc == 0  # blocked cleanly, never a crash -- same shape as the smoke-mode equivalent
+
+    import json
+
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["live_evidence_found"] is False
+    assert report["all_gates_pass"] is False
+
+
+def test_32b_full_run_authorized_by_valid_live_evidence(tmp_path, monkeypatch):
+    """The mirror image: full 32B (no --smoke) with VALID live evidence continues into the shared
+    lifecycle exactly like smoke does -- the readiness gate has never distinguished smoke from
+    full, and the dispatch guard that WOULD have distinguished them is now removed.
+    """
+    monkeypatch.setattr(whole_model, "assert_feasible", lambda *a, **k: None)
+    monkeypatch.setattr(whole_model, "resolve_immutable_model_revision", lambda *a, **k: {"resolved_revision": _FAKE_REVISION, "requested_revision": "main"})
+    evidence_dir = tmp_path / "evidence"
+    _write_valid_live_evidence(evidence_dir)
+    _patch_resolve_model_snapshot_to_raise_marker(monkeypatch)
+
+    with pytest.raises(_ReachedSharedLifecycleMarker):
+        whole_model.main(["--scale", "32B", "--output-root", str(tmp_path / "out"), "--live-evidence-dir", str(evidence_dir)])
+
+    import json
+
+    report = json.loads(next((tmp_path / "out").rglob("stage11_32b_readiness_gate_report.json")).read_text())
+    assert report["all_gates_pass"] is True
+    assert report["live_evidence_ok"] is True
+
+
+def test_32b_smoke_flag_still_produces_the_frozen_smoke_plan_when_full_is_now_allowed():
+    """Section 11: smoke behavior must remain unchanged -- --smoke still selects the N=5/1-
+    direction smoke plan (3 perturbations, 18 rows), never the full N=50/64-direction plan, now
+    that full is also reachable through the same code path.
+    """
+    rc_smoke = whole_model.main(["--scale", "32B", "--smoke", "--dry-run"])
+    assert rc_smoke == 0
+
+
+def test_32b_full_dry_run_matches_frozen_full_design_totals(capsys):
+    """Full 32B (no --smoke) must use the SAME frozen full-run sizing 3B/7B already use: D_map
+    N=50, 64 directions per radius -- 192 perturbations, 1152 rows, 57,600 evaluations -- never a
+    32B-specific size.
+    """
+    rc = whole_model.main(["--scale", "32B", "--dry-run"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert "total_unique_perturbations=192" in out
+    assert "total_perturbation_x_capability_evaluations=1152" in out
+    assert "total_perturbed_model_example_evaluations=57600" in out
 
 
 def test_32b_smoke_blocked_pending_live_evidence_writes_gate_report(tmp_path, monkeypatch):
