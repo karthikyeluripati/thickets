@@ -206,14 +206,26 @@ def test_main_covers_all_three_iclr_causal_density_preregistered_scopes():
     assert "overall_pass = all(t[\"pass\"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g, test_h, test_i))" in source
 
 
-def test_main_uses_the_established_l40s_gpu_memory_utilization():
-    """launch_engines' own default (0.75) OOMs a 7B model's KV cache on a 48GB L40S -- this
-    diagnostic must use the same 0.60 fix already established and documented elsewhere in this
-    repo (run_global_visual_thicket_pilot.STAGE6_GPU_MEMORY_UTILIZATION), never the bare default.
+def test_main_uses_launch_stage6_engine_not_launch_engines():
+    """external/RandOpt's own launch_engines() accepts no max_model_len at all, so vLLM falls
+    back to Qwen2.5-VL's full native context -- at 7B this OOMs the KV cache regardless of
+    gpu_memory_utilization (confirmed live: still OOMs even at 0.60). launch_stage6_engine is
+    this repo's own already-established fix for exactly this failure mode (STAGE6_GPU_MEMORY_
+    UTILIZATION=0.60 + STAGE6_MAX_MODEL_LEN=4096) -- this diagnostic must use it, never
+    external/RandOpt's own launch_engines (which is also never modified, per this repo's
+    reproduction-integrity rule).
     """
     import inspect
 
     from neural_thickets_repro.diagnostics import scope_isolation_gpu_check as module
 
     source = inspect.getsource(module.main)
-    assert "gpu_memory_utilization=0.60" in source
+    assert "engines, pgs = launch_stage6_engine(" in source
+    assert "engines, pgs = launch_engines(" not in source  # the actual dispatch call -- prose mentioning launch_engines() by name (explaining why it's NOT used) is fine
+    assert "store_base_weights_via_rpc(engine)" in source  # launch_stage6_engine does NOT auto-store base weights on creation, unlike launch_engines
+
+
+def test_main_module_imports_launch_stage6_engine_from_the_local_package_not_external():
+    from neural_thickets_repro.diagnostics import scope_isolation_gpu_check as module
+
+    assert module.launch_stage6_engine.__module__ == "neural_thickets_repro.run_global_visual_thicket_pilot"

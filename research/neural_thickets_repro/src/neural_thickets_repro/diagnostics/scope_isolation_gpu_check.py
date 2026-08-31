@@ -64,6 +64,7 @@ os.environ["VLLM_WORKER_MULTIPROC_METHOD"] = "spawn"  # same runtime fix as ever
 
 from ..config import load_config
 from ..env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
+from ..run_global_visual_thicket_pilot import launch_stage6_engine, store_base_weights_via_rpc
 from ..scopes import PERTURBATION_SCOPES, build_scope_manifest, discover_lm_layer_indices
 from ..scoped_perturbation import scoped_apply_perturbation
 from ..vlm_adapter import bootstrap_ray, resolve_model_snapshot, verify_workers_can_import_external_root
@@ -254,7 +255,7 @@ def main(argv=None) -> int:
     import ray
 
     sys.path.insert(0, str(EXTERNAL_ROOT))
-    from core.engine import cleanup_engines, launch_engines  # type: ignore
+    from core.engine import cleanup_engines  # type: ignore
 
     ray_owned_by_us = bootstrap_ray(EXTERNAL_ROOT)
 
@@ -263,15 +264,26 @@ def main(argv=None) -> int:
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
 
-        # gpu_memory_utilization=0.60 (not launch_engines' own 0.75 default): the same L40S-
-        # 48GB OOM fix already established and documented throughout this repo (see
-        # run_global_visual_thicket_pilot.py's own STAGE6_GPU_MEMORY_UTILIZATION comment --
-        # "OOM on an L40S at gpu_memory_utilization=0.75") -- this diagnostic simply predates
-        # that fix having been applied here. Purely a memory-allocation parameter; no scope-
-        # isolation/perturbation/scientific semantics are touched.
-        engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True, gpu_memory_utilization=0.60)
+        # launch_stage6_engine, not external/RandOpt's own launch_engines: launch_engines()
+        # accepts no max_model_len at all, so vLLM falls back to the model's full native
+        # context (Qwen2.5-VL's is very large) -- at 7B this makes the KV-cache reservation
+        # OOM regardless of gpu_memory_utilization (confirmed live on this pod: still OOMs
+        # even at 0.60, the value that fixes every OTHER real-model script in this repo).
+        # launch_stage6_engine is this repo's own, already-established, already-validated fix
+        # for exactly this failure mode (see its own docstring's "Deliberately does NOT call
+        # launch_engines()" section) -- STAGE6_GPU_MEMORY_UTILIZATION (0.60) + STAGE6_MAX_
+        # MODEL_LEN (4096, irrelevant to correctness here since this diagnostic never
+        # generates text at all -- pure weight-level check) fit comfortably on one L40S.
+        # Mirrors launch_engines' own single-engine (TP=1) return shape ([engine], [pg]), so
+        # cleanup_engines (still imported from external/RandOpt, unmodified) works unchanged.
+        # UNLIKE launch_engines, this does NOT auto-store base weights on creation -- done
+        # explicitly below, exactly once, before this diagnostic's own snapshot/perturb/reset
+        # cycle (which relies on the upstream, string-dispatched "reset_to_base_weights" RPC
+        # already having a base to reset to).
+        engines, pgs = launch_stage6_engine(model_path, precision=cfg.model.precision, tensor_parallel_size=1)
         engine = engines[0]
         try:
+            store_base_weights_via_rpc(engine)
             print("Snapshotting base parameters (diagnostic-only, in-worker)...")
             snapshot_msg = _rpc(engine, _diag_snapshot_base, args=(), label="_diag_snapshot_base")
             print(f"  {snapshot_msg}")
