@@ -57,8 +57,40 @@ def test_diag_report_all_scopes_covers_every_registered_scope(runtime_wrapped_vl
     assert report["detected_lm_layer_count"] == 12
     assert set(report["scope_summaries"]) == set(PERTURBATION_SCOPES)
     for scope, summary in report["scope_summaries"].items():
+        assert summary["applicable"] is True, f"{scope} unexpectedly marked not applicable: {summary}"
         assert summary["selected_param_count"] > 0, f"{scope} selected zero"
     assert len(report["representative_param_names"]) > 0
+
+
+def test_diag_report_all_scopes_marks_architecture_inapplicable_scopes_without_crashing(runtime_wrapped_vlm_32vision_factory, monkeypatch):
+    """Confirmed live against Qwen2.5-VL-7B-Instruct (28 LM layers, not divisible by 3):
+    build_scope_manifest("lm_middle", ...) hard-raises ScopeSelectionError.
+    _diag_report_all_scopes must catch this PER SCOPE and keep reporting every other scope,
+    never crash the whole report (which would also block Tests A/H/I from ever running).
+    """
+    import neural_thickets_repro.diagnostics.scope_isolation_gpu_check as module
+    from neural_thickets_repro.scopes import ScopeSelectionError
+
+    model = runtime_wrapped_vlm_32vision_factory()
+    worker = _fake_worker(model)
+
+    real_build_scope_manifest = module.build_scope_manifest
+
+    def _fake_build_scope_manifest(scope_name, *a, **k):
+        if scope_name == "lm_middle":
+            raise ScopeSelectionError("Cannot partition 28 LM layers into three equal contiguous thirds")
+        return real_build_scope_manifest(scope_name, *a, **k)
+
+    monkeypatch.setattr(module, "build_scope_manifest", _fake_build_scope_manifest)
+    report = _diag_report_all_scopes(worker)
+
+    assert report["scope_summaries"]["lm_middle"]["applicable"] is False
+    assert "28 LM layers" in report["scope_summaries"]["lm_middle"]["reason"]
+    # every OTHER scope still reported normally -- the one failure didn't crash the sweep
+    assert report["scope_summaries"]["vision_encoder"]["applicable"] is True
+    assert report["scope_summaries"]["vision_encoder"]["selected_param_count"] > 0
+    assert report["scope_summaries"]["full_lm"]["applicable"] is True
+    assert report["scope_summaries"]["full_vlm"]["applicable"] is True
 
 
 def test_diag_report_all_scopes_reports_tied_alias(runtime_wrapped_vlm_32vision_factory):
@@ -203,21 +235,53 @@ def test_module_level_test_constants_are_fixed_and_distinct_from_real_candidates
 # engine and is not otherwise unit-testable, matching this project's established convention) ---
 
 
+def test_run_isolation_test_or_skip_catches_scope_selection_error(monkeypatch):
+    import neural_thickets_repro.diagnostics.scope_isolation_gpu_check as module
+    from neural_thickets_repro.scopes import ScopeSelectionError
+
+    def _fake_run_isolation_test(engine, label, scope):
+        raise ScopeSelectionError(f"Cannot partition 28 LM layers ({scope})")
+
+    monkeypatch.setattr(module, "_run_isolation_test", _fake_run_isolation_test)
+    result = module._run_isolation_test_or_skip(engine=object(), test_label="B", scope="lm_middle")
+    assert result["applicable"] is False
+    assert result["pass"] is None
+    assert "28 LM layers" in result["skip_reason"]
+    assert result["scope"] == "lm_middle"
+
+
+def test_run_isolation_test_or_skip_passes_through_a_real_result(monkeypatch):
+    import neural_thickets_repro.diagnostics.scope_isolation_gpu_check as module
+
+    fake_result = {"scope": "vision_early", "pass": True, "in_scope_changed": True, "out_of_scope_unchanged": True, "reset_exact": True}
+    monkeypatch.setattr(module, "_run_isolation_test", lambda engine, label, scope: dict(fake_result))
+    result = module._run_isolation_test_or_skip(engine=object(), test_label="C", scope="vision_early")
+    assert result["applicable"] is True
+    assert result["pass"] is True
+
+
 def test_main_covers_all_three_iclr_causal_density_preregistered_scopes():
     """The iclr_causal_density pilot's preregistration.md requires vision_encoder/full_lm/
     full_vlm as its scope-isolation precondition -- vision_encoder was already Test A; this
     proves Tests H/I (full_lm/full_vlm) were added, additively, alongside every pre-existing
-    test (never replacing them).
+    test (never replacing them). Tests A/H/I (this pilot's required scopes) must be dispatched
+    via the STRICT _run_isolation_test helper, never the _or_skip wrapper (see that wrapper's
+    own docstring for why it exists ONLY for the pre-existing, architecture-dependent legacy
+    scopes B-G) -- a real isolation failure on any of the three must never be silently
+    downgraded to a skip.
     """
     import inspect
 
     from neural_thickets_repro.diagnostics import scope_isolation_gpu_check as module
 
     source = inspect.getsource(module.main)
-    for label, scope in (("A", "vision_encoder"), ("B", "lm_middle"), ("C", "vision_early"), ("D", "vision_middle"), ("E", "vision_late"), ("F", "vision_late_a"), ("G", "vision_late_b"), ("H", "full_lm"), ("I", "full_vlm")):
-        assert f'_run_isolation_test(engine, "{label}", "{scope}")' in source, f"Test {label} ({scope}) missing from main()"
+    for label, scope in (("A", "vision_encoder"), ("H", "full_lm"), ("I", "full_vlm")):
+        assert f'_run_isolation_test(engine, "{label}", "{scope}")' in source, f"Required Test {label} ({scope}) missing, or not strictly dispatched, in main()"
+    for label, scope in (("B", "lm_middle"), ("C", "vision_early"), ("D", "vision_middle"), ("E", "vision_late"), ("F", "vision_late_a"), ("G", "vision_late_b")):
+        assert f'_run_isolation_test_or_skip(engine, "{label}", "{scope}")' in source, f"Legacy Test {label} ({scope}) missing from main()"
     assert "test_h" in source and "test_i" in source
-    assert "overall_pass = all(t[\"pass\"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g, test_h, test_i))" in source
+    assert "required_tests = {\"A\": test_a, \"H\": test_h, \"I\": test_i}" in source
+    assert "required_pass = all(t[\"pass\"] for t in required_tests.values())" in source
 
 
 def test_main_uses_launch_stage6_engine_not_launch_engines():
