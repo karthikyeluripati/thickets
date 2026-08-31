@@ -19,8 +19,12 @@ Child run identities:
     stage11_3b_anatomy          (NOT rerun -- reuses stage8_coarse_anatomical_atlas_3b_v2_batched10)
     stage11_7b_whole_model_v1   (this dispatcher -> run_stage11_whole_model_scaling, --scale 7B)
     stage11_7b_anatomy_v1       (this dispatcher -> run_stage11_coarse_anatomical_atlas_7b, unchanged)
-    stage11_32b_whole_model_v1  (registered, NOT runnable yet -- ScaleNotYetEnabledError)
-    stage11_32b_anatomy_v1      (registered, NOT runnable yet -- ScaleNotYetEnabledError)
+    stage11_32b_whole_model_v1  (this dispatcher -> run_stage11_whole_model_scaling, --scale 32B --
+                                 gated by its OWN live-evidence readiness check, never by this
+                                 dispatcher; smoke has PASSED live, full is code-enabled/evidence-gated)
+    stage11_32b_anatomy_v1      (this dispatcher -> run_stage11_coarse_anatomical_atlas_32b, TP=4 --
+                                 gated by its OWN S2 multi-region live-evidence readiness check
+                                 (stage11_32b_s2_live_evidence.py); NOT yet live-verified)
     stage11_72b_whole_model_v1  (registered, NOT runnable yet -- ScaleNotYetEnabledError)
     stage11_72b_anatomy_v1      (registered, NOT runnable yet -- ScaleNotYetEnabledError)
 
@@ -93,21 +97,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     if args.scale == "32B":
         # 32B is NEVER rejected here by ensure_scale_runnable (which would always raise for it,
-        # exactly as it still does for 72B below) -- it is runnable ONLY through the readiness
-        # gate, evaluated with LIVE evidence inside run_stage11_whole_model_scaling.main() (the
-        # only place an actual engine/worker exists to gather that evidence). This dispatcher's
-        # OWN job is the ONE check that needs no live evidence at all: the track must be
-        # whole_model ("DO NOT RUN 32B ANATOMY") -- structural, enforced before any GPU/Hub call.
-        # A former "--smoke must be present" check also lived here -- REMOVED now that a real
-        # live G1-G8 PASS + strict distributed-v3 solver smoke has actually passed on real
-        # hardware: --smoke and full 32B are gated identically, by live evidence alone, never by
-        # which flag was passed. The runner itself still refuses BOTH unless that evidence
-        # validates for the current invocation.
-        if args.track != "whole_model":
-            print("32B anatomy is not permitted -- only --track whole_model may be attempted.", file=sys.stderr)
-            return 1
+        # exactly as it still does for 72B below) -- both tracks (whole_model / anatomy) are
+        # runnable ONLY through their OWN readiness gate, evaluated with LIVE evidence inside the
+        # respective runner's main() (whole_model: run_stage11_whole_model_scaling.main(); S2
+        # anatomy: run_stage11_coarse_anatomical_atlas_32b.main()) -- the only place an actual
+        # engine/worker exists to gather that evidence. The former "32B anatomy is not permitted"
+        # unconditional block that lived here is REMOVED now that a dedicated, narrow S2 32B
+        # anatomy runner exists with its OWN live-evidence gate (requiring vision/multimodal_
+        # connector_or_merger/language to ALL individually PASS a strict distributed-v3 solver
+        # probe, gathered in one live TP=4 session -- see stage11_32b_s2_live_evidence.py) --
+        # track now selects WHICH runner to delegate to, never a live/readiness decision on its
+        # own (that decision needs real evidence, which only exists inside the runner itself).
+        # --smoke and full are gated identically by live evidence alone, never by which flag was
+        # passed, exactly like the whole_model track already established.
         is_smoke = "--smoke" in remaining
-        print(f"32B whole_model {'smoke' if is_smoke else 'full'} requested -- readiness gates (G1-G8) will be evaluated with live evidence inside the runner before any perturbation starts.")
+        print(f"32B {args.track} {'smoke' if is_smoke else 'full'} requested -- readiness gates will be evaluated with live evidence inside the runner before any perturbation starts.")
     else:
         try:
             ensure_scale_runnable(args.scale)
@@ -120,6 +124,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 0
 
     if args.track == "anatomy":
+        if args.scale == "32B":
+            # NEW, narrow, TP=4-aware S2 runner -- see run_stage11_coarse_anatomical_atlas_32b.py.
+            # Never routes through the 7B anatomy module (that one is TP=1-only by construction).
+            from . import run_stage11_coarse_anatomical_atlas_32b as anatomy_32b
+
+            return anatomy_32b.main(remaining)
         # scale == "7B" (the only other runnable anatomy scale) -- delegate to the EXISTING,
         # already-tested 47-test module, completely unmodified.
         from . import run_stage11_coarse_anatomical_atlas_7b as anatomy_7b

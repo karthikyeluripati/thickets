@@ -32,9 +32,25 @@ def test_dispatcher_32b_whole_model_smoke_dry_run_succeeds():
     assert rc == 0
 
 
-def test_dispatcher_32b_anatomy_is_blocked():
+def test_dispatcher_32b_anatomy_no_longer_hard_blocked_at_the_dispatcher(monkeypatch):
+    """The former unconditional '32B anatomy is not permitted' dispatcher guard is REMOVED now
+    that a dedicated, narrow S2 32B anatomy runner exists (run_stage11_coarse_anatomical_atlas_
+    32b.py) with its OWN live-evidence readiness gate -- the dispatcher's job is now purely to
+    route track=='anatomy'+scale=='32B' to THAT runner, never to decide readiness itself (see
+    test_run_stage11_coarse_anatomical_atlas_32b.py for that runner's own gate behavior).
+    """
+    import neural_thickets_repro.run_stage11_coarse_anatomical_atlas_32b as anatomy_32b
+
+    reached = {}
+
+    def _marker_main(argv=None):
+        reached["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(anatomy_32b, "main", _marker_main)
     rc = dispatcher.main(["--scale", "32B", "--track", "anatomy", "--smoke"])
-    assert rc == 1
+    assert rc == 0
+    assert reached["argv"] == ["--smoke"]
 
 
 def test_dispatcher_32b_without_smoke_no_longer_blocked_at_the_dispatcher(monkeypatch):

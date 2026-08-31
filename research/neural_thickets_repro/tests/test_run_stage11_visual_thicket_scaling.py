@@ -45,14 +45,24 @@ def test_dispatch_blocks_72b_unconditionally(track, capsys):
     assert "not yet enabled" in (captured.out + captured.err).lower() or "NOT in RUNNABLE_SCALES" in (captured.out + captured.err)
 
 
-def test_dispatch_blocks_32b_anatomy_track_regardless_of_smoke(capsys):
-    """32B anatomy (S2) is never permitted through the dispatcher -- structural, needs no live
-    evidence, enforced regardless of --smoke/full ("DO NOT RUN 32B ANATOMY").
+def test_dispatch_32b_anatomy_routes_to_the_dedicated_s2_runner(monkeypatch):
+    """32B anatomy (S2) is no longer hard-blocked at the dispatcher -- it routes to the dedicated,
+    narrow, TP=4-aware run_stage11_coarse_anatomical_atlas_32b runner, which enforces its OWN
+    live-evidence readiness gate (see test_run_stage11_coarse_anatomical_atlas_32b.py) rather than
+    being refused here purely for lacking live evidence at dispatch time.
     """
+    import neural_thickets_repro.run_stage11_coarse_anatomical_atlas_32b as anatomy_32b
+
+    reached = {}
+
+    def _marker(argv=None):
+        reached["argv"] = argv
+        return 0
+
+    monkeypatch.setattr(anatomy_32b, "main", _marker)
     exit_code = dispatcher.main(["--scale", "32B", "--track", "anatomy"])
-    assert exit_code == 1
-    captured = capsys.readouterr()
-    assert "anatomy is not permitted" in (captured.out + captured.err).lower()
+    assert exit_code == 0
+    assert reached["argv"] == []
 
 
 def test_dispatch_no_longer_blocks_32b_whole_model_without_smoke_at_the_dispatcher_level(monkeypatch):
