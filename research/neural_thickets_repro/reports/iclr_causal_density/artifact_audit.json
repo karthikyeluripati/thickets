@@ -1,0 +1,89 @@
+{
+  "audit_date": "2026-08-31",
+  "audited_at_commit": "9305cc8824b2c16a8f73befed3978c0cf96ff7ec",
+  "audit_branch": "iclr-causal-density-pilot",
+  "environment": {
+    "working_directory": "c:/Users/karth/OneDrive/Desktop/projects/thickets_iclr_causal_density/research/neural_thickets_repro",
+    "platform": "win32 (MINGW64)",
+    "workspace_path_exists": false,
+    "gpu_available": false,
+    "nvidia_smi_available": false,
+    "note": "The task's stated working directory (/workspace/thickets/research/neural_thickets_repro) does not exist on this machine. This is a local Windows development environment with no GPU, no /workspace mount, and no live pod connection -- confirmed by direct probe (ls /workspace, nvidia-smi), not assumed."
+  },
+  "existing_perturbation_outputs": [
+    {
+      "path": "results/stage7b_anatomical_calibration",
+      "reusable": false,
+      "reason": "Different perturbation scope taxonomy (Stage 7B's own full-model/L1-region calibration scopes, not scopes.py's vision_encoder/full_lm/full_vlm), different radii, different (or no) 3-condition (correct/shuffled/text-only) evaluation."
+    },
+    {
+      "path": "results/stage8_coarse_anatomical_atlas",
+      "reusable": false,
+      "reason": "Uses anatomical_relative_l2 perturbation over L1 anatomy regions (vision/multimodal_connector_or_merger/language), not scopes.py's vision_encoder/full_lm/full_vlm scope taxonomy. Different radii (0.0035698828543799426/0.017849414271899712/0.07139765708759885, not 0.02/0.04). 6 capabilities, only 4 overlap this pilot's 5 (visual_grounding, spatial_reasoning, relational_reasoning; ocr_text_recognition_grounded is a DIFFERENT adapter/dataset config than this pilot's ocr_text_recognition/TextVQA). No correct/shuffled/text-only 3-condition evaluation at all -- correct-image only."
+    },
+    {
+      "path": "results/stage9_hierarchical_anatomical_atlas",
+      "reusable": false,
+      "reason": "Same scope/capability/radius/condition mismatches as Stage 8 (this module extends Stage 8's design to L2 depth bands, not scopes.py's taxonomy)."
+    },
+    {
+      "path": "results/stage11_visual_thicket_scaling_analysis",
+      "reusable": false,
+      "reason": "Cross-scale (3B/7B) whole_model + L1-anatomy analysis outputs, same anatomical_relative_l2 scope taxonomy mismatch as Stage 8/9/11-7B. No correct/shuffled/text-only conditions."
+    },
+    {
+      "path": "results/visual_thicket_global_3b_pilot",
+      "reusable": false,
+      "reason": "3B-only (this pilot is 7B-only per task spec), global_gaussian_upstream perturbation semantics (explicitly skips visual.* parameters -- disqualified as a whole-model anchor per scaling_common.WHOLE_MODEL_HISTORICAL_DISQUALIFICATION_NOTE), not scopes.py's relative_l2 scoped taxonomy."
+    }
+  ],
+  "existing_scoped_perturbation_infrastructure": {
+    "run_scoped_randopt.py": {
+      "exists": true,
+      "executed": false,
+      "evidence_of_non_execution": "Module's own docstring: 'PREPARES ONLY -- not executed by us here (no GPU on this machine)... this milestone authorizes only diagnostics/scope_isolation_gpu_check.py, never this script's own candidate search.' No results directory matching *scoped* found under results/.",
+      "reusable_as_data": false,
+      "reusable_as_code": true,
+      "reuse_note": "The correct scope taxonomy (vision_encoder/full_lm/full_vlm), relative_l2 scale mode, and per-candidate perturb->evaluate->restore RPC pattern are validated CODE this pilot's evaluator.py reuses/mirrors, but produce zero reusable result rows -- single-capability (GQA only) per invocation, correct-image scoring only, no audit/selection split, no shuffled/text-only conditions."
+    },
+    "scopes.py": {
+      "exists": true, "reusable_as_code": true,
+      "note": "vision_encoder, full_lm, full_vlm scopes already canonically defined with build_scope_manifest/compute_relative_l2_sigma -- reused unmodified, parameters never redefined by this pilot."
+    },
+    "benchmarks/image_sanity.py": {
+      "exists": true, "reusable_as_code": true, "reusable_as_data": false,
+      "note": "make_shuffled_variant/make_text_only_variant/run_image_sanity_check already validated as a small-N (default 40) wiring-check tool -- reused unmodified by this pilot's shuffle_manifest.py/evaluator.py, but no persisted image_sanity.json/predictions found anywhere under results/ for any of the 5 target capabilities -- never run at this pilot's selection/audit-set scale (N=200 each), and never combined with per-candidate perturbation."
+    },
+    "diagnostics/scope_isolation_gpu_check.py": {
+      "exists": true, "executed": false,
+      "evidence_of_non_execution": "No results/scope_diagnosis or *scope_isolation* files found anywhere in the repository.",
+      "note": "The ONE GPU mechanical isolation validation this pilot's evaluator.py treats as a REQUIRED PRECONDITION (per candidate, scope_isolation_verification_ok is set from this check's persisted PASS result for the candidate's scope, never re-diffed per candidate) has never actually been run. It MUST be run and confirmed PASS for vision_encoder, full_lm, and full_vlm on real TP hardware before any Phase-6 candidate in that scope can be evaluated."
+    }
+  },
+  "benchmark_capability_configs": {
+    "visual_grounding.yaml": "present",
+    "counting.yaml": "present",
+    "ocr_text_recognition.yaml": "present",
+    "spatial_reasoning.yaml": "present",
+    "relational_reasoning.yaml": "present",
+    "note": "All five capability configs required by the preregistered design already exist under configs/benchmarks/. Exact pool sizes (needed for the 400-disjoint-example Phase-2 gate) cannot be confirmed without a live dataset load, which is a Phase-2 (build-time) step, not a Phase-0 audit step, and requires network/dataset access this offline audit does not attempt."
+  },
+  "base_model_image_sanity_outputs": {
+    "found": false,
+    "search_performed": "find results/ -iname '*image_sanity*'",
+    "note": "No prior base-model or per-perturbation image-sanity output exists anywhere in the repository for any capability."
+  },
+  "per_perturbation_real_image_outputs": {
+    "found": false,
+    "note": "No existing scope-perturbed (vision_encoder/full_lm/full_vlm, relative_l2) result rows exist for any of the 5 target capabilities."
+  },
+  "genuine_shuffled_or_text_only_per_candidate_outputs": {
+    "found": false,
+    "note": "No per-candidate shuffled-image or text-only evaluation has ever been persisted -- image_sanity.py has only ever been exercised (if at all) as a standalone base-model wiring check, never combined with a candidate's own perturbed weight state."
+  },
+  "candidate_regeneration_check": {
+    "regenerable": "not_applicable",
+    "reason": "No candidate rows exist to attempt regeneration of."
+  },
+  "conclusion": "No existing artifact anywhere in this repository satisfies the reuse bar (candidate identity, model revision, seeds, samples, prompts, decoding, scope, radius, and schema all exact) for this pilot's design. All reusable material is VALIDATED, UNEXECUTED CODE (scopes.py, image_sanity.py, run_scoped_randopt.py's RPC pattern, the 5 capability adapters/configs) -- zero reusable result data. This pilot's evaluator therefore builds a NEW, isolated candidate population and result schema from scratch, reusing only the code-level primitives above."
+}
