@@ -331,16 +331,30 @@ def main(argv=None) -> int:
         # even at 0.60, the value that fixes every OTHER real-model script in this repo).
         # launch_stage6_engine is this repo's own, already-established, already-validated fix
         # for exactly this failure mode (see its own docstring's "Deliberately does NOT call
-        # launch_engines()" section) -- STAGE6_GPU_MEMORY_UTILIZATION (0.60) + STAGE6_MAX_
-        # MODEL_LEN (4096, irrelevant to correctness here since this diagnostic never
-        # generates text at all -- pure weight-level check) fit comfortably on one L40S.
+        # launch_engines()" section) -- STAGE6_MAX_MODEL_LEN (4096, irrelevant to correctness
+        # here since this diagnostic never generates text at all -- pure weight-level check).
         # Mirrors launch_engines' own single-engine (TP=1) return shape ([engine], [pg]), so
         # cleanup_engines (still imported from external/RandOpt, unmodified) works unchanged.
         # UNLIKE launch_engines, this does NOT auto-store base weights on creation -- done
         # explicitly below, exactly once, before this diagnostic's own snapshot/perturb/reset
         # cycle (which relies on the upstream, string-dispatched "reset_to_base_weights" RPC
         # already having a base to reset to).
-        engines, pgs = launch_stage6_engine(model_path, precision=cfg.model.precision, tensor_parallel_size=1)
+        #
+        # gpu_memory_utilization=0.40 (NOT Stage6's own 0.60 default): confirmed live -- even
+        # after fixing the two OOMs above, scoped_apply_perturbation's own delta.detach().
+        # float().pow(2).sum() (an UNCHUNKED float32 upcast, per selected tensor -- this
+        # diagnostic's job is only to verify ISOLATION, never to touch scoped_perturbation.py's
+        # own arithmetic) still OOM'd on the largest scope (full_vlm/full_lm's largest tensor,
+        # e.g. lm_head/embed_tokens, ~2GB in bf16) once weights (15.6GB) + upstream's
+        # _base_weights clone (another ~15.6GB, store_base_weights_via_rpc above) + Stage6's
+        # own 0.60-sized KV-cache reservation (7.67GB) had already consumed ~39GB of the
+        # 44.4GB usable card, leaving too little headroom. This diagnostic NEVER calls
+        # engine.generate() at all (pure weight-level check -- see module docstring), so its
+        # KV cache is pure overhead; shrinking gpu_memory_utilization to 0.40 (weights fit at
+        # ~0.36; 0.40 leaves a small, sufficient KV-cache margin for vLLM's own minimum) frees
+        # the needed headroom for the diagnostic's transient per-tensor perturbation work
+        # without touching scoped_perturbation.py's own (unmodified) arithmetic at all.
+        engines, pgs = launch_stage6_engine(model_path, precision=cfg.model.precision, tensor_parallel_size=1, gpu_memory_utilization=0.40)
         engine = engines[0]
         try:
             store_base_weights_via_rpc(engine)
