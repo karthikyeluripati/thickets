@@ -308,14 +308,18 @@ def test_main_uses_reduced_gpu_memory_utilization_for_the_diagnostics_own_headro
     own 0.60 KV-cache reservation is pure overhead here -- confirmed live: even after fixing
     the engine-launch and _base_weights-reuse OOMs, scoped_apply_perturbation's own transient
     per-tensor float32 upcast still OOM'd on the largest scope's largest tensor at 0.60. 0.40
-    frees the needed headroom without touching scoped_perturbation.py's own arithmetic.
+    (the first attempt) went too far the other way -- vLLM itself refused to start ("No
+    available memory for the cache blocks") since weights + vLLM's own fixed activation
+    overhead alone already exceed a 0.40 budget. 0.50 -- the bisection between the two
+    confirmed failure points -- frees the needed headroom without touching scoped_
+    perturbation.py's own arithmetic.
     """
     import inspect
 
     from neural_thickets_repro.diagnostics import scope_isolation_gpu_check as module
 
     source = inspect.getsource(module.main)
-    assert "gpu_memory_utilization=0.40" in source
+    assert "gpu_memory_utilization=0.50" in source
 
 
 def test_main_module_imports_launch_stage6_engine_from_the_local_package_not_external():

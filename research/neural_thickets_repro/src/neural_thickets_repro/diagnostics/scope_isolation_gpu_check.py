@@ -340,21 +340,22 @@ def main(argv=None) -> int:
         # cycle (which relies on the upstream, string-dispatched "reset_to_base_weights" RPC
         # already having a base to reset to).
         #
-        # gpu_memory_utilization=0.40 (NOT Stage6's own 0.60 default): confirmed live -- even
-        # after fixing the two OOMs above, scoped_apply_perturbation's own delta.detach().
-        # float().pow(2).sum() (an UNCHUNKED float32 upcast, per selected tensor -- this
-        # diagnostic's job is only to verify ISOLATION, never to touch scoped_perturbation.py's
-        # own arithmetic) still OOM'd on the largest scope (full_vlm/full_lm's largest tensor,
-        # e.g. lm_head/embed_tokens, ~2GB in bf16) once weights (15.6GB) + upstream's
-        # _base_weights clone (another ~15.6GB, store_base_weights_via_rpc above) + Stage6's
-        # own 0.60-sized KV-cache reservation (7.67GB) had already consumed ~39GB of the
-        # 44.4GB usable card, leaving too little headroom. This diagnostic NEVER calls
-        # engine.generate() at all (pure weight-level check -- see module docstring), so its
-        # KV cache is pure overhead; shrinking gpu_memory_utilization to 0.40 (weights fit at
-        # ~0.36; 0.40 leaves a small, sufficient KV-cache margin for vLLM's own minimum) frees
-        # the needed headroom for the diagnostic's transient per-tensor perturbation work
-        # without touching scoped_perturbation.py's own (unmodified) arithmetic at all.
-        engines, pgs = launch_stage6_engine(model_path, precision=cfg.model.precision, tensor_parallel_size=1, gpu_memory_utilization=0.40)
+        # gpu_memory_utilization=0.50 (NOT Stage6's own 0.60 default, and NOT this fix's own
+        # first attempt at 0.40): confirmed live, both directions --
+        #   - 0.60: OOM'd inside scoped_apply_perturbation's own (unmodified) delta.detach().
+        #     float().pow(2).sum() on the largest scope's largest tensor once weights (15.6GB)
+        #     + upstream's _base_weights clone (another ~15.6GB) + a 0.60-sized KV-cache
+        #     reservation (7.67GB) had already consumed ~39GB of the 44.4GB usable card.
+        #   - 0.40: vLLM itself refused to start ("No available memory for the cache blocks")
+        #     -- weights (15.6GB) plus vLLM's own ~3.4GB fixed activation/workspace overhead
+        #     already exceed a 0.40 budget (17.76GB) before any KV cache is even allocated.
+        # This diagnostic NEVER calls engine.generate() (pure weight-level check -- see module
+        # docstring), so its KV cache is pure overhead it should minimize, but vLLM still needs
+        # a nonzero minimum -- 0.50 (22.2GB: weights + a real, if small, KV cache) is the
+        # bisection between the two confirmed failure points, leaving ~22.2GB outside vLLM's
+        # own reservation for this diagnostic's own base_weights clone + transient perturbation
+        # work, without touching scoped_perturbation.py's own (unmodified) arithmetic at all.
+        engines, pgs = launch_stage6_engine(model_path, precision=cfg.model.precision, tensor_parallel_size=1, gpu_memory_utilization=0.50)
         engine = engines[0]
         try:
             store_base_weights_via_rpc(engine)
