@@ -37,6 +37,15 @@ _FORBIDDEN_32B_72B_SUBSTRINGS = (
     "--scale 32B", "--scale 72B", "32B", "72B",
 )
 
+# Live fix (image-token-overflow bug, first exposed by a high-resolution TextVQA audit image
+# producing a 16,215-token prompt against the frozen max_model_len=4096 budget): caps Qwen2.5-VL's
+# own smart-resize vision-token count via the standard `max_pixels` processor kwarg. 1024*28*28
+# pixels -> 1024 merged-patch-grid cells -> 256 vision tokens after the model's 2x2 spatial merge,
+# leaving ample headroom under 4096 for prompt text + generation on every capability's questions.
+# This does NOT change max_model_len, any scoring/perturbation logic, or any frozen design constant
+# -- it only bounds how large an input image vLLM's processor is allowed to tokenize.
+QWEN2_5_VL_MAX_PIXELS = 1024 * 28 * 28
+
 
 def _ensure_no_32b_72b_in_argv(argv: Optional[Sequence[str]]) -> None:
     if not argv:
@@ -246,7 +255,11 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     engines, pgs = None, None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
-        engines, pgs = launch_stage6_engine(resolved_snapshot_path, precision="bfloat16", tensor_parallel_size=1, gpu_memory_utilization=args.gpu_memory_utilization)
+        engines, pgs = launch_stage6_engine(
+            resolved_snapshot_path, precision="bfloat16", tensor_parallel_size=1,
+            gpu_memory_utilization=args.gpu_memory_utilization,
+            mm_processor_kwargs={"max_pixels": QWEN2_5_VL_MAX_PIXELS},
+        )
         engine = engines[0]
         store_base_weights_via_rpc(engine)
         print("Confirmed working CPU/GPU base snapshot (store_base_weights_via_rpc).", flush=True)

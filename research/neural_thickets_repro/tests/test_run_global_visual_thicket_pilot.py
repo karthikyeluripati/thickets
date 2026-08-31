@@ -1184,6 +1184,32 @@ def test_launch_stage6_engine_passes_enable_prefix_caching_when_explicitly_set(m
     assert remote_actor_calls[0]["enable_prefix_caching"] is False
 
 
+def test_launch_stage6_engine_never_passes_mm_processor_kwargs_by_default(monkeypatch):
+    """ICLR causal-density-pilot repair pass: mm_processor_kwargs must be entirely ABSENT from
+    engine_kwargs (not merely None) unless a caller explicitly opts in -- every existing (Stage 6,
+    Stage 7B) caller's behavior stays byte-identical to before this parameter existed.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    launch_stage6_engine("/fake/snapshot/path")
+    assert "mm_processor_kwargs" not in remote_actor_calls[0]
+
+
+def test_launch_stage6_engine_passes_mm_processor_kwargs_when_explicitly_set(monkeypatch):
+    """The additive ICLR causal-density-pilot override: an explicit mm_processor_kwargs dict
+    (e.g. {"max_pixels": ...}, the fix for the live TextVQA image-token-overflow bug) must reach
+    engine_kwargs unchanged.
+    """
+    from neural_thickets_repro.run_global_visual_thicket_pilot import launch_stage6_engine
+
+    remote_actor_calls = []
+    _install_fake_ray_and_core_engine(monkeypatch, remote_actor_calls)
+    launch_stage6_engine("/fake/snapshot/path", mm_processor_kwargs={"max_pixels": 802816})
+    assert remote_actor_calls[0]["mm_processor_kwargs"] == {"max_pixels": 802816}
+
+
 # --- dry-run CLI ---------------------------------------------------------------------------------
 
 

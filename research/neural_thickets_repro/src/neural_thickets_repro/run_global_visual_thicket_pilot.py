@@ -1094,7 +1094,7 @@ def write_paper_summary(output_dir: Path) -> Dict[str, Any]:
 def launch_stage6_engine(
     model_path: str, *, precision: str = "bfloat16", gpu_memory_utilization: float = STAGE6_GPU_MEMORY_UTILIZATION,
     max_model_len: int = STAGE6_MAX_MODEL_LEN, tensor_parallel_size: int = 1,
-    enable_prefix_caching: Optional[bool] = None,
+    enable_prefix_caching: Optional[bool] = None, mm_processor_kwargs: Optional[dict] = None,
 ) -> Tuple[list, list]:
     """Stage-6-specific single-engine Ray/vLLM launcher -- an INDEPENDENT, from-scratch
     function in OUR OWN package (external/RandOpt is not modified or subclassed on disk in
@@ -1128,6 +1128,18 @@ def launch_stage6_engine(
     unsafe across Stage 7B's weight-mutation candidate loop (a hazard Stage 6 does not share,
     since Stage 6 never mutates weights mid-run in the same repeated apply/evaluate/restore
     cycle) -- disabling it entirely is preferred over resetting it candidate-by-candidate.
+
+    `mm_processor_kwargs` (ICLR causal-density-pilot repair pass, image-token-overflow fix):
+    ADDITIVE, opt-in override -- identical shape to `enable_prefix_caching` above. `None` (the
+    default, and the only value every caller before this repair pass ever passed) omits the key
+    from `engine_kwargs` entirely, leaving vLLM's own multimodal-processor default exactly as
+    before; every EXISTING caller's behavior is therefore byte-identical to before this parameter
+    existed. The causal-density pilot's own live script passes an explicit `{"max_pixels": ...}`
+    here: a high-resolution TextVQA image was observed live to produce a 16,215-token prompt
+    against the frozen `max_model_len=4096` budget (`ValueError: The decoder prompt ... is longer
+    than the maximum model length`) -- capping `max_pixels` bounds Qwen2.5-VL's own smart-resize
+    vision-token count so every prompt fits, without changing `max_model_len` itself or any other
+    frozen scientific parameter.
     """
     import ray
     from ray.util.placement_group import placement_group
@@ -1158,6 +1170,8 @@ def launch_stage6_engine(
     )
     if enable_prefix_caching is not None:
         engine_kwargs["enable_prefix_caching"] = enable_prefix_caching
+    if mm_processor_kwargs is not None:
+        engine_kwargs["mm_processor_kwargs"] = mm_processor_kwargs
     engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(RandOptNcclLLM).remote(**engine_kwargs)
 
     # Deliberately NOT calling collective_rpc("store_base_weights") here -- main() does it

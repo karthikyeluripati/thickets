@@ -51,6 +51,18 @@ def test_model_name_bound_in_main_is_the_frozen_7b_design():
     assert "32B" not in FROZEN_DESIGN.model_name and "72B" not in FROZEN_DESIGN.model_name
 
 
+def test_main_passes_max_pixels_via_mm_processor_kwargs_at_engine_launch():
+    """Live regression (caught mid-run on the pod): a high-resolution TextVQA audit image
+    produced a 16,215-token prompt against the frozen max_model_len=4096 budget. main() must cap
+    Qwen2.5-VL's own vision-token count via mm_processor_kwargs={"max_pixels": ...} at the
+    launch_stage6_engine call site, without changing max_model_len or any other frozen constant.
+    """
+    source = inspect.getsource(live_module.main)
+    assert "mm_processor_kwargs" in source
+    assert "QWEN2_5_VL_MAX_PIXELS" in source
+    assert live_module.QWEN2_5_VL_MAX_PIXELS == 1024 * 28 * 28
+
+
 # =================================================================================================
 # evaluate_base_control_gate -- pure logic, no GPU
 # =================================================================================================
