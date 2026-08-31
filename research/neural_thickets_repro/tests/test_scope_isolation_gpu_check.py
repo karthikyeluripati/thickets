@@ -21,7 +21,14 @@ from neural_thickets_repro.scopes import PERTURBATION_SCOPES, build_scope_manife
 
 
 def _fake_worker(model):
-    return SimpleNamespace(model_runner=SimpleNamespace(model=model))
+    """_diag_snapshot_base now ALIASES worker_self._base_weights (upstream's own
+    store_base_weights() clone) rather than making its own separate copy -- see that
+    function's own docstring for why (a third full-size GPU-resident clone genuinely OOMs a
+    48GB L40S at 7B). Every fake worker here therefore comes pre-populated with a
+    `_base_weights` dict shaped exactly like upstream's real store_base_weights() would build
+    it (name -> cloned tensor, named_parameters()-derived, never buffers).
+    """
+    return SimpleNamespace(model_runner=SimpleNamespace(model=model), _base_weights={n: p.data.clone() for n, p in model.named_parameters()})
 
 
 def test_diag_snapshot_base_stores_full_state(runtime_wrapped_vlm_factory):
@@ -29,7 +36,14 @@ def test_diag_snapshot_base_stores_full_state(runtime_wrapped_vlm_factory):
     worker = _fake_worker(model)
     msg = _diag_snapshot_base(worker)
     assert hasattr(worker, "_scope_diag_base_state")
+    assert worker._scope_diag_base_state is worker._base_weights  # aliased, not a separate clone
     assert str(len(worker._scope_diag_base_state)) in msg
+
+
+def test_diag_snapshot_base_requires_base_weights_first():
+    worker = SimpleNamespace(model_runner=SimpleNamespace(model=None))  # no _base_weights set
+    with pytest.raises(RuntimeError, match="no _base_weights"):
+        _diag_snapshot_base(worker)
 
 
 def test_diag_report_all_scopes_covers_every_registered_scope(runtime_wrapped_vlm_32vision_factory):

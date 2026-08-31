@@ -85,9 +85,26 @@ def _try_named_parameters_no_duplicate(model):
 
 
 def _diag_snapshot_base(worker_self) -> str:
-    model = worker_self.model_runner.model
-    worker_self._scope_diag_base_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
-    return f"snapshotted {len(worker_self._scope_diag_base_state)} tensors"
+    """ALIASES worker_self._base_weights (upstream's own store_base_weights() clone, already
+    required to exist -- store_base_weights_via_rpc is called once in main() before this) as
+    worker_self._scope_diag_base_state, rather than making a SEPARATE GPU-resident full clone
+    of the model's state_dict. A third full-size (~15GB at 7B) copy of the weights -- on top
+    of the live model's own weights and upstream's _base_weights clone -- genuinely does not
+    fit a single 48GB L40S at 7B (confirmed live: torch.OutOfMemoryError during this exact
+    clone). upstream's own store_base_weights() already clones every named_parameter()
+    (never buffers) via p.data.clone() -- the identical values/tensors this diagnostic needs
+    for drift comparison, so reusing that object is correct, not merely convenient. The one
+    real difference from the previous state_dict()-based snapshot: buffers (e.g. any
+    registered-but-non-trainable tensors) are no longer covered by the drift checks below --
+    acceptable because neither scoped_apply_perturbation nor reset_to_base_weights ever
+    touches buffers either (both iterate named_parameters()-derived name sets only), so a
+    buffer's drift could never actually change via either mechanism this diagnostic exists to
+    verify in the first place.
+    """
+    if not hasattr(worker_self, "_base_weights"):
+        raise RuntimeError("_diag_snapshot_base: worker_self has no _base_weights -- store_base_weights_via_rpc must be called first.")
+    worker_self._scope_diag_base_state = worker_self._base_weights
+    return f"aliased {len(worker_self._scope_diag_base_state)} tensors from upstream's own store_base_weights() clone"
 
 
 def _diag_report_all_scopes(worker_self) -> Dict:
