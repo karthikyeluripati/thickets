@@ -1,0 +1,59 @@
+# Scope-isolation GPU mechanical validation config -- points diagnostics/scope_isolation_gpu_
+# check.py at the SAME Qwen2.5-VL-7B-Instruct model the frozen iclr_causal_density
+# preregistration.md uses (reports/iclr_causal_density/preregistration.md), rather than
+# gqa_repro.yaml own 3B default. model.revision is the LIVE-resolved immutable commit SHA
+# (resolve_immutable_model_revision, "main" -> cc594898137f460bfe9f0759e9844b3ce807cfb5,
+# resolved on this pod at Step 7 of the causal-density pilot execution) -- never hand-typed,
+# matching this project own never-invent-a-SHA discipline. Every other field (dataset/randopt/
+# evaluation/gates) is copied UNCHANGED from configs/gqa_repro.yaml because this diagnostic
+# only touches model.name/model.revision/model.precision/hardware.min_free_disk_gb -- it never
+# runs any GQA generation/scoring at all (pure weight-level check).
+experiment: neural_thickets_gqa_reproduction
+
+model:
+  name: Qwen/Qwen2.5-VL-7B-Instruct
+  revision: cc594898137f460bfe9f0759e9844b3ce807cfb5  # resolve_immutable_model_revision("Qwen/Qwen2.5-VL-7B-Instruct", "main"), resolved live on this pod for this run
+  architecture: Qwen2_5_VLForConditionalGeneration
+  precision: bfloat16
+
+dataset:
+  name: GQA
+  source: lmms-lab-encoder/GQA
+  revision: a6e72d6e1b912da88af8b2f9eba05d5ea8ec2dd8
+  selection_split: train_balanced_instructions[:200]+train_balanced_images
+  test_split: testdev_balanced_instructions+testdev_balanced_images
+  selection_set_size: 200
+  test_set_size: 12578
+
+randopt:
+  N: 5000
+  K: 50
+  sigmas: null
+  sigma_candidates:
+    sigma_default: [0.0001, 0.0005, 0.001, 0.002, 0.005, 0.01]
+    sigma_example_scripts: [0.0005, 0.001, 0.002]
+    sigma_appendix_e3: [0.005]
+  perturbation_distribution: gaussian
+  perturbation_scope: language_model_only
+  freeze_visual_encoder: true
+  visual_param_prefixes: ["visual.", "model.visual."]
+
+evaluation:
+  answer_normalization: gqa_flexible_match
+  decoding: greedy
+  max_tokens: 256
+  voting: majority
+  tie_break: first_by_selection_score
+
+reproducibility:
+  global_seed: 42
+
+gates:
+  baseline_tolerance_pp:
+    proceed_at_most: 1.0
+    investigate_at_most: 3.0
+  require_gate1_before_gate2: true
+  require_gate2_before_gate3: true
+
+hardware:
+  min_free_disk_gb: 25
