@@ -263,7 +263,13 @@ def main(argv=None) -> int:
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
 
-        engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True)
+        # gpu_memory_utilization=0.60 (not launch_engines' own 0.75 default): the same L40S-
+        # 48GB OOM fix already established and documented throughout this repo (see
+        # run_global_visual_thicket_pilot.py's own STAGE6_GPU_MEMORY_UTILIZATION comment --
+        # "OOM on an L40S at gpu_memory_utilization=0.75") -- this diagnostic simply predates
+        # that fix having been applied here. Purely a memory-allocation parameter; no scope-
+        # isolation/perturbation/scientific semantics are touched.
+        engines, pgs = launch_engines(1, model_path, precision=cfg.model.precision, tensor_parallel_size=1, multimodal=True, gpu_memory_utilization=0.60)
         engine = engines[0]
         try:
             print("Snapshotting base parameters (diagnostic-only, in-worker)...")

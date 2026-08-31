@@ -204,3 +204,16 @@ def test_main_covers_all_three_iclr_causal_density_preregistered_scopes():
         assert f'_run_isolation_test(engine, "{label}", "{scope}")' in source, f"Test {label} ({scope}) missing from main()"
     assert "test_h" in source and "test_i" in source
     assert "overall_pass = all(t[\"pass\"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g, test_h, test_i))" in source
+
+
+def test_main_uses_the_established_l40s_gpu_memory_utilization():
+    """launch_engines' own default (0.75) OOMs a 7B model's KV cache on a 48GB L40S -- this
+    diagnostic must use the same 0.60 fix already established and documented elsewhere in this
+    repo (run_global_visual_thicket_pilot.STAGE6_GPU_MEMORY_UTILIZATION), never the bare default.
+    """
+    import inspect
+
+    from neural_thickets_repro.diagnostics import scope_isolation_gpu_check as module
+
+    source = inspect.getsource(module.main)
+    assert "gpu_memory_utilization=0.60" in source
