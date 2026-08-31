@@ -128,8 +128,8 @@ def _load_capability_pool_and_frozen_subsets(cap: str, adapter, cfg, persisted_s
     }
 
 
-def _score_condition(run_benchmark, benchmark, examples, llm_adapter, tokenizer, sampling_params, generation_batch_size: int) -> Dict[str, Any]:
-    result = run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, max_requests_per_generate=generation_batch_size)
+def _score_condition(run_benchmark, benchmark, examples, llm_adapter, tokenizer, sampling_params, generation_batch_size: int, *, allow_missing_image: bool = False) -> Dict[str, Any]:
+    result = run_benchmark(benchmark, examples, llm_adapter, tokenizer, sampling_params, allow_missing_image=allow_missing_image, max_requests_per_generate=generation_batch_size)
     return {
         "aggregate_score": result.aggregate_metrics["primary_metric"],
         "parser_failure_rate": result.aggregate_metrics.get("parser_failure_rate"),
@@ -158,7 +158,10 @@ def run_base_control_gate(engine, capability_frozen_data: Dict[str, Dict[str, An
                     cap_report[f"{subset_role}:{condition}"] = None
                     continue
                 print(f"[base-control] {cap} {subset_role} {condition} (n={len(examples)})...", flush=True)
-                cap_report[f"{subset_role}:{condition}"] = _score_condition(run_benchmark, adapter, examples, llm_adapter, tokenizer, sampling_params, generation_batch_size)
+                cap_report[f"{subset_role}:{condition}"] = _score_condition(
+                    run_benchmark, adapter, examples, llm_adapter, tokenizer, sampling_params, generation_batch_size,
+                    allow_missing_image=(condition == "text_only"),
+                )
         report[cap] = cap_report
     return report
 

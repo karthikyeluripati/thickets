@@ -107,6 +107,69 @@ def test_base_control_gate_handles_capability_without_text_only_support():
     assert gate["pass"] is True
 
 
+def test_score_condition_passes_allow_missing_image_only_for_text_only():
+    """Live regression (caught mid-run on the pod): _score_condition must pass
+    allow_missing_image=True to run_benchmark ONLY for the text_only condition -- a text-only
+    Example legitimately has image=None (benchmarks.image_sanity.make_text_only_variant), and
+    run_benchmark hard-raises MissingImageError unless explicitly told to allow it.
+    """
+    calls = []
+
+    def _fake_run_benchmark(benchmark, examples, llm, tokenizer, sampling_params, allow_missing_image=False, max_requests_per_generate=None):
+        calls.append(allow_missing_image)
+
+        class _FakeResult:
+            aggregate_metrics = {"primary_metric": 0.5, "parser_failure_rate": 0.0}
+            per_example = []
+
+            def generation_hash(self):
+                return "h"
+
+        return _FakeResult()
+
+    live_module._score_condition(_fake_run_benchmark, object(), [], object(), object(), object(), 10, allow_missing_image=False)
+    live_module._score_condition(_fake_run_benchmark, object(), [], object(), object(), object(), 10, allow_missing_image=True)
+    assert calls == [False, True]
+
+
+def test_run_base_control_gate_calls_text_only_condition_with_allow_missing_image_true(monkeypatch):
+    calls = []
+
+    def _fake_run_benchmark(benchmark, examples, llm, tokenizer, sampling_params, allow_missing_image=False, max_requests_per_generate=None):
+        calls.append((examples, allow_missing_image))
+
+        class _FakeResult:
+            aggregate_metrics = {"primary_metric": 0.5, "parser_failure_rate": 0.0}
+            per_example = []
+
+            def generation_hash(self):
+                return "h"
+
+        return _FakeResult()
+
+    class _FakeAdapter:
+        pass
+
+    class _FakeRayEngineLLMAdapter:
+        def __init__(self, engine):
+            pass
+
+    monkeypatch.setattr("neural_thickets_repro.run_global_visual_thicket_pilot.RayEngineLLMAdapter", _FakeRayEngineLLMAdapter)
+
+    data = {
+        "cap1": {
+            "selection_correct": ["a"], "selection_shuffled": ["b"], "selection_text_only": ["c"],
+            "audit_correct": ["d"], "audit_shuffled": ["e"], "audit_text_only": ["f"],
+        }
+    }
+    live_module.run_base_control_gate(object(), data, {"cap1": _FakeAdapter()}, object(), object(), generation_batch_size=10, run_benchmark=_fake_run_benchmark)
+    text_only_calls = [c for c in calls if c[0] in (["c"], ["f"])]
+    assert len(text_only_calls) == 2
+    assert all(allow_missing for _, allow_missing in text_only_calls)
+    non_text_only_calls = [c for c in calls if c[0] not in (["c"], ["f"])]
+    assert all(not allow_missing for _, allow_missing in non_text_only_calls)
+
+
 def test_base_control_gate_fails_on_missing_result():
     report = {"counting": {"selection:correct_image": None, "selection:shuffled_image": _cond(0.2), "selection:text_only": None, "audit:correct_image": _cond(0.5), "audit:shuffled_image": _cond(0.1), "audit:text_only": None}}
     gate = live_module.evaluate_base_control_gate(report)
