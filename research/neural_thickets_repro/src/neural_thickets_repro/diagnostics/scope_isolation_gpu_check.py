@@ -38,6 +38,12 @@ Tests F/G (vision_late_a / vision_late_b): same helper again, for the finer 5/5 
 vision_late added for the vision_late sub-scope milestone (see SCOPED_PERTURBATION_DESIGN.md
 "vision_late sub-scopes" addendum).
 
+Tests H/I (full_lm / full_vlm): same helper again -- the remaining two of the isolated
+iclr_causal_density pilot's three preregistered scopes (vision_encoder is already Test A;
+reports/iclr_causal_density/preregistration.md). This diagnostic's overall PASS is the
+required precondition that pilot's own paired-condition evaluator checks before evaluating
+any candidate in a given scope (see iclr_causal_density/evaluator.py's own docstring).
+
 Drift measurement reuses diagnostics/perturb_restore_drift.py's already-unit-tested
 measure_drift (extended with an optional param_filter for exactly this in-scope/
 out-of-scope split) rather than a third reimplementation of the same math.
@@ -292,13 +298,21 @@ def main(argv=None) -> int:
             # new diagnostic framework.
             test_f = _run_isolation_test(engine, "F", "vision_late_a")
             test_g = _run_isolation_test(engine, "G", "vision_late_b")
+            # H/I: the iclr_causal_density pilot's own two remaining preregistered scopes
+            # (vision_encoder above already covers its third) -- additive, same unmodified
+            # _run_isolation_test helper, never a new diagnostic framework or a changed
+            # tolerance. Required as this pilot's own scope-isolation precondition (see
+            # evaluator.py's own docstring: this diagnostic's PASS is the precondition every
+            # candidate in a scope checks before being evaluated, never re-diffed per candidate).
+            test_h = _run_isolation_test(engine, "H", "full_lm")
+            test_i = _run_isolation_test(engine, "I", "full_vlm")
         finally:
             cleanup_engines(engines, pgs)
     finally:
         if engines is None and ray_owned_by_us and ray.is_initialized():
             ray.shutdown()
 
-    overall_pass = all(t["pass"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g))
+    overall_pass = all(t["pass"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g, test_h, test_i))
     report = {
         "pre_perturbation_report": pre_report,
         "test_seed": TEST_SEED,
@@ -310,6 +324,8 @@ def main(argv=None) -> int:
         "test_e_vision_late": test_e,
         "test_f_vision_late_a": test_f,
         "test_g_vision_late_b": test_g,
+        "test_h_full_lm": test_h,
+        "test_i_full_vlm": test_i,
         "overall": "PASS" if overall_pass else "FAIL",
     }
 
@@ -325,6 +341,8 @@ def main(argv=None) -> int:
     print(f"Test E (vision_late): {'PASS' if test_e['pass'] else 'FAIL'}")
     print(f"Test F (vision_late_a): {'PASS' if test_f['pass'] else 'FAIL'}")
     print(f"Test G (vision_late_b): {'PASS' if test_g['pass'] else 'FAIL'}")
+    print(f"Test H (full_lm): {'PASS' if test_h['pass'] else 'FAIL'}")
+    print(f"Test I (full_vlm): {'PASS' if test_i['pass'] else 'FAIL'}")
     if not overall_pass:
         print(
             "This is a mechanical scope-isolation check only -- it does not run a candidate "

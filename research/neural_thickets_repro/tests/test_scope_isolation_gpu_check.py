@@ -183,3 +183,24 @@ def test_module_level_test_constants_are_fixed_and_distinct_from_real_candidates
     # drawn from any real candidate's RNG stream.
     assert TEST_SEED == 999_999_999
     assert TEST_SIGMA == 0.01
+
+
+# --- main()'s own test coverage (source inspection -- main() itself needs a real GPU/ray/vllm
+# engine and is not otherwise unit-testable, matching this project's established convention) ---
+
+
+def test_main_covers_all_three_iclr_causal_density_preregistered_scopes():
+    """The iclr_causal_density pilot's preregistration.md requires vision_encoder/full_lm/
+    full_vlm as its scope-isolation precondition -- vision_encoder was already Test A; this
+    proves Tests H/I (full_lm/full_vlm) were added, additively, alongside every pre-existing
+    test (never replacing them).
+    """
+    import inspect
+
+    from neural_thickets_repro.diagnostics import scope_isolation_gpu_check as module
+
+    source = inspect.getsource(module.main)
+    for label, scope in (("A", "vision_encoder"), ("B", "lm_middle"), ("C", "vision_early"), ("D", "vision_middle"), ("E", "vision_late"), ("F", "vision_late_a"), ("G", "vision_late_b"), ("H", "full_lm"), ("I", "full_vlm")):
+        assert f'_run_isolation_test(engine, "{label}", "{scope}")' in source, f"Test {label} ({scope}) missing from main()"
+    assert "test_h" in source and "test_i" in source
+    assert "overall_pass = all(t[\"pass\"] for t in (test_a, test_b, test_c, test_d, test_e, test_f, test_g, test_h, test_i))" in source
