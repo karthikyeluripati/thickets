@@ -43,17 +43,25 @@ def _candidate(scope="full_lm", radius=0.02, seed=42, candidate_id="full_lm_r020
     return PerturbationCandidate(candidate_id=candidate_id, scope=scope, radius=radius, seed=seed, seed_index=0)
 
 
-def _make_fake_apply_perturbation(*, requested_r=0.02, base_l2_norm=10.0, param_count=100, correct_sigma=True):
+def _make_fake_apply_perturbation(*, requested_r=0.02, base_l2_norm=10.0, param_count=100, total_element_count=100_000, correct_sigma=True):
+    """param_count (number of selected TENSORS) is deliberately different from
+    total_element_count (total scalar ELEMENTS across those tensors) by default -- on any real
+    model these are never equal, and a fixture that coincidentally set them equal is exactly
+    what let scoped_apply_perturbation.py/evaluator.py's field-name mismatch (real 7B live-run
+    bug, fixed alongside this test) go undetected by the CPU suite.
+    """
     calls = []
 
     def _apply(engine, seed, r, scope):
         calls.append((seed, r, scope))
         from neural_thickets_repro.scopes import compute_relative_l2_sigma
 
-        sigma = compute_relative_l2_sigma(base_l2_norm, param_count, r) if correct_sigma else 999.0
+        # Real scoped_apply_perturbation always derives sigma from total_element_count (the
+        # formula's dimensionality d_m) -- mirrored here, never from param_count (tensor count).
+        sigma = compute_relative_l2_sigma(base_l2_norm, total_element_count, r) if correct_sigma else 999.0
         return {
             "scope": scope, "seed": seed, "requested_relative_l2": r, "derived_sigma": sigma,
-            "actual_perturbation_l2": r * base_l2_norm, "scope_param_count": param_count, "scope_total_element_count": param_count,
+            "actual_perturbation_l2": r * base_l2_norm, "scope_param_count": param_count, "scope_total_element_count": total_element_count,
             "scope_base_l2_norm": base_l2_norm, "noise_semantics": "upstream_per_tensor_reseed",
         }
     return _apply, calls
@@ -106,6 +114,21 @@ def test_norm_verification_fails_when_sigma_does_not_match_formula():
     apply_fn, _ = _make_fake_apply_perturbation(correct_sigma=False)
     result = apply_fn(object(), 42, 0.02, "full_lm")
     assert verify_norm(result) is False
+
+
+def test_norm_verification_uses_total_element_count_not_tensor_count(monkeypatch):
+    """Live regression (first-candidate failure on the real 7B run): verify_norm must recompute
+    expected_sigma from scope_total_element_count (the formula's true d_m -- total scalar
+    elements across the scope's selected tensors), never from scope_param_count (merely the
+    number of selected tensors). A correct, real derived_sigma (computed from
+    total_element_count, exactly as scoped_apply_perturbation.py does) must verify OK even
+    when param_count (tensor count) and total_element_count are wildly different -- as they
+    always are on a real model.
+    """
+    apply_fn, _ = _make_fake_apply_perturbation(correct_sigma=True, param_count=37, total_element_count=48_233_216)
+    result = apply_fn(object(), 42, 0.02, "vision_encoder")
+    assert result["scope_param_count"] != result["scope_total_element_count"]
+    assert verify_norm(result) is True
 
 
 def test_evaluator_raises_norm_verification_failed_and_restores(monkeypatch):

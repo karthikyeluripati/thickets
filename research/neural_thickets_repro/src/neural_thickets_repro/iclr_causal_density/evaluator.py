@@ -60,8 +60,18 @@ class ScopeIsolationPreconditionError(RuntimeError):
 def verify_norm(perturb_result: Dict[str, Any], *, tolerance: float = NORM_VERIFICATION_RELATIVE_TOLERANCE) -> bool:
     if perturb_result.get("requested_relative_l2") is None:
         return False
+    # BUG FIX (live 7B run, first-candidate failure): compute_relative_l2_sigma's own docstring
+    # formula (sigma_m = r * ||theta_m||_2 / sqrt(d_m)) requires d_m = the scope's total scalar
+    # ELEMENT count -- scoped_apply_perturbation.py derives its actual sigma from
+    # `manifest.total_element_count` (scope_total_element_count here), never from the number of
+    # selected TENSORS (`manifest.selected_param_count` / scope_param_count). This recomputation
+    # must use the same field or it verifies against the wrong formula input on every scope where
+    # tensor-count != element-count (i.e. essentially always on a real model). The CPU test
+    # fixture had param_count == total_element_count coincidentally, which is why this was never
+    # caught before real GPU tensors exposed it. Not a change to the frozen relative-L2 formula
+    # or tolerance -- only a fix to which already-returned field this check reads.
     expected_sigma = compute_relative_l2_sigma(
-        perturb_result["scope_base_l2_norm"], perturb_result["scope_param_count"], perturb_result["requested_relative_l2"],
+        perturb_result["scope_base_l2_norm"], perturb_result["scope_total_element_count"], perturb_result["requested_relative_l2"],
     )
     actual_sigma = perturb_result["derived_sigma"]
     if expected_sigma == 0.0:
