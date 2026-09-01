@@ -63,6 +63,30 @@ def test_main_passes_max_pixels_via_mm_processor_kwargs_at_engine_launch():
     assert live_module.QWEN2_5_VL_MAX_PIXELS == 1024 * 28 * 28
 
 
+def test_main_exposes_full_encoder_cache_reset_before_launching_the_engine():
+    """Live regression (decisive-pilot candidate #1, vision_encoder scope): the Ray-wrapped
+    RandOptNcclLLM actor only exposes 'reset_encoder_cache_full' if
+    vlm_adapter.ensure_full_encoder_cache_reset_exposed() ran BEFORE launch_stage6_engine --
+    otherwise every vision_encoder/full_vlm candidate hard-fails at
+    reset_vllm_encoder_cache_full. main() must call it in that order.
+    """
+    source = inspect.getsource(live_module.main)
+    assert "ensure_full_encoder_cache_reset_exposed" in source
+    expose_pos = source.index("ensure_full_encoder_cache_reset_exposed(EXTERNAL_ROOT)")
+    launch_pos = source.index("launch_stage6_engine(")
+    assert expose_pos < launch_pos, "ensure_full_encoder_cache_reset_exposed must run BEFORE launch_stage6_engine"
+
+
+def test_main_verifies_encoder_cache_reset_works_end_to_end_after_engine_launch():
+    """Mirrors run_global_visual_thicket_pilot.py's own Stage 6 main() discipline: a hard,
+    one-time precondition check that the cache-reset mechanism actually works against the live
+    engine (not merely that it was exposed pre-launch), before any candidate evaluation starts.
+    """
+    source = inspect.getsource(live_module.main)
+    assert "_real_reset_vllm_encoder_cache_full(engine)" in source
+    assert "Refusing to start candidate evaluation without a proven-working cache" in source
+
+
 # =================================================================================================
 # evaluate_base_control_gate -- pure logic, no GPU
 # =================================================================================================

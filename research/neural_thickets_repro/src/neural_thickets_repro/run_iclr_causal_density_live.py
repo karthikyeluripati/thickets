@@ -240,7 +240,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     import ray
     sys.path.insert(0, str(EXTERNAL_ROOT))
     from core.engine import cleanup_engines  # type: ignore
-    from .vlm_adapter import bootstrap_ray, resolve_model_snapshot, verify_workers_can_import_external_root
+    from .vlm_adapter import bootstrap_ray, ensure_full_encoder_cache_reset_exposed, resolve_model_snapshot, verify_workers_can_import_external_root
     from .run_global_visual_thicket_pilot import launch_stage6_engine, store_base_weights_via_rpc
 
     resolved_snapshot_path = resolve_model_snapshot(FROZEN_DESIGN.model_name, resolution["resolved_revision"])
@@ -255,6 +255,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     engines, pgs = None, None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
+
+        # Live regression (decisive-pilot candidate #1, vision_encoder scope): MUST run before
+        # launch_stage6_engine -- see vlm_adapter.py's own ensure_full_encoder_cache_reset_exposed
+        # docstring. Without this, the Ray-wrapped RandOptNcclLLM actor never exposes
+        # 'reset_encoder_cache_full', and reset_vllm_encoder_cache_full (needed for every
+        # vision_encoder/full_vlm candidate, per scopes.scope_requires_encoder_cache_reset) hard-
+        # fails rather than silently falling back to the worker-only reset already confirmed
+        # insufficient on GPU. Unconditional, mirroring run_global_visual_thicket_pilot.py's own
+        # Stage 6 main() exactly -- both base_control and decisive_pilot pay this one-time,
+        # inexpensive monkey-patch cost regardless of phase.
+        ensure_full_encoder_cache_reset_exposed(EXTERNAL_ROOT)
+
         engines, pgs = launch_stage6_engine(
             resolved_snapshot_path, precision="bfloat16", tensor_parallel_size=1,
             gpu_memory_utilization=args.gpu_memory_utilization,
@@ -263,6 +275,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         engine = engines[0]
         store_base_weights_via_rpc(engine)
         print("Confirmed working CPU/GPU base snapshot (store_base_weights_via_rpc).", flush=True)
+
+        # HARD FAIL BEFORE any candidate evaluation if the cache reset mechanism doesn't
+        # actually WORK end-to-end against the LIVE engine (not merely that it was exposed
+        # pre-launch) -- the same one-time precondition-verification discipline Stage 6's own
+        # main() already established, reused here rather than reinvented.
+        try:
+            _real_reset_vllm_encoder_cache_full(engine)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(
+                f"This pilot requires a working full multimodal-encoder-cache reset -- "
+                f"verification failed against the live engine ({type(exc).__name__}: {exc}). "
+                f"Refusing to start candidate evaluation without a proven-working cache-"
+                f"invalidation path."
+            ) from exc
+        print("Confirmed working multimodal-encoder-cache reset.", flush=True)
 
         from .benchmarks.runner import run_benchmark
 
