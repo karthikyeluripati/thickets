@@ -131,6 +131,63 @@ def test_norm_verification_uses_total_element_count_not_tensor_count(monkeypatch
     assert verify_norm(result) is True
 
 
+def test_evaluator_passes_llm_not_raw_engine_to_run_benchmark_when_llm_given():
+    """Live regression (decisive-pilot candidate #1, after the norm/cache-reset fixes): on a
+    real Ray-actor `engine`, only .generate.remote() is callable directly -- run_benchmark needs
+    a synchronous-generate() adapter (RayEngineLLMAdapter(engine) in the live script), never the
+    raw actor handle. evaluate_one_candidate_all_capabilities must forward the explicitly-given
+    `llm` object to run_benchmark, not `engine` itself, whenever the two differ.
+    """
+    apply_fn, _ = _make_fake_apply_perturbation()
+    engine_sentinel = object()
+    llm_sentinel = object()
+    seen_llms = []
+
+    def _run(benchmark, examples, llm, tokenizer, sampling_params, allow_missing_image=False):
+        seen_llms.append(llm)
+        return _fake_run_result(examples)
+
+    data = {"visual_grounding": _capability_data("visual_grounding")}
+    evaluate_one_candidate_all_capabilities(
+        engine=engine_sentinel, candidate=_candidate(), capability_data=data, tokenizer=None, sampling_params=None,
+        run_benchmark=_run, apply_perturbation=apply_fn,
+        reset_to_base_weights=lambda e: None, scope_requires_encoder_cache_reset=lambda s: False,
+        reset_vllm_encoder_cache_full=lambda e: None, verify_restoration=lambda e: True,
+        scope_isolation_precondition_ok=True, decoding_config={"temperature": 0.0},
+        source_commit="abc", run_id="r1", model_name="Qwen/Qwen2.5-VL-7B-Instruct", model_revision="a" * 40,
+        llm=llm_sentinel,
+    )
+    assert seen_llms, "run_benchmark was never called"
+    assert all(seen is llm_sentinel for seen in seen_llms)
+    assert all(seen is not engine_sentinel for seen in seen_llms)
+
+
+def test_evaluator_falls_back_to_engine_for_run_benchmark_when_llm_omitted():
+    """Backward compatibility: every pre-existing CPU-tested caller (which never passes `llm`)
+    must keep receiving `engine` itself in run_benchmark's llm slot, exactly as before this
+    parameter existed.
+    """
+    apply_fn, _ = _make_fake_apply_perturbation()
+    engine_sentinel = object()
+    seen_llms = []
+
+    def _run(benchmark, examples, llm, tokenizer, sampling_params, allow_missing_image=False):
+        seen_llms.append(llm)
+        return _fake_run_result(examples)
+
+    data = {"visual_grounding": _capability_data("visual_grounding")}
+    evaluate_one_candidate_all_capabilities(
+        engine=engine_sentinel, candidate=_candidate(), capability_data=data, tokenizer=None, sampling_params=None,
+        run_benchmark=_run, apply_perturbation=apply_fn,
+        reset_to_base_weights=lambda e: None, scope_requires_encoder_cache_reset=lambda s: False,
+        reset_vllm_encoder_cache_full=lambda e: None, verify_restoration=lambda e: True,
+        scope_isolation_precondition_ok=True, decoding_config={"temperature": 0.0},
+        source_commit="abc", run_id="r1", model_name="Qwen/Qwen2.5-VL-7B-Instruct", model_revision="a" * 40,
+    )
+    assert seen_llms, "run_benchmark was never called"
+    assert all(seen is engine_sentinel for seen in seen_llms)
+
+
 def test_evaluator_raises_norm_verification_failed_and_restores(monkeypatch):
     apply_fn, _ = _make_fake_apply_perturbation(correct_sigma=False)
     restore_calls = []

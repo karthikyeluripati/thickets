@@ -307,6 +307,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         from .iclr_causal_density.candidates import build_candidate_population, validate_candidate_population, write_candidate_manifest
         from .iclr_causal_density.driver import run_candidate_population_rpc, summarize_population_run
         from .iclr_causal_density.evaluator import CapabilityAuditData, evaluate_one_candidate_all_capabilities
+        from .run_global_visual_thicket_pilot import RayEngineLLMAdapter
         from .scopes import scope_requires_encoder_cache_reset
 
         candidates = build_candidate_population()
@@ -323,6 +324,12 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             for cap, data in capability_frozen_data.items()
         }
 
+        # Live regression (decisive-pilot candidate #1): `engine` is the raw Ray actor handle --
+        # only .generate.remote() is callable on it directly, never .generate(). run_benchmark
+        # needs a synchronous-generate() adapter, exactly like run_base_control_gate already
+        # builds above -- built once here, reused for every one of the 600 candidates.
+        llm_adapter = RayEngineLLMAdapter(engine)
+
         def _bound_evaluate_one_candidate(candidate):
             return evaluate_one_candidate_all_capabilities(
                 engine, candidate, capability_audit_data, tokenizer, sampling_params,
@@ -331,7 +338,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 reset_vllm_encoder_cache_full=_real_reset_vllm_encoder_cache_full, verify_restoration=_real_verify_restoration,
                 scope_isolation_precondition_ok=True, decoding_config={"temperature": 0.0, "max_tokens": 256},
                 source_commit=resolution.get("resolved_revision", "unknown"), run_id=f"iclr_causal_density_pilot_{int(time.time())}",
-                model_name=FROZEN_DESIGN.model_name, model_revision=resolution["resolved_revision"],
+                model_name=FROZEN_DESIGN.model_name, model_revision=resolution["resolved_revision"], llm=llm_adapter,
             )
 
         def _progress(outcome):

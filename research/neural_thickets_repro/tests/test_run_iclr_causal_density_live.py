@@ -87,6 +87,18 @@ def test_main_verifies_encoder_cache_reset_works_end_to_end_after_engine_launch(
     assert "Refusing to start candidate evaluation without a proven-working cache" in source
 
 
+def test_main_builds_ray_engine_llm_adapter_and_passes_it_as_llm_for_decisive_pilot():
+    """Live regression (decisive-pilot candidate #1, after the norm/cache-reset fixes): `engine`
+    is the raw Ray actor handle -- only .generate.remote() is callable on it directly. main()
+    must build RayEngineLLMAdapter(engine) once and pass it as evaluate_one_candidate_all_
+    capabilities' llm= kwarg, exactly as run_base_control_gate already does for its own
+    RayEngineLLMAdapter(engine) construction.
+    """
+    source = inspect.getsource(live_module.main)
+    assert "RayEngineLLMAdapter(engine)" in source
+    assert "llm=llm_adapter" in source
+
+
 # =================================================================================================
 # evaluate_base_control_gate -- pure logic, no GPU
 # =================================================================================================

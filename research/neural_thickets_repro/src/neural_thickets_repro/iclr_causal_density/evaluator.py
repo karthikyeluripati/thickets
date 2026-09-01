@@ -125,8 +125,19 @@ def evaluate_one_candidate_all_capabilities(
     *, run_benchmark: Callable, apply_perturbation: Callable, reset_to_base_weights: Callable,
     scope_requires_encoder_cache_reset: Callable, reset_vllm_encoder_cache_full: Callable, verify_restoration: Callable,
     scope_isolation_precondition_ok: bool, decoding_config: Dict[str, Any],
-    source_commit: str, run_id: str, model_name: str, model_revision: str,
+    source_commit: str, run_id: str, model_name: str, model_revision: str, llm: Any = None,
 ) -> List[CausalDensityResultRow]:
+    """`engine` is always the RPC-dispatch handle (passed to apply_perturbation/
+    reset_to_base_weights/reset_vllm_encoder_cache_full/verify_restoration -- every one of those
+    real callables dispatches via collective_rpc against the raw Ray actor). `llm` is what
+    run_benchmark generates against -- on a real Ray-actor engine this MUST be a synchronous-
+    generate() adapter (e.g. RayEngineLLMAdapter(engine)), never the raw actor handle itself,
+    which only exposes .generate.remote(), not .generate(). ADDITIVE, opt-in: `llm=None` (the
+    default, and every existing CPU-tested caller's behavior) falls back to `engine` itself --
+    exactly the prior, pre-this-parameter behavior, needed by CPU tests whose fake `engine`
+    already supports whatever run_benchmark's fake expects.
+    """
+    llm_for_generation = engine if llm is None else llm
     if not scope_isolation_precondition_ok:
         raise ScopeIsolationPreconditionError(
             f"Scope {candidate.scope!r}'s mechanical isolation precondition is not confirmed PASS -- "
@@ -155,7 +166,7 @@ def evaluate_one_candidate_all_capabilities(
                 conditions.append(("text_only", data.text_only_examples))
             for condition, examples in conditions:
                 result = run_benchmark(
-                    data.benchmark, list(examples), engine, tokenizer, sampling_params,
+                    data.benchmark, list(examples), llm_for_generation, tokenizer, sampling_params,
                     allow_missing_image=(condition == "text_only"),
                 )
                 pending_rows.extend(_rows_for_condition(
