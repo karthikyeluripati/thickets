@@ -80,6 +80,39 @@ def test_resume_never_duplicates_rows_for_a_completed_candidate(tmp_path):
     assert len(rows_for_c0) == 6  # exactly one complete group -- never re-appended
 
 
+def test_resume_with_capability_supports_condition_skips_a_candidate_missing_only_an_unsupported_pair(tmp_path):
+    """Live resume-duplication bug, reproduced at the driver level: a candidate whose rows are
+    genuinely complete except for an (capability, condition) pair that capability never
+    produces (e.g. visual_grounding/text_only) must still be recognized as complete and skipped
+    -- not re-evaluated and re-appended -- when capability_supports_condition correctly excludes
+    that impossible pair.
+    """
+    results_path = tmp_path / "results.jsonl"
+    from neural_thickets_repro.iclr_causal_density.schema import append_rows
+
+    rows_missing_unsupported_pair = [r for r in _fake_rows("c0") if not (r.capability == "visual_grounding" and r.condition == "text_only")]
+    append_rows(results_path, rows_missing_unsupported_pair)
+
+    calls = []
+
+    def _evaluate(candidate):
+        calls.append(candidate.candidate_id)
+        return _fake_rows(candidate.candidate_id)
+
+    def _supports(cap, cond):
+        return cond != "text_only" or cap != "visual_grounding"
+
+    outcomes = run_candidate_population_rpc(
+        _candidates(3), results_path, evaluate_one_candidate=_evaluate, expected_capabilities=_CAPS, expected_conditions=_CONDS,
+        capability_supports_condition=_supports,
+    )
+    assert "c0" not in calls
+    assert calls == ["c1", "c2"]
+    assert outcomes[0].status == "skipped_already_complete"
+    rows_for_c0 = [r for r in load_rows(results_path) if r.candidate_id == "c0"]
+    assert len(rows_for_c0) == 5  # unchanged -- never re-appended
+
+
 def test_fail_fast_raises_and_records_the_failure(tmp_path):
     def _evaluate(candidate):
         if candidate.candidate_id == "c1":

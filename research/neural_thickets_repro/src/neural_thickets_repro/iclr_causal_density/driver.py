@@ -45,6 +45,7 @@ def run_candidate_population_rpc(
     evaluate_one_candidate: Callable[..., List[CausalDensityResultRow]],
     expected_capabilities: Sequence[str], expected_conditions: Sequence[str],
     fail_fast: bool = True, progress_callback: Optional[Callable[[CandidateOutcome], None]] = None,
+    capability_supports_condition: Optional[Callable[[str, str], bool]] = None,
 ) -> List[CandidateOutcome]:
     """Iterates `candidates` in order, skipping any whose candidate_id is already COMPLETE in
     `results_path` (exact expected_capabilities x expected_conditions coverage -- schema.
@@ -58,9 +59,16 @@ def run_candidate_population_rpc(
     Phase 6 must never silently continue past a genuine integrity failure. `fail_fast=False`
     (used only for controlled, explicitly-requested "record every failure and keep going"
     diagnostics runs, never the real scientific pilot) records every failure and continues.
+
+    `capability_supports_condition`: passed straight through to load_completed_candidate_ids --
+    see its own docstring for the live resume-duplication bug this fixes. ADDITIVE, opt-in;
+    `None` (the default) preserves this function's exact prior behavior.
     """
     results_path = Path(results_path)
-    completed_ids = load_completed_candidate_ids(results_path, expected_capabilities=expected_capabilities, expected_conditions=expected_conditions)
+    completed_ids = load_completed_candidate_ids(
+        results_path, expected_capabilities=expected_capabilities, expected_conditions=expected_conditions,
+        capability_supports_condition=capability_supports_condition,
+    )
 
     outcomes: List[CandidateOutcome] = []
     for candidate in candidates:

@@ -79,6 +79,46 @@ def test_partial_run_with_wrong_capability_set_not_reported_complete(tmp_path):
     assert completed == set()
 
 
+def test_capability_supports_condition_predicate_recognizes_realistic_mixed_capability_as_complete(tmp_path):
+    """Live resume-duplication bug (caught after a real pod resume silently re-ran and
+    re-appended 200 already-completed candidates): visual_grounding never produces a text_only
+    row (RefCOCO grounding has no meaningful text-only condition). Without a predicate, the
+    plain cross-product demands an impossible ("visual_grounding", "text_only") pair and NEVER
+    reports any candidate complete. With a predicate that excludes that pair, a candidate
+    genuinely missing only that impossible row must be reported complete.
+    """
+    path = tmp_path / "results.jsonl"
+    rows = [_row("c1", cap, cond) for cap in _CAPS for cond in _CONDS if not (cap == "visual_grounding" and cond == "text_only")]
+    append_rows(path, rows)
+
+    def _supports(cap, cond):
+        return cond != "text_only" or cap != "visual_grounding"
+
+    # Without the predicate: never complete -- this IS the historical bug, preserved for old callers.
+    assert load_completed_candidate_ids(path, expected_capabilities=_CAPS, expected_conditions=_CONDS) == set()
+    # With the predicate: correctly recognized complete.
+    completed = load_completed_candidate_ids(
+        path, expected_capabilities=_CAPS, expected_conditions=_CONDS, capability_supports_condition=_supports,
+    )
+    assert completed == {"c1"}
+
+
+def test_capability_supports_condition_still_rejects_genuinely_missing_row(tmp_path):
+    """The predicate must not become a loophole hiding an actually-missing, actually-required row."""
+    path = tmp_path / "results.jsonl"
+    rows = [_row("c1", cap, cond) for cap in _CAPS for cond in _CONDS if not (cap == "visual_grounding" and cond == "text_only")]
+    rows = rows[:-1]  # also drop one genuinely-required row
+
+    def _supports(cap, cond):
+        return cond != "text_only" or cap != "visual_grounding"
+
+    append_rows(path, rows)
+    completed = load_completed_candidate_ids(
+        path, expected_capabilities=_CAPS, expected_conditions=_CONDS, capability_supports_condition=_supports,
+    )
+    assert completed == set()
+
+
 def test_base_rows_never_counted_as_candidate_completion(tmp_path):
     path = tmp_path / "results.jsonl"
     base_rows = [_row(None, cap, cond, is_base=True, scope=None, radius=None, seed=None) for cap in _CAPS for cond in _CONDS]

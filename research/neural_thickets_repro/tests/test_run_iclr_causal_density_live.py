@@ -99,6 +99,17 @@ def test_main_builds_ray_engine_llm_adapter_and_passes_it_as_llm_for_decisive_pi
     assert "llm=llm_adapter" in source
 
 
+def test_main_passes_capability_supports_condition_to_run_candidate_population_rpc():
+    """Live resume-duplication bug (a real pod resume silently re-ran and re-appended 200
+    already-completed candidates' rows because visual_grounding never produces a text_only row):
+    main() must pass a capability_supports_condition predicate to run_candidate_population_rpc
+    so load_completed_candidate_ids can correctly recognize a candidate as complete.
+    """
+    source = inspect.getsource(live_module.main)
+    assert "capability_supports_condition=_capability_supports_condition" in source
+    assert "text_only_examples is not None" in source
+
+
 # =================================================================================================
 # evaluate_base_control_gate -- pure logic, no GPU
 # =================================================================================================

@@ -344,11 +344,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         def _progress(outcome):
             print(f"  [{outcome.status}] {outcome.candidate_id} (scope={outcome.scope}, radius={outcome.radius}, seed={outcome.seed}) n_rows={outcome.n_rows}" + (f" error={outcome.error}" if outcome.error else ""), flush=True)
 
+        # Live resume-integrity fix: visual_grounding never produces a text_only row (RefCOCO
+        # grounding has no meaningful text-only condition -- see capability_audit_data's own
+        # text_only_examples=None for it). Without this predicate, load_completed_candidate_ids
+        # demands an impossible ("visual_grounding", "text_only") pair for every candidate and
+        # NEVER recognizes any candidate as complete, silently re-running and re-appending
+        # duplicate rows for every already-completed candidate on any resume.
+        def _capability_supports_condition(cap: str, cond: str) -> bool:
+            if cond != "text_only":
+                return True
+            return capability_audit_data[cap].text_only_examples is not None
+
         results_path = output_root / "results.jsonl"
         outcomes = run_candidate_population_rpc(
             candidates, results_path, evaluate_one_candidate=_bound_evaluate_one_candidate,
             expected_capabilities=CAPABILITIES, expected_conditions=("correct_image", "shuffled_image", "text_only"),
             fail_fast=args.fail_fast, progress_callback=_progress,
+            capability_supports_condition=_capability_supports_condition,
         )
         summary = summarize_population_run(candidates, outcomes, expected_rows_per_candidate=len(CAPABILITIES) * 3)
         (output_root / "run_summary.json").write_text(json.dumps(summary.to_dict(), indent=2))

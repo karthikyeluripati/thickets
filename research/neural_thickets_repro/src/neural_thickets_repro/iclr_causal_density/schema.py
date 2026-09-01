@@ -10,7 +10,7 @@ import json
 import os
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Callable, Dict, List, Optional, Sequence
 
 SCHEMA_VERSION = "iclr_causal_density_v1"
 
@@ -83,14 +83,37 @@ def load_rows(path: "str | Path") -> List[CausalDensityResultRow]:
     return rows
 
 
-def load_completed_candidate_ids(path: "str | Path", *, expected_capabilities: Sequence[str], expected_conditions: Sequence[str]) -> set:
+def load_completed_candidate_ids(
+    path: "str | Path", *, expected_capabilities: Sequence[str], expected_conditions: Sequence[str],
+    capability_supports_condition: Optional[Callable[[str, str], bool]] = None,
+) -> set:
     """A candidate_id is COMPLETE only if rows exist for EVERY (capability, condition) pair --
     mirrors the 32B/Stage-8-9-11 lineage's own load_completed_perturbation_rows discipline
     (exact-set-complete groups only; a partial group is excluded and re-run from scratch on
     resume, never trusted, never duplicated -- see evaluator.py's own docstring for why this
     is safe: append_rows is called only once per candidate, after full success).
+
+    `capability_supports_condition` (live resume-integrity fix): live decisive-pilot resume bug
+    -- the plain cross-product `{(cap, cond) for cap in expected_capabilities for cond in
+    expected_conditions}` demands a "text_only" row for EVERY capability, including
+    visual_grounding, which never produces one (RefCOCO grounding has no meaningful text-only
+    condition -- see evaluator.py's own conditions list, built per-capability from
+    `data.text_only_examples is not None`). With the plain cross-product, that impossible pair
+    is never satisfiable, `expected.issubset(pairs)` is never True for ANY candidate, and every
+    resume silently re-ran and re-appended EVERY previously-completed candidate's rows again --
+    caught live after a resume ballooned results.jsonl to 658,000 rows (200 candidates x 2800,
+    duplicated) instead of the expected 560,000. ADDITIVE, opt-in: `None` (the default, and every
+    pre-existing CPU-tested caller's behavior) preserves the exact old cross-product -- passing a
+    predicate filters `expected` down to only the (capability, condition) pairs that predicate
+    confirms are actually ever produced.
     """
-    expected = {(cap, cond) for cap in expected_capabilities for cond in expected_conditions}
+    if capability_supports_condition is None:
+        expected = {(cap, cond) for cap in expected_capabilities for cond in expected_conditions}
+    else:
+        expected = {
+            (cap, cond) for cap in expected_capabilities for cond in expected_conditions
+            if capability_supports_condition(cap, cond)
+        }
     seen: Dict[str, set] = {}
     for row in load_rows(path):
         if row.is_base or row.candidate_id is None:
