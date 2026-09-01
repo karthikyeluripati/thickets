@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
 from .perturb_cpu import DEFAULT_VISUAL_PREFIXES, should_perturb
+from .thicket.memory_bounded_ops import chunked_squared_l2_sum
 
 PERTURBATION_SCOPES: Tuple[str, ...] = (
     "full_lm", "vision_encoder", "vision_merger", "lm_early", "lm_middle", "lm_late", "full_vlm",
@@ -428,7 +429,11 @@ def build_scope_manifest(scope_name: str, named_parameters, alias_named_paramete
 
     selected_names_sorted = sorted(name for name, _ in selected)
     total_elements = sum(p.numel() for _, p in selected)
-    base_l2_norm = sum(p.detach().float().pow(2).sum().item() for _, p in selected) ** 0.5
+    # Live OOM fix (real 7B full_lm-scope candidate: `Tried to allocate 2.03 GiB` upcasting
+    # lm_head/embed_tokens to fp32 whole -- same root cause already documented and fixed
+    # elsewhere in this repo for the Stage-11 7B whole_model smoke; reusing that proven,
+    # tested utility here rather than reimplementing it).
+    base_l2_norm = sum(chunked_squared_l2_sum(p) for _, p in selected) ** 0.5
 
     aliases: List[str] = []
     if alias_named_parameters is not None:

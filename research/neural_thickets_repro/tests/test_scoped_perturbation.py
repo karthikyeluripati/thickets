@@ -272,3 +272,36 @@ def test_different_seed_produces_different_perturbation(runtime_wrapped_vlm_fact
         for (_, p_a), (_, p_b) in zip(model_a.named_parameters(), model_b.named_parameters())
     )
     assert any_diff
+
+
+# =================================================================================================
+# actual_perturbation_l2 memory-shape fix -- live OOM (full_lm scope, real 7B lm_head/
+# embed_tokens tensors). The chunked math itself (chunked_squared_l2_sum) is already exhaustively
+# tested in tests/test_memory_bounded_ops.py -- not re-tested here. This proves
+# scoped_apply_perturbation's own WIRING correctly uses it and stays numerically correct.
+# =================================================================================================
+
+
+def test_scoped_apply_perturbation_actual_perturbation_l2_uses_chunked_sum(runtime_wrapped_vlm_factory):
+    """End-to-end: scoped_apply_perturbation's own returned actual_perturbation_l2 must still be
+    correct (matches a manually-recomputed unchunked sum across the same scope's tensors) after
+    switching to the chunked helper -- proves the fix didn't change the actual math, only its
+    memory shape.
+    """
+    model = runtime_wrapped_vlm_factory()
+    worker = _FakeWorker(model)
+    result = scoped_apply_perturbation(worker, seed=7, sigma_or_r=0.05, scope_name="lm_early", scale_mode="raw_sigma")
+    assert result["actual_perturbation_l2"] > 0.0
+
+    # Recompute independently and unchunked, from the now-perturbed vs. base weights, restricted
+    # to the same scope's selected tensors -- must match within floating tolerance.
+    from neural_thickets_repro.scopes import build_scope_manifest
+
+    manifest = build_scope_manifest("lm_early", list(model.named_parameters()))
+    sum_sq = 0.0
+    for name, p in model.named_parameters():
+        if name in set(manifest.selected_param_names):
+            base = worker._base_state[name]
+            delta = (p.detach() - base).float()
+            sum_sq += delta.pow(2).sum().item()
+    assert result["actual_perturbation_l2"] == pytest.approx(sum_sq ** 0.5, rel=1e-3)

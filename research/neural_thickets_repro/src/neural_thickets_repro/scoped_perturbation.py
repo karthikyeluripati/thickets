@@ -30,6 +30,15 @@ import torch
 
 from .perturb_cpu import _generate_noise
 from .scopes import build_scope_manifest, compute_relative_l2_sigma
+# Live OOM fix (real 7B full_lm-scope candidate: `Tried to allocate 2.03 GiB` upcasting
+# lm_head/embed_tokens to fp32 whole, in the per-tensor delta-norm accumulation below) -- reuses
+# the same proven, tested, chunked utility already established for this exact class of bug
+# (thicket/memory_bounded_ops.py's own docstring: identical root cause, first hit during the
+# Stage-11 7B whole_model smoke). Purely a memory-shape change to this norm-BOOKKEEPING
+# computation (used only for the returned `actual_perturbation_l2` diagnostic field) -- does not
+# touch `p.add_(delta)` or any noise-generation/sigma logic, so the actual perturbation applied
+# to the model's weights is byte-for-byte unchanged.
+from .thicket.memory_bounded_ops import chunked_squared_l2_sum
 
 NOISE_SEMANTICS = "upstream_per_tensor_reseed"
 PERTURBATION_SCALE_MODES = ("raw_sigma", "relative_l2")
@@ -83,7 +92,7 @@ def scoped_apply_perturbation(worker_self, seed: int, sigma_or_r: float, scope_n
             noise = _generate_noise(p, seed)
             delta = derived_sigma * noise
             p.add_(delta)
-            sum_sq_delta += delta.detach().float().pow(2).sum().item()
+            sum_sq_delta += chunked_squared_l2_sum(delta)
 
     actual_perturbation_l2 = sum_sq_delta ** 0.5
 

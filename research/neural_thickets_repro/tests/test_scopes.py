@@ -502,3 +502,25 @@ def test_existing_vision_third_scopes_unaffected_by_late_halves(runtime_wrapped_
     for i in range(22, 32):
         assert any(n.startswith(f"visual.blocks.{i}.") for n in late_names)
     assert len(late_names) == 10  # 10 blocks, unchanged shape
+
+
+# --- base_l2_norm memory-shape fix (live full_lm-scope OOM) ---
+#
+# The chunked math itself (chunked_squared_l2_sum) is already exhaustively tested in
+# tests/test_memory_bounded_ops.py (matches full-precision reference, hand-computed cases, never
+# upcasts more than one chunk at a time) -- not re-tested here. This just proves build_scope_
+# manifest's own base_l2_norm WIRING correctly uses it and stays numerically correct end-to-end.
+
+
+def test_base_l2_norm_uses_chunked_sum_and_stays_correct(runtime_wrapped_vlm_factory):
+    """Live full_lm-scope OOM fix (real 7B: `Tried to allocate 2.03 GiB` upcasting lm_head/
+    embed_tokens to fp32 whole): build_scope_manifest's own base_l2_norm must still equal the
+    unchunked reference computation across every selected tensor after switching to
+    chunked_squared_l2_sum -- proves the fix didn't change the actual math, only its memory shape.
+    """
+    model = runtime_wrapped_vlm_factory()
+    named_params = list(model.named_parameters())
+    manifest = build_scope_manifest("full_lm", named_params)
+    selected = {name: p for name, p in named_params if name in set(manifest.selected_param_names)}
+    expected = sum(p.detach().float().pow(2).sum().item() for p in selected.values()) ** 0.5
+    assert manifest.base_l2_norm == pytest.approx(expected, rel=1e-6)
