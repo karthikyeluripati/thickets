@@ -200,7 +200,7 @@ def evaluate_base_control_gate(report: Dict[str, Any]) -> Dict[str, Any]:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     _ensure_no_32b_72b_in_argv(argv)
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--phase", choices=["base_control", "decisive_pilot"], required=True)
+    parser.add_argument("--phase", choices=["base_control", "decisive_pilot", "selection_set_pass"], required=True)
     parser.add_argument("--output-root", default=str(REPO_ROOT / "results" / "iclr_causal_density"))
     parser.add_argument("--gpu-memory-utilization", type=float, default=0.60)
     parser.add_argument("--generation-batch-size", type=int, default=10)
@@ -303,7 +303,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 print(f"  FAIL: {f}", file=sys.stderr)
             return 0 if gate["pass"] else 1
 
-        # decisive_pilot
+        # decisive_pilot / selection_set_pass -- SAME 600-candidate population, SAME
+        # perturb/evaluate/restore/verify machinery, differing only in which subset of each
+        # capability's frozen examples is evaluated and where results land. selection_set_pass
+        # exists because Phase 9 (grounded_selection.py) requires each candidate's SELECTION-set
+        # aggregate scores for ranking (per the preregistration: "Standard ranking: R_i^standard
+        # = S_i^real (selection-set correct-image aggregate score)") -- the decisive pilot's
+        # first pass only ever collected audit-set scores (subset_role was hardcoded "audit").
         from .iclr_causal_density.candidates import build_candidate_population, validate_candidate_population, write_candidate_manifest
         from .iclr_causal_density.driver import run_candidate_population_rpc, summarize_population_run
         from .iclr_causal_density.evaluator import CapabilityAuditData, evaluate_one_candidate_all_capabilities
@@ -315,11 +321,16 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         write_candidate_manifest(candidates, output_root / "candidate_manifest.json")
         print(f"Candidate population built: {len(candidates)} candidates.", flush=True)
 
-        capability_audit_data = {
+        if args.phase == "decisive_pilot":
+            subset_role, key_prefix, results_filename, summary_filename = "audit", "audit", "results.jsonl", "run_summary.json"
+        else:
+            subset_role, key_prefix, results_filename, summary_filename = "selection", "selection", "results_selection.jsonl", "run_summary_selection.json"
+
+        capability_subset_data = {
             cap: CapabilityAuditData(
                 capability=cap, benchmark=adapters[cap], dataset_source=capability_configs[cap].dataset.source,
-                correct_examples=data["audit_correct"], shuffled_examples=data["audit_shuffled"],
-                text_only_examples=data["audit_text_only"],
+                correct_examples=data[f"{key_prefix}_correct"], shuffled_examples=data[f"{key_prefix}_shuffled"],
+                text_only_examples=data[f"{key_prefix}_text_only"],
             )
             for cap, data in capability_frozen_data.items()
         }
@@ -332,20 +343,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
         def _bound_evaluate_one_candidate(candidate):
             return evaluate_one_candidate_all_capabilities(
-                engine, candidate, capability_audit_data, tokenizer, sampling_params,
+                engine, candidate, capability_subset_data, tokenizer, sampling_params,
                 run_benchmark=run_benchmark, apply_perturbation=_real_apply_perturbation,
                 reset_to_base_weights=_real_reset_to_base_weights, scope_requires_encoder_cache_reset=scope_requires_encoder_cache_reset,
                 reset_vllm_encoder_cache_full=_real_reset_vllm_encoder_cache_full, verify_restoration=_real_verify_restoration,
                 scope_isolation_precondition_ok=True, decoding_config={"temperature": 0.0, "max_tokens": 256},
                 source_commit=resolution.get("resolved_revision", "unknown"), run_id=f"iclr_causal_density_pilot_{int(time.time())}",
                 model_name=FROZEN_DESIGN.model_name, model_revision=resolution["resolved_revision"], llm=llm_adapter,
+                subset_role=subset_role,
             )
 
         def _progress(outcome):
             print(f"  [{outcome.status}] {outcome.candidate_id} (scope={outcome.scope}, radius={outcome.radius}, seed={outcome.seed}) n_rows={outcome.n_rows}" + (f" error={outcome.error}" if outcome.error else ""), flush=True)
 
         # Live resume-integrity fix: visual_grounding never produces a text_only row (RefCOCO
-        # grounding has no meaningful text-only condition -- see capability_audit_data's own
+        # grounding has no meaningful text-only condition -- see capability_subset_data's own
         # text_only_examples=None for it). Without this predicate, load_completed_candidate_ids
         # demands an impossible ("visual_grounding", "text_only") pair for every candidate and
         # NEVER recognizes any candidate as complete, silently re-running and re-appending
@@ -353,9 +365,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         def _capability_supports_condition(cap: str, cond: str) -> bool:
             if cond != "text_only":
                 return True
-            return capability_audit_data[cap].text_only_examples is not None
+            return capability_subset_data[cap].text_only_examples is not None
 
-        results_path = output_root / "results.jsonl"
+        results_path = output_root / results_filename
         outcomes = run_candidate_population_rpc(
             candidates, results_path, evaluate_one_candidate=_bound_evaluate_one_candidate,
             expected_capabilities=CAPABILITIES, expected_conditions=("correct_image", "shuffled_image", "text_only"),
@@ -363,7 +375,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             capability_supports_condition=_capability_supports_condition,
         )
         summary = summarize_population_run(candidates, outcomes, expected_rows_per_candidate=len(CAPABILITIES) * 3)
-        (output_root / "run_summary.json").write_text(json.dumps(summary.to_dict(), indent=2))
+        (output_root / summary_filename).write_text(json.dumps(summary.to_dict(), indent=2))
         print(f"Run summary: {json.dumps(summary.to_dict(), indent=2)}", flush=True)
         return 0 if summary.run_complete else 1
     finally:

@@ -110,6 +110,24 @@ def test_main_passes_capability_supports_condition_to_run_candidate_population_r
     assert "text_only_examples is not None" in source
 
 
+def test_selection_set_pass_is_a_valid_phase_choice():
+    """Phase 9 (grounded_selection.py) needs each of the 600 candidates' SELECTION-set
+    aggregate scores -- the decisive pilot's first pass only ever collected audit-set scores.
+    --phase selection_set_pass must exist and be distinct from decisive_pilot's own results file
+    so neither pass's data is ever overwritten by the other.
+    """
+    with pytest.raises(ValueError, match="strictly 7B-only"):
+        live_module.main(["--phase", "selection_set_pass", "--scale", "32B"])
+
+
+def test_main_uses_selection_subset_role_and_a_separate_results_file_for_selection_set_pass():
+    source = inspect.getsource(live_module.main)
+    assert '"results_selection.jsonl"' in source
+    assert '"run_summary_selection.json"' in source
+    assert 'subset_role, key_prefix, results_filename, summary_filename = "selection"' in source
+    assert 'subset_role, key_prefix, results_filename, summary_filename = "audit", "audit", "results.jsonl", "run_summary.json"' in source
+
+
 # =================================================================================================
 # evaluate_base_control_gate -- pure logic, no GPU
 # =================================================================================================

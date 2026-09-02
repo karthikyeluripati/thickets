@@ -125,7 +125,7 @@ def evaluate_one_candidate_all_capabilities(
     *, run_benchmark: Callable, apply_perturbation: Callable, reset_to_base_weights: Callable,
     scope_requires_encoder_cache_reset: Callable, reset_vllm_encoder_cache_full: Callable, verify_restoration: Callable,
     scope_isolation_precondition_ok: bool, decoding_config: Dict[str, Any],
-    source_commit: str, run_id: str, model_name: str, model_revision: str, llm: Any = None,
+    source_commit: str, run_id: str, model_name: str, model_revision: str, llm: Any = None, subset_role: str = "audit",
 ) -> List[CausalDensityResultRow]:
     """`engine` is always the RPC-dispatch handle (passed to apply_perturbation/
     reset_to_base_weights/reset_vllm_encoder_cache_full/verify_restoration -- every one of those
@@ -136,6 +136,15 @@ def evaluate_one_candidate_all_capabilities(
     default, and every existing CPU-tested caller's behavior) falls back to `engine` itself --
     exactly the prior, pre-this-parameter behavior, needed by CPU tests whose fake `engine`
     already supports whatever run_benchmark's fake expects.
+
+    `subset_role` (additive, default "audit" -- every pre-existing caller's behavior unchanged):
+    labels which subset `capability_data`'s examples actually come from. The preregistration
+    requires grounded_selection.py's Phase 9 ranking to use each candidate's SELECTION-set
+    aggregate scores (never audit), which the decisive pilot's own first pass never collected
+    (subset_role was hardcoded "audit" here) -- this parameter lets the SAME evaluator, SAME
+    apply/restore/verify machinery, be reused unmodified for a second pass over the SAME 600
+    candidates against selection-set examples, writing subset_role="selection" rows, without
+    duplicating a single line of the perturb/evaluate/restore/verify logic.
     """
     llm_for_generation = engine if llm is None else llm
     if not scope_isolation_precondition_ok:
@@ -170,7 +179,7 @@ def evaluate_one_candidate_all_capabilities(
                     allow_missing_image=(condition == "text_only"),
                 )
                 pending_rows.extend(_rows_for_condition(
-                    capability=capability, dataset_source=data.dataset_source, subset_role="audit", condition=condition,
+                    capability=capability, dataset_source=data.dataset_source, subset_role=subset_role, condition=condition,
                     original_examples=data.correct_examples, evaluated_examples=examples, run_result=result,
                     scope=candidate.scope, radius=candidate.radius, seed=candidate.seed, candidate_id=candidate.candidate_id, is_base=False,
                     perturbation_norm=perturb_result["actual_perturbation_l2"], decoding_config=decoding_config,

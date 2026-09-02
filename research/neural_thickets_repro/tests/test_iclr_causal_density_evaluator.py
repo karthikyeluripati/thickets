@@ -92,12 +92,40 @@ def test_candidate_identity_preserved_across_all_conditions_and_capabilities():
         source_commit="abc", run_id="r1", model_name="Qwen/Qwen2.5-VL-7B-Instruct", model_revision="a" * 40,
     )
     assert len(rows) == 2 * 3 * 4  # 2 capabilities x 3 conditions x 4 examples
+    assert all(r.subset_role == "audit" for r in rows)  # default, every pre-existing caller's behavior
     assert all(r.candidate_id == candidate.candidate_id for r in rows)
     assert all(r.scope == candidate.scope for r in rows)
     assert all(r.radius == candidate.radius for r in rows)
     assert all(r.seed == candidate.seed for r in rows)
     assert {r.condition for r in rows} == {"correct_image", "shuffled_image", "text_only"}
     assert {r.capability for r in rows} == {"visual_grounding", "counting"}
+
+
+def test_subset_role_selection_override_labels_every_row_selection():
+    """Phase 9 (grounded_selection.py) requires each candidate's SELECTION-set aggregate
+    scores, which the decisive pilot's first pass never collected (subset_role was hardcoded
+    "audit"). The SAME evaluator must support a second pass over selection-set examples,
+    writing subset_role="selection" on every row, with zero change to any other behavior.
+    """
+    apply_fn, _ = _make_fake_apply_perturbation()
+    call_log = []
+    data = {"visual_grounding": _capability_data("visual_grounding"), "counting": _capability_data("counting")}
+    candidate = _candidate()
+
+    rows = evaluate_one_candidate_all_capabilities(
+        engine=object(), candidate=candidate, capability_data=data, tokenizer=None, sampling_params=None,
+        run_benchmark=_run_benchmark_recording(call_log), apply_perturbation=apply_fn,
+        reset_to_base_weights=lambda e: None, scope_requires_encoder_cache_reset=lambda s: False,
+        reset_vllm_encoder_cache_full=lambda e: None, verify_restoration=lambda e: True,
+        scope_isolation_precondition_ok=True, decoding_config={"temperature": 0.0},
+        source_commit="abc", run_id="r1", model_name="Qwen/Qwen2.5-VL-7B-Instruct", model_revision="a" * 40,
+        subset_role="selection",
+    )
+    assert len(rows) == 2 * 3 * 4
+    assert all(r.subset_role == "selection" for r in rows)
+    # everything else about the row shape is unaffected by subset_role
+    assert all(r.candidate_id == candidate.candidate_id for r in rows)
+    assert all(r.norm_verification_ok is True for r in rows)
 
 
 def test_norm_verification_ok_when_sigma_matches_formula():
