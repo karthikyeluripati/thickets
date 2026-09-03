@@ -1,98 +1,97 @@
 # Decision — Isolated 7B Causal-Density Pilot
 
+**This document supersedes the earlier `INCONCLUSIVE — EXECUTION BLOCKED` draft** written when
+this pilot was CPU-only infrastructure with no GPU access (see git history for that version).
+GPU execution subsequently completed in full — this is the real, final decision, computed from
+the actual 600-candidate result data.
+
 ## Decision
 
-**`INCONCLUSIVE — EXECUTION BLOCKED`**
+**INCONCLUSIVE**
 
-## Why
+Produced by `run_iclr_causal_density_analysis.py` (Step 12) — the frozen, unmodified
+`decision_gate.evaluate_decision_gate` returned this via its own pre-existing precedence rule 2:
+*"expected exactly 5 capabilities with valid results, got 4."* `visual_grounding` could not be
+scored under the frozen Phase 7 formula (see `preregistration_amendment_2026-09-03.md` §1) — a
+structural incompatibility between RefCOCO grounding (no meaningful text-only condition) and
+`metrics.ConditionScores`'s equal-length, three-condition requirement, not a data gap fixable
+with more GPU time.
 
-This session runs on a local Windows machine with no GPU. Direct probes at the start of this
-task confirmed:
+**This is a formal INCONCLUSIVE, not a near-miss CONFIRMED.** Even setting the capability-count
+gap aside, the underlying evidence does not support CONFIRMED: criterion 3 (search-budget
+divergence in ≥4/5 capabilities) holds for only 1 of the 4 scored capabilities; criterion 4
+(grounded retention ≥80%) fails in both capabilities where it is defined (47% and 62%). A
+hypothetical 5th capability would have needed to single-handedly satisfy both already-failing
+criteria to flip the outcome.
 
-```
-$ ls /workspace         -> No such file or directory
-$ nvidia-smi             -> command not found
-```
+## What was completed
 
-The task's stated working directory (`/workspace/thickets/research/neural_thickets_repro`)
-does not exist here. This is not the RunPod environment the task describes executing on.
-Phase 5 (base-control gate) and Phase 6 (decisive pilot) both require a live, TP-capable
-`vllm`/`ray` GPU engine to evaluate the unperturbed model and all 600 perturbation candidates
-across 5 capabilities × 3 visual conditions — neither can run here.
+All of Phases 0–10, on real hardware, with real data:
 
-Per the task's own Phase 6 contingency (*"If GPU execution is blocked, preserve the tested
-implementation and exact resumable command, then return `INCONCLUSIVE — EXECUTION BLOCKED`.
-Never fabricate results."*), no result row, metric, or figure in this deliverable is
-fabricated or estimated. Every metrics/analysis/decision-gate module was built and verified
-against **synthetic** data specifically so the code's correctness is established independent
-of, and prior to, any real GPU run.
-
-## What was completed (Phases 0–4, 7–10 as tested infrastructure)
-
-- **Phase 0** — audit and branch isolation. Branch `iclr-causal-density-pilot` created from
-  commit `9305cc8` in an isolated git worktree; main branch/worktree untouched.
-  `reports/iclr_causal_density/artifact_audit.{json,md}` document, with evidence, that **no
-  existing artifact in this repository** satisfies the reuse bar for this pilot's design — only
-  validated, unexecuted code (scope taxonomy, image-sanity primitives, capability adapters) is
-  reusable.
-- **Phase 1** — preregistration (`reports/iclr_causal_density/preregistration.md`), frozen
-  before any result exists, generated from the single source of truth
-  `iclr_causal_density/design.py`.
-- **Phases 2–4** — subset/shuffle-manifest construction, the 600-candidate population, the
-  long-form result schema, the paired-condition evaluator, and the checkpoint/resume driver are
-  all implemented and unit-tested (84 new tests, all CPU-only, via injected fakes — the
-  established convention throughout this repository).
-- **Phases 7–10** — the paired-bootstrap metrics (`Δ^R`/`Δ^T`/`Δ^S`/`G_i`, `ρ_standard`/
-  `ρ_visual`/`D` with confidence intervals), the search-budget Monte Carlo analysis, the
-  standard-vs-grounded selection comparison, and the **decision gate itself** (implemented in
-  code, never assigned subjectively) are all implemented and unit-tested against synthetic
-  `CONFIRMED`/`REJECTED`/`INCONCLUSIVE` cases.
-
-## What was not attempted
-
-- Any GPU execution — no candidate was perturbed, no capability was evaluated, no base-model
-  row exists.
-- The real engine-launch/dataset-loading wiring layer (binding the evaluator's injected
-  callables to real `launch_stage6_engine`/`resolve_model_snapshot`/`benchmarks.runner.
-  run_benchmark`/`scoped_apply_perturbation` calls) — this genuinely requires a live pod to
-  write and verify safely, and is the concrete next step once one is available.
-- `diagnostics/scope_isolation_gpu_check.py` (the *one* GPU mechanical isolation validation
-  this pilot's evaluator treats as a required precondition) has never been run in this
-  repository at all — confirmed by the artifact audit. It must run and pass for all three
-  scopes before Phase 6 candidates in any scope can be evaluated.
-- Figures — no real data exists to plot; generating them now would mean plotting fabricated
-  numbers, which this task explicitly forbids.
+- **Phases 0–4** (CPU-only infra) — as before: audit, preregistration, subset/shuffle manifests,
+  candidate population, evaluator, checkpoint/resume driver. 91 tests.
+- **Phase 5** (base-control gate) — real 7B, all 5 capabilities, both subsets, all applicable
+  conditions. `BASE CONTROL GATE: PASS`.
+- **Phase 6** (decisive pilot) — 600/600 candidates, audit-set pass AND selection-set pass (the
+  latter added after discovering Phase 9 requires selection-set scores the first pass never
+  collected — see `preregistration_amendment_2026-09-03.md`), 0 failures in final form. Six
+  transient infrastructure failures along the way (image-token overflow, encoder-cache-reset
+  wiring, RayEngineLLMAdapter wiring, norm-verification field bug, resume-duplication bug, and a
+  GPU memory-fragmentation OOM) were each diagnosed from real tracebacks, fixed with a regression
+  test, and retried successfully — see commit history on `iclr-causal-density-pilot`. None
+  involved changing a preregistered scientific parameter.
+- **Phase 7–10** — real, final computation against the real data. See Evidence below.
 
 ## Integrity summary
 
 | | |
 |---|---|
-| Source commit | `9305cc8824b2c16a8f73befed3978c0cf96ff7ec` (verified present, is `HEAD` of `iclr-causal-density-pilot`) |
-| Branch / worktree | `iclr-causal-density-pilot`, isolated worktree; main branch/worktree untouched |
-| New tests | 91 passed, 0 failed (84 + 7 driver tests) |
-| Full CPU suite baseline (before this pilot) | 2355 passed, 2 skipped, 0 failed |
-| Full CPU suite (after this pilot, isolated worktree) | 2446 passed, 2 skipped, 0 failed — exactly 2355 + 91, zero regressions |
-| Expected perturbations | 600 | Completed | 0 |
-| Expected result rows | 9,000 (candidates) | Completed | 0 |
-| Restoration / isolation / norm / provenance status | not applicable — no candidate was ever evaluated |
+| Source commit (model) | `Qwen/Qwen2.5-VL-7B-Instruct` @ `cc594898137f460bfe9f0759e9844b3ce807cfb5` |
+| Branch / worktree | `iclr-causal-density-pilot` only; `main` never touched |
+| Expected perturbations | 600 | Completed | 600 (both passes) |
+| Expected result rows | 1,680,000 per pass (600 × 2800; visual_grounding's missing text_only means 14, not 15, (capability,condition) pairs per candidate) | Completed | 1,680,000 / 1,680,000 (both passes) |
+| Restoration / isolation / norm / provenance | 100% verified `True` on every row, both passes (independently validated, not merely asserted — see `artifact_provenance.md`) |
+| Duplicate rows | 0 (both passes) |
+| Candidate-ID identity across passes | Byte-identical 600-ID sets, cross-checked directly |
+
+Full checksum manifest and reproduction instructions: `artifact_provenance.md`.
+Full per-capability, per-cell numeric detail: `decision.json`, `analysis_full_output.json`.
 
 ## Headline evidence
 
-Not computed. Every `ρ_standard`, `ρ_visual`, `D`, confidence interval, budget-divergence
-verdict, and grounded-selection verdict for all five capabilities is `null` in
-`decision.json` — none fabricated, none estimated.
+| Capability | ρ_standard | ρ_visual | D (point) | D 95% CI | Search-budget divergence | Grounded G improved (top-10) | Grounded retention (top-10) |
+|---|---|---|---|---|---|---|---|
+| counting | 0.152 | 0.005 | 30.3 | [1.01, 1.59] | False (0/6 cells) | True | undefined |
+| ocr_text_recognition | 0.453 | 0.005 | 90.7 | [1.01, 1.24] | False (0/6 cells) | True | undefined |
+| spatial_reasoning | 0.290 | 0.010 | 29.0 | [1.01, 1.61] | False (1/6 cells) | True | 46.7% (fails 80%) |
+| relational_reasoning | 0.538 | 0.050 | 10.8 | [1.01, 1.52] | **True** (4/6 cells) | True | 61.7% (fails 80%) |
+| visual_grounding | — | — | — | — | — | — | Excluded (see amendment §1) |
+
+**On the D point-estimate vs. CI divergence** (audited, not a bug): `design.
+PREREGISTERED_BOOTSTRAP_METHOD_NOTE` specifies the population-`D` CI uses a laxer per-resample
+classification than the strict, individually-bootstrapped classification the point estimate
+uses — explicitly to avoid a computationally infeasible nested bootstrap. Full detail:
+`preregistration_amendment_2026-09-03.md` §3.
 
 ## Interpretation
 
-The frozen hypothesis was **not tested** — not confirmed, not rejected. The infrastructure and
-statistical/decision-gate logic needed to test it are built and verified; the GPU execution
-needed to generate the data the gate operates on could not happen in this environment.
+The frozen hypothesis was tested in full and is **not confirmed** by this pilot. Formally
+INCONCLUSIVE (visual_grounding unclassifiable under the frozen formula); substantively, the
+evidence available from the four scored capabilities does not support CONFIRMED either —
+search-budget divergence (the signature the hypothesis predicts) holds in only 1 of 4
+capabilities, and grounded selection's retention of standard selection's real-image gain falls
+well short of the frozen 80% bar in both capabilities where it is defined.
 
-## Exact next action
+## Recommendation
 
-The blocker is the absence of a GPU/pod in this environment — nothing else. To proceed: run
-`diagnostics/scope_isolation_gpu_check.py` on real TP hardware for `vision_encoder`/`full_lm`/
-`full_vlm` (confirming the one required precondition this repository has never actually
-validated), then wire and run this pilot's Phase 5/6 (base-control gate, 600-candidate decisive
-pilot) using the tested `iclr_causal_density` infrastructure on that hardware. No scope is
-expanded, no alternative hypothesis is proposed, and 32B work is not resumed.
+On this evidence, 3B–72B scaling should **not** be authorized for this specific claim. This
+pilot preserves the evidence exactly as produced; the paper-direction decision is reserved for a
+separate discussion, not made or implied here.
+
+## Exact next action (none required by this pilot)
+
+None. This pilot is complete: infrastructure was built, GPU execution ran to completion twice
+(audit-set and selection-set passes), completeness was independently validated, the frozen
+analysis ran against real data, and the decision above is final. Any further action (a
+follow-up experiment, a different capability set, an amended hypothesis) is a new, separate
+decision outside this pilot's scope.
