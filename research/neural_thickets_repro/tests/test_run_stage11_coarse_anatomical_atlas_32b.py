@@ -279,6 +279,49 @@ def test_main_dispatches_the_real_distributed_anatomy_audit_with_rank_consensus(
     assert "collective_rpc_all_workers" in source
 
 
+def test_module_sets_nccl_p2p_disable_before_any_ray_or_vllm_use():
+    """Regression test for a real hang found live on a 4xL40S TP=4 pod (2026-09-04): this
+    module's engine launch + first collective RPC hung indefinitely (1h10m elapsed, 100% GPU
+    utilization on all 4 ranks, near-zero GPU memory resident, zero forward progress) inside
+    NCCL collective init on this pod's NVLink-less/cross-NUMA topology -- the exact failure
+    mode the two S2/S1 live-readiness probe scripts already work around via
+    os.environ.setdefault("NCCL_P2P_DISABLE", "1"), set at their own module top level. This
+    module was missing that fix. Verified here at module level (not just inside main()) since
+    the fix must take effect before ANY ray/vllm import, which can happen from more than one
+    code path."""
+    assert module.os.environ.get("NCCL_P2P_DISABLE") == "1"
+
+
+def test_main_exposes_encoder_cache_reset_before_launch_and_verifies_it_live():
+    """Regression test for a real bug found live on a 4xL40S TP=4 pod (2026-09-04): the 32B
+    S2 dispatcher launched the engine without first calling
+    ensure_stage7b_encoder_cache_reset_mechanism_exposed(), so the Ray-wrapped engine actor
+    never had reset_encoder_cache_full available -- the baseline repeatability preflight then
+    hard-failed with 'the engine actor does not expose reset_encoder_cache_full', exactly the
+    failure mode vlm_adapter.ensure_full_encoder_cache_reset_exposed's own docstring predicts
+    for a script that launches before calling it. Fixed by mirroring stage8's own proven
+    pre-launch/post-launch call pair exactly (both already tested end-to-end on real GPU
+    hardware in Stage 7B/8/9) -- this test locks in that both calls are present and correctly
+    ordered relative to launch_stage6_engine, without requiring GPU/vllm/ray to run."""
+    source = inspect.getsource(module.main)
+    assert "ensure_stage7b_encoder_cache_reset_mechanism_exposed" in source
+    assert "ensure_encoder_cache_reset_available" in source
+
+    pre_launch_call_idx = source.index("ensure_stage7b_encoder_cache_reset_mechanism_exposed(EXTERNAL_ROOT)")
+    launch_idx = source.index("engines, pgs = launch_stage6_engine(")
+    post_launch_verify_idx = source.index("ensure_encoder_cache_reset_available(engine)")
+    store_base_weights_idx = source.index('collective_rpc_all_workers(engine, store_base_weights_cpu_rpc')
+
+    assert pre_launch_call_idx < launch_idx, (
+        "ensure_stage7b_encoder_cache_reset_mechanism_exposed() must run BEFORE launch_stage6_engine() "
+        "-- Ray only picks up the monkey-patched method if it exists on the class before ray.remote() wraps it."
+    )
+    assert store_base_weights_idx < post_launch_verify_idx, (
+        "ensure_encoder_cache_reset_available(engine) must run AFTER the engine is launched and the "
+        "CPU base snapshot is stored -- it proves the reset works end-to-end against the LIVE engine."
+    )
+
+
 # =================================================================================================
 # Property 11/12/13: checkpoint identity + resume semantics
 # =================================================================================================

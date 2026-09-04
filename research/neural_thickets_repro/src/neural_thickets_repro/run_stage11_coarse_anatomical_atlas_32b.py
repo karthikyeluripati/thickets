@@ -58,10 +58,22 @@ from __future__ import annotations
 import argparse
 import functools
 import json
+import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
+
+# Live-discovered NVLink-less/cross-NUMA topology fix (2026-09-04, real 4xL40S TP=4 pod) --
+# IDENTICAL to the fix already required by diagnostics/stage11_32b_live_v3_solver_probe.py and
+# diagnostics/stage11_32b_s2_live_v3_solver_probe.py. Without it, this module's own engine
+# launch + first collective RPC hung indefinitely (observed live: 1h10m, 100% GPU utilization
+# on all 4 ranks, near-zero GPU memory resident, zero forward progress) inside NCCL collective
+# init -- confirmed root cause by comparing against the two probe scripts above, which set this
+# and do NOT hang. setdefault (not a hard override) so an operator's own explicit NCCL_P2P_DISABLE
+# is never silently clobbered. This is infrastructure/topology config only -- touches no
+# scientific parameter (radius, seed, capability, threshold, or scoring rule).
+os.environ.setdefault("NCCL_P2P_DISABLE", "1")
 
 from .env_check import GateBlockedError, assert_feasible, check_cuda, check_disk, check_module
 from .run_global_visual_thicket_pilot import (
@@ -83,7 +95,10 @@ from .run_stage7b_anatomical_calibration import (
     MULTIMODAL_CACHE_POLICY,
     PERTURBATION_MODE,
     REALIZED_RADIUS_TOLERANCE,
+    EncoderCacheResetUnavailableError,
     RealizedRadiusMismatchError,
+    ensure_encoder_cache_reset_available,
+    ensure_stage7b_encoder_cache_reset_mechanism_exposed,
 )
 from .run_stage8_coarse_anatomical_atlas import (
     STAGE8_BASE_SEED,
@@ -869,6 +884,7 @@ def main(argv=None) -> int:
     engines, pgs = None, None
     try:
         verify_workers_can_import_external_root(EXTERNAL_ROOT)
+        ensure_stage7b_encoder_cache_reset_mechanism_exposed(EXTERNAL_ROOT)
 
         engines, pgs = launch_stage6_engine(
             resolved_snapshot_path, precision=engine_config["precision"], gpu_memory_utilization=engine_config["gpu_memory_utilization"],
@@ -882,6 +898,9 @@ def main(argv=None) -> int:
 
         collective_rpc_all_workers(engine, store_base_weights_cpu_rpc, label="store_base_weights_cpu", expected_world_size=tp_size)
         print(f"Confirmed working CPU base snapshot (base_snapshot_mode={engine_config['base_snapshot_mode']!r}).")
+
+        ensure_encoder_cache_reset_available(engine)
+        print(f"Confirmed working multimodal-encoder-cache reset (multimodal_cache_policy={MULTIMODAL_CACHE_POLICY!r}).")
 
         # ---------------------------------------------------------------------------------------
         # ANATOMY AUDIT (task spec): globally inventory vision/connector/language on TP=4, require
