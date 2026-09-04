@@ -1,0 +1,72 @@
+{
+  "task": "og-anatomy-evidence-check",
+  "purpose": "Screening gates for paper viability of 'Where Do Visual Experts Live?' -- NOT a new preregistered scientific hypothesis. Frozen BEFORE any headline value in anatomy_results.json / transfer_results.json / guided_search_results.json / cross_scale_results.json / paper_viability_decision.json was computed.",
+  "source_commit": "9305cc8824b2c16a8f73befed3978c0cf96ff7ec",
+  "branch": "og-anatomy-evidence-check",
+  "frozen_definitions": {
+    "expert_definition": {
+      "value": "A candidate perturbation direction is an 'expert' for a capability/region/radius cell if its Delta (candidate_score - base_score) >= 0.02.",
+      "reused_from": "analysis/stage8_coarse_anatomical_atlas_analysis.py:_density_ge_002 / the density_ge_0.02 column already present in every committed atlas_cell_statistics.csv / anatomy_cell_statistics.csv / depth_atlas_cell_statistics.csv. Not redefined -- the pre-existing 0.02 threshold and pre-existing 0.0/0.05 sensitivity thresholds are used as-is."
+    },
+    "base_relative_improvement_definition": {
+      "value": "Delta = candidate_score - base_score (theta_0), computed once per capability before any candidate loop, held constant across all anatomy regions for that capability (Stage 7B's own 'baseline consistency across regions' check).",
+      "reused_from": "results/stage7b_anatomical_calibration/.../stage7b_analysis.md section 2; stage8/stage9/stage11 all inherit the same convention (mean_delta / median_delta columns)."
+    },
+    "density_calculation": {
+      "value": "density_ge_X = fraction of the n directions in a (capability, region, radius) cell with Delta >= X, for X in {0.0, 0.02, 0.05}.",
+      "reused_from": "atlas_cell_statistics.csv / anatomy_cell_statistics.csv / depth_atlas_cell_statistics.csv column definitions (all pre-existing, all stages)."
+    },
+    "confidence_interval_method": {
+      "value": "Nonparametric percentile bootstrap (10,000 resamples, seed 20260903, resampling directions WITH replacement then taking the mean, 2.5th/97.5th percentile of the resample-mean distribution) wherever raw per-direction deltas are locally available (stage8 3B -- restored locally from the sibling main worktree's gitignored raw results.jsonl, checksum-verified, mid-task, after this specification's first draft; see the amendment_note under transfer_metric for how/when this was discovered). Falls back to a normal-approximation (parametric) CI, mean_delta +/- 1.96*std_delta/sqrt(n), ONLY for cells where raw per-direction values are not locally available (none, currently, for stage8 3B -- this fallback path exists for robustness, e.g. a fresh clone without the local raw-data restore step).",
+      "existing_project_precedent_for_percentile_style_CIs": "analysis/stage8_coarse_anatomical_atlas_analysis.py:_bootstrap_diff_ci and analysis/stage11_anatomical_scale_interim_analysis.py:_did_bootstrap_ci both use np.percentile([2.5, 97.5]) on a resampled distribution -- this is the same convention, applied here to the raw per-direction cell means directly rather than a paired difference.",
+      "note_on_which_criteria_actually_use_this_CI": "Phase 3's own PASS/FAIL criteria are decided by density_ge_0.02 top-region agreement and the pre-existing BH-corrected q-values in anatomical_contrasts.csv, not by this per-cell CI directly -- the CI is reported per cell for transparency/completeness, consistent with the task's required per-cell fields, but does not itself gate the STABLE_ANATOMY verdict."
+    },
+    "seed_handling": {
+      "value": "Not applicable to Phase 3 as computed here: no seed-level raw data is available, so no seed-level resampling is performed. Every cell statistic used is the pre-existing n=64 (stage8/stage9/stage11) or n=8 (stage7b calibration, not used in the Phase-3 verdict) direction-level aggregate as already committed.",
+      "note": "Phases 4 and 5 explicitly require true seed-level data and are NOT_MEASURABLE for exactly this reason -- see transfer_results.json / guided_search_results.json."
+    },
+    "radius_handling": {
+      "value": "3B calibration/atlas radii (0.00356988, 0.01784941, 0.07139766) are used as-is (Stage 8's own frozen STAGE8_RADII, itself derived from Stage 7B's own destructive-regime exclusion). Stage 11's 'small'/'mid'/'transition' radius_label values are treated as referring to these same three radii by label -- no radius value is renormalized, rescaled, or newly chosen by this task."
+    },
+    "missing_data_handling": {
+      "value": "A (capability, radius) cell with no distinguishable top region (a tie, most commonly all-zero density_ge_0.02 across all 3 regions) contributes top_region=null and is never counted toward a 'preferred region' -- it is not treated as favoring any region, and is not silently dropped from the denominator either (it is always listed in the per-capability detail).",
+      "block_level_missing_data": "A block (transfer, guided search, cross-scale) with no computable path from committed artifacts returns verdict=NOT_MEASURABLE with the exact missing artifact class named -- never PASS, never FAIL, never a value estimated from a different stage/scale as a stand-in."
+    },
+    "multiple_comparison_handling": {
+      "value": "Benjamini-Hochberg corrected q-values (density_ge_0.02_diff_bh_q, mean_delta_diff_bh_q), already computed and committed in anatomical_contrasts.csv / depth_contrasts.csv, are used as-is for the 'is this region-vs-region margin significant' test (q < 0.05). No new correction is invented; no per-comparison uncorrected p-value is substituted."
+    },
+    "transfer_metric": {
+      "value": "transfer_effect(source, target) = mean(delta_target among the top-10 directions ranked by delta_source, within one (region, radius) cell) minus mean(delta_target over ALL 64 directions in that cell). Computed per cell then averaged across the 9 (region, radius) cells (3 regions x 3 radii), from the raw per-candidate stage8 3B results.jsonl -- gitignored, never committed to git (matching this project's own established local-raw-data convention), but genuinely present locally (restored, checksum-verified, from the sibling main worktree's identical uncommitted copy) and used as any other locally-available evidence.",
+      "amendment_note": "This metric was NOT part of the original frozen spec (frozen before the raw stage8 results.jsonl's local availability was discovered mid-task, during an unrelated full-suite regression run). It is documented here, in this same specification file, BEFORE Phase 4 was recomputed against it -- the top-10/9-cell-average/label-permutation-null choices below were fixed once and never re-tuned after seeing the resulting verdict.",
+      "closest_existing_reused_evidence": "results/stage10a_behavioral_geometry/ (entropy effective rank, split-half subspace alignment cosine, spectral discordance) -- reported as corroborating context only, distinct from and not a substitute for the transfer_effect matrix above."
+    },
+    "stability_metric": {
+      "value": "For Phase 3: a capability's preferred region is 'stable' if the SAME region is top-by-density_ge_0.02 in >= 2 of the 3 studied 3B radii. For Phase 4: split-half reproducibility (even vs. odd direction_index halves of each cell's 64 directions -- fixed before either half was inspected) via Pearson r on the per-(source,target)-pair mean transfer effect; PASS threshold r>0.3. For 'corroborating evidence': Stage 10A's own split-half k=1 first-angle-cosine (already committed, reused verbatim, not recomputed)."
+    },
+    "guided_search_simulation_protocol": {
+      "value": "Per (capability, radius): each region's 64 directions are split 50/50 by direction_index parity (even=train, odd=held-out -- fixed before any region is selected, so no region is ever selected and evaluated on the same observations). The guided region = the region with the highest TRAIN-fold expert density (delta>=0.02). Evaluated ONLY on the HELD-OUT fold: probability of finding an expert and expected best gain at a fixed budget of k=10 candidates (5000 seeded Monte-Carlo draws without replacement), for the guided region alone vs. a whole-model random-region search pooling all 3 regions' held-out directions at the same budget. A capability passes if guided beats random in >= 2 of the 3 studied radii; the block-level PASS bar is >= 3 capabilities passing. Source: the same raw stage8 3B results.jsonl as the transfer metric above (see its amendment_note).",
+      "budget_and_margin_thresholds": {"k": 10, "hit_rate_margin": 0.02, "gain_margin": 0.002, "mc_trials": 5000, "seed": 20260903}
+    },
+    "7B_32B_comparability_rules": {
+      "value": "A 7B and 32B cell are comparable only if: same capability (of the 6 STAGE8_CAPABILITIES), same dataset/subset identity (Stage 8's D_map protocol), same anatomy region (vision / multimodal_connector_or_merger / language), same relative-L2 radius definition, same scoring definition (Delta = candidate_score - base_score), and compatible seed/candidate construction (64 directions per cell, same admissibility rule). No 32B cell meeting all six conditions exists in any committed artifact at commit 9305cc8 -- see cross_scale_results.json."
+    },
+    "programmatic_pass_fail_not_measurable_rules": {
+      "STABLE_ANATOMY": "PASS only if >= 3 capabilities both (a) have a same-region top-by-density_ge_0.02 agreement across >= 2/3 3B radii with a BH q<0.05 margin at at least one of those radii, AND (b) that same region is also top at 7B for at least one matched radius_label (stage11 interim data). Else FAIL (data exists and was tested, it does not show the claimed structure) -- never NOT_MEASURABLE, since 3B and 7B atlas data both genuinely exist and cover all 6 capabilities.",
+      "STRUCTURED_TRANSFER": "PASS only if (a) at least one source/target capability pair shows |mean transfer effect| > 0.005, AND (b) split-half Pearson r > 0.3, AND (c) the observed variance of mean transfer effects across all pairs exceeds the 95th percentile of a label-permutation null (100 permutation replicates, each itself a full per-cell relabeling of which capability plays which role). All three required. If the raw stage8 results.jsonl is not locally present, NOT_MEASURABLE (graceful degradation, not a crash).",
+      "GUIDED_SEARCH_VALUE": "PASS only if >= 3 of 6 capabilities have guided-beats-random in >= 2 of their 3 studied radii. If the raw stage8 results.jsonl is not locally present, NOT_MEASURABLE (graceful degradation, not a crash).",
+      "CROSS_SCALE_CONSISTENCY (7B vs 32B S1)": "NOT_MEASURABLE (zero committed 32B anatomy-region-resolved result rows exist at commit 9305cc8; only readiness/infrastructure code and hardware-gate-pass evidence exist).",
+      "paper_viability_decision": "GO_STRONG requires all four PASS (or CROSS_SCALE NOT_MEASURABLE with the other three PASS and only cross-scale confirmation missing). GO_ANATOMY_ONLY requires STABLE_ANATOMY=PASS with transfer/guided-search not both PASS. S2_REQUIRED_FOR_DECISION requires STABLE_ANATOMY=PASS AND (STRUCTURED_TRANSFER=PASS or promising) AND (GUIDED_SEARCH_VALUE=PASS or promising) with ONLY cross-scale evidence missing. STOP_OR_REFRAME otherwise -- in particular whenever STABLE_ANATOMY=FAIL, regardless of the other three blocks, since the other three all presuppose stable anatomy exists to transfer or search over."
+    }
+  },
+  "capabilities_studied": [
+    "visual_grounding", "counting", "spatial_reasoning",
+    "ocr_text_recognition_grounded", "relational_reasoning", "fine_grained_recognition"
+  ],
+  "regions_studied": ["vision", "multimodal_connector_or_merger", "language"],
+  "radii_studied_3B": [0.0035698828543799426, 0.017849414271899712, 0.07139765708759885],
+  "significance_threshold_bh_q": 0.05,
+  "min_capabilities_for_stable_pattern": 3,
+  "min_radii_agreeing_for_stability": 2,
+  "not_a_preregistered_hypothesis": true,
+  "reproduction_command": "PYTHONPATH=src python -m neural_thickets_repro.run_og_anatomy_evidence_check --output-dir reports/og_anatomy_evidence_check"
+}

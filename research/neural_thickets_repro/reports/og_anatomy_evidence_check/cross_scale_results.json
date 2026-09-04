@@ -1,0 +1,30 @@
+{
+  "block": "CROSS_SCALE_CONSISTENCY",
+  "verdict": "NOT_MEASURABLE",
+  "scope_of_this_check": "7B vs 32B S1 only (the 3B-vs-7B comparison is a separate, already-measurable check reused inside Phase 3's own criterion 3, not this block).",
+  "reason": "Zero committed 32B anatomy-region-resolved result rows exist anywhere in the git history reachable from commit 9305cc8. `git ls-tree -r 9305cc8` contains ONLY 32B readiness/infrastructure code (diagnostics/stage11_32b_live_readiness.py, stage11_32b_readiness.py, stage11_32b_live_evidence.py, run_stage11_coarse_anatomical_atlas_32b.py, thicket/distributed_anatomy_audit.py, thicket/distributed_v3_solver.py, and their tests) -- no results/**/*32b* directory, no anatomy_cell_statistics-shaped CSV, no results.jsonl, for 32B, at any commit up to and including 9305cc8. Commit b8fb371 ('LIVE 32B G1-G8 readiness verification: all gates PASS on real 4xL40S TP=4') produced a hardware-readiness proof (TP=4 load, real NCCL collectives, correct global per-region parameter accounting) -- it is a prerequisite gate, not a single scientific candidate evaluation.",
+  "exact_missing_S1_cells_required": {
+    "description": "The full 32B coarse-atlas grid, matching Stage 8's own 3B/7B design, none of which has been evaluated.",
+    "capabilities": [
+      "visual_grounding",
+      "counting",
+      "spatial_reasoning",
+      "ocr_text_recognition_grounded",
+      "relational_reasoning",
+      "fine_grained_recognition"
+    ],
+    "regions": [
+      "vision",
+      "multimodal_connector_or_merger",
+      "language"
+    ],
+    "radii": [
+      0.0035698828543799426,
+      0.017849414271899712,
+      0.07139765708759885
+    ],
+    "directions_per_cell": 64,
+    "total_missing_candidate_evaluations": 3456
+  },
+  "note": "This finding is orthogonal to Phase 3's own verdict: even if 32B S1 anatomy data existed, Phase 3's STABLE_ANATOMY verdict is decided from 3B and 7B evidence alone (per the frozen spec) and does not depend on this block."
+}

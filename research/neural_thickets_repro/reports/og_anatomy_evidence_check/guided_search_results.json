@@ -1,0 +1,309 @@
+{
+  "block": "GUIDED_SEARCH_VALUE",
+  "verdict": "FAIL",
+  "data_source": "results/stage8_coarse_anatomical_atlas/.../results.jsonl (3B, raw per-candidate, restored locally, gitignored) -- NOT committed to git.",
+  "protocol": "Per (capability, radius): deterministic 50/50 split of each region's 64 directions by direction_index parity (even=train, odd=held-out, fixed before any region was selected). The guided region is the region with the highest TRAIN-fold expert density (delta>=0.02); it is then evaluated ONLY on the HELD-OUT fold, at a fixed budget of k=10 candidates drawn without replacement (5000 Monte Carlo draws, seeded), against a whole-model random-region search drawing from the pooled held-out directions of all 3 regions at the same budget.",
+  "n_capabilities_where_guided_beats_random_in_majority_of_radii": 2,
+  "threshold": 3,
+  "per_capability": [
+    {
+      "capability": "visual_grounding",
+      "per_radius": [
+        {
+          "radius_label": "small",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.0,
+          "held_out_guided_expected_best_gain": 0.0,
+          "held_out_random_region_expected_best_gain": 0.0,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "mid",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.1044,
+          "held_out_guided_expected_best_gain": 0.0,
+          "held_out_random_region_expected_best_gain": 0.0020880000000000017,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "transition",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.25,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.28125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.796,
+          "held_out_random_region_hit_rate_at_k=10": 0.8722,
+          "held_out_guided_expected_best_gain": 0.015920000000000014,
+          "held_out_random_region_expected_best_gain": 0.01744400000000002,
+          "guided_beats_random": false
+        }
+      ],
+      "n_radii_guided_beats_random": 0,
+      "capability_passes": false
+    },
+    {
+      "capability": "counting",
+      "per_radius": [
+        {
+          "radius_label": "small",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.0,
+          "held_out_guided_expected_best_gain": 0.019975999999999907,
+          "held_out_random_region_expected_best_gain": 0.019687999999999907,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "mid",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.03125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.1066,
+          "held_out_guided_expected_best_gain": 0.019935999999999905,
+          "held_out_random_region_expected_best_gain": 0.02186799999999991,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "transition",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.0625,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.5238,
+          "held_out_random_region_hit_rate_at_k=10": 0.201,
+          "held_out_guided_expected_best_gain": 0.03033599999999991,
+          "held_out_random_region_expected_best_gain": 0.02233999999999992,
+          "guided_beats_random": true
+        }
+      ],
+      "n_radii_guided_beats_random": 1,
+      "capability_passes": false
+    },
+    {
+      "capability": "spatial_reasoning",
+      "per_radius": [
+        {
+          "radius_label": "small",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.21875,
+            "multimodal_connector_or_merger": 0.03125,
+            "language": 0.28125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.9436,
+          "held_out_random_region_hit_rate_at_k=10": 0.897,
+          "held_out_guided_expected_best_gain": 0.018872000000000017,
+          "held_out_random_region_expected_best_gain": 0.019892000000000017,
+          "guided_beats_random": true
+        },
+        {
+          "radius_label": "mid",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.21875,
+            "multimodal_connector_or_merger": 0.125,
+            "language": 0.65625
+          },
+          "held_out_guided_hit_rate_at_k=10": 1.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.9962,
+          "held_out_guided_expected_best_gain": 0.07579600000000007,
+          "held_out_random_region_expected_best_gain": 0.054688000000000056,
+          "guided_beats_random": true
+        },
+        {
+          "radius_label": "transition",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.125,
+            "multimodal_connector_or_merger": 0.21875,
+            "language": 0.5
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.9998,
+          "held_out_random_region_hit_rate_at_k=10": 0.9938,
+          "held_out_guided_expected_best_gain": 0.08383600000000006,
+          "held_out_random_region_expected_best_gain": 0.05835200000000004,
+          "guided_beats_random": true
+        }
+      ],
+      "n_radii_guided_beats_random": 3,
+      "capability_passes": true
+    },
+    {
+      "capability": "ocr_text_recognition_grounded",
+      "per_radius": [
+        {
+          "radius_label": "small",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.0,
+          "held_out_guided_expected_best_gain": 0.0,
+          "held_out_random_region_expected_best_gain": 0.00039720000000000033,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "mid",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.0,
+          "held_out_guided_expected_best_gain": 0.0,
+          "held_out_random_region_expected_best_gain": 0.0008680000000000007,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "transition",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.125,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.03125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.538,
+          "held_out_random_region_hit_rate_at_k=10": 0.202,
+          "held_out_guided_expected_best_gain": 0.01076000000000001,
+          "held_out_random_region_expected_best_gain": 0.004821200000000013,
+          "guided_beats_random": true
+        }
+      ],
+      "n_radii_guided_beats_random": 1,
+      "capability_passes": false
+    },
+    {
+      "capability": "relational_reasoning",
+      "per_radius": [
+        {
+          "radius_label": "small",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.3125,
+            "multimodal_connector_or_merger": 0.28125,
+            "language": 0.0625
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.797,
+          "held_out_random_region_hit_rate_at_k=10": 0.945,
+          "held_out_guided_expected_best_gain": 0.034824,
+          "held_out_random_region_expected_best_gain": 0.03007199999999999,
+          "guided_beats_random": true
+        },
+        {
+          "radius_label": "mid",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.46875,
+            "multimodal_connector_or_merger": 0.25,
+            "language": 0.34375
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.996,
+          "held_out_random_region_hit_rate_at_k=10": 0.9778,
+          "held_out_guided_expected_best_gain": 0.046295999999999955,
+          "held_out_random_region_expected_best_gain": 0.04370399999999996,
+          "guided_beats_random": true
+        },
+        {
+          "radius_label": "transition",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.5625,
+            "multimodal_connector_or_merger": 0.15625,
+            "language": 0.3125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.9998,
+          "held_out_random_region_hit_rate_at_k=10": 0.9662,
+          "held_out_guided_expected_best_gain": 0.05381199999999992,
+          "held_out_random_region_expected_best_gain": 0.05100799999999995,
+          "guided_beats_random": true
+        }
+      ],
+      "n_radii_guided_beats_random": 3,
+      "capability_passes": true
+    },
+    {
+      "capability": "fine_grained_recognition",
+      "per_radius": [
+        {
+          "radius_label": "small",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.0,
+          "held_out_guided_expected_best_gain": 0.0,
+          "held_out_random_region_expected_best_gain": 0.0,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "mid",
+          "guided_region_from_train_fold": "vision",
+          "train_fold_density_by_region": {
+            "vision": 0.0,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.0
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.0,
+          "held_out_guided_expected_best_gain": 0.0,
+          "held_out_random_region_expected_best_gain": 0.0,
+          "guided_beats_random": false
+        },
+        {
+          "radius_label": "transition",
+          "guided_region_from_train_fold": "language",
+          "train_fold_density_by_region": {
+            "vision": 0.03125,
+            "multimodal_connector_or_merger": 0.0,
+            "language": 0.125
+          },
+          "held_out_guided_hit_rate_at_k=10": 0.0,
+          "held_out_random_region_hit_rate_at_k=10": 0.1044,
+          "held_out_guided_expected_best_gain": -0.011051999999999984,
+          "held_out_random_region_expected_best_gain": 0.002080000000000002,
+          "guided_beats_random": false
+        }
+      ],
+      "n_radii_guided_beats_random": 0,
+      "capability_passes": false
+    }
+  ],
+  "limitations": [
+    "3B only -- no raw per-candidate 7B or 32B data exists locally or in git for this simulation.",
+    "Coarse (Stage 8) regions only.",
+    "Budget k=10 and the 'beats random' margin (+0.02 hit rate or +0.002 gain) are frozen choices in analysis_specification.json, not tuned against this outcome."
+  ]
+}

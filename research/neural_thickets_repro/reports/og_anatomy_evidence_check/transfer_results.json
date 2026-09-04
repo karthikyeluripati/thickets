@@ -1,0 +1,250 @@
+{
+  "block": "STRUCTURED_TRANSFER",
+  "verdict": "FAIL",
+  "data_source": "results/stage8_coarse_anatomical_atlas/.../results.jsonl (3B, raw per-candidate, restored locally, gitignored, checksum-verified against the main worktree copy) -- NOT committed to git.",
+  "protocol": "Per (region, radius) cell (9 cells, 64 directions each): for each source capability, take the top-10 directions by delta on that capability ('experts'); measure their mean delta on every OTHER ('target') capability; transfer_effect = expert-mean minus the cell's all-direction baseline mean on the target capability.",
+  "criterion_1_transfer_differs_across_pairs": {
+    "n_source_target_pairs_with_abs_effect_gt_0.005": 1,
+    "met": true
+  },
+  "criterion_2_reproducible_across_independent_splits": {
+    "split_half_pearson_r (even-vs-odd direction_index halves, per-pair mean transfer effect)": 0.2727717462274,
+    "met": false
+  },
+  "criterion_3_stronger_than_label_permutation_null": {
+    "observed_variance_of_mean_transfer_effects": 3.4762815827546254e-06,
+    "null_p95_variance (label-permutation, 100 resamples)": 4.4219668542631145e-05,
+    "exceeds_null": false,
+    "met": false
+  },
+  "strongest_transfer_or_interference_relationship": {
+    "source_capability": "counting",
+    "target_capability": "spatial_reasoning",
+    "n_cells": 9,
+    "mean_transfer_effect": 0.006312499999999994,
+    "std_transfer_effect": 0.008717405810360101
+  },
+  "full_matrix_summary": [
+    {
+      "source_capability": "visual_grounding",
+      "target_capability": "counting",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0007986111111111088,
+      "std_transfer_effect": 0.004362681069149003
+    },
+    {
+      "source_capability": "visual_grounding",
+      "target_capability": "spatial_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.002979166666666668,
+      "std_transfer_effect": 0.0061359118362717706
+    },
+    {
+      "source_capability": "visual_grounding",
+      "target_capability": "ocr_text_recognition_grounded",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0006673611111111077,
+      "std_transfer_effect": 0.005493968441492101
+    },
+    {
+      "source_capability": "visual_grounding",
+      "target_capability": "relational_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0017430555555555559,
+      "std_transfer_effect": 0.00811299861504843
+    },
+    {
+      "source_capability": "visual_grounding",
+      "target_capability": "fine_grained_recognition",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0023680555555555555,
+      "std_transfer_effect": 0.006583110821661577
+    },
+    {
+      "source_capability": "counting",
+      "target_capability": "visual_grounding",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.00018750000000000017,
+      "std_transfer_effect": 0.000606765244967113
+    },
+    {
+      "source_capability": "counting",
+      "target_capability": "spatial_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.006312499999999994,
+      "std_transfer_effect": 0.008717405810360101
+    },
+    {
+      "source_capability": "counting",
+      "target_capability": "ocr_text_recognition_grounded",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0025770833333333292,
+      "std_transfer_effect": 0.003338237278115498
+    },
+    {
+      "source_capability": "counting",
+      "target_capability": "relational_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0018125000000000016,
+      "std_transfer_effect": 0.008764942598214772
+    },
+    {
+      "source_capability": "counting",
+      "target_capability": "fine_grained_recognition",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0003680555555555565,
+      "std_transfer_effect": 0.001818267881880381
+    },
+    {
+      "source_capability": "spatial_reasoning",
+      "target_capability": "visual_grounding",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0010763888888888897,
+      "std_transfer_effect": 0.0021890123740196444
+    },
+    {
+      "source_capability": "spatial_reasoning",
+      "target_capability": "counting",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.00013194444444444167,
+      "std_transfer_effect": 0.001939626968717887
+    },
+    {
+      "source_capability": "spatial_reasoning",
+      "target_capability": "ocr_text_recognition_grounded",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.001022916666666664,
+      "std_transfer_effect": 0.00627699793890359
+    },
+    {
+      "source_capability": "spatial_reasoning",
+      "target_capability": "relational_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.000479166666666664,
+      "std_transfer_effect": 0.011970504114280226
+    },
+    {
+      "source_capability": "spatial_reasoning",
+      "target_capability": "fine_grained_recognition",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0005208333333333337,
+      "std_transfer_effect": 0.0031220298385025093
+    },
+    {
+      "source_capability": "ocr_text_recognition_grounded",
+      "target_capability": "visual_grounding",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0007013888888888895,
+      "std_transfer_effect": 0.0015035042978359307
+    },
+    {
+      "source_capability": "ocr_text_recognition_grounded",
+      "target_capability": "counting",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0023124999999999964,
+      "std_transfer_effect": 0.00496707912157637
+    },
+    {
+      "source_capability": "ocr_text_recognition_grounded",
+      "target_capability": "spatial_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.001909722222222224,
+      "std_transfer_effect": 0.01569534512226298
+    },
+    {
+      "source_capability": "ocr_text_recognition_grounded",
+      "target_capability": "relational_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0030763888888888907,
+      "std_transfer_effect": 0.008065998379686863
+    },
+    {
+      "source_capability": "ocr_text_recognition_grounded",
+      "target_capability": "fine_grained_recognition",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.00036805555555555577,
+      "std_transfer_effect": 0.002691393336225265
+    },
+    {
+      "source_capability": "relational_reasoning",
+      "target_capability": "visual_grounding",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0009236111111111119,
+      "std_transfer_effect": 0.002002629564750086
+    },
+    {
+      "source_capability": "relational_reasoning",
+      "target_capability": "counting",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0012430555555555524,
+      "std_transfer_effect": 0.0033372372971932508
+    },
+    {
+      "source_capability": "relational_reasoning",
+      "target_capability": "spatial_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0020902777777777742,
+      "std_transfer_effect": 0.008422446705497423
+    },
+    {
+      "source_capability": "relational_reasoning",
+      "target_capability": "ocr_text_recognition_grounded",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0001770833333333313,
+      "std_transfer_effect": 0.0014703581621496155
+    },
+    {
+      "source_capability": "relational_reasoning",
+      "target_capability": "fine_grained_recognition",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.000368055555555556,
+      "std_transfer_effect": 0.0014662360281611482
+    },
+    {
+      "source_capability": "fine_grained_recognition",
+      "target_capability": "visual_grounding",
+      "n_cells": 9,
+      "mean_transfer_effect": -3.4722222222222256e-05,
+      "std_transfer_effect": 0.0010607113212106518
+    },
+    {
+      "source_capability": "fine_grained_recognition",
+      "target_capability": "counting",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.0010208333333333339,
+      "std_transfer_effect": 0.003134984050996108
+    },
+    {
+      "source_capability": "fine_grained_recognition",
+      "target_capability": "spatial_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": -0.002354166666666665,
+      "std_transfer_effect": 0.014575001340051396
+    },
+    {
+      "source_capability": "fine_grained_recognition",
+      "target_capability": "ocr_text_recognition_grounded",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0016881944444444436,
+      "std_transfer_effect": 0.0030384586393067373
+    },
+    {
+      "source_capability": "fine_grained_recognition",
+      "target_capability": "relational_reasoning",
+      "n_cells": 9,
+      "mean_transfer_effect": 0.0009236111111111073,
+      "std_transfer_effect": 0.011909726271460273
+    }
+  ],
+  "closest_existing_corroborating_evidence": {
+    "source": "results/stage10a_behavioral_geometry/ (stage9 3B depth-region candidates, independent of this computation)",
+    "classification": "B -- MIXED GEOMETRY",
+    "mean_entropy_effective_rank": 3.132,
+    "of_possible": 6
+  },
+  "limitations": [
+    "3B only -- no raw per-candidate 7B or 32B data exists locally or in git, so this block cannot be cross-scale validated.",
+    "Coarse (Stage 8) regions only, not depth-resolved.",
+    "Top-10 threshold and the label-permutation null's shuffle unit (per-cell, all 6 capabilities jointly) are frozen choices, documented in analysis_specification.json -- not tuned against this outcome."
+  ]
+}

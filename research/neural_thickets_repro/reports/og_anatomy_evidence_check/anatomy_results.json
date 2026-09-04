@@ -1,0 +1,1031 @@
+{
+  "block": "STABLE_ANATOMY",
+  "verdict": "FAIL",
+  "criterion_1_capability_dependent_regional_variation": {
+    "description": "At least one capability shows a BH q<0.05 top-vs-second region density_ge_0.02 margin at some 3B radius.",
+    "n_capabilities_meeting_this": 2,
+    "met": true
+  },
+  "criterion_2_at_least_3_capabilities_reproducible_3B_pattern": {
+    "description": "Top region agrees across >= 2/3 3B radii AND that agreement includes a BH q<0.05 margin.",
+    "n_capabilities_meeting_this": 1,
+    "threshold": 3,
+    "met": false
+  },
+  "criterion_3_survives_held_out_7B_evaluation": {
+    "description": "Of the capabilities meeting criterion 2, the same top region is also top at 7B (stage11 interim 3B-vs-7B anatomy data) for at least one matched radius_label.",
+    "n_capabilities_meeting_this": 0,
+    "threshold": 3,
+    "met": false
+  },
+  "per_capability": [
+    {
+      "capability": "visual_grounding",
+      "3B_top_region_by_radius": {
+        "small": null,
+        "mid": "language",
+        "transition": "vision"
+      },
+      "3B_margin_bh_q_significant_by_radius": {
+        "small": false,
+        "mid": false,
+        "transition": false
+      },
+      "3B_stable_preferred_region": null,
+      "3B_stable_preferred_region_radii_agreeing": 0,
+      "has_significant_3B_margin_in_any_radius": false,
+      "has_reproducible_3B_pattern (stable + significant)": false,
+      "reproduces_at_7B (same top region, matched radius_label)": false,
+      "7B_cross_scale_detail": []
+    },
+    {
+      "capability": "counting",
+      "3B_top_region_by_radius": {
+        "small": null,
+        "mid": null,
+        "transition": "language"
+      },
+      "3B_margin_bh_q_significant_by_radius": {
+        "small": false,
+        "mid": false,
+        "transition": false
+      },
+      "3B_stable_preferred_region": null,
+      "3B_stable_preferred_region_radii_agreeing": 0,
+      "has_significant_3B_margin_in_any_radius": false,
+      "has_reproducible_3B_pattern (stable + significant)": false,
+      "reproduces_at_7B (same top region, matched radius_label)": false,
+      "7B_cross_scale_detail": []
+    },
+    {
+      "capability": "spatial_reasoning",
+      "3B_top_region_by_radius": {
+        "small": "language",
+        "mid": "language",
+        "transition": "language"
+      },
+      "3B_margin_bh_q_significant_by_radius": {
+        "small": false,
+        "mid": true,
+        "transition": false
+      },
+      "3B_stable_preferred_region": "language",
+      "3B_stable_preferred_region_radii_agreeing": 3,
+      "has_significant_3B_margin_in_any_radius": true,
+      "has_reproducible_3B_pattern (stable + significant)": true,
+      "reproduces_at_7B (same top region, matched radius_label)": false,
+      "7B_cross_scale_detail": [
+        {
+          "radius_label": "small",
+          "top_region_7B": "vision"
+        },
+        {
+          "radius_label": "mid",
+          "top_region_7B": "vision"
+        },
+        {
+          "radius_label": "transition",
+          "top_region_7B": "vision"
+        }
+      ]
+    },
+    {
+      "capability": "ocr_text_recognition_grounded",
+      "3B_top_region_by_radius": {
+        "small": null,
+        "mid": null,
+        "transition": "vision"
+      },
+      "3B_margin_bh_q_significant_by_radius": {
+        "small": false,
+        "mid": false,
+        "transition": false
+      },
+      "3B_stable_preferred_region": null,
+      "3B_stable_preferred_region_radii_agreeing": 0,
+      "has_significant_3B_margin_in_any_radius": false,
+      "has_reproducible_3B_pattern (stable + significant)": false,
+      "reproduces_at_7B (same top region, matched radius_label)": false,
+      "7B_cross_scale_detail": []
+    },
+    {
+      "capability": "relational_reasoning",
+      "3B_top_region_by_radius": {
+        "small": "multimodal_connector_or_merger",
+        "mid": null,
+        "transition": "vision"
+      },
+      "3B_margin_bh_q_significant_by_radius": {
+        "small": false,
+        "mid": false,
+        "transition": true
+      },
+      "3B_stable_preferred_region": null,
+      "3B_stable_preferred_region_radii_agreeing": 0,
+      "has_significant_3B_margin_in_any_radius": true,
+      "has_reproducible_3B_pattern (stable + significant)": false,
+      "reproduces_at_7B (same top region, matched radius_label)": false,
+      "7B_cross_scale_detail": []
+    },
+    {
+      "capability": "fine_grained_recognition",
+      "3B_top_region_by_radius": {
+        "small": null,
+        "mid": null,
+        "transition": "language"
+      },
+      "3B_margin_bh_q_significant_by_radius": {
+        "small": false,
+        "mid": false,
+        "transition": false
+      },
+      "3B_stable_preferred_region": null,
+      "3B_stable_preferred_region_radii_agreeing": 0,
+      "has_significant_3B_margin_in_any_radius": false,
+      "has_reproducible_3B_pattern (stable + significant)": false,
+      "reproduces_at_7B (same top region, matched radius_label)": false,
+      "7B_cross_scale_detail": []
+    }
+  ],
+  "cell_level_table": [
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "vision",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "vision",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0003125000000000003,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0009375000000000008,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "vision",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.004062500000000004,
+      "expert_density_ge_0.02": 0.328125,
+      "expert_count_ge_0.02": 21,
+      "mean_change_95ci": [
+        0.0009375000000000008,
+        0.007187500000000006
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "language",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "language",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0003125000000000003,
+      "expert_density_ge_0.02": 0.015625,
+      "expert_count_ge_0.02": 1,
+      "mean_change_95ci": [
+        0.0,
+        0.0009375000000000008
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "visual_grounding",
+      "region": "language",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0037500000000000033,
+      "expert_density_ge_0.02": 0.203125,
+      "expert_count_ge_0.02": 13,
+      "mean_change_95ci": [
+        -0.008125000000000007,
+        0.0003125000000000003
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "vision",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.00812499999999996,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.00562499999999997,
+        0.01062499999999995
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "vision",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0043749999999999675,
+      "expert_density_ge_0.02": 0.015625,
+      "expert_count_ge_0.02": 1,
+      "mean_change_95ci": [
+        0.0006249999999999797,
+        0.007812499999999958
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "vision",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.009687500000000028,
+      "expert_density_ge_0.02": 0.03125,
+      "expert_count_ge_0.02": 2,
+      "mean_change_95ci": [
+        -0.014375000000000021,
+        -0.004687500000000035
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.00437499999999998,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0024999999999999883,
+        0.006562499999999969
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.005937499999999972,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0037499999999999825,
+        0.008124999999999962
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.004062499999999981,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.00218749999999999,
+        0.006249999999999971
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "language",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.005937499999999972,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0037499999999999825,
+        0.008124999999999962
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "language",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.007812499999999965,
+      "expert_density_ge_0.02": 0.015625,
+      "expert_count_ge_0.02": 1,
+      "mean_change_95ci": [
+        0.005312499999999975,
+        0.010312499999999957
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "counting",
+      "region": "language",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0037500000000000398,
+      "expert_density_ge_0.02": 0.09375,
+      "expert_count_ge_0.02": 6,
+      "mean_change_95ci": [
+        -0.010625000000000034,
+        0.002812499999999952
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "vision",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0024999999999999727,
+      "expert_density_ge_0.02": 0.1875,
+      "expert_count_ge_0.02": 12,
+      "mean_change_95ci": [
+        -0.006249999999999964,
+        0.0012500000000000202
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "vision",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0012499999999999734,
+      "expert_density_ge_0.02": 0.1875,
+      "expert_count_ge_0.02": 12,
+      "mean_change_95ci": [
+        -0.0043749999999999675,
+        0.0018750000000000242
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "vision",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0043749999999999675,
+      "expert_density_ge_0.02": 0.203125,
+      "expert_count_ge_0.02": 13,
+      "mean_change_95ci": [
+        -0.009999999999999955,
+        0.0009375000000000303
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.004374999999999964,
+      "expert_density_ge_0.02": 0.125,
+      "expert_count_ge_0.02": 8,
+      "mean_change_95ci": [
+        -0.007812499999999951,
+        -0.0009374999999999696
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0009375000000000234,
+      "expert_density_ge_0.02": 0.234375,
+      "expert_count_ge_0.02": 15,
+      "mean_change_95ci": [
+        -0.0024999999999999693,
+        0.0043750000000000195
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.001875000000000026,
+      "expert_density_ge_0.02": 0.265625,
+      "expert_count_ge_0.02": 17,
+      "mean_change_95ci": [
+        -0.0018749999999999704,
+        0.0056250000000000275
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "language",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.00031249999999996905,
+      "expert_density_ge_0.02": 0.25,
+      "expert_count_ge_0.02": 16,
+      "mean_change_95ci": [
+        -0.00406249999999996,
+        0.003437500000000024
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "language",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.021875000000000033,
+      "expert_density_ge_0.02": 0.703125,
+      "expert_count_ge_0.02": 45,
+      "mean_change_95ci": [
+        0.014375000000000034,
+        0.02906250000000004
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "spatial_reasoning",
+      "region": "language",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.004687499999999952,
+      "expert_density_ge_0.02": 0.5,
+      "expert_count_ge_0.02": 32,
+      "mean_change_95ci": [
+        -0.02218749999999995,
+        0.011875000000000047
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "vision",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.002187500000000002,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0037500000000000033,
+        -0.0009375000000000008
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "vision",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0077812500000000034,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0105625,
+        -0.005250000000000003
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "vision",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.009031249999999987,
+      "expert_density_ge_0.02": 0.09375,
+      "expert_count_ge_0.02": 6,
+      "mean_change_95ci": [
+        -0.013187499999999984,
+        -0.005062499999999989
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0015000000000000013,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0030312500000000027,
+        -0.00028125000000000025
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "language",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0002187500000000002,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0009062500000000008,
+        0.00018750000000000017
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "language",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.007218749999999991,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.01012499999999999,
+        -0.004531249999999995
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "ocr_text_recognition_grounded",
+      "region": "language",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.03965624999999994,
+      "expert_density_ge_0.02": 0.015625,
+      "expert_count_ge_0.02": 1,
+      "mean_change_95ci": [
+        -0.04581328124999995,
+        -0.033592968749999945
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "vision",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.006875000000000011,
+      "expert_density_ge_0.02": 0.21875,
+      "expert_count_ge_0.02": 14,
+      "mean_change_95ci": [
+        -0.012500000000000015,
+        -0.0009375000000000112
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "vision",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0003124999999999812,
+      "expert_density_ge_0.02": 0.40625,
+      "expert_count_ge_0.02": 26,
+      "mean_change_95ci": [
+        -0.006875000000000025,
+        0.007499999999999982
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "vision",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.010937499999999968,
+      "expert_density_ge_0.02": 0.53125,
+      "expert_count_ge_0.02": 34,
+      "mean_change_95ci": [
+        0.0009374999999999634,
+        0.020624999999999966
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.001249999999999996,
+      "expert_density_ge_0.02": 0.328125,
+      "expert_count_ge_0.02": 21,
+      "mean_change_95ci": [
+        -0.0031250000000000028,
+        0.005624999999999998
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.00718750000000001,
+      "expert_density_ge_0.02": 0.171875,
+      "expert_count_ge_0.02": 11,
+      "mean_change_95ci": [
+        -0.011250000000000013,
+        -0.0028125000000000042
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.00875000000000001,
+      "expert_density_ge_0.02": 0.125,
+      "expert_count_ge_0.02": 8,
+      "mean_change_95ci": [
+        -0.012812500000000013,
+        -0.004687500000000006
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "language",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.010937500000000011,
+      "expert_density_ge_0.02": 0.140625,
+      "expert_count_ge_0.02": 9,
+      "mean_change_95ci": [
+        -0.015937500000000014,
+        -0.005937500000000009
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "language",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.004999999999999982,
+      "expert_density_ge_0.02": 0.40625,
+      "expert_count_ge_0.02": 26,
+      "mean_change_95ci": [
+        -0.002500000000000018,
+        0.012499999999999985
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "relational_reasoning",
+      "region": "language",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.02406250000000003,
+      "expert_density_ge_0.02": 0.28125,
+      "expert_count_ge_0.02": 18,
+      "mean_change_95ci": [
+        -0.038750000000000034,
+        -0.009375000000000033
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "vision",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0003124999999999994,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0009374999999999982,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "vision",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.0012499999999999976,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.0024999999999999953,
+        -0.0003124999999999994
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "vision",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.017187499999999984,
+      "expert_density_ge_0.02": 0.03125,
+      "expert_count_ge_0.02": 2,
+      "mean_change_95ci": [
+        -0.02187499999999998,
+        -0.012499999999999983
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "multimodal_connector_or_merger",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "language",
+      "radius": 0.0035698828543799426,
+      "radius_label": "small",
+      "n_candidates": 64,
+      "mean_candidate_change": 0.0,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        0.0,
+        0.0
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "language",
+      "radius": 0.017849414271899712,
+      "radius_label": "mid",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.008749999999999987,
+      "expert_density_ge_0.02": 0.0,
+      "expert_count_ge_0.02": 0,
+      "mean_change_95ci": [
+        -0.011874999999999986,
+        -0.00593749999999999
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    },
+    {
+      "scale": "3B",
+      "capability": "fine_grained_recognition",
+      "region": "language",
+      "radius": 0.07139765708759885,
+      "radius_label": "transition",
+      "n_candidates": 64,
+      "mean_candidate_change": -0.04781249999999998,
+      "expert_density_ge_0.02": 0.0625,
+      "expert_count_ge_0.02": 4,
+      "mean_change_95ci": [
+        -0.05781249999999998,
+        -0.03781249999999998
+      ],
+      "ci_method": "nonparametric_percentile_bootstrap_10000_resamples_over_raw_per_direction_deltas"
+    }
+  ],
+  "corroborating_evidence_not_used_in_verdict": {
+    "stage9_hierarchical_depth_claim_gate (3B only)": {
+      "A_did_stage9_sharpen_stage8_localization": false,
+      "B_did_spatial_reasoning_language_signal_resolve_to_a_depth": false,
+      "C_did_vision_capabilities_separate_by_depth": false,
+      "D_are_experts_more_localized_at_depth_than_at_l1": false,
+      "E_does_radius_still_reorganize_expert_identity_after_depth_conditioning": true,
+      "source": "results/stage9_hierarchical_anatomical_atlas/stage9_hierarchical_anatomical_atlas_3b_v1/analysis/stage9_analysis.md"
+    },
+    "stage11_prose_dominant_region_table (independently corroborates the computed cross_scale_detail above)": {
+      "n_of_18_capability_radius_cells_diffuse_no_clear_preference": 16,
+      "n_reorganizes_between_3B_and_7B": 1,
+      "source": "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_anatomy/stage11_interim_3b_7b_anatomy_summary.md"
+    }
+  }
+}

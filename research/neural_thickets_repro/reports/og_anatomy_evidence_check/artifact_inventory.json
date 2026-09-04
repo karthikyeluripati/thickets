@@ -1,0 +1,175 @@
+{
+  "task": "og-anatomy-evidence-check",
+  "source_commit": "9305cc8824b2c16a8f73befed3978c0cf96ff7ec",
+  "inventory_method": "git ls-tree -r 9305cc8, find results/, direct read of every committed CSV/Markdown under results/, grep for STAGE8_CAPABILITIES/STAGE8_REGIONS/STAGE8_RADII/32b in src+analysis+tests. No filename was trusted without opening the file.",
+  "mid_task_correction": {
+    "what_happened": "The initial pass of this inventory checked only git-committed content in the isolated worktree (git worktree add carries over committed files only, never gitignored/untracked ones) and concluded no raw per-candidate data was 'present locally' -- true for the isolated worktree at that point, but incomplete as a statement about this machine: the sibling main worktree (also at commit 9305cc8, untouched throughout) has substantial LOCAL, GITIGNORED, NEVER-COMMITTED raw per-run artifacts (results.jsonl, checkpoint_manifest.json, baseline_scores.json, etc.) for stage6/stage7b/stage8/stage9/stage11-S1 -- discovered only when the full CPU regression suite's own pre-existing tests (which assume this local raw data exists) failed in the isolated worktree but passed identically in the main worktree.",
+    "correction_made": "The raw, gitignored, never-committed files were copied (plain local file copy, checksum-verified byte-identical, never a git operation, never touching any commit/branch) from the main worktree into this isolated worktree at identical relative paths. Phase 3's CI method was upgraded from a parametric approximation to a true nonparametric bootstrap wherever raw per-direction data is now available (stage8 3B). Phases 4 (transfer) and 5 (guided search) were recomputed using the real stage8 3B raw per-candidate results.jsonl and now return real PASS/FAIL verdicts (both FAIL) instead of NOT_MEASURABLE -- see transfer_results.json / guided_search_results.json for the full protocol and numbers.",
+    "what_remains_genuinely_unavailable": "No raw per-candidate 7B or 32B data exists ANYWHERE (committed or local, in either worktree) -- confirmed by the same discovery process. Transfer and guided-search remain 3B-only. Cross-scale (7B-32B) remains NOT_MEASURABLE -- zero 32B result rows exist locally or in git."
+  },
+  "artifacts": [
+    {
+      "id": "stage6_global_gaussian_3b",
+      "scale": "3B",
+      "model": "Qwen2.5-VL (3B family, exact revision not printed in this report's Markdown text)",
+      "region_scope": "global_gaussian_upstream -- later PROVEN (thicket.anatomy's own parameter exclusion) to be exactly the language region, not a distinct protocol",
+      "capabilities": ["spatial_reasoning (primary hero finding)", "others referenced qualitatively only"],
+      "radius_type": "raw Gaussian sigma (NOT relative-L2; never numerically compared to later stages)",
+      "completion_status": "complete",
+      "path": "results/visual_thicket_global_3b_pilot/",
+      "files": [
+        "results/visual_thicket_global_3b_pilot/full/analysis/stage6_analysis.md",
+        "results/visual_thicket_global_3b_pilot/stage6_global_gaussian_upstream_cache_safe_v2/analysis/stage6_analysis.md",
+        "results/visual_thicket_global_3b_pilot/stage6_global_gaussian_upstream_cache_safe_v2/analysis/stage6_cache_safe_analysis.md"
+      ],
+      "raw_per_candidate_data_present_locally": true,
+      "raw_per_candidate_data_note": "results.jsonl exists locally (gitignored, restored from the main worktree) but NOT used in any Phase 3-5 computation -- Stage 6 uses raw Gaussian sigma, not relative-L2, and is out of scope for the frozen coarse-region/radius protocol.",
+      "comparable_to_7B_or_32B": false,
+      "notes": "Precursor/historical run; qualitative comparison only used in stage7b_analysis.md section 10."
+    },
+    {
+      "id": "stage7b_anatomical_calibration",
+      "scale": "7B (calibration-scale, NOT the 6-capability paper atlas)",
+      "model": "Qwen2.5-VL (7B family per stage name; exact revision hash not printed in either Markdown report -- 'model_revision consistent=True' asserted, value not shown)",
+      "region_scope": "vision, multimodal_connector_or_merger, language (all 3, exact-norm-controlled relative-L2)",
+      "capabilities": ["visual_grounding", "spatial_reasoning", "ocr_text_recognition_grounded"],
+      "capabilities_note": "ONLY 3 of the 6 STAGE8_CAPABILITIES -- counting, relational_reasoning, fine_grained_recognition were never run at 7B calibration scale.",
+      "radii": [0.0035698828543799426, 0.017849414271899712, 0.035698828543799424, 0.07139765708759885, 0.1784941427189971, 0.3569882854379942],
+      "n_directions_per_cell": 8,
+      "candidate_count": 144,
+      "row_count": 432,
+      "base_scores": {"visual_grounding": 0.80, "ocr_text_recognition_grounded": 0.81, "spatial_reasoning": 0.85},
+      "restoration_isolation_norm_verification": "Cache-artifact regression check PASSED in the v2 (cache_reset_v011_verified_v2) run; the earlier full_fixed_direction_bf16_quantization_aware_v3 run (no cache reset) is retained on disk but explicitly marked scientific_status=partially_invalid for vision/connector rows -- NOT mixed into any analysis here.",
+      "completion_status": "complete (calibration scale)",
+      "path": "results/stage7b_anatomical_calibration/",
+      "files": [
+        "results/stage7b_anatomical_calibration/full_fixed_direction_bf16_quantization_aware_v3/analysis/stage7b_analysis.md",
+        "results/stage7b_anatomical_calibration/full_fixed_direction_bf16_quantization_aware_v3_cache_reset_v011_verified_v2/analysis/stage7b_analysis.md"
+      ],
+      "raw_per_candidate_data_present_locally": true,
+      "raw_per_candidate_data_note": "results.jsonl exists locally for both the v3 and v3_cache_reset_v011_verified_v2 runs (gitignored, restored from the main worktree) but NOT used in Phase 3-5's computation, which is scoped to the paper-scale Stage-8 6-capability atlas -- Stage 7B's own N=8/cell, 3-capability calibration data is out of scope for that protocol.",
+      "comparable_to_stage8_stage9_stage11": "PARTIALLY -- radius set overlaps STAGE8_RADII's first 3 values, but N=8/cell (vs N=64) and only 3/6 capabilities; its own baseline scores (0.80/0.81/0.85) do NOT match stage11's independently-reported 7B baselines for the same capability names (visual_grounding 0.82, ocr_text_recognition_grounded 0.914, spatial_reasoning 0.72) -- an unresolved comparability gap, reported here rather than silently assumed identical.",
+      "comparable_to_32B": false
+    },
+    {
+      "id": "stage8_coarse_anatomical_atlas_3b",
+      "scale": "3B",
+      "model": "Qwen2.5-VL 3B, revision 66285546d2b821cf421d4f5eb2576359d3770cd3",
+      "region_scope": "vision, multimodal_connector_or_merger, language (all 3)",
+      "capabilities": ["visual_grounding", "counting", "spatial_reasoning", "ocr_text_recognition_grounded", "relational_reasoning", "fine_grained_recognition"],
+      "capabilities_note": "All 6 STAGE8_CAPABILITIES -- this IS the paper-scale coarse atlas.",
+      "radii": [0.0035698828543799426, 0.017849414271899712, 0.07139765708759885],
+      "n_directions_per_cell": 64,
+      "candidate_count": 3456,
+      "d_map_n_per_capability": 50,
+      "restoration_isolation_norm_verification": "Integrity gate PASS (six_capabilities, expected_total_rows_3456, exactly_6_rows_per_perturbation all checked in analysis/stage8_coarse_anatomical_atlas_analysis.py verify_integrity).",
+      "completion_status": "complete",
+      "path": "results/stage8_coarse_anatomical_atlas/stage8_coarse_anatomical_atlas_3b_v2_batched10/",
+      "files": [
+        "results/stage8_coarse_anatomical_atlas/stage8_coarse_anatomical_atlas_3b_v2_batched10/analysis/atlas_cell_statistics.csv",
+        "results/stage8_coarse_anatomical_atlas/stage8_coarse_anatomical_atlas_3b_v2_batched10/analysis/anatomical_contrasts.csv",
+        "results/stage8_coarse_anatomical_atlas/stage8_coarse_anatomical_atlas_3b_v2_batched10/analysis/stage8_analysis.md"
+      ],
+      "raw_per_candidate_data_present_locally": true,
+      "raw_per_candidate_data_note": "results.jsonl (3456 rows, 576 unique perturbation_ids x 6 capability rows each) is gitignored and NOT committed to git, but IS present locally (restored from the sibling main worktree, checksum-verified) -- see mid_task_correction above. Each perturbation direction WAS, by design, evaluated on all 6 capabilities (exactly_6_rows_per_perturbation check), and this row-level linkage was used to build the real transfer_results.json / guided_search_results.json.",
+      "comparable_to_7B": "Radius set and region set match stage11's anatomy interim data exactly (by construction: stage11 reuses STAGE8_RADII/STAGE8_CAPABILITIES).",
+      "comparable_to_32B": false
+    },
+    {
+      "id": "stage9_hierarchical_anatomical_atlas_3b",
+      "scale": "3B",
+      "model": "Qwen2.5-VL 3B, revision 66285546d2b821cf421d4f5eb2576359d3770cd3",
+      "region_scope": "depth-resolved sub-regions beneath the Stage-8 coarse regions (9 depth regions total, per stage10a's effective_rank_by_cell.csv row count)",
+      "capabilities": ["visual_grounding", "counting", "spatial_reasoning", "ocr_text_recognition_grounded", "relational_reasoning", "fine_grained_recognition"],
+      "radii": [0.0035698828543799426, 0.017849414271899712, 0.07139765708759885],
+      "n_directions_per_cell": 64,
+      "restoration_isolation_norm_verification": "Integrity gate PASS; baselines match Stage-8 authoritative values (True).",
+      "completion_status": "complete",
+      "path": "results/stage9_hierarchical_anatomical_atlas/stage9_hierarchical_anatomical_atlas_3b_v1/",
+      "files": [
+        "results/stage9_hierarchical_anatomical_atlas/stage9_hierarchical_anatomical_atlas_3b_v1/analysis/depth_atlas_cell_statistics.csv",
+        "results/stage9_hierarchical_anatomical_atlas/stage9_hierarchical_anatomical_atlas_3b_v1/analysis/depth_contrasts.csv",
+        "results/stage9_hierarchical_anatomical_atlas/stage9_hierarchical_anatomical_atlas_3b_v1/analysis/parent_child_enrichment.csv",
+        "results/stage9_hierarchical_anatomical_atlas/stage9_hierarchical_anatomical_atlas_3b_v1/analysis/stage9_analysis.md"
+      ],
+      "raw_per_candidate_data_present_locally": true,
+      "raw_per_candidate_data_note": "results.jsonl exists locally (gitignored, restored from the main worktree) but NOT used in Phase 3-5's computation, which is scoped to Stage 8's coarse (3-region) atlas, not Stage 9's depth-resolved sub-regions.",
+      "comparable_to_7B_or_32B": false,
+      "notes": "Already answers a DEPTH-level version of the anatomy question at 3B only: claim gate reports A/B/C/D = False (depth did NOT sharpen localization) and E = True (radius still reorganizes expert identity)."
+    },
+    {
+      "id": "stage10a_behavioral_geometry_3b",
+      "scale": "3B",
+      "region_scope": "9 depth regions (Stage 9's own)",
+      "capabilities": "all 6, treated jointly as a per-direction 6-capability effect vector",
+      "completion_status": "complete",
+      "path": "results/stage10a_behavioral_geometry/",
+      "files": [
+        "results/stage10a_behavioral_geometry/effective_rank_by_cell.csv",
+        "results/stage10a_behavioral_geometry/specialization_rank_relationship.csv",
+        "results/stage10a_behavioral_geometry/split_half_stability.csv",
+        "results/stage10a_behavioral_geometry/trajectory_geometry.csv",
+        "results/stage10a_behavioral_geometry/stage10a_summary.md"
+      ],
+      "raw_per_candidate_data_present_locally": false,
+      "notes": "Classification B (MIXED GEOMETRY) -- closest existing evidence to a 'transfer/specialization structure' question, but NOT a source-capability x target-capability transfer matrix (see transfer_results.json). 3B only."
+    },
+    {
+      "id": "stage11_S1_whole_model_3B_vs_7B",
+      "scale": "3B and 7B (whole-model, NOT region-scoped)",
+      "capabilities": ["visual_grounding", "counting", "spatial_reasoning", "ocr_text_recognition_grounded", "relational_reasoning", "fine_grained_recognition"],
+      "completion_status": "complete (interim, explicitly labeled 'NOT a scaling-law claim -- only 2 scale points')",
+      "path": "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_s1/",
+      "files": [
+        "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_s1/cell_statistics_3b_7b.csv",
+        "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_s1/solution_density_curves.csv",
+        "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_s1/performance_density_comparison.csv",
+        "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_s1/stage11_interim_3b_7b_summary.md"
+      ],
+      "raw_per_candidate_data_present_locally": true,
+      "raw_per_candidate_data_note": "A separate raw dataset -- results/stage11_whole_model_scaling/stage11_{3b,7b}_whole_model_v1/results.jsonl -- exists locally (gitignored, restored from the main worktree); it is whole-model (not region-scoped), so out of scope for Phase 3-5's region-resolved protocol.",
+      "comparable_to_32B": false,
+      "notes": "This is whole-model thicket density scaling, distinct from the anatomy-region-resolved S2 dataset below. Baselines here DIFFER from stage7b's own baselines for the same capability names (see stage7b entry's comparability note)."
+    },
+    {
+      "id": "stage11_S2_anatomy_3B_vs_7B",
+      "scale": "3B and 7B, region-scoped (vision / multimodal_connector_or_merger / language)",
+      "capabilities": ["visual_grounding", "counting", "spatial_reasoning", "ocr_text_recognition_grounded", "relational_reasoning", "fine_grained_recognition"],
+      "radii": ["small (0.00356988)", "mid (0.01784941)", "transition (0.07139766)"],
+      "completion_status": "complete (interim, explicitly labeled 'NOT a scaling-law claim -- only 2 scale points'; explicit in-file instruction 'DO NOT START 32B. DO NOT START 72B.')",
+      "path": "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_anatomy/",
+      "files": [
+        "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_anatomy/anatomy_cell_statistics.csv",
+        "results/stage11_visual_thicket_scaling_analysis/interim_3b_7b_anatomy/stage11_interim_3b_7b_anatomy_summary.md"
+      ],
+      "raw_per_candidate_data_present_locally": false,
+      "comparable_to_32B": false,
+      "notes": "THE decisive artifact for Phase 3's cross-scale (3B->7B) reproducibility check -- fully used in anatomy_results.json. Its own prose dominant-region table independently reports 16/18 capability x radius cells as diffuse_no_clear_preference and 1/18 as anatomical_preference_reorganizes -- corroborates the programmatic result computed here."
+    },
+    {
+      "id": "stage11_32b_readiness_infrastructure",
+      "scale": "32B",
+      "content": "CODE ONLY -- G1-G8 hardware readiness gates (TP=4 model load, real NCCL collectives, TP-aware global per-region parameter accounting, distributed v3 BF16-quantization-aware solver), verified live on 4xL40S per commit b8fb371. ZERO scientific candidate evaluations.",
+      "capabilities": [],
+      "candidate_count": 0,
+      "completion_status": "readiness infrastructure only -- no S1 (or S2) anatomy sweep has produced any result row as of commit 9305cc8",
+      "path": "src/neural_thickets_repro/diagnostics/stage11_32b_live_readiness.py, stage11_32b_readiness.py, stage11_32b_live_evidence.py, run_stage11_coarse_anatomical_atlas_32b.py, thicket/distributed_anatomy_audit.py, thicket/distributed_v3_solver.py, thicket/vllm_shard_mapping.py, thicket/distributed_perturbation.py (+ their tests)",
+      "files": [],
+      "raw_per_candidate_data_present_locally": false,
+      "comparable_to_7B": false,
+      "notes": "git ls-tree -r 9305cc8 contains no results/**/*32b* path at all. Uncommitted, in-progress 32B work exists as DIRTY (uncommitted) files in the main worktree's neural-thickets-repro-gate2-prep branch -- explicitly out of scope for this read-only, commit-9305cc8-only analysis and not read here."
+    }
+  ],
+  "answers_to_the_10_inventory_questions": {
+    "1_what_7B_experiments_are_complete": "Two, at different granularity: (a) stage7b_anatomical_calibration -- 3 capabilities x 3 regions x 6 radii x N=8, calibration scale; (b) stage11 interim S1 (whole-model) and S2 (anatomy-resolved, 3 radii) -- all 6 capabilities, N=64/cell, but only 'interim 3B-vs-7B' framing, explicitly not a scaling-law claim.",
+    "2_which_7B_capabilities_regions_radii_seeds_exist": "All 6 STAGE8_CAPABILITIES at all 3 regions and 3 (of 6) radii via stage11 S2 anatomy interim data, N=64 directions/cell. stage7b_anatomical_calibration additionally covers all 6 radii but only 3/6 capabilities at N=8/cell.",
+    "3_what_exactly_does_32B_S1_contain": "Hardware-readiness proof only (G1-G8 gates passing on real 4xL40S TP=4: correct TP-aware parameter accounting, real NCCL collectives, real BF16 weights). Zero scientific candidates evaluated, zero result rows of any kind.",
+    "4_is_32B_S1_whole_model_only_single_region_or_multi_region": "Neither -- it is not a scientific run at all as of commit 9305cc8, only infrastructure/readiness code.",
+    "5_does_any_completed_32B_artifact_contain_anatomical_evidence": "No.",
+    "6_are_candidates_selected_for_one_capability_already_evaluated_on_other_capabilities": "Yes, BY DESIGN, at stage8/stage9 (exactly_6_rows_per_perturbation integrity check enforces every direction is scored on all 6 capabilities) -- AND the row-level linkage IS locally available (gitignored raw results.jsonl, restored, checksum-verified) and was used to build the real transfer matrix in transfer_results.json.",
+    "7_can_transfer_be_computed_without_new_inference": "Yes, at 3B -- computed from the locally-restored stage8 raw results.jsonl (see transfer_results.json). Verdict: FAIL (observed cross-capability transfer structure does not exceed a label-permutation null, and split-half reproducibility is weak, r=0.27). No raw 7B or 32B per-candidate data exists anywhere, so this remains 3B-only.",
+    "8_can_anatomy_guided_search_be_simulated_using_existing_candidates_and_held_out_scores": "Yes, at 3B -- a deterministic train/held-out fold simulation (by direction_index parity) was run from the same locally-restored raw data (see guided_search_results.json). Verdict: FAIL (only 2 of 6 capabilities show guided search beating fair random-region search in a majority of radii; threshold is 3).",
+    "9_which_planned_claims_are_already_measurable": "All of STABLE_ANATOMY, STRUCTURED_TRANSFER, and GUIDED_SEARCH_VALUE are measurable at 3B (all three: FAIL). The weaker claim 'coarse anatomy structures density/magnitude in a capability-dependent way' (Stage 8/9's own claim gates) is also measurable and already supported at 3B. Only CROSS_SCALE_CONSISTENCY (7B-32B) remains NOT_MEASURABLE.",
+    "10_which_claims_specifically_require_32B_S2": "None can be usefully evaluated at 32B yet -- STABLE_ANATOMY, STRUCTURED_TRANSFER, and GUIDED_SEARCH_VALUE all already fail at the 3B/7B scales that ARE measured, so a 32B confirmation of a not-yet-established claim is not the current bottleneck. If they had passed, the missing 32B cells would be the full 6-capability x 3-region x {small, transition} radius grid (64 directions/cell each) -- see cross_scale_results.json's exact_missing_S1_cells_required."
+  }
+}

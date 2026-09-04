@@ -1,0 +1,18 @@
+{
+  "decision": "STOP_OR_REFRAME",
+  "reason": "STABLE_ANATOMY = FAIL: zero of 6 capabilities show a preferred anatomical region that is both statistically distinguishable at 3B (BH q<0.05 density margin) and reproduces at 7B on the same matched radius; the existing prior-work cross-scale table independently shows 16/18 capability x radius cells as diffuse with no region preference at all, and the one cell with any preference reorganizes (not stabilizes) between 3B and 7B. The paper's fixed research question -- whether capabilities have STABLE locations -- is not supported by the anatomy evidence that already exists. Transfer and guided-search were both actually tested against real per-candidate 3B data and also do not clear their own PASS bars (STRUCTURED_TRANSFER=FAIL, GUIDED_SEARCH_VALUE=FAIL).",
+  "verdicts": {
+    "stable_anatomy": "FAIL",
+    "structured_transfer": "FAIL",
+    "guided_search_value": "FAIL",
+    "cross_scale_consistency": "NOT_MEASURABLE"
+  },
+  "strongest_supported_paper_claim": "Coarse anatomical region structures the DENSITY/MAGNITUDE of thicket effects in a capability-dependent way at fixed scale (Stage 8/9's own claim gates C1/C2a/C2b/C3, 3B only, already strongly/supported) -- but this is a weaker claim than 'capabilities have STABLE locations that predict transfer and guide search', which is what the fixed title/question requires and is not supported by the reproducibility evidence above.",
+  "exact_missing_evidence": [
+    "Any 32B anatomy-region-resolved result row (currently zero; only readiness infrastructure exists).",
+    "Raw per-candidate 7B or 32B data of any kind, to extend the (currently 3B-only) transfer and guided-search analysis past 3B."
+  ],
+  "is_32B_S2_scientifically_justified_now": false,
+  "is_additional_gpu_spending_justified_now": false,
+  "justification": "32B S2 (or any further GPU spending) would supply cross-scale confirmation for an anatomy claim that does not yet hold even at the 3B/7B scales already measured. Spending GPU budget to extend a claim to 32B before the claim is established at 3B/7B is not justified by this evidence."
+}
