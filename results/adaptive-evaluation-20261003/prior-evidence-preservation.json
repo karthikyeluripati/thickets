@@ -1,0 +1,23 @@
+﻿{
+    "baseline_commit":  "92ef27d7a03abb66e928cdb7807b5bf87f6ec213",
+    "verified_utc":  "2026-10-03T20:09:36.3238630Z",
+    "main_ref":  "deb414253139cc2559d19cdfe7e6b4786e7c40db",
+    "prior_checksums":  [
+                            {
+                                "checked":  39,
+                                "path":  "results/llm-bounded-20261003",
+                                "mismatches":  0
+                            },
+                            {
+                                "checked":  133,
+                                "path":  "results/work1-closure-20261003",
+                                "mismatches":  0
+                            },
+                            {
+                                "checked":  344,
+                                "path":  "results/shared-speculative-20261003",
+                                "mismatches":  0
+                            }
+                        ],
+    "method":  "SHA256 every file listed in each existing sha256.json; Git diff against baseline is empty for historical results/reports"
+}

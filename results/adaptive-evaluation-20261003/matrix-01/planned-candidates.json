@@ -1,0 +1,4538 @@
+[
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10000,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6a494296ff732fce0776f524cb861e9a060b6247f9c13d22d026acd53fa488c6"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10000,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "706293bca8e2877c691bc991032bc03923a5c6d2818be484fbc23076c1f9fb65"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10000,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b9d73b160a60947c4100f2bdedb2f5af819b46ca1af9baa90f2bec9cf0a533ad"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20000,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e07378b562139fcc932935a59c40d54942fd010178805532bfca511d7d812782"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20000,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "53eb65776fb824d4c2abff56f322a5b6366d9c5940e1c89753aee904c386825f"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20000,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9ac09c882c62707efc645bc7d333e36dd5dd8c7f015895e60ad171019c3bceb7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30000,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "707f9d354dbe6332b3cdd05536787aae7f9f587e08503deec68e09bbd4579b3a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30000,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "564f664c438233df63560dea66667e899079b96c009739817fa44bb095731b4a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30000,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5961fa355cdaaabba638426076f239698f35d3e76a3a184c7128e23a6f20576c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10001,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c91ed1cc5a67f7db3eb8d8a49b03449470bbcaf573e27b94979b4ad25b11c904"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10001,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f9193e242dc7b85d120690b53d1e23e14ebd13a85ac8a0c8cef37004a8e7bc8b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10001,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "54f1ea927806d79751040dca8b4df9b60f34634e32285792fbcfa0f77fc563f4"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20001,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "88b3046a770b1e7449117b7f014aa99b9964b65b5b7423385e3c9e37d2d3edf0"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20001,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "41cf0c1f3d8c43aeaa9613d7cfa264c38521ea3da0aac6f838416757f33d52ad"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20001,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "12b66bada617c0cf3fce455f090b18d9c491ee3ed9d55996c4b0f6cf9ac8e04b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30001,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3af5e160549039f694879feacdeaaa6aa99b34038a5b9d944e73c29496587208"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30001,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3f455095b1298d940f40b8f1260eb5d3ce450976aa693831401ba01bd3af03b4"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30001,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6b915e27e6f0b13e65575f69ef826b3ce9f987ca2c1878df57d002a38c668cb8"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10002,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cd5d0b2cf38dfff1faa144e71776b7d548bac825bd6610477624bd707c60f729"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10002,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0f7b17a9b6677f9a422def3874ec552b9bcc368ecb4326fffe1b8caafe8286fb"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10002,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4117f5718d68e666b2c2bc10dd09302f82c8fa123bf590123b2e3edc1c3dc396"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20002,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f9b557a832f6fa828af28a1aaf4fe26f4dd031ffe29fbdb35a8ddd7e5aef5436"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20002,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6b1cc70f7e10de5d794a554ab94107bc5e888395f00d64ff1273fe9d965d2582"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20002,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f2018b6885f96c3cd450aae2356cbfc52b61fa5221795e2a182e2bdc0497be12"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30002,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9caaa7c8ed6b258935515ddf1a1342238e388e0fa3452cfded28f4c724feb944"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30002,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "81064170834dda6a6a3c62d0a3ef5f2388669f685c250622f750aebc12a28d5d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30002,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ab938e58f6c72ca65fc7c7074903739d47df18fb00381d1a5dd7e7607d8845d0"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10003,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0ba540101104e09e77bfd0c873a094bd0629ea9c002e51fa11064c14d8f00d0b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10003,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "478cbedbdf3e6260a42fe75c0cd7dd76f74810e738246fcf031267e122236c5f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10003,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "957a6cc6660af1010e8085026f670f36abd8a5c87916dd54d2d2fed56cee670a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20003,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fd246ae72b15ba4a7475c9250b457397fe0a0ba4cc5a2e3924a0d5478a12ce10"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20003,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f74592c00ce5ea2bace44f404b306442a538a50f9b6a2566b6b47fe9e1201097"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20003,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bc4a6398d1d39cf655755e466ab61132201d0a4e249dd4b7bc3613231720034f"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30003,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "253d237d27a34909b9d2e5207eea1db067ef0bcbb2eb836851d85b22938b49cb"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30003,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a5b98276f31483f687623731b11ef82bc99f303950f11dd40f728e7a0c5419f9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30003,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9aaaf56d5960ce071d61b04f7ac5754984271cfe5c22528fb9f3e5123cec4e35"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10004,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "aa3da31fd600e56d4153cdc370fff3cb51a1f3f997d1414aeec9d1e9484598d5"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10004,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "68c3ee2a92ee4550806545b9d00c0b384a38aeec9d3a0c934fca173cf01f383a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10004,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0da2f4a412088877fa5c41855d92f9fe076a573d5703ee7224c9694ad77f62cf"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20004,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c979bb41d335c272d532879976ef85122efa990de2e249059f21406443ed0f76"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20004,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f1e71d29fd7c1372a1bb01dd1830a1191c416479f0bc8878c0e4d4b9696c0163"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20004,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b55eca2a10653d75079a0281fb728dd4cd5ec8203c6045abe853ae1ccae08ed1"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30004,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "60f757a261bf5b3830ce61922318f88d6704d79715cf970bfaf8a57c43ecab21"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30004,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e46fa6b7b72cae5a239bb5e5899dc16929faa5e9bb5c70d2af3066d8d98e596f"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30004,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a4a358da0e7d65ea9fde4591414ce44df6f2ecb5ca450568632ec65c41d729a9"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10005,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "06cbd3b40fc8e6501ce621a7633cb3e39bb70f94fa720cd62b4dcf8eef6e0337"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10005,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1713bbd25b418c2da8009e336dc4c9dfac8e464b054024cfecf2e3bb20cdfe3f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10005,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a61c7a6a7c48f63392278e04a24cd0969d2287f7ae9bd0bcb60d58fb8fedafde"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20005,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "712ddc6b333e3a38d2fac557d84f2ab8dbe22c22269fca001593172168e41e9a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20005,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9ddaa892513404f5dc7e690d7465828f50c7658fcf1e355531b019294c5f3f07"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20005,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "74d5d03666ef9c7582a324121a82537bb5cea2373831caaf5dc85172512c3a62"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30005,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "71afe190b4f7a8eee9fd3efc7bcdadce6be961599200892f81aeb0bf13570c9b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30005,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "07be0d7d0a3a99ae593fa9e34a4f67037ffb7fcdd866ae3a05270651db7d08a6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30005,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "32341e9738345d66b01e710d50f34ffe84abd0eabf9c9f742d3bd3fa261833cc"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10006,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c978f5fd83d48bd6ecf58bbea6cd0e902ed49a438c0343a99586b969ec8d3a4f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10006,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d0b88926c797999f1f83dbd026772a015ba958b9cc1076c53dc6f20f465d2712"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10006,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "97fc3d34ff6a0d9ab7aa96cc3782c26d823d618647ac49f0b6a5fd710a92cf50"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20006,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "67632ea77ba8f488ecba03e6a265e1948dadbf886af90c1e30d6a193d5341f97"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20006,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4172bd6c5644a42c1607da492ae8e227e1c35fd7f94062b5f4d5d2db3c0dc510"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20006,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f7ed27f83db20d9596c6007402b4fba3d92973e9b46f9b78c5a52bcfc86ebb83"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30006,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "617ae96b926d1c4b0b87c21b3f8e23dab52b4b3902d9509356a92f5728e39660"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30006,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ca6f5b9286d5873fecb2bba5faf8a95fda61e559a8fee174f3a7e582fde1ff97"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30006,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4bb86885c55b180c3a642b0383150bb7c5424265fbf5807e8c1f0672f5d407a7"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10007,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "38508e8c6cbe2d9dfb77d8dbe8ed898a61043af618d3ed1f49b95c9c8079406d"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10007,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "127575646aba3ef28d7fa1578fb74ffdfac89030b844b9504570c3719a798c4c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10007,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "526725a7f917a76a47ece8c97a06f6f7c10f8a3780c9dbeb41ab17ebef35ea3e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20007,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f14a72b1cdb6de77a963e8fd0217c9d01a89d73d853ec617fdacfcce0688f247"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20007,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5884882bf88a067dffceea4c667cb2efcf46d3d85eb0ba512766744641851b87"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20007,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b8f11618ae7a6eebe3b33839a8c1c0ed26ed833be7e1c53b09be8756d40181d6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30007,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6a448ba62edc4600885cb7b91172ab6f1fd0f81555090ac494f8e1d904724c71"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30007,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "46ea0e58caac5f1f16fbface2f4e7077be3b628908d15449369ab310bb863a2d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30007,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b7927fb88b9d0863a290e06add5c30a9a55b9e2d0dbf22b0ecb4a8288bb0ef1f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10008,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2eb7661457c0e9c444b492e4bff0b5240a478d7d6092def03c46816bae27e151"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10008,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dcc8eb43d513d79d31c325840fe9443896f90c3f4eba3963904fd70e1f848f83"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10008,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "379861b96d2cc81c3163cd47dab1a7b8039751705c8ed4532dbaaa25b7e4b4b2"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20008,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c2be757c6ac0c904764212c124586eb1c1a9133bfc97d2a4e8b9b1f71321b532"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20008,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2c3b1fb7b00ff6afcace26c8e6e4c702041a309ebf499fc22057ba65389276e9"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20008,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e16b39b6b6c9fe54c67a933561822afb9136d78f2cd355c1d61414c875d3e91d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30008,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "81be9a4334c8a9acd5f0890a14859c3daec2a7732233ed334b6c19bc1682877b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30008,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2eedd9476341af93ecc7288766a18814a18f89a3620455899930212b3a3b6a42"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30008,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a19e60bd968aaea0958e75bf37688c08ba395961cdcf45aea3b9a745c70e3365"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10009,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "68105b514ccdec9f18c1c4a9746fbbe59b53d268a73afd7657bdd14e8b35a7ba"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10009,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d79c1b8cb3514abaa0af2295dd0b97bb52d78d59ce2c0c1988303675d3ddc047"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10009,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bb28d3d4c96090dccd2fed43604f565ceae2985e97f4cbda0bd5c0532a84283e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20009,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "927ea51e13397e5cd04795619238d50c8e36425e09ab2ba58f51a07b2e1c49c3"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20009,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a6ec445270b0476f7259830478ff630b0959de4225467daada17892863dbc30c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20009,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c8db98768dd01ff88efa160a7bfc28d1ba240ab3aa739848ca79f4bcf2aeec02"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30009,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "60f39a6b4e7e21e85e164084f9d42fa1710b6b5efee0876c76ba1cf62a552176"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30009,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9ecb3b66bafba55f6c18966a629eef521f202e5499e238829a43b56418fbfeb9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30009,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "27a2a93e7b7d91a824001c608654a99e4de783e4fdddda30a7df6b304e75660b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10010,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c7422b8bf9836129bfcf51ada52b41a904d02a79ad721769507ee661e6095178"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10010,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ec28a73f67a94625e2d6d2153df20f6b88298797a403c1e06cab37a23c67bc64"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10010,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7ab270236c8b2d5538b5c44cdf95f4aa00cdbec80cfe5d065aeb247ab667b1b7"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20010,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e392c1ea56317fa146bed4243de77c074e5281325a57b9ec19a01f75c29bab4a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20010,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e0e2e164700884309bf0921a7cff972e8f9834e5701c02266177fbd3dbec1b83"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20010,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "abb2fe4ff5bb269b51869e882b11b83c347135a682930dbe04a9243deda9aaed"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30010,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b3bc05bc5f4ee185551c2ebaf4a5e39ef307df08274d14a6441cd966ca442dc8"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30010,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4384eae5fcc9937b01b86b0eb203171623b6fae54b356b70812b1435b0988a9e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30010,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2543b47799f72e68db48c7872d8440344f4738ba0d09cc7c4cb5ecf1e95ad527"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10011,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a62dcb0700f461049959efbbf50093d686766f595c86ea6084cf05d227dfbfd9"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10011,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eab598eab1b50fc0e9f156356844fca606a17567df58a33b831947f0dfa33d3a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10011,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "78b349ab0bdc7cc51fc67639decd94bd2b743b4a3de45b7110b4d6c90f6366c4"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20011,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9949c8af8d9edc7e858994515232cc26504a45bf7c626d91e0f3ad24cc2516e6"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20011,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9d7817fcf0125edca25b162331efef267a121b4ca2a69570b7db104b1cfeb340"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20011,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c3e24cf819fe9b6018cfe8d993f73febd6fdfc1cd3dd722b8ca8eff0192a0c69"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30011,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "77a3495f45518f5d87b930c486d018c94af80fed08db1d8263ba38aede9d6240"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30011,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ddc988fb1ea0a760f1da758c473225a45a43de01cb79640e9f4c334efde05ffd"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30011,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5ea4321e4656fce7fb663bb1caa8d8ced7d82829737bb521bafbb15de0c2b1a2"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10012,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cb7ad613765c22d0504a8b9a8abd2bdd11c77dc6e516932475e4398fa562060c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10012,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3536bca34393f2c44f34c5d363a0e819359d339273c188e66c1b53cd26c9b0e6"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10012,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a7657456f83a3f1b6e93258266ffc8b21651685765ef8973c5b58e114d8c2689"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20012,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6693e43154f250cde984b88a106408a0c4dd432e7960c88c02e477d736fc8a4f"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20012,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7604ad723a1fdb6cf25b7edcf67962f7758d90bffe3e9f14baa8a1c973929358"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20012,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ebeaeb05d580cadf4300ae31a8e9a7a8f467c178f39436a3b529b027fbb184dd"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30012,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "627316932d0e954483d08bace2b840292b1736663043c9da0f50cdf1c557a6b7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30012,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8f86f9a735aca3a8a25adf17e086d2a92521cb388f2a002035c37e66f49df41a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30012,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "aaad2fdd49d282679a6912c97ebd8ec8a3718523cef8e5752d0ccb6295aab18a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10013,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7626117f9ad610628f7d44889cbb87a7c1cc2d1d1893d189f7d89aa3db0f17aa"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10013,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d2c17c45996ceae70aaf9182f817bb4269aea26f99725856b30966a7e4160ada"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10013,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3568c2d2114d9fec890028565adce84112366907ec3cee07dade5f72d91255f0"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20013,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "986ea4a07f9ff676e807b5e6d3a17ef578e6b587606c7edbf8eada60e588b173"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20013,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2c5f06b59ca396e4c90d27d2c196b9e3a8808f8f2f42129ff08445da343ca9c7"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20013,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "488498b27072fdce9585f8dd0bd815d97a35cd74b94692fd7f56720a4283b6ae"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30013,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e67d02f2ea79a4c866be35f7aeecdac0e83a51d40582f4473b39bc1a70e285a8"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30013,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dc272d6018584033ad1385e36fbc90f483e2edc16fa8ac0b71d7a8718c68d4e6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30013,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "55451d99ab65aae3c97638cf5a3b4762df662208ae26c232657eb595160289cc"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10014,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c89cc7725b395cb4b6f6423a0b8632129febb9f45c03a3735647c7468d208d50"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10014,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4a11806ce0cde58570c47597eaadfa9cdf3966e374badc876ffced38cf586dc6"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10014,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "17622215f07218ffb99e47063263571c896b94754806d2df0edbec021864ec33"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20014,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "76a7beea6b47d92f14521b3dc56848b5c6950d48d2d6a82d77030875ef2f00e4"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20014,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7a664e5e4fe0e740ebad3b79e002f057c0c222a3f2c0b7ba2118252d99f46bc5"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20014,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f08a88510605d188452a11dff7a4ef521f606cb5ee10061b5a2ddeb0c47d4a62"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30014,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d062dfefcb720caadddd1731fbdbbb5adc2a398b3ff9cf8f25a21d1770a63596"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30014,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9fff69e3d5688f4d9fedf0d68b11da5fcf108f5e3087fcef845790de4ba45e8e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30014,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "da7a5bf846d05fa672fa65d4b4f8f8508a5862850a204dc64b658172a7dc5312"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10015,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "167f3dde9fb06267a9f13b2b6748bc12266409750327703cb7dec7ebe34413dd"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10015,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "12260ad6f515d89346dfbe054e24c4e0f03cfd9f53223a5c5933920b869a1e52"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10015,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b0f330d33011bfe0518234fe0f87483a70f18811940972468afad0e6d0c3f814"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20015,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4d3482a55deb397204c9b4dd79f205657f0557fd049a03cdd7f4d8b9477a31e6"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20015,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "02165afb47c49ac3be1df64b70a9445f3fea4b7b01f67e5123b68df674f4239e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20015,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7b1698ca0728f8aa9d8c57d44e3e0e17487e01ccc0cd2cfc8e45aa2e18e49edc"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30015,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c6afdc8c6abb35d6047f3205d88cfa4a897bf03c69d5a765ed1d1a64ddf16931"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30015,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "330ba010e42aa4fb9643bd3c2586497a1ebbf71cc06e426fd67aa8b57d881fc7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30015,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f306ff4859ec86b212599d8a8c8256b6b0324d699eac5ce5fe57801752ea5556"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10016,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b3294168dd81ad076499b51684a0b72d1d61dd4646cf26fccbff293f3363d079"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10016,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "753418902fc105a6aa6e1b2fb404135076539ce3e366df7a458b7e74e955b878"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10016,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "17f3aa8f57aa8d9f8ff3785e27a4056f36ef98234dea6890836431dd66058795"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20016,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "59b81ff51d6305c95d84dd051d4fe21df29b6d9f2203c70adf1eb16e5b032f14"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20016,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "180871da050061ec0fde7e35512cce96df702dc6f9ee99ef992d17f9546e67a2"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20016,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1f16bbbad2a422e989dc2aa91eeff4881dd4aba2ffd9828a75c340aef171f915"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30016,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a410310c5be6e3c395d626510d54b0cc502da3af3773593d164e497afc8b25d7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30016,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cd756f3fafe8ba9f09bf331799c1a76ea79a63f58fc0706664c1dc41dbd1ae89"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30016,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4d076cb61dc7b6373caf8f1666f1226ccc7ceddcb465d40c9372b392e565b005"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10017,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "97367fc53933914e6fe587500f02f620e4a71ed958bbb9cb02dfcdb55315f8b1"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10017,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e79b373bf531d996246bceb126e75491efb153ff7e5a3f849b6ceaa6975726f7"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10017,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "95846dc1ba84d0fb83f0badf9c8b88c86a6c62c5104f6809d0a6940bc0b7f0df"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20017,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b05548f6fca323fc2b2c21079b7fde8f799eddbd53150fe56d9162b61d5db211"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20017,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "55c2d2743c07524135670fe1661956335ad955f02c9241cc168daddf3614c7ba"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20017,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9ff5e9cf5d326c3066671a939cd6ae9aa7424d790074ff724b8a3b7728069dcc"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30017,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ed4dac128ab21a1e9d9a66560e3b2835a46d13a9045deb67947e7861095ca8ba"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30017,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ef5eec31142a1cd7e1a8e8b6b4260d8d76c5df1b524c874ee51a86370efdf836"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30017,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f41442ee6e31f27f0c9e0bc72ca45ca3a2e578ead392e677179746f56651acbf"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10018,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f74177c7aa2de105be676b7f7c3a9ccccedc113cfce0c7627f1f3b5408a4a800"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10018,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f11a9db6ae8fb060e2b2c473b8753ccf272c13644e17fff238c5426a0b7d9479"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10018,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9df120b042afb2e829bc712f38e8108afd119cdf472907c65d0b5e76f866e0d0"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20018,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a9b0ff17a3231d0b8519ff48dc475014c6e73075f908117451c974db9346a58a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20018,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eba45491564db200e88b2dfa8940ba6d0e3b776b39ff21c60edcbac0a174bd44"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20018,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "23f2566473237e1625b5c5c8e033997c51183e5d1b83acc4be1722fa69e40d68"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30018,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d94295dd929632c004c86562c82fcbfbdb4fd409fab8e8094e7c463ddcdf2b6c"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30018,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f8a0b399f61ce16b93db9f4d55be2144dcb86ac462cb2901d65eccd5ef859915"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30018,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fb379d1c9341f66ae8420f6b044f6caedc4de0ae1e1da37c4de6b6c50979491b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10019,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "42c35b4609f2196ea4bb50eea466dedd482be875c3edb0ec2ffa33c5f53d004c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10019,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2384d70cab85b9b6b328492d72eb2b2b6e2d8565d5f90cd4813c85d0af7f87db"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10019,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0598990884f42db2cfca5ccf8c66fabaf844eebc60993c431a372899e733efd5"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20019,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "115ba4dbc51c92841792a2c03cf234e83abe5e9f05d9c98826bb86464463f4a4"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20019,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "90de4a4a521c5c8f3f1d4a7720daf227824e0eb8d94641ed5fafbaa78bae18fa"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20019,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "769008d8a80b8d96b2f2bca98d9f3a35bb13707ae9406799e68cf65bb01235e5"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30019,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "182e76e4ada340d5d63b28e5d64a005dee671017cb0bdf348600e8037c5f6599"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30019,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "396105c27784d4460a95ee5dc15dcb509ba8e15006dfbe6b190abc9934af8c62"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30019,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dd6fd88d963012b4eea6cf76ca29719eb13cc9357ea0801f8a8b287609591aa1"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10020,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e5c066d4ca58846f1f2d1bcac1c9e3b6715b9379052fd87a407723581fe8a76f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10020,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d56ea7a6ef066028f69efcb29f61931000904c1ed5e84a833bd4d781b794e86e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10020,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b010710a7553f5f9c8455192589f41c465da37b58bf97ebf3001af466ada7692"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20020,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2ddb0350ddb68ce053de3cf4a3610e82a94dd7900967e97a9313575388e0898f"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20020,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "402b8fa8ae9ec4b5e6ffb5c98e9fbfbfa8517cd14cee0689998373a3c78aaec1"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20020,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c6025fa18884603262a123a5f4c51af854fd5fde24735646029028da625f6cc4"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30020,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "494fb8dffd228e72696fecae6a17e84bda331ae675082b29ff0ba74baee67738"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30020,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4a632dd342e08efb0f00ea8cbb13f775ac1fc9da5f41c694d343dae93c8f5756"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30020,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "097aef2e828d7f90eb83d94c3a877912c65d94adc69d7d06be938421831a2d8a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10021,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "908b4deb67f20e3f9e682cd54463f8d121eddb6e9600a59a623668d004785d74"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10021,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "246c1962db5f7e62aa392eab9616bfda07a100ef2728d47851c9c1ba86753979"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10021,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "71b06f7c069927256019374a47fd4b8cedac9d9258a4c5dc73e41839d7dee082"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20021,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "32a9c4e7ef870e841f7a289e2345312404c20fa2d0c273de018e59191bca6a00"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20021,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4392abb21f91820ff7eec582f23b5af6b14c6359447b71fe3756fdf57d8a8a58"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20021,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b268bc92868f7333089c8313b3b4919db086e2929b711b8290c3b161c5d930d1"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30021,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c586373cfefae64d253b98d22a6c3d9b0120550b5e04b0106435ecd4b395ed6c"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30021,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fa602ffc2f45c2b294ad4ca9f76b008b510c2fcc4d0aa0d71ea5ff6d6701f19b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30021,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "86c935ab2f76bdd17085b29eeb77c38b6951e40f004c512848ed8abda0992d74"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10022,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b9468877562afc72ee16aecc556d91d25d40289d4f279fdcf20fe624f2abd557"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10022,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "17c47bf50f309757ac903e575dad140515159f90f464c2793b2edc86914d83ae"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10022,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c50e89269a5858425b1d8e23ba31b9026760a594203daa20d465b35c343504f3"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20022,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "65b11193ee97c1ce9a734d1272cb31dec94a94d876e59ea7cc4c5caade2995e7"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20022,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6df8899a873cafff182a8839c0525299b854ce0d014f6610a1e79ae69be47146"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20022,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3b86d64ea5d5be68d3ad3607d7a8e28c7ac6d51da5317029e356b0f604bbe787"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30022,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5567cd146ded444e0d4ebe45ea3fe0dd5e458257f9302ffe408a417d752d441f"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30022,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "064f839c77650eb55e77c05fcb4f8b5ab48725ca31e04fd9cc7988939bfee9b5"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30022,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "825c5f86b25251b3db871121f1503b115f9665e1cd1e5821d9b838ddf8b6a51b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10023,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6c572e5d8ee36c0231f836bd8b71671a839925187cfe4f7b165339b682301959"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10023,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "15f07c88a737468fc256dc335264c4a143361102a07ff2faa4a7c081bc6d43ca"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10023,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "82ad981c55bf8a1168cdeae6ac8e2e0886131b86a9a2bdaddb67e2dbdf8a6665"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20023,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3af00bf5ea484547f81ecc111ea9c098a7ac3ac5e811dad610c3436a7eee0d1b"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20023,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6a8d57b67ee6a920e2fc7c0a44dc9e5465957ecbecfdfa814d431b1350cd3629"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20023,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "11c1c90cd5494c9fddb92b5e6e4059b3e173f3189672e7f5130f27338387db45"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30023,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a01e6c37f5c1dc3a133ec6fad6c9b6116772ee72b081ff1b4c3fb22914d1f746"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30023,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1ec450846393818cc5e2b8ac8b2d3703b0b3ec969cbff4e06548016d4016937d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30023,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "464087c80d37433bca4f1c1a2268f70651158e429190eacd0e353f868ba49deb"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10024,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ab1ebea83089e04a45ed8c6ddfa53e0f231cfe304348f1cd5809ff972155a885"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10024,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a9bf71f2aacfd6561c9372a6efc2955232503a61e4ae33ab7b8b0e15782ffa8a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10024,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e392ac045542fa5eb42dd27fbf80bf9e110fcc2b7ceb69fd6016010c7e0a8481"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20024,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "380a1e18327e075f6d3176a80a1b1b7f8644668af397ae8658dc3c55940a443a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20024,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7da8ef0c05f71ac18e566de2f663b319c4a3b997167f44a2d4043597038aabf8"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20024,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "692d469a63500ad1cf6c5c670c8f87c4c9931a649347126ad512fd6a70ae2832"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30024,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d7c4e319a8e1367c7e8b1fa629019808ffe40be50e46b2738e9798c03f471471"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30024,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f7e43d223f39e4ced4b17a46e65f24fa7ea744c311a6b7fcb887226fef196478"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30024,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "000e6243c6694c70add2cd04d3201dd6d4aa2349ab3b5ac7de377d31064b5b4e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10025,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "87395805de71aa1a843ce3496c02c67931a827e396116c971266a7b2c2471684"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10025,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "54020a6ac6534311cc799bb067edeefca3e77769a89e241905c75648c3d7be4a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10025,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3bff05d353c799e0556f528e89c4affc0a3e02ed3b16c51bf3d77eeef0d70603"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20025,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8622e6c1be9263a7c6f07c548b8e547d164919a33c29610d25f33eeeac123ebb"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20025,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fc56a0d50f11363fa58bd0ee9dd28c302758ef250a34e166cac85cc724387ea7"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20025,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dd263f56204eb0d0603ae635b9b0a06b08f055f7f6a82667762c7841738373a8"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30025,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7a8871dacf7b09dbc3ee8566e02a4ed311d058d96b513da352c25a9ec74f7d75"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30025,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "02c9ddee6e57ed056fbbcef338a703b0b905ce1cf57b8f95dfcd97dc569de4c6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30025,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5c246a888ea62fbfaf526eeec79a09ecad63ac7a16d32a1e46f4ff1f00b5c372"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10026,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b3000d603ea8f4fc98331248b2095d20ed8d65a54b27ee11fdb7679107ba83b1"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10026,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "70cb2eca0d8ff07e083c2bb2ba06fa3b0f22f59110994550ba3e5adae96c3784"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10026,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c02c6297abf14d494e8e08e51e48d2129892a4218822dcdfb709eebb7cc8dc5e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20026,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e694af0af603ee52d0a6b2bdcec7a6db10130fe523587495d9ef479048e46d52"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20026,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6fdcba22f073605f39fcfa41cd195ec760495e277b6fffcddd14deca4516f59e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20026,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "343b6c42324635aaef0aefc045cb07dfb6556950f8bdbf0a52343590daafd6c9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30026,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b3563f039f89bc976be4649b5122955278adb751d4ac7e6d1e9fba5ab15bc0cb"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30026,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2cb79da30cb657398205856bf8f9a3c4fcca549fa41bea63436a660db27e5895"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30026,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1ea43ab2351c243558f5d891a1f4dd8752e029eb467d94658d89010cdac7bf20"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10027,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c618fd319060b1b25e94e01bc0640a96ffe146bb774c4c0302b93b1a1be7919f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10027,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cb851effb36b2ec0fdf2e47c99b10589805901ab2b53c40f7bdf915c533d15cc"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10027,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "653a2d845601a2159c7de54da3f02c8bc10438b34069f2ebe17ac307be03b94a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20027,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "78a01c25d77fd1e9256285850baa47e18e86412198060d229d1a4c79b67c2917"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20027,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ff67dc67a13d00aea7d06246152db1cebdb8c1b4e069385c7e39ac990077164a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20027,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3d4f76318c6df118b49b217cd825cd503510b20e442689731c247da3c80efe59"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30027,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e553b8c75262284b6b846d0b1d72bcbe970fc70e11853f75211e9cff7b15c5b7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30027,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "70cd359c695348e1f54abbda3e69fd068c47d0160ca19a237f54d60aa9b0533e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30027,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7851baf4a69bda263135658f206e24677052cdfa6426ee7c844abd12562d813c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10028,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "013fa9b13f21f491cc9245f27243141802c1d79e58e7281920187e0b1b4ebf86"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10028,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4c764b337770dc6158003984096a55ec238c4a8e17b4db86d8e18c0ffb02affc"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10028,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "588f249f55faccbef453bed3c38b1e56480b55e47f96ef1e3d181016877ca82c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20028,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "628e0a36f923ee442b83063a8968029566da870f996f1932a103d50a3e075b24"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20028,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d3de28ce768198d1379617eeb55d221ff96d802c0ef44acf03d39c99ed5462a5"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20028,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "266bf0ed9a1cc87e89fada86db8176f6a63177c2b0c0ffb8f1cbe8fdde3a9366"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30028,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e5d79adc4da6ea3fa872c6bb929db543fe925b1319117ab39134da5175efaeae"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30028,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b7f4eb4ca3af155d6b8b2971240328fe7e44df3df62ec4413794c77f79d5d592"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30028,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "43fbc026b66c03207fa569e2fdc6b81cdaffec118b5edcb598a37fa883507c23"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10029,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b1d967dd817eeb759bcad6002bd21825b6f91aedf76c8eb3b535a5a39a5bd2ef"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10029,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "102999a73313c782a34514d58a9f0de3e67810cbb537f4e63f6c012e4bcadedb"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10029,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3065603a1f0fc1bb17720aeaf218ad01d480e12b76a7c67d18daae009baef2e9"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20029,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "094fd2ea0dc675bf9f0fedccf08f15c92c488b7a0e45dbdef22eeace0a697e0c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20029,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b8c842c5f96180195bb68c5d82c73e54c5aa6ae7ad781af62201a791c2b17744"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20029,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "110f9357db35cdc85a63a3a7f79d42a52556cea7170f7dfc9439bdfba0c9d433"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30029,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c65ee94a4dde875c37362d161a634bbb9f672f4e38fb18280b2aad18ca1693a8"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30029,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e02dfabfb16d809bda9413e229f4ea426d70b27d039541eb1a4cb6e72f011ea0"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30029,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f5627af48105c2f92dd244afb16e9c5395e3b67e4287be79c0915667c45692b2"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10030,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e920f05ef6a591a67e8082a18de29ffa509d1b654400e386a39e02eb49a23d6d"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10030,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "819db563aa1c53f1b8895d5143fb774e07f154fcf7ea0d0779f9f7df60496ecd"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10030,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "40b5ab740845dedf519fb08bb130b54950d2a2e4117af0e4a6b6e302b834f3d8"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20030,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9fc17497ddfbeb53a00057ed96f3f75ac4b46187e43b98ebae4ed28abdaa04fd"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20030,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2e26170ae90fd72cad5c63d0abd18d2aea9988643911a5d6f60f03243e811a0b"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20030,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6da7a2528041cfeb50751bfdfdaa5b87fe2d7093817629d26a1feaacbc56e82c"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30030,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f3b1fde1938bd72acfcb40bba1d7e029f2956f7f69af8e03dbe9520bace57c36"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30030,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "11936d3faaffa8e298ccbaa84136e9b4d1755627bdc0a57a350c33c4ca9be9d5"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30030,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8c27726184f84d9a9d568d98bbdb1ca68375ddb75d9762e9857fdf7f3c01844b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10031,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "199582dfa2e427b8a948b6225f517228dbb688f7e1c774351b913f0beebc9753"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10031,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6b49e46df86541bb067958cfb26ccf1636cc5325dd10e8bc0a08e2fb3b6d1689"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10031,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "97df7411f3aa21e9ee695ec67c3c3d3bf3057fe57b9c0b28a596a3735b998fac"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20031,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8c26f1884d27bc4715e1fa2307ce541b5c7426494e6bf41712ebc0477b00eb26"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20031,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "668cdd7027276eab67bc64b3ea8b9665e4ae403d40114e4d726203a4e889de85"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20031,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6cb803b20a89065fff1e1da1a9fbf73d4aad086c2aa12fa06d20ef656edd241b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30031,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1536347c6e572b3a2b8eef1b9cbd6c8f01821d0e182a392d38af89d485ebe066"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30031,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b4f62d311190386fc0e1fa6a3655267fe43054b148f953618a06281b9cd9ff05"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30031,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5bb24394b9e761af0205478a90be91bd51b17d3d031d46d19bddd34347914206"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10032,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b5f4317641a139bf136f18f41a35897408f1a60eecca941884eb394951deba2e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10032,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "54533aa6ee56fdcffbf35e90d0d0d4702d3cd4a86f96992469a96ad4aba2d24c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10032,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6de95805d41534c10f32a1f2181a362c5cfb09fd7cf1cfcc84c20451092fcd45"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20032,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d9b64484727b42bfe7716ab55f9993bfa108b760fb401dc523d1e6b166e01432"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20032,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "92b559e056ca1360996cf295f880656922f9bcc4c4f3d144d378bd3e3c38b7b5"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20032,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "74afa3a9ce55d95e4aeb104d0ac211660eb05da4a38ae54e7603d348f461b88e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30032,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "19c6344f120e9568e55fceab09484888683c010d8d341bb2fd96fbf49bdd2d2c"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30032,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "309222d1bfd889e1433f6407cc0b27ad208c0078b142e7b49d42d21135437d54"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30032,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fec4886bdae1dd12566afef8d7cadbf2f005a70c17810d130358faedb3914389"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10033,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7ac29c49dbcb4786e67342af625551b0664fbe2e02af82dcd368b7707a47fb23"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10033,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f3f26b11609895a735ba10939399242764dae38f7983cc9f5f22db70e6de48c7"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10033,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "46a8674ec7bb5b4365ea39d7a5f7f8242f63a30224386e8e185e4151407ad3e2"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20033,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f5a7beaa6413cb49197bce9ab9a67d2f65e231b650240955d662acba3992c74a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20033,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2e42619852914320f7ee7dc1de12fa49620ad395737f0e490a0dcf806bc07c5c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20033,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "baef05d44be1537e00f532dc03d4c410a08aa1c260f40a2a008cb99c31611345"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30033,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b42c10fa6a04e7ffc1606765da5bf884d6a77d4d98e2b7c9527f5aee22514333"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30033,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9a68f3cc6570bd34e5307459c89272495a95c32dd530300542d9c85f455058cd"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30033,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7afaf7520e9d35d0a7e31e6055fe9102574f5d0c197c16ee1bf62446f6da36ba"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10034,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f485e62f6e0b09b24c4fbded841325ef564e3ee7afe7f90e06f3a9a6b5a5991c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10034,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5ce494251d7eeed670cf3d6dfd16c8baa04c5cd530759cb823d7b01d1ad19556"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10034,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d85ad1e05979603c2c84aac666c1bf63a7778a6983991652cafefc03d347c3dd"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20034,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0718b95f85dda82682591a1e70153ac926511ee45246d84185e19f5defd63c55"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20034,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dcbed4d1e25cf6bb5a5520b7482b4f07d8f6d8b39cc21f08d02566a7ebde665a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20034,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e407395076eeaa2b06684a3149a6352cd64aa593499d2a9e4087204ea0ba1d89"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30034,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b61680386be9b935c57467d6425ce91a933d869634145d2d9ea08f884bcdc95d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30034,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "05430337abd2a582da96a997472361ba70844d8bbe4deb7e8f7085d7693122fe"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30034,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2009b348d1f802ff026667d9a9744be02106a5b158264f611e54652b54870d0b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10035,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7e3dea1eaaaf61cd3f58b95c3885872c1f75a84906ef12325a71cb5b3a57d583"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10035,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3cbda50e6ceb6b9efec1780e97b301df99ebe23c348a6248516f8958f55bcaaf"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10035,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2ac994d1fe4425d5fbc06381832940747c01a9527ae65f5217bc8e41b66cbc91"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20035,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "de5e4d77a9851831e29773929beefdeab28b04d38963ca9796d7fdd9a95c45cf"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20035,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f2c803f6d3e993812a7204e463c4739a62d9f9aff36f6cbc458e5be94438d2f8"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20035,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "06012fec484232c03116c694ecef07c1721de5f554eec5874a3fc3fe2cfb7172"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30035,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3be42479fd0d033cca6ae6dfd8c87d2cc0f345b9fbee7159226a5bf7948c55f3"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30035,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "86162ebe4e53784c689bbf6e00dfaf53c0a347e39628c06b09f136af29e47cf4"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30035,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cc1372a3642aaf1c7bfe272510655d6042dbf38d893008a2aa0a05b196259e18"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10036,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c0e1c4fafebbf41e26370b5e8aa3e2e8b15c235b457f9f18e795359ad5edcdc2"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10036,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "26a1e88857df8d095866e79359c5dcdbf373d728dfb120853b79c29dcb8ab60d"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10036,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f867fce39bd3d27dc65ddaef7d64e3fe872d71da52efb652e0dd427954407006"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20036,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d6c2b7bcaeda33c086b287426f324d1b37d7f3fa83590053ef9c144101651ff1"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20036,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8636bccee989173102787ddb9bce69915109e65f03b39b2d0761ab02f6a444df"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20036,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f92f347687b75532b51fd3477b3ea2154ded5fd8a5fc61031bce8c55e9efae79"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30036,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1c479c5948f675ae47a6905fee63806a13e59a0986678d30d1c5a51b7a15ec75"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30036,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a10848b79361fd2ef2268d5bbd914ba98066e9e8bba2f6a4e9b23e294358d509"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30036,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f514f2f4342b92e39d2fbb5e6d9767bc3cb91bfc0ed479fcac488f0213cad723"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10037,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d510e00b45cbbbc07850759f6602e15c53b640106c4a578ae7596a0d35e83334"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10037,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "437c4f760af9ec348dd993839f963268cafc17176991ac2b56ad38bb5f5a0013"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10037,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c02d1a885d6fdc56d2cd3a8038ea7d0989ec5aa34fed287d84650412171e0322"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20037,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9e491bb887d4719db293ab89dee1782d991c10705a6b48dd130f6ff41cab33bb"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20037,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4379314ad80389d25a56bac745943993817f6d4520225e4f3549f06e1e7a9bbd"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20037,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3fc7ea1236c1d1419db6457ab46581a253928a5ffe72d5aabd47a61197b4375a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30037,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "de96888bfcc8440a81ae82b4e103fd157799dbce16bdb05af80bc1905c93a5ac"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30037,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "706b184f2934ca70bf7537a6084dcdac7b92e5e6266ff05d9cfba9e572e9f2f9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30037,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7811a0f32a381d18b3bf991ff1d653254a4a7c55a2e4873801473394c70dda6f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10038,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a48d153e7403ea84c4d24849f527dd53fa05775acfac0847bfb6ab703d4425d5"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10038,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3096096970895617dace7ed8377975333fb6c6bd0bec68e888721a3fa24d5bbf"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10038,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8baadcece2986133a7aeac239d15cc71eb89ea0a6c6dace004b89793fe53ca2a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20038,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f33a256b56693615ebd6282ad879f8b6b0078d2e66815bda7a1c7eeaf4a9e742"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20038,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "92b65ed9264bba243f9eb8d6c34505e0bc1363f24a9853d6f6d193dea3b64cfd"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20038,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1589abba30eacff683ec43ff673b8c80ce4e3f3ac1d0afd285d3ed1a0b79b831"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30038,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c44b6deefe4ea9a7b99893f40c1d8825c145c2692a93cc4878ebaf9c2abf069d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30038,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a3cfc27015db848f17f1b15a923a301151b08503ed5c9e83fdd5c1fcc54e782e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30038,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5716ee737bdf6249d6c15c8c6f483f38e0625a48e4f7e4b03b66a0463819a62e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10039,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "16ebe56794eb5db064835a55351d3a0f98d46ef776fa22a8f97de9ab669532dc"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10039,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b782cad0b6a50418c6172dce50eaaef07ee7d5f443adcaf5e14239e4f774df1c"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10039,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ef55c8f11f36f2a94c62130b90263148aa27b0251d4980f6a28a1164cb9e598a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20039,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "38de80fff8f20ab62224882c1fde576096028f13016ef234811d58a7bf9fd51d"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20039,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f68a9faa4c43845ddfde8844853eee39b4062a7a3c586ebe7dbcf94af6c2c6da"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20039,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dca263e40a77fb93a9535506188f1f4ba52eaf5668f2c130784fa48ff2442bd1"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30039,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6f7148c817bddac480527d7d69e4349dbc5f718e3e8a16db9502dabbe4d9aa50"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30039,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "229f32f7cbb28b55c1afc0ed8f733dc6bf33c7924b5e4e97a0193b873eea1c4a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30039,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e143247b960910fb5fa783127393b60ad2a00371cc39b09379d5187e7d77da13"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10040,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "88b628d2309b3427f6a79d4ed13435bd522e9f73d514260317418d6aa3d11268"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10040,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d3b83610017d83aa576320ea75e1168993376f06f3535495d919d8467a8d90db"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10040,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0e1a1e60155d799a9cb7d1b578e5be2c0e6916e0a4c0db0501beb777cae957ca"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20040,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7e0b5781b130c8ac47cc3a0e3b7b2d6ac00809f53d3f4e66c8ef506248f81802"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20040,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "525b773ad22658c36008cf5ddcf9ed59e7872805df37c5a4d6b4753bc1a3410b"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20040,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ae2ddff7e3f68dbd612c13f0c4a54817bf629e99dace1212d88e9f2666b06b9d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30040,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3e5c7ab8b96725f5803f0e1044ff9bc7e83c4e71d427acb624e24a1ab07c249a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30040,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0af84516b55bbe0b76859401594e01e9797cc63c352b2c209689c2778613e27f"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30040,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "89f096cdfced05a396de226a524d4724393c14209d8023594adce3b8e9192192"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10041,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b68d504c07c99dcf07696d0c37172207f09cc8da81efe2cfd2bc9e2215af010e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10041,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4e3bf23f4077f6d209efda2a9a781b84c835657d71d1226c4faf3f9238923972"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10041,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e231433b5b44ab62de1f98f1cb171b850cfd43f3f8ddbda9f3732947ad7c1619"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20041,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e4cfcaf6cbbd5877e8606c3beca005beb28805d861c9b317cdbb176624c111c6"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20041,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e52a36e925ac47532a1721aee634fcc4655064c2f0e0341a1cf937bb8416dc3e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20041,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dab1029c0ac5e960868ffe12e4077d41be54f92dbc9938826e483cf9ee7bb023"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30041,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cda9c9721267e9d47088b529b0fe0024a03786db9fe5e8725f92089441a34f28"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30041,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0a151ac1b76a52b8e2e71112b2d9d8eb6140cf9ba11e69c5ce5870cd2af530b5"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30041,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9cc3ba91920abadcc4766a71d82cdd41484b9d498ff9b27ccbf78a1929b9a2b3"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10042,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9108ee3ab6a1ee7fa6ac916a061007526c2f19f0cc262b9b331ee7bb2369abd6"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10042,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d92c6c8d2c9ce68fe5e602a8dee0b127f71d089001bd16c16c88513ec8262c71"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10042,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "30275278a2fc5027efb3926d3295f9608c77938de9e6b4d28be947412f196017"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20042,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "02083138d8c896aa52824bc2d1d3d52a008188a664f55e61c8940edad7ce24d3"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20042,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "37686d6f571118b729d60dfe6f52263abc515eb225876a081de2fe32f9e768d1"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20042,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7ef3c20b442a5b3a7efdc8232489d9285e6f2b646932aff692df7339e8c9b9a6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30042,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2ed09414c2b614051c0c5d89932e1ef9e352333a56fb69972348a588b84ffa4a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30042,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "45d81b657aa7ecfa6b6ab12c5eb9c6829a729796b295a080b725e079fc72983e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30042,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f8880f4560a649096f52d05aa3389d6e5494c98f6aba21fd7de7ed635b9f3ba9"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10043,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1a96f14ac840fe0ebac521b33ff4bdc7b269d770f716440880ce0d405c9c8dc6"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10043,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5b80af1e0b29d5ced84adf867e6661ad2c200eaed6f3b4a908e7328bb970db1a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10043,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "855af362544b52fdaf88962b9320de0de732fe93a2c5c21ef703a492195eb858"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20043,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a477f941204991c2005333be69f900315f7318c5d8ee43fcc99edbf390238749"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20043,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "82442b14cef47d427c42ab838b96cc2996621591f9856aef428faf37ba6ca17d"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20043,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f190949780bc610408f19b990be67b841fcc1ec4530c8eb337930c1906e2cfe9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30043,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c95249c6e6a7663edf584d8fbd4ba2bfd37725a677d399755827967b207b5a8a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30043,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ebd55a81a191a6c0aa2db12e6581c243137fd3a7bdcbbe4ee8acba1d90345dd7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30043,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "315551e4ed62b7a88cd38ffa9a67af59f4ee115e9f0c1e6468a01b2805dbec5f"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10044,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3e2a7cb3d491fc393da9f7abd036fca841863b7b1c93768b9e56b5fbb9043445"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10044,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "43b6bf93333ff20b6f614070b3c15c3ab2346ed23ca3aa1f371d20f4e8478bec"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10044,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c80458e2378389f76f1c3ed12711c09a28c85297be50e9315ba121183694be43"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20044,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ac8f453b8ce379abda92b1b5c1db4546b58c017a2d3b588d72a52d78e52dbf35"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20044,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "56e6bc9fb148fa6ec524c2f74342b058aff8c5bd6aeded11df465a7f41278ff5"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20044,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c558188fa38bfd23616a63d19d341edb0477f8db855751a36c99e0f71339fb72"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30044,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5601a67833f75a7d5be25ed299979b6012b0874e74bc6dea62e3265070fda033"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30044,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1b1278154946472ee3dd95504f564c734eac8765853a803e6d618b61320f3a4a"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30044,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e84ee77dc55d5e7ce75dd2ce91a0f252abe443c308b66a3a44ceea3aca128a9d"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10045,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9a046331bf4c69a4e014852685154c5a34a1ebfeefbd60061ebd25e75dda3e23"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10045,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ad478ef89c7a531f0eed0552e0b3dc06cbc269ab99d8c70bb85f9931a9227893"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10045,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5a32599d4370e01bf30fbb57d8274a9c96e31733baa485273abedffb6e2a3100"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20045,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "077d5a51b7b4ce97ad2adb9ebce053b9be381dbe5088db748dd65116a7f7677d"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20045,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "12b618297e87f0f404f53dba2ec6ad374147218dca7410d8b2c4d45ae4720101"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20045,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e1c2a00b13609e7c8c47e5a9dc0decccd445d0bc873a161d23de097aa44b7a9e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30045,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ea2bf6cfb68bce5601944135cfb7059af5c16c3ca479a7a3e64ce1f8d536e015"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30045,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "90316579adee7acb6f1894964555225b423e41ee2a4f0590ffe52cbb36075bae"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30045,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a67b0b6da37dd7d69e9df7713ea17c6367ae3317b619e1e2735ebedd77c84906"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10046,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2aea98d54af3a431d7a78a64b0821d159bea2efbbc58d4b583affc76b4b7f8b5"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10046,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6eb105faa3cf62a5077a8d7dc644c6d6048dc2790ce1404200438b0d2665006d"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10046,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a64dbcce759d50e67e415f7234867f76e9e4512565865f89ab9023e61b39ea55"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20046,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b66f403c92865cfdf92f65d914c118bbe7a6de32f00c9adeb0acad006e23c99d"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20046,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f2f2c5460462847c44c24d26cf47a1898805b8a70ce355e2c205f398107c1577"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20046,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9c473e8bba52c28152193926e2c5046d6aad1ea6f7d9edfbd3072a7d304813e6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30046,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "92d2a81a0e3de74f1849b422ead59f0a8a18b262150f0af0fa0123378c7515e9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30046,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5db5e424d166c83911366e6fa51e9ef8e44ff8a10d409c472ad6d7ebe045505e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30046,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "82fd2742e566883b22d05c1c7508249b403ac98405557acc9462518057532361"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10047,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c7ac3d9991cb3abd210ef3854b9a5570c569ed13969ff8d94d880ab0f6ce40ed"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10047,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a96bb5e8dabc83861629d71b7b944e4d5ae2e2afc9afc31cdb11699699f2d294"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10047,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "72d16c6d41e23daaa54ffb27ac2974d8c9bdaec65ce38f62afe54e46f9ed0694"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20047,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bb5aba1ad6e1f76c64f36585d73276749f0f9e856a5c6bfeb7a826ced87da889"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20047,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e016bb6a9fd136846c1fce78ac1c456b92efd3477b78d87f9af7711ed4fe6a4b"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20047,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "96a1edf06666bd1a7c2aac4e1070ba7209544eea8530ba1b2733856b94b48405"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30047,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "98cdf5c42aee012062d8b372420b077331640a1e19249c41d37adbb1b97fef4b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30047,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c05136c8c8adae715d5e476ca143837e3efa96d113b575745bbfbb07519328d8"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30047,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "987f22bf7aabb73506f1912234d640d0a96c8fc3952a82dea8b30e17538dc9cd"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10048,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8c075312c0824d422d2db7d5508be8126eae227a48b1a4f8f71e02191328999e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10048,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3bf67e901e299cf61b3aeb73e45189541c4d2bea6ed2fa3e881c7595fc4c94bb"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10048,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8a489ce76fa0ae863f1d5d75ecb6d1819aba3438dd84cf23be02e70cb3d1ba69"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20048,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9563d40e584c715cd41733f37a9cea1efd11879b8f8f0a173e8e047a1f771e39"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20048,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "24486fb256e310cfc498a60f614f8e23e50c47f4fe90786483b6d1ac77a5d5df"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20048,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5c3a633be18bb827183ff84e5d1bd5f8bcbd78393cd3844399cd925c50754ebd"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30048,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b627ebb15040b4dbac98972c836dd3a96077ff64be8a121948f37db5a70e450c"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30048,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "866c6ec742e3bbd88f7d1f7d18a6b1a641214b5c59504716a7401c15231e6c0c"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30048,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a11aebf8d394537e3b3fe3c74e15df0ffbafd5ab9180cad1741467f9826f4f94"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10049,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4ea3d18dc34de2a575a9d318b4d512e420ab8e753d74f886bd5ce031a85a455e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10049,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b47401c33e84bb6d340764c47699032e70d5af8ee062997430d612c25aa9b45e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10049,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b94da7fba017ca5dbe1f41955b505c5b4857116a9ca472bbb1ec1a85e7ab1b5e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20049,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ba5d716faf65cd5d4324f656dc3aa3fd9a555dba60c52b24cf4deddb81ac9c0c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20049,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dded54fd72c5f4b38db34013010bb375a8e2da87bcf84db6adf3ed530d211837"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20049,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cbf058e46b9f121189869af1af51bfe8db1cd1b280cc7f536f020ae669f39993"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30049,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1230cef5df28a433593e6178640fe1936bf38cc832c293cf8fa639fe61a7caf7"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30049,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a0cac34c30ccb12ce3c70b2a4515a13c2cd80b5fcff2dff650e01b562049cfd6"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30049,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ec6cc4e024eaf7b5dc0b69d1197a0abb27ba400e1c26e38a666a62813455777a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10050,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fe4861417d1f8f216e80250bef3cfac9c483fde7658a005f7da4598085e20827"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10050,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ca501ff6c00fba4654429aaa356cc2d2bec8db140950cd0d717f518a728d1c1b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10050,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "68731042d6e82c9c5d51dd3670be7e573fedc8a694c26499c256f27e7aa9c91e"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20050,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e9957a07da7a169c4f6dec671ac3b58764dbe5b55c5b641127ee5a9448def938"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20050,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dc83e9949e8c5b738081d0faf56db68c510edaa27d55856975fa1324ce09ecb1"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20050,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7383eae81d861981dafc362bbf8ce47cd9241d06e69c380e9ac8a9965004075e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30050,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "abe305484085dbfe3e4bdbc5a6f125167798c9b9dd0fb9e32a0f99668d4aa85f"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30050,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ff820bc16e02714f48895faa121eb04d5c3ffc9d2729e438d52a070dd3fa71b0"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30050,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "49a22dc6ea953b558d60de086cc25b7b171fdb56a7fbb6b8bfd1bf1af4d9901b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10051,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "254cdd27b647e9fe16623fe2f6f5b9dec70d400e17ea97dbbda94e01ca59ac4b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10051,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3d14662794168cefa6e11deb160bf974d7da99a022b53a240a340245f9820a5b"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10051,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "469b776c2ecce0c9616486394e03593c10eb74fc362c90e12aa0449d94297f17"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20051,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3fc88c0a6abaf9474eda9979c9ec500e75bcda63c9aaab166f75bddc2c54232f"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20051,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0c074b372fcf22fc05b83d9ebe1692c62332c04a966ccc8c38dc939c506b1373"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20051,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "31b5704be6a38f83dc7799cd7402638aee44b5367c44b45de272fcf3d623b611"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30051,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e79f096ee602b97456f8fdef48b0fcd8a5b417ca4cd3c7899c9f109831df3980"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30051,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0dc13e84ea4fbaa36771c3dae7e629897940c073b325eecc219a389eefadc5b3"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30051,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eb32d5f626c562275a1f0f55b54b2610e8260b9fade9fa8ad7945aa5e66afe1e"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10052,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "deaeb8a1ed6cb8717c3ca6ca57495e8e3d0059e53cc9224dd0f2026485ebd5f8"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10052,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2ea64888da7596d598416e653a36330f4497869a92b630b60304ac5038728949"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10052,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dd79ab7f6f5471cebcd7c36892172bd6648478b2a0ac7a5411d88165e5616014"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20052,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "df4fe179af3620ba18f08c1c6d04e331d56d8f7f195ec0666e7a7d37d4a89f9c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20052,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6fab05aec94056daf6292c9de5ee920407322c4826107c0d54718dfeef5db1bd"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20052,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7c39d864488da4e3ba902cbd28d31d35cd68e7daa04337720ef23b02604aacb3"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30052,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7c7c352d1f6cc40d3a2b1d5f16ce3c7e6508d60347cd87ee07508b92cf45aa3d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30052,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9dd79d3eee43d8a2d6601ccc1c21cb8a18f1888927b25998cd9a479ce4387c9e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30052,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "52bde076465099c9cd034705ad302b51f986df39a4ded6b74ab918205d27ace7"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10053,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0c48ccd27199ed9c50a1cb37d4eb7eb7bf9372d4b2b93ccd17b92e00b17bcf09"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10053,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0781c6f1f38a9999a1b27c6e6f835e00936b9d8a5d2b9e406ea47ca1e7fa20a7"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10053,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b7406500cbe89841ca1afc638aa1c683782b8593b45845c60634ac94789065b4"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20053,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3e4997a9554cda8c74bf7744c431819d437b2838fec49aa88c3b04eda5f8100c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20053,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5f12e14595ffa6405d6e29ca1792172fde147e2d75a43ff22ed4cba52e055dd6"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20053,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1c1b3c5d0608abb362d3800f9b7257e4c04e0181ab514f46218990d5ada20a25"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30053,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a2d49e50a37a09860eb8561476d81976b58649eb9886f43ff228d4b7465680f9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30053,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "06fc731e960640246cb2dd44da433f461c70442801dd8e9632b927a6abbfd3bf"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30053,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9daec9603f1203d66e33be68313b31c1d8ef6d785cf42ebf4ece654e092553e1"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10054,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2f05882670440f4dd6abd63d1586ef29f9351547e6baf4ca9b56636773131c2a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10054,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b9fb4d0844d5ed1ae4d2c1100e66626618f66e480a206003d76b42e3f9094724"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10054,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5b8b43707d4c441c5ba7273fd04d4ea54f4266a7ddadf76c680aa5d7bcfe9626"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20054,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eb6916128da84749bd4f8c874c49ce4370b1809c685a37b7caec73ce69c1e906"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20054,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b6728634cda508ebd1ea005cf9d3d6be7ddcf7762cbb8c21d1de0448c729b6a6"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20054,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3d8312bc5454a359e952ae2e925d26fe7cdefaa52a5b6876db9397bd2e06754d"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30054,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6d0d82b11d82e133931f2395ed8fafb7cdb50f505f431d8b66448b814a3d593b"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30054,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "578f208557e45c78c701af7822cafff6a1ae468bf270d366a0d5fbebfe76a05f"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30054,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8c3a8821a79eb6533f44cf045f4df321c97b284c7c3e785896810d0243814a0a"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10055,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bd08e8c0a421fd67507851180ff66b5d7020a23bc2f8bbb92d3d69442fa4d8f2"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10055,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c8c58d8913848a56014d173bea554dd7751ee99f2002564bfd44e611d2f285fd"
+  },
+  {
+    "population": "development",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 10055,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "132d75dcee608296bf6c637163ba78e634c6cce5851501f0be25abeba6ba6f2c"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20055,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f441e5eaf263651dc10ef0055324a0be7d455ad6b8422c45b7c0b8bfd2ea6de6"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20055,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "066f051898a27379e0ffaa9be554996f691ce46ee47d4d939a1255b406284e7a"
+  },
+  {
+    "population": "validation_a",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 20055,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "708120ef45fcc6660dc857e255a6dfe0a75ea1e4c5f72c5a158c7a9c210cfaa9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30055,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "36010b0356c229decabbbd24d12953ea5c82e46c581d2a477fa7cc199d948ac9"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30055,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "737589b52a793cfde824aa6c0078d92f7e7e9b19c9ddd74a406ae2389c6f935e"
+  },
+  {
+    "population": "validation_b",
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 30055,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fbdb6fb960fa494f3bb1de8ad8072d1716c36d95eb673cbf810db53a11198012"
+  }
+]

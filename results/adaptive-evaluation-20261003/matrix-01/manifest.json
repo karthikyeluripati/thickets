@@ -1,0 +1,73 @@
+{
+  "schema": "exhaustive-candidate-matrix-v1",
+  "status": "complete",
+  "started_utc": "2026-10-03T19:32:26.208650+00:00",
+  "source": {
+    "commit": "0407e7ca588cb2f821f77323f0bca601c60d8857",
+    "working_tree_status": "?? results/adaptive-evaluation-20261003/"
+  },
+  "command": [
+    "/workspace/venv-feasibility/bin/python",
+    "/workspace/thickets-adaptive/src/thicket_runtime/evaluation_matrix.py",
+    "--upstream-root",
+    "/workspace/RandOpt-feasibility",
+    "--protocol",
+    "experiments/adaptive_evaluation_protocol.json",
+    "--out",
+    "results/adaptive-evaluation-20261003/matrix-01"
+  ],
+  "upstream": {
+    "commit": "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
+    "git_blobs": {
+      "utils/worker_extn.py": "3b672d6636364845474be02e01cce764b6e18af3",
+      "core/engine.py": "6603321e9c89f67e0b922313c1bc2d0581d7beec",
+      "randopt.py": "134c627940b54516177614108d77aa59a0b5fc91"
+    }
+  },
+  "gsm_blobs": {
+    "utils/reward_score/gsm8k.py": "85783e641d512fb95510aad3182217ed605725ba",
+    "data_handlers/gsm8k.py": "03050c28caf7b2d1b035dd84948b52bcc2898bbe",
+    "baselines/examples/data_preprocess/gsm8k.py": "1656cdbc896a8f14fc7e09705d36335f52165533"
+  },
+  "model": "Qwen/Qwen2.5-0.5B",
+  "model_revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+  "protocol_sha256": "3030deb3dd599670dea4fd9302e62ad6bb5b9ceab29bccab3b5abe1f4d811bed",
+  "versions": {
+    "torch": "2.8.0+cu128",
+    "vllm": "0.10.2",
+    "ray": "2.49.2",
+    "transformers": "4.56.2",
+    "numpy": "2.1.2"
+  },
+  "cache_isolation": "prefix cache disabled; all requests drained before weight change",
+  "execution": "original RandOpt snapshot apply/reset, native packed tensors, eager Ray/vLLM, BF16 TP1",
+  "collection": "every collected candidate sees every prompt; no partial/adaptive evaluation",
+  "raw_encoding": "gzip of compact UTF-8 JSON, mtime=0; generated tokens/text retained exactly",
+  "selection_budget_scope": "200 selection prompts only; 40 test prompts are separate final ensemble evaluation",
+  "native_base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+  "environment": {
+    "python": "3.12.3",
+    "torch": "2.8.0+cu128",
+    "cuda_runtime": "12.8",
+    "device": "cuda:0",
+    "cpu_threads": 1,
+    "deterministic_algorithms": false,
+    "float32_matmul_precision": "highest",
+    "gpu": "NVIDIA H100 80GB HBM3",
+    "gpu_total_bytes": 85017493504,
+    "compute_capability": [
+      9,
+      0
+    ],
+    "cudnn": 91002
+  },
+  "stop_reason": "planned_count",
+  "sweep_seconds": 2627.9523287452757,
+  "candidates_per_population": {
+    "development": 168,
+    "validation_a": 168,
+    "validation_b": 168
+  },
+  "completed_candidates": 504,
+  "ended_utc": "2026-10-03T20:17:09.181992+00:00"
+}
