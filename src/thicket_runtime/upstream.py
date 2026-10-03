@@ -12,6 +12,25 @@ from .execution import WeightState
 
 UPSTREAM_COMMIT = "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca"
 WORKER_BLOB = "3b672d6636364845474be02e01cce764b6e18af3"
+UPSTREAM_BLOBS = {"utils/worker_extn.py": WORKER_BLOB,
+                  "core/engine.py": "6603321e9c89f67e0b922313c1bc2d0581d7beec",
+                  "randopt.py": "134c627940b54516177614108d77aa59a0b5fc91"}
+
+
+def verify_upstream(root: str) -> dict:
+    """Validate every upstream source file used by the end-to-end driver."""
+    import subprocess
+    root = Path(root).resolve()
+    commit = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"],
+                                     text=True).strip()
+    if commit != UPSTREAM_COMMIT:
+        raise ValueError(f"upstream commit mismatch: {commit}")
+    for name, expected in UPSTREAM_BLOBS.items():
+        content = (root / name).read_bytes()
+        actual = hashlib.sha1(f"blob {len(content)}\0".encode() + content).hexdigest()
+        if actual != expected:
+            raise ValueError(f"upstream source mismatch: {name}: {actual}")
+    return {"commit": commit, "git_blobs": UPSTREAM_BLOBS}
 
 
 def load_worker(root: str):

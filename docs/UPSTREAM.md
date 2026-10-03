@@ -1,5 +1,13 @@
 # Source provenance and corrections to the conceptual picture
 
+The [Work 1 closure study](WORK1_CLOSURE_2026-10-03.md) executed the pinned original
+worker against the same HF recipes and then executed the unchanged upstream
+`launch_engines` / Ray / vLLM lifecycle. Original-worker HF correctness audits
+exactly reproduce the reference audits. The native stack has workload-dependent
+state overhead above the earlier HF range for short and natural generations.
+The report records the packed-tensor RNG mismatch that prevents labeling native
+vLLM candidates as identical to the original HF candidates.
+
 Reviewed source: sunrainyg/RandOpt, commit
 `4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca`.
 
@@ -18,7 +26,8 @@ The reference executor captures these state-operation ideas but differs in
 orchestration, tokenization, model layout, buffer handling and inference engine.
 It is not a reproduction of the paper's accuracy or throughput.
 The original-worker adapter validates the Git blob before loading local source.
-Its optional dependency path has not been exercised in the initial CPU session.
+It was not exercised in the initial CPU session; it is now validated by the
+original-worker HF controls in `results/work1-closure-20261003/`.
 
 Primary references:
 

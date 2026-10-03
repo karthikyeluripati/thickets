@@ -12,9 +12,11 @@ dependencies = ["torch>=2.5,<3", "numpy>=1.24"]
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
 hf = ["transformers>=4.51,<5", "safetensors>=0.4"]
+vllm = ["vllm==0.10.2", "ray[default]==2.49.2", "transformers==4.56.2"]
 
 [project.scripts]
 thicket-profile = "thicket_runtime.cli:main"
+thicket-profile-vllm = "thicket_runtime.vllm_profile:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

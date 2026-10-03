@@ -1,0 +1,9 @@
+{
+  "date": "2026-10-03",
+  "smoke_is_excluded_from_headline": true,
+  "measurement_processes": 6,
+  "counterbalance": "legacy-first then snapshot-first per workload; separate local Ray clusters",
+  "ssh_disconnect": "gateway disconnected during matrix; driver and GPU processes continued, no case relaunched",
+  "final_gpu_idle": true,
+  "upstream_checkout_status": ""
+}

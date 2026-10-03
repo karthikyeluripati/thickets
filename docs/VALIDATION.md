@@ -1,5 +1,22 @@
 # Validation history — October 3, 2026
 
+## Work 1 original-worker and vLLM/Ray closure
+
+- **50 passed, 1 skipped** on H100; the skipped test is the CPU-only CUDA guard.
+- Original-worker HF controls reproduce both previous correctness audits exactly,
+  with identical candidate recipes and IDs (24 additional timed evaluations).
+- Six complete native vLLM/Ray processes, counterbalanced by strategy order,
+  validate 144 timed evaluations across fixed-32, fixed-128, and natural workloads.
+- All native snapshot gates pass; all legacy restoration gates fail. Native
+  candidate-state hashes, token equality, and reward equality are audited outside timing.
+- A native noise-layout probe demonstrates that the original per-tensor RNG
+  produces different perturbations on packed vLLM versus separate HF tensors.
+- All 133 new artifact checksums and all 39 prior checksums verify. Exact measured
+  source snapshots are preserved. No GPU profiling jobs remain running.
+
+See [the closure report](WORK1_CLOSURE_2026-10-03.md) for measured fractions,
+natural stopping lengths, and limits on broader or cross-backend closure claims.
+
 ## Subsequent H100 real-LLM session
 
 Python 3.12.3 / PyTorch 2.8.0+cu128 / Transformers 4.56.2 on one H100 80GB HBM3:

@@ -1,5 +1,11 @@
 # RunPod: first measurement session
 
+For the completed original-worker and vLLM/Ray study, see the
+[Work 1 closure report](WORK1_CLOSURE_2026-10-03.md). It includes an isolated
+environment recipe and `scripts/run_work1_suite.py`, which runs two independent,
+counterbalanced processes for each fixed-32, fixed-128, and natural workload.
+Use fresh output destinations; all previous HF and native artifacts are retained.
+
 ## Resource scope
 
 The initial development environment had no GPU. The subsequent H100 session

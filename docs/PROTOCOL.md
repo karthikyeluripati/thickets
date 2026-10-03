@@ -47,10 +47,17 @@ also pass parameter/logit-level tolerance tests with preregistered tolerances.
 2. Same operations with optional real Hugging Face greedy generation.
 3. Optional original, pinned RandOpt worker operations against the loaded PyTorch
    model. This isolates actual upstream state operations but excludes Ray/vLLM.
+4. Pinned original RandOpt launcher/worker with actual single-engine vLLM/Ray
+   generation and frozen candidate replay. The Work 1 closure matrix exercises
+   this path with fixed-token and natural-stopping workloads.
 
-Full end-to-end RandOpt/vLLM replication is a **remaining requirement**, not a
-completed result. Inference speed changes the state-overhead fraction; HF numbers
-must not be passed off as vLLM numbers.
+Full-paper RandOpt replication, multi-engine execution, and tensor parallelism
+remain unestablished. Inference speed changes the state-overhead fraction; HF
+numbers must not be passed off as vLLM numbers. The
+[Work 1 closure report](WORK1_CLOSURE_2026-10-03.md) records the actual native stack
+and its measured limits. Native vLLM tensor packing changes the tensor-local RNG
+draws: retain distinct native candidate IDs plus source HF recipe IDs, and never
+claim cross-backend candidate equivalence from matching seeds alone.
 
 ## Timings and memory
 

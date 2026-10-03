@@ -21,6 +21,14 @@ Snapshot passes the measured exactness gates; add/subtract fails and can change
 generated outputs and scores. These bounded arithmetic microbenchmarks do not
 establish research-task quality or optimized-engine performance.
 
+The [Work 1 upstream closure study](docs/WORK1_CLOSURE_2026-10-03.md) now validates
+the original RandOpt worker and actual single-engine vLLM/Ray flow. The original
+worker reproduces the HF correctness failures. Native vLLM/Ray state overhead is
+11.4–14.5% at 32 fixed tokens, 2.8–4.6% at 128 tokens, and 6.8–8.8% on a small
+natural-stopping workload. Inference dominates, but the HF numerical range does
+not generalize. Packed native tensors change the perturbation associated with a
+seed, so cross-backend candidate identities are explicitly distinguished.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.
@@ -32,11 +40,13 @@ establish research-task quality or optimized-engine performance.
 - Optional Chrome/Perfetto PyTorch traces with noise, scale, add and reset labels.
 - Synthetic CPU/GPU smoke workload and optional Hugging Face causal-LM generation.
 - Opt-in hash-pinned adapter to the original RandOpt worker weight operations.
+- Actual pinned RandOpt launcher/worker profiling through single-engine vLLM/Ray,
+  including natural stopping, independent process runs, and native-state audits.
 
-**Not implemented:** a custom CUDA/Triton kernel, vLLM/Ray end-to-end instrumentation,
+**Not implemented:** a custom CUDA/Triton kernel, full-paper RandOpt replication,
 TP-invariant noise, multi-GPU scheduling, BO/ES integrations, or a production runtime.
 The original-worker adapter profiles original weight operations against a PyTorch
-model; it does **not** turn this into the original vLLM execution stack.
+model. The separate `thicket-profile-vllm` path uses the actual vLLM/Ray stack.
 
 ## CPU smoke test
 
@@ -102,8 +112,9 @@ thicket-profile --upstream-root /workspace/RandOpt \
 The worker file must match Git blob `3b672d6636364845474be02e01cce764b6e18af3`
 before it is imported. Combine this option with `--workload hf` for real LLM
 inference with the pinned weight operations. The backend remains Hugging Face,
-not vLLM. The adapter is opt-in and was not executed in the CPU-only development
-session because the full upstream checkout was unavailable locally.
+not vLLM. The adapter is opt-in and was subsequently validated on the H100.
+For actual vLLM/Ray execution and the isolated dependency setup, use the
+[Work 1 reproduction instructions](docs/WORK1_CLOSURE_2026-10-03.md#reproduction).
 
 ## Outputs
 

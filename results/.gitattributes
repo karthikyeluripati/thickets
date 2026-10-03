@@ -1,2 +1,5 @@
 # Preserve checksummed measurement artifacts byte-for-byte on Windows checkouts.
 * -text
+# Captured logs and measured source retain their original whitespace and CRLF.
+# Implementation files outside this evidence directory still receive checks.
+work1-closure-20261003/** -whitespace

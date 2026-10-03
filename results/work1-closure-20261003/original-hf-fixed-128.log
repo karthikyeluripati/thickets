@@ -1,0 +1,20 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+{
+  "legacy-add-subtract": {
+    "candidate_evaluations": 12,
+    "candidate_latency_median_ms": 2070.753902196884,
+    "candidate_latency_min_ms": 2060.256945900619,
+    "candidate_latency_max_ms": 2379.737462848425,
+    "measured_loop_candidates_per_second": 0.4750600619119947,
+    "state_wall_fraction": 0.008487751716131317,
+    "ideal_state_elimination_speedup_bound": 1.0085604103538026,
+    "phase_wall_median_ms": {
+      "apply": 8.337568026036024,
+      "inference": 2052.6491007767618,
+      "restore": 9.041139855980873,
+      "score": 0.5583795718848705
+    },
+    "exact_semantics_gate": false,
+    "gpu_performance_evidence": true
+  }
+}
