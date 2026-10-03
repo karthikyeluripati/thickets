@@ -48,18 +48,26 @@ def main():
     fig, axes = plt.subplots(1, 2, figsize=(10, 4), layout="constrained")
     lock = read(args.development / "policy-lock.json")
     for ax, label in zip(axes, ("Validation A", "Validation B")):
+        seen_families = set()
         for name, s in summaries[label].items():
             if name.startswith("prefix-"):
                 continue
             family = name.split('-')[0]
             marker = {"subset": "o", "halving": "s", "hoeffding": "^", "wilson": "D"}[family]
-            ax.scatter(s["pair_fraction"]["mean"], s["topk"]["10"]["recall"]["mean"], marker=marker, s=45)
-            ax.annotate(name, (s["pair_fraction"]["mean"], s["topk"]["10"]["recall"]["mean"]), fontsize=6, xytext=(3, 3), textcoords="offset points")
+            color = {"subset": "tab:blue", "halving": "tab:orange", "hoeffding": "tab:green", "wilson": "tab:red"}[family]
+            point = s["pair_fraction"]["mean"], s["topk"]["10"]["recall"]["mean"]
+            ax.scatter(*point, marker=marker, s=45, color=color,
+                       label=family if family not in seen_families else None)
+            seen_families.add(family)
+            if name == lock["chosen_policy_id"]:
+                ax.scatter(*point, marker="*", s=160, facecolors="none", edgecolors="black", label="locked policy")
+                ax.annotate(name, point, fontsize=8, xytext=(4, 8), textcoords="offset points")
         ax.axvline(.4, color="gray", linestyle="--")
         ax.axhline(.9, color="gray", linestyle="--")
         ax.set(xlabel="Fraction of selection candidate/prompt pairs", ylabel="Mean strict top-10 recall", title=label, xlim=(0, 1.05), ylim=(0, 1.05))
         ax.grid(alpha=.2)
-    fig.suptitle("Locked policy: " + lock["chosen_policy_id"] + "; other validation baselines are descriptive")
+        ax.legend(fontsize=7, loc="lower right")
+    fig.suptitle("Mean cost/recall; the gate uses per-order joint success, including regret")
     fig.savefig(args.out / "cost-recall.png", dpi=170)
     fig.savefig(args.out / "cost-recall.svg")
     plt.close(fig)
