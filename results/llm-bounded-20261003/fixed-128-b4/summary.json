@@ -1,0 +1,36 @@
+{
+  "legacy-add-subtract": {
+    "candidate_evaluations": 12,
+    "candidate_latency_median_ms": 2081.4253855496645,
+    "candidate_latency_min_ms": 2066.5342984721065,
+    "candidate_latency_max_ms": 2129.8885252326727,
+    "measured_loop_candidates_per_second": 0.47915483727652985,
+    "state_wall_fraction": 0.008101654331714496,
+    "ideal_state_elimination_speedup_bound": 1.0081678272446921,
+    "phase_wall_median_ms": {
+      "apply": 8.101105690002441,
+      "inference": 2063.993251416832,
+      "restore": 8.746383246034384,
+      "score": 0.7473984733223915
+    },
+    "exact_semantics_gate": false,
+    "gpu_performance_evidence": true
+  },
+  "snapshot-copy": {
+    "candidate_evaluations": 12,
+    "candidate_latency_median_ms": 2078.3406533300877,
+    "candidate_latency_min_ms": 2062.5995183363557,
+    "candidate_latency_max_ms": 2101.5498992055655,
+    "measured_loop_candidates_per_second": 0.4812068150757064,
+    "state_wall_fraction": 0.0059152203040841005,
+    "ideal_state_elimination_speedup_bound": 1.0059504183394634,
+    "phase_wall_median_ms": {
+      "apply": 9.92155447602272,
+      "inference": 2065.4408507980406,
+      "restore": 2.357861027121544,
+      "score": 0.5052261985838413
+    },
+    "exact_semantics_gate": true,
+    "gpu_performance_evidence": true
+  }
+}

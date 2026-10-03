@@ -2,8 +2,9 @@
 
 ## Resource scope
 
-No GPU was available in the development environment. GPU tests and LLM experiments
-are still pending. Start with **one CUDA GPU**, not a cluster. For a 0.5B–1.5B dense
+The initial development environment had no GPU. The subsequent H100 session
+completed GPU tests and a [bounded real-LLM pilot](LLM_PILOT_2026-10-03.md).
+Start with **one CUDA GPU**, not a cluster. For a 0.5B–1.5B dense
 model and a small batch, a 24 GB memory budget gives substantial room for this
 pilot. A 48 GB budget gives more headroom for 3B-class tests and snapshots. These
 are planning budgets, not a guarantee for every model/context. Model weights plus
@@ -18,7 +19,7 @@ container image/version and `pip freeze` for any reported run.
 
 ## Get the source
 
-If the branch is published:
+The baseline branch is published:
 
 ```bash
 git clone --branch research/candidate-runtime-baseline \
@@ -26,9 +27,8 @@ git clone --branch research/candidate-runtime-baseline \
 cd thickets
 ```
 
-Otherwise upload/extract the delivered source ZIP, or apply the delivered patch
-on a local clone of main as described in `DELIVERY.md`. No remote branch existed
-at initial delivery: GitHub branch creation was denied by the integration.
+The measured baseline commit is `c5cc037e66ef30b2d474c4d5135b7a3023615178`.
+The historical source-delivery fallback is documented in `DELIVERY.md`.
 
 ## Preflight and synthetic smoke
 
@@ -44,12 +44,28 @@ The shell script will not start if CUDA is unavailable, and it refuses an existi
 output directory. It runs a modest **synthetic** model, not a real language model.
 Review CUDA tests, reset/candidate gates and trace integrity first.
 
+Use a fresh destination if `runs/first-gpu` already exists; preserve prior artifacts.
+
 ## Real LLM lifecycle
 
 Install the optional HF dependencies and use a local model snapshot or an immutable
 40-character model revision. Start with a small non-gated model already available
 to you. No Hugging Face token is required for the synthetic smoke; do not paste
 private tokens or SSH private keys into the conversation or repository.
+
+For the completed bounded Qwen configuration, use:
+
+```bash
+pip install -e '.[hf,test]'
+bash scripts/run_llm_pilot.sh runs/llm-pilot-new
+```
+
+This runs 32/128 fixed new-token budgets at batch 1/4 plus a 32-token, batch-4
+wall-only control, with four candidates and three repetitions. Each process has
+a 900-second timeout including loading and correctness audits. It uses a public
+pinned model revision and disables optional download accelerators to avoid the
+prior missing-`hf_transfer` failure. These are arithmetic execution-cost
+microbenchmarks. See the linked report for limitations and raw results.
 
 ```bash
 pip install -e '.[hf,test]'

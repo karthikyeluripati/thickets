@@ -14,6 +14,13 @@ The initial question is whether candidate state manipulation consumes enough of
 real search wall time to justify a kernel intervention. We preserve candidate
 semantics before claiming any reduction in execution cost.
 
+The [October 3 H100 real-LLM pilot](docs/LLM_PILOT_2026-10-03.md) is complete:
+Qwen2.5-0.5B BF16 with HF eager generation spends 0.57–2.24% of snapshot-path
+wall time in apply/restore across the tested 32/128-token, batch-1/4 cases.
+Snapshot passes the measured exactness gates; add/subtract fails and can change
+generated outputs and scores. These bounded arithmetic microbenchmarks do not
+establish research-task quality or optimized-engine performance.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.
@@ -67,6 +74,17 @@ The four included arithmetic prompts only validate plumbing. They do not constit
 a research benchmark or establish expert quality. Use a representative, frozen
 scoring set before drawing end-to-end conclusions. Remote models require an
 immutable revision; local model directories are also accepted and weights hashed.
+
+To reproduce the bounded Qwen pilot (four candidates, three repeats per strategy,
+32/128 fixed tokens, batch 1/4, plus a wall-only control):
+
+```bash
+bash scripts/run_llm_pilot.sh runs/llm-pilot
+python scripts/summarize_llm_pilot.py runs/llm-pilot
+```
+
+Raw reports from the completed session are preserved in
+[`results/llm-bounded-20261003`](results/llm-bounded-20261003/).
 
 ## Original RandOpt weight-operation baseline
 

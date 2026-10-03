@@ -1,4 +1,27 @@
-# Initial local validation — October 3, 2026
+# Validation history — October 3, 2026
+
+## Subsequent H100 real-LLM session
+
+Python 3.12.3 / PyTorch 2.8.0+cu128 / Transformers 4.56.2 on one H100 80GB HBM3:
+
+- GPU suite: **43 passed, 1 skipped** (the CPU-only unavailable-CUDA guard).
+- Five completed Qwen2.5-0.5B BF16 runs: fixed 32/128 tokens, batch 1/4, plus
+  a separate 32-token batch-4 wall-only control.
+- All snapshot-copy exact-semantics gates pass; all legacy gates fail. Real
+  output and score disagreements occur in the legacy 128-token batch-4 audit.
+- Apply/restore is 0.57–2.24% of snapshot wall time in the four event-enabled cases.
+- Raw artifacts verified against 39 file checksums; remote runtime source hashes
+  match the local implementation after LF normalization.
+- Reproduction shell syntax, Python code compilation, and analysis on all five
+  reports were checked. The full packaged runner was not rerun.
+- All ten derived strategy summaries match the originals; all 120 timed rows
+  preserve the shared candidate trace and expected repetitions.
+
+See [the LLM pilot report](LLM_PILOT_2026-10-03.md) and
+[raw artifacts](../results/llm-bounded-20261003/). This validates real HF baseline
+execution; it does not establish a custom-kernel or vLLM/Ray speedup.
+
+## Initial local CPU session (historical)
 
 Environment actually exercised: **Python 3.13.5, PyTorch 2.10.0+cpu**.
 CUDA was unavailable. This is not a GPU benchmark report.
