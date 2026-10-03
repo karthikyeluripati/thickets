@@ -1,10 +1,14 @@
 """Static research figures from frozen development and locked validation analyses."""
 import argparse
 import gzip
+import hashlib
 import json
 from pathlib import Path
+import sys
 
 import numpy as np
+
+from thicket_runtime.cli import revision_info, write_json
 
 
 def read(path):
@@ -23,6 +27,12 @@ def main():
     p.add_argument("--out", type=Path, required=True)
     args = p.parse_args()
     args.out.mkdir(parents=True, exist_ok=False)
+    inputs = [args.development / name for name in ("summary.json", "diagnostics.json", "trials.json.gz", "policy-lock.json")]
+    inputs += [args.validation / (pop + ".summary.json") for pop in ("validation_a", "validation_b")]
+    inputs.append(args.run / "matrix-development.json")
+    write_json(args.out / "manifest.json", {"source": revision_info(), "command": [sys.executable, *sys.argv],
+        "matplotlib": matplotlib.__version__, "numpy": np.__version__,
+        "inputs_sha256": {str(f): hashlib.sha256(f.read_bytes()).hexdigest() for f in inputs}})
     summaries = {"Development": read(args.development / "summary.json"),
                  "Validation A": read(args.validation / "validation_a.summary.json"),
                  "Validation B": read(args.validation / "validation_b.summary.json")}
