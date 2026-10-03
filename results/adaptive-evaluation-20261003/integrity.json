@@ -1,0 +1,25 @@
+{
+  "source": {
+    "commit": "1e8cee74e5f8ed41b1602eadeb6dacd7fcc9b179",
+    "working_tree_status": "M README.md\n?? docs/ADAPTIVE_EVALUATION_FEASIBILITY_2026-10-03.md\n?? results/adaptive-evaluation-20261003/figures/\n?? results/adaptive-evaluation-20261003/report-audit.json\n?? results/adaptive-evaluation-20261003/report-tables.json\n?? results/adaptive-evaluation-20261003/validation/"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/finalize_adaptive_evidence.py",
+    "--root",
+    "results/adaptive-evaluation-20261003"
+  ],
+  "checksum_files_verified": {
+    "results\\llm-bounded-20261003": 39,
+    "results\\work1-closure-20261003": 133,
+    "results\\shared-speculative-20261003": 344,
+    "results\\adaptive-evaluation-20261003\\matrix-01": 539
+  },
+  "mismatches": 0,
+  "main_ref": "deb414253139cc2559d19cdfe7e6b4786e7c40db",
+  "historical_tracked_changes": [],
+  "measured_source_commit": "0407e7ca588cb2f821f77323f0bca601c60d8857",
+  "measured_source_files_match_git_blobs": 17,
+  "frozen_protocol_matches_collection": true,
+  "accounting_trials_verified": 2064
+}

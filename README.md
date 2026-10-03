@@ -36,6 +36,15 @@ Short word problems share substantial prefixes, but the GSM8K subset supports on
 1.1–8.1% ideal round reduction at block size 16 before real costs. The frozen gate
 failed; no speculative verifier, optimized kernel or measured speedup is claimed.
 
+The [adaptive-evaluation feasibility study](docs/ADAPTIVE_EVALUATION_FEASIBILITY_2026-10-03.md)
+is complete on `research/adaptive-evaluation-feasibility`: 504 snapshot-anchored
+candidates, 200 frozen selection prompts and 40 disjoint ensemble-test prompts.
+The locked simple race removes about 60% of selection pairs on average with about
+93% top-10 recall, but meets the joint cost/quality gate on only 40% and 38% of
+held-out prompt orders (90% required). More conservative existing racing removes
+about 34-35% with strong retention. The frozen gate fails; novel-method development
+stops. These are offline budget reductions, not measured wall-clock speedups.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.
