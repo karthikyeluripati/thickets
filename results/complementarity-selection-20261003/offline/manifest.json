@@ -1,0 +1,21 @@
+{
+  "source": {
+    "commit": "8ebae532c5b65e940cc7ae3cf96e1e3fd2cc7d48",
+    "working_tree_status": ""
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/prepare_complementarity.py",
+    "--upstream-root",
+    "runs/RandOpt-feasibility",
+    "--out",
+    "results/complementarity-selection-20261003/offline"
+  ],
+  "numpy": "2.5.2",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "protocol_sha256": "940c76cd8d0d40dc268523224a9d150b207ddd9afcdb5446d37ba3ec7aefebb7",
+  "selection_columns_only": 200,
+  "old_test40_evaluated": false,
+  "new_test_outputs_available": false,
+  "rule_selection": "specified and committed a priori; development first; no performance-based method or tie-seed choice"
+}

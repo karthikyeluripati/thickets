@@ -1,0 +1,11 @@
+{
+  "command": "python -m pytest -q",
+  "source_commit": "8ebae53",
+  "note": "Executed immediately before committing the same implementation; result transcribed from captured tool stdout.",
+  "passed": 73,
+  "skipped": 1,
+  "skip_reason": "CUDA hardware unavailable for test_benchmark.py:94",
+  "warnings": 1,
+  "warning": "PyTorch TF32 settings API deprecation",
+  "seconds": 8.67
+}
