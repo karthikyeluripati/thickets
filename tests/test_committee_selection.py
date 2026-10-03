@@ -85,3 +85,15 @@ def test_gate_requires_same_comparison_on_both_populations_and_exact_thresholds(
     for row in pops.values():
         row['greedy-0-k3'] = .52
     assert frozen_gate(pops, config)['pass']
+
+
+def test_comparison_report_serializes_numpy_overfitting_flag():
+    from pathlib import Path
+    import runpy
+    comparison = runpy.run_path(str(Path(__file__).resolve().parents[1] / 'scripts/analyze_complementarity.py'))['comparison']
+    proposed = {'correct': [True, False, False], 'selection_accuracy': .6, 'k': 3, 'generated_tokens': 30}
+    baseline = {'correct': [True, True, False], 'selection_accuracy': .5, 'k': 5, 'generated_tokens': 50}
+    result = comparison(proposed, baseline, np.array([[0, 1, 2], [0, 0, 2]]))
+    restored = json.loads(json.dumps(result, allow_nan=False))
+    assert restored['selection_gain_without_positive_heldout_gain'] is True
+    assert restored['worsened_questions'] == 1

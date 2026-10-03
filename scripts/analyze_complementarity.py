@@ -51,7 +51,7 @@ def comparison(proposed, baseline, bootstrap):
         'expert_pass_ratio_baseline_over_proposed': baseline['k'] / proposed['k'],
         'expert_pass_reduction': 1 - proposed['k'] / baseline['k'],
         'token_reduction': 1 - proposed['generated_tokens'] / baseline['generated_tokens'],
-        'selection_gain_without_positive_heldout_gain': proposed['selection_accuracy'] > baseline['selection_accuracy'] and delta.mean() <= 0}
+        'selection_gain_without_positive_heldout_gain': bool(proposed['selection_accuracy'] > baseline['selection_accuracy'] and delta.mean() <= 0)}
 
 
 def main():
