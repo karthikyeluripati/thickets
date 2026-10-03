@@ -1,0 +1,28 @@
+{
+  "source": {
+    "commit": "d4ea71395e68f8b12bf8e6234061cc31ffd108d6",
+    "working_tree_status": "?? results/complementarity-selection-20261003/environment-install.log\n?? results/complementarity-selection-20261003/execution-notes.json\n?? results/complementarity-selection-20261003/gpu-01.log\n?? results/complementarity-selection-20261003/gpu-01/\n?? results/complementarity-selection-20261003/gpu-tests.txt\n?? results/complementarity-selection-20261003/model-download.log\n?? results/complementarity-selection-20261003/preflight-versions.txt"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/analyze_complementarity.py",
+    "--selection",
+    "results/complementarity-selection-20261003/offline",
+    "--run",
+    "results/complementarity-selection-20261003/gpu-01",
+    "--upstream-root",
+    "runs/RandOpt-feasibility",
+    "--out",
+    "results/complementarity-selection-20261003/analysis"
+  ],
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "numpy": "2.5.2",
+  "protocol_sha256": "940c76cd8d0d40dc268523224a9d150b207ddd9afcdb5446d37ba3ec7aefebb7",
+  "committee_lock_sha256": "8646c5c15b1911c3bd7f65d9a07b2b24d80188ba1be63bef9a6d4e941de0d262",
+  "run_manifest_sha256": "962b8927db86c0129b20cfe6ba179c1b387aba3be62148c42b387dafe7c2fd96",
+  "all_raw_generations_rescored": true,
+  "bootstrap_seed": 20261003,
+  "bootstrap_replicates": 10000,
+  "gate_reselected": false,
+  "previous_test40_used": false
+}

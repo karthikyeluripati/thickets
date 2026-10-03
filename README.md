@@ -45,6 +45,15 @@ held-out prompt orders (90% required). More conservative existing racing removes
 about 34-35% with strong retention. The frozen gate fails; novel-method development
 stops. These are offline budget reductions, not measured wall-clock speedups.
 
+The [complementarity-selection feasibility study](docs/COMPLEMENTARITY_SELECTION_2026-10-03.md)
+is complete on `research/complementarity-selection-feasibility`: greedy committees
+were frozen using the existing 200 selection prompts, then only their required
+232-expert union was evaluated on 300 fresh GSM8K questions. K=10 selection gains
+of 5.5/6.5 points became held-out losses of 2.0/3.0 points on validation A/B.
+Greedy 10 trails standard 20 by 4.0/4.67 points; neither frozen quality nor
+efficiency gate passes. All state and repeat controls passed. The result is
+NO-GO, and complementarity-aware selection is closed.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.

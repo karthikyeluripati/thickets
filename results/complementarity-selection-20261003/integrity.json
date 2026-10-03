@@ -1,0 +1,27 @@
+{
+  "source": {
+    "commit": "08fdc4208a8bbb36f4f29c9b0f669c683e0fb0a1",
+    "working_tree_status": "M README.md\n M docs/COMPLEMENTARITY_SELECTION_2026-10-03.md\n?? results/complementarity-selection-20261003/analysis-incomplete-json-bool/\n?? results/complementarity-selection-20261003/analysis-repair.json\n?? results/complementarity-selection-20261003/analysis/\n?? results/complementarity-selection-20261003/artifact-transfer.json\n?? results/complementarity-selection-20261003/environment-install.log\n?? results/complementarity-selection-20261003/execution-notes.json\n?? results/complementarity-selection-20261003/figures/\n?? results/complementarity-selection-20261003/gpu-01.log\n?? results/complementarity-selection-20261003/gpu-01/\n?? results/complementarity-selection-20261003/gpu-tests.txt\n?? results/complementarity-selection-20261003/model-download.log\n?? results/complementarity-selection-20261003/preflight-versions.txt\n?? results/complementarity-selection-20261003/tables/"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/finalize_complementarity.py",
+    "--root",
+    "results/complementarity-selection-20261003"
+  ],
+  "verified_checksum_files": {
+    "results\\llm-bounded-20261003": 39,
+    "results\\work1-closure-20261003": 133,
+    "results\\shared-speculative-20261003": 344,
+    "results\\adaptive-evaluation-20261003": 573,
+    "results\\complementarity-selection-20261003\\gpu-01": 268
+  },
+  "mismatches": 0,
+  "main_ref": "deb414253139cc2559d19cdfe7e6b4786e7c40db",
+  "historical_result_changes": [],
+  "measured_source_commit": "cde664b461cf455338e1138ec24beced111ffee0",
+  "source_files_match_git_blobs": 18,
+  "pre_gpu_committee_lock_unchanged": true,
+  "pre_gpu_protocol_unchanged": true,
+  "all_fresh_generations_rescored": true
+}
