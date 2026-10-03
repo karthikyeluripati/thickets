@@ -1,0 +1,27 @@
+{
+  "source": {
+    "commit": "4154fc7872988e18bd8679d397ef08b41417a3bf",
+    "working_tree_status": "?? results/visual-line-tracing-20261003/baseline-v1.log\n?? results/visual-line-tracing-20261003/baseline-v1/\n?? results/visual-line-tracing-20261003/calibration-01.log\n?? results/visual-line-tracing-20261003/calibration-01/\n?? results/visual-line-tracing-20261003/complete-phases.log\n?? results/visual-line-tracing-20261003/complete-phases.sh\n?? results/visual-line-tracing-20261003/environment-install.log\n?? results/visual-line-tracing-20261003/execution-notes.json\n?? results/visual-line-tracing-20261003/gpu-tests.txt\n?? results/visual-line-tracing-20261003/model-download.log\n?? results/visual-line-tracing-20261003/pillow-install.log\n?? results/visual-line-tracing-20261003/retrieval.json"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/analyze_visual_line_tracing.py",
+    "--baseline",
+    "results/visual-line-tracing-20261003/baseline-v1",
+    "--calibration",
+    "results/visual-line-tracing-20261003/calibration-01",
+    "--locks",
+    "results/visual-line-tracing-20261003/locks",
+    "--calibration-stop",
+    "--out",
+    "results/visual-line-tracing-20261003/analysis"
+  ],
+  "protocol_sha256": "0741fec627cdf9f309e74c782acafdbbab92277c69766f9d9db0e03580f6ea52",
+  "all_raw_generations_rescored": true,
+  "phase_manifest_sha256": {
+    "baseline": "6a568c56e7c586a26e492036e7cea9faaff06fc9042900b29106bbb1e677fd82",
+    "calibration": "3bf40fc28476a087b73f67df635e1414caf1a5ac78668d64e7dc4df086c78bc1"
+  },
+  "dataset_disjoint": true,
+  "candidate_heldout_generated": false
+}

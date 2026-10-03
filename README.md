@@ -54,6 +54,14 @@ Greedy 10 trails standard 20 by 4.0/4.67 points; neither frozen quality nor
 efficiency gate passes. All state and repeat controls passed. The result is
 NO-GO, and complementarity-aware selection is closed.
 
+The [visual line-tracing study](docs/VISUAL_THICKETS_LINE_TRACING_2026-10-03.md)
+reached its predefined **operational scale-failure stop** on
+`research/visual-thickets-line-tracing`. Qwen2.5-VL-3B-Instruct scored 23.33% on
+150 selection images and 26.60% on 500 held-out images. All three fixed calibration
+scales had near-chance mean accuracy (24.93–25.60%); state and output controls
+passed. No sigma qualified, so the 300-candidate search and candidate held-out
+evaluation were not run. This does not establish a scientific GO or NO-GO.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.

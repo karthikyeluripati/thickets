@@ -1,0 +1,34 @@
+{
+  "source": {
+    "commit": "4154fc7872988e18bd8679d397ef08b41417a3bf",
+    "working_tree_status": "M README.md\n M docs/VISUAL_THICKETS_LINE_TRACING_2026-10-03.md\n?? results/visual-line-tracing-20261003/analysis/\n?? results/visual-line-tracing-20261003/baseline-v1.log\n?? results/visual-line-tracing-20261003/baseline-v1/\n?? results/visual-line-tracing-20261003/calibration-01.log\n?? results/visual-line-tracing-20261003/calibration-01/\n?? results/visual-line-tracing-20261003/complete-phases.log\n?? results/visual-line-tracing-20261003/complete-phases.sh\n?? results/visual-line-tracing-20261003/environment-install.log\n?? results/visual-line-tracing-20261003/execution-notes.json\n?? results/visual-line-tracing-20261003/gpu-tests.txt\n?? results/visual-line-tracing-20261003/model-download.log\n?? results/visual-line-tracing-20261003/pillow-install.log\n?? results/visual-line-tracing-20261003/retrieval.json"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/finalize_visual_study.py",
+    "--root",
+    "results/visual-line-tracing-20261003"
+  ],
+  "old_indexed_files_verified": {
+    "results\\llm-bounded-20261003": 39,
+    "results\\work1-closure-20261003": 133,
+    "results\\shared-speculative-20261003": 344,
+    "results\\adaptive-evaluation-20261003": 573,
+    "results\\complementarity-selection-20261003": 302
+  },
+  "historical_result_changes": [],
+  "main_ref": "deb414253139cc2559d19cdfe7e6b4786e7c40db",
+  "phases": {
+    "baseline-v1": {
+      "status": "complete",
+      "source": "49bb56e160691e83c786fc7bac40be290c0e8f75",
+      "verified_source_files": 20
+    },
+    "calibration-01": {
+      "status": "complete",
+      "source": "9646eb8bded36b32738b68d0df85c417469ddbb5",
+      "verified_source_files": 20
+    }
+  },
+  "mismatches": 0
+}

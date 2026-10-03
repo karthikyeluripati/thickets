@@ -1,0 +1,24 @@
+{
+  "initial_source_commit": "49bb56e160691e83c786fc7bac40be290c0e8f75",
+  "platform": "Linux-6.8.0-106-generic-x86_64-with-glibc2.39",
+  "source_bundle_sha256": "14cce22e326b0f025b697267665d52d06ed60d5353191a2abdaacbd07d725ed3",
+  "commands": [
+    "git clone --branch research/complementarity-selection-feasibility https://github.com/karthikyeluripati/thickets.git /workspace/thickets-visual",
+    "git clone https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt-visual",
+    "git -C /workspace/RandOpt-visual checkout 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
+    "python -m venv --system-site-packages /workspace/venv-visual",
+    "python -m pip install vllm==0.10.2 ray[default]==2.49.2 transformers==4.56.2 huggingface-hub==0.36.2 tokenizers==0.22.2 pytest==9.1.1",
+    "python -m pip install Pillow==12.3.0",
+    "git fetch /workspace/visual-source.bundle research/visual-thickets-line-tracing:research/visual-thickets-line-tracing",
+    "git switch research/visual-thickets-line-tracing",
+    "python -m pytest -q"
+  ],
+  "environment": {
+    "PATH_prefix": "/workspace/venv-visual/bin",
+    "PYTHONPATH": "/workspace/thickets-visual/src",
+    "HF_HOME": "/workspace/.cache/huggingface",
+    "HF_HUB_ENABLE_HF_TRANSFER": "0",
+    "HF_HUB_DISABLE_XET": "1"
+  },
+  "phase_commands_are_preserved_in_each_run_manifest": true
+}

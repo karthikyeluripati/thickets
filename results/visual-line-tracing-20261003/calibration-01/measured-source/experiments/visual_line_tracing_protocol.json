@@ -1,0 +1,60 @@
+{
+  "schema": "visual-line-tracing-feasibility-v1",
+  "parent_commit": "a7e435a5ddd3b843c8b30b2ea83b81d475834895",
+  "hypothesis": "Random nearby perturbations of a pretrained VLM yield materially better held-out visual line-tracing experts without gradients.",
+  "dataset": "examples/visual-line-tracing-v1",
+  "model": "Qwen/Qwen2.5-VL-3B-Instruct",
+  "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+  "processor_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+  "upstream_commit": "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
+  "dtype": "bfloat16",
+  "tensor_parallel_size": 1,
+  "temperature": 0,
+  "sampling_seed": 0,
+  "max_tokens": 16,
+  "max_model_len": 1024,
+  "max_num_seqs": 32,
+  "max_num_batched_tokens": 8192,
+  "gpu_memory_utilization": 0.50,
+  "image_pixels": 200704,
+  "perturbation": "Unchanged pinned RandOpt apply_perturbation with PERTURB_VISUAL=1: all parameters including vision and language, native tensor layout, randopt-per-tensor-v1, exact snapshot anchoring. No parameter localization or change after calibration.",
+  "cache_contract": "Prefix caching disabled; multimodal processor cache disabled; all requests drain and model-dependent encoder cache is cleared before each generation.",
+  "baseline": {
+    "evaluate_splits": ["selection", "heldout"],
+    "target_accuracy": [0.30, 0.75],
+    "mandatory_rebuild_if_either_split_outside": [0.15, 0.90],
+    "rule": "Evaluate the entire base first. Inspect geometry and automatic format failures; if either split is outside [15%,90%], repair the benchmark before candidates and preserve every baseline/dataset version. No generator, prompt, parser or task changes after the first calibration candidate. Base-only held-out inspection is the user's explicit baseline-first exception and never enters sigma/ranking."
+  },
+  "calibration": {
+    "sigmas": [0.0005, 0.001, 0.002],
+    "candidates_per_sigma": 20,
+    "seed_start": 3100000,
+    "seed_rule": "20 distinct seeds per sigma; sigma index*20 + offset + seed_start; no reuse in final search",
+    "order": "offset then sigma index",
+    "split": "selection",
+    "catastrophic_rule": "accuracy <= max(0.15, base_accuracy - 0.20), or invalid-answer fraction >=0.50",
+    "scale_failure_rule": "A sigma is scale-failed if mean accuracy <=0.275 and best accuracy <=0.40 (approximately chance), or catastrophic fraction >=0.80. If all three fail, STOP operationally; do not claim scientific NO or add sigmas.",
+    "sigma_choice": "highest best selection correct count, then greatest fraction strictly beating base, then smaller sigma"
+  },
+  "search": {
+    "candidates": 300,
+    "seed_start": 4100000,
+    "seed_rule": "seed_start + i, i=0..299; disjoint from all calibration seeds",
+    "split": "selection",
+    "ranking": "selection correct count descending, then SHA256(visual-rank-v1:<candidate_id>) ascending",
+    "freeze": "Commit exact best/top5/top10 identities and state fingerprints before candidate held-out generation; calibration candidates cannot enter final ranking"
+  },
+  "heldout": {"examples": 500, "candidates": "only the frozen top10 union plus base", "voting": "Ignore invalid answers; Counter majority with ties broken by first occurrence in frozen individual ranking; all-invalid is incorrect"},
+  "gate": {
+    "single_expert_gain": 0.05,
+    "ensemble_gain": 0.07,
+    "ensemble_k": [5, 10],
+    "difficulty_rule": "The same qualifying best/top5/top10 method must have strictly positive accuracy gain in at least two of easy/medium/hard, including medium or hard. No requirement is tuned using candidate outcomes.",
+    "controls_required": true,
+    "disjoint_required": true,
+    "rule": "GO if best improves >=5pp OR top5/top10 vote improves >=7pp, with the same method satisfying the difficulty rule and all controls/disjointness. Otherwise NO-GO for this setup. Operational or scale failure is not a scientific NO."
+  },
+  "controls": ["zero perturbation equals base on both splits", "same seed/sigma state fingerprint equality", "bitwise snapshot restoration", "one repeated calibration candidate per sigma", "one repeated search candidate", "selected candidate fingerprints match search before held-out generation", "one repeated selected candidate on held-out", "base repeats across phases", "image seed/hash disjointness", "ranking code only accepts selection records"],
+  "uncertainty": "Descriptive paired question bootstrap: 10000 replicates, seed 20261003; does not change fixed point-estimate gate. Expert density is descriptive selection-set frequency, not unbiased held-out density.",
+  "stop": "One baseline-valid frozen dataset; at most 60 calibration candidates and exactly 300 final selection candidates; evaluate only selected top10 on held-out. No rescue tuning, extra population, model switch, geometry change or follow-on optimizer."
+}

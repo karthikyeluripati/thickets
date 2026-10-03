@@ -1,0 +1,99 @@
+{
+  "phase": "baseline",
+  "protocol_sha256": "0741fec627cdf9f309e74c782acafdbbab92277c69766f9d9db0e03580f6ea52",
+  "dataset_manifest_sha256": "3384f6bd8f43d547d636f3f6da91a6da2ceb02f57ac2ea4a84f2bfb6043de3fd",
+  "run_manifest_sha256": "6a568c56e7c586a26e492036e7cea9faaff06fc9042900b29106bbb1e677fd82",
+  "run_checksum_sha256": "2d473e4be3613cc5dce353c5ace10512506c7479e502d005ad1f3042f84bf878",
+  "source": {
+    "commit": "49bb56e160691e83c786fc7bac40be290c0e8f75",
+    "working_tree_status": "?? results/visual-line-tracing-20261003/baseline-v1.log\n?? results/visual-line-tracing-20261003/baseline-v1/\n?? results/visual-line-tracing-20261003/environment-install.log\n?? results/visual-line-tracing-20261003/execution-notes.json\n?? results/visual-line-tracing-20261003/gpu-tests.txt\n?? results/visual-line-tracing-20261003/model-download.log\n?? results/visual-line-tracing-20261003/pillow-install.log"
+  },
+  "command": [
+    "/workspace/venv-visual/bin/python",
+    "scripts/decide_visual_stage.py",
+    "--phase",
+    "baseline",
+    "--run",
+    "results/visual-line-tracing-20261003/baseline-v1",
+    "--out",
+    "results/visual-line-tracing-20261003/locks/baseline.json"
+  ],
+  "base_id": "d51b308f7a01a09732301ec836200002d082333d0765330b6c2809fe6332fc20",
+  "controls_pass": true,
+  "accepted": true,
+  "summary": {
+    "selection": {
+      "n": 150,
+      "correct_count": 35,
+      "accuracy": 0.23333333333333334,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 115,
+      "capped_count": 0,
+      "difficulty": {
+        "easy": {
+          "n": 50,
+          "correct_count": 13,
+          "accuracy": 0.26,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 37,
+          "capped_count": 0
+        },
+        "medium": {
+          "n": 50,
+          "correct_count": 10,
+          "accuracy": 0.2,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 40,
+          "capped_count": 0
+        },
+        "hard": {
+          "n": 50,
+          "correct_count": 12,
+          "accuracy": 0.24,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 38,
+          "capped_count": 0
+        }
+      }
+    },
+    "heldout": {
+      "n": 500,
+      "correct_count": 133,
+      "accuracy": 0.266,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 367,
+      "capped_count": 0,
+      "difficulty": {
+        "easy": {
+          "n": 167,
+          "correct_count": 45,
+          "accuracy": 0.2694610778443114,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 122,
+          "capped_count": 0
+        },
+        "medium": {
+          "n": 167,
+          "correct_count": 44,
+          "accuracy": 0.2634730538922156,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 123,
+          "capped_count": 0
+        },
+        "hard": {
+          "n": 166,
+          "correct_count": 44,
+          "accuracy": 0.26506024096385544,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 122,
+          "capped_count": 0
+        }
+      }
+    }
+  },
+  "output_identities": {
+    "selection": "42911deb7fc6bca204a83368b7d8de6762f4cd13c4b2f9cfc01d0369f002dcd5",
+    "heldout": "d2895a73e09a2deb0ed1b333bcb903f56361c1c51d634c35ca7ad47180f3c28d"
+  },
+  "baseline_only_heldout_exception": true
+}
