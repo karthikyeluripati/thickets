@@ -1,0 +1,2402 @@
+[
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 42,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "226258dff1ea4359c59f6e47cdd3c49191ef02743f0641d84ec9443cd9b6d339"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 42,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1ed92a64535d622e238b372d91d43d04eea3fdfc6ec94a113fbfa3a52ee553d4"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 42,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cdf58f644672a050404873550e318818b026a711232d846d425a1feca6f3aa2e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 43,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ed2cad5684d02baa4487b1f42c4d6a37747df19bdb2a96298f547e63f6022f77"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 43,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "344d54792930df1324c54b34f4da7a8e94badd4bcad990aa46592d79d86af335"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 43,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1c95e9103a308135ebed659a17fb96350c6304e1c6d1f9cd07c073e3cb9a5fdd"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 44,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "22c79e44dfbe136e0cfa9624ef69fd76becab2240d66a3c60545f337e7194aae"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 44,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "88e0e9cd5346308f66b5a93fcbdbb3915349debbf2c13b6c891a3564f97a0123"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 44,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b8a5d96a0df35f51905aa0e3043d459be2817dddb99e0c77b2b63bdae7cf4677"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 45,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2e8929398c9990c8bf7630d0ef4d159e0342e5ce3cb4178304219fb17d36058a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 45,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "562b536fb3ed620f053f3808a37393b01d2cc14ebaab923e4ee7293ee57fb63c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 45,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0e0d03319dc7835a30007689959320ced40fc38a24e99511c752a571a0554e1a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 46,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1718d305ec747ea62359bdb59287ab680965063fcefb23a19d2a43219bfc666e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 46,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "42215066e5af562f5eb7c97426b67801af56069ac0defd319b4acecc752c98cf"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 46,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ea545085a80ea1af1b1843ad08b3fb4e085957ef62aabc702eeb0321958c2cc1"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 47,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3ebdcf01c03e9259505971c1337d8d4e92164ee2b5e714c2114bd99a8d44da2a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 47,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9b71a09d87541de0706b96eb4ddc97183f2ff126fafa52efaa2126f8bb16dff0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 47,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "401768b978b7c2093be17fd9a99063ce3528b44af54df68761b292ffc4db893b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 48,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bca8340d4d15af49620a7baae33bafb2f4ad6cf64dbfcec67050c5d91ba29a23"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 48,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "36b5c1434cce991efbafb806e71ca025c118736dd0597bc31ac51646c186d1bc"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 48,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "05e22f0e945db25f1811aff624596c4d5186d1a5f391cc0bc70252b480d0e7a0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 49,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6426afaca525505282b27f7ee2ef607b0e90412b2bb3c743e272dbfc42248ac2"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 49,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "95288150e8668afeba008b1dd0469329d6e46507743f8bed80748df240b56e94"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 49,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "87ff7878d80266804002e1bfba64eafb0a4df07130175343e1a80af34fafe3f4"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 50,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8ee0f6783e099cd959b7fb981d04e66e9d3a8e84d6c34efd81a5b8337ebd0b2e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 50,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "82a95add1336ba56c8255321409ad7d7635766492f922a4975c4b992dc1cdfcf"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 50,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e0affe6b8121761411ab23ccc092fbb7755b660e228c2542aeaa455098a085a2"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 51,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a4d321331d7c0626ef68178348db7e646019f8cc03dc9ebf069144e3c88e3444"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 51,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e81010ddbde65cfe1f8c0196ab8c11f9b6c0d6b02d85d51e3b0ab67c9858973b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 51,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e0a5a3813e22d99885c85e7f9f2ad34696b20838e5251b7660513b50066d8040"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 52,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "aab5538bda2df5f87016b6365a30136a2b9b47df015a548529a0b7fed691f2b2"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 52,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e29d5909460362461a6eb79a5477c1b43f9f1696026dd6a6891766009f9abec2"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 52,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e3a6b5cbb0b3841fa4007fd4fbd8590a1f24fd8f9e14e20bf722b3f1d3260789"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 53,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9d00e814c41fadd7146661cc785eecd8cbb8684bb002caff1edde288f1bc2fa3"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 53,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1c44d9767122b134a380023fcaa22b47d16e4a836ca378769a2d2168f3d6c951"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 53,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a67b306bcc0e234fd2197fbfb1c52e2a8864956118785640a611eb3fbec8ad9b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 54,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "51b67c30a24bd82f3cdd705686b43467d25c0b22a1a434d0203e70cbf485cec9"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 54,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "812a3769385165bf42cc55ad124a2da84c98cb2180761c114237396409cd544a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 54,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2bbfd3945829db05391013b62069b57541334675bb734a3f9c6bcba9dc9b1a9d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 55,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "77978e85496b88ff6e95c8582c307ba292f2c47d6b4ec8b29a82cea52d5d81de"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 55,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ce54c07a47d8ea9fe434dd1bee079fb440810d7c16c73c8372a2ac7816dfe10e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 55,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5af94ee97f613b0bf6dcd6d974de6a6888b365f670761d0ee683dba53fea97ad"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 56,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5ae2f369bfac5758946abf4833d30acebb7b4b1cf41159afabce007dda006977"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 56,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "580142fcc0ea2125ae19085332ea9582a2b3bcc6d9a8936aee1f67c24b704f34"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 56,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a29d8570a3924237a69176c68c38c6aee4c06011ff81d90d95015dac1668f9e1"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 57,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d480ab73ad0bbb24714a77b3eb147334412fdf2e62aef77144b49e263b247d5e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 57,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "978398f7f41b04ce04ffb458199e7546bf20798aca247c2bac33856d96ff5d2f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 57,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "26c2b635c0053c88891e42066f6f8de06f5c1c4502a12978fcbd3e8076baafb5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 58,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "33f62fbbdf2d9436fa84126ce2644eadcbe453f07b2a3c64c9daf88bfa28b9bb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 58,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0664dbcc3e3d9ce3b9a4e657806f60cf4bb36304385b1a529dfdf3f306c6f128"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 58,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cabe3e2dcf48969680d4242d51f7ceacfc24334ea4ca2e61553a28674c0483f2"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 59,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8ce25eae9e072cc59cf750501a5b86ebe0a5583dde67152968eacf388d8481c7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 59,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9935bcfd03f014bc4f16e835fff255fd6c2a5fd635384a0791d837d922073092"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 59,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8671b2a4d838727d0899a155571bb8a4ee05e56dda42f73e2916830456550074"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 60,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0ca01f1397185af67d9adeda3c33a984c923b6113d9b3220e4c3f083fc25e849"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 60,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5c86a99d45e6b3f7ac48bd3339afaf49492e048d4242db0bd10405044a8d94ff"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 60,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ca836fcd3151213983e0d5163564dfb02b382e83528a7ed7f421fcd4f60da3b0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 61,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e7d73e1584ad1c467aa85f29517289abfa51b115670628ff284fd65d71911753"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 61,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7a5115250d123deb85b99a4a5d5898096e3825b20b0c9b8002af12238866634f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 61,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "850a3081a10f9cd625c3f53ffffd92750d791a815f7765bc0e7db984d3bce61b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 62,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3bc5488599da98ee41959724d49ddafd2c5bc5ee825718e73a4e388bd85b3088"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 62,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "922e978d82b433d24cb06aa43a1b8c9f9bc7e93c7e8f02b7f86cf7e875b574f8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 62,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "57397993516b023a1bf3c65d98b6ea37d0e2a8756ec6f90fe6aa56bd8935bca8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 63,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "34c24bd6aaeec85baefe2e33fcae0fc4feb6efe0062b4bbe41e6f22616c08596"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 63,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ce08488ed892a88b5b2c8d298bf7203663ecf0219733f93c2541c2aeb8f3ecdb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 63,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a4b35913e9c38de46389440eb3dee7d25d603cb09672b6e78406cb5bbd860422"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 64,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e2e58bb3953325a2430c44f2f0f3a5233619e30d4427e3bc12b74903b2a1a3cf"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 64,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ae9c4289c52df868e20c72ac674e1bd48dc9dad71c7e998b394392aebc58f366"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 64,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c75e8e9061d421e665b6a9d21dc6a58e6ed2513aeb3b01b5da7fe0381b10684e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 65,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "dbe7d5cf81a2a746801693f1d7391ffa97345f8de7458a6e22b64f82928a8c69"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 65,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "baa3cfbf37d8abba6382b426b3e82a33d60c66d00716f146720bb592adbf1f65"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 65,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "84c67afaf0fbba9a7c117a6562a10a0e6b9f19a30d9cb548c4ce8b607b50d331"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 66,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4c43f9c5e5fa4ea12f319d910671400a7aa1b5d49f8087cc2a089fba8c7d9eef"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 66,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9262d510bd933a2a417ba982c8781d9bf40c4ff0cd53f2a2125b5e1f7b164e3a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 66,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "72980ff781f3ecdc9c308951de236a785e67e276f4ca9aac066309df3abc18a5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 67,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f361bccee3d7b4593a732197538ae4ed43ce21a13580ad3e0454685afefd6aac"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 67,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f055c001f5cd3ab599f67c4555792b93aed8b2a9c7c49dab7e8896e6e03129be"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 67,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f89b89787a89e2fd90cedecad1c11276a21c3349be599c89d58a044340eaf118"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 68,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bc18dd8321b0b34fffba612cf1110ba69e7b695b19ab13c68ac50be2dce5ab3b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 68,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a7a277c19776e8e636871e6b6a9d5d17759d8df23cbdc1616e56b7eb2fae4c91"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 68,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "90f083fa1b960514a695d5d9972d7082d8cafc7178d7302761d7d4a0f74b9395"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 69,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f02542ccadc6928b2869cd9b1042fe25d70fa43e277b59f873101c53483a7a9c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 69,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "36a1e4b3919bdd9807a6ca0b2e7641da5daf9c22231783690186aca3aa48ab51"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 69,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eeccd7377fcdccd6cc75b0c0ee2abf5114dc8579ab8f2aff7b35c09fa481261b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 70,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6850272e93ba7cb1e76a2e25bebb7889dafb3ee16207987312dcbef8e338fa91"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 70,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ab79cd2b344c8ceff48a89d2ef4b9cde90bf1ae18401fc0b80864d01dcdb11e7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 70,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "367e3004520d798ae9786cc60e9a4de562cdffb65dbcbcd340b4e03e8ed9dbbb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 71,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "07095d3814a556c6a233baed3be39a929dbcb0bb0edbc28fd270c6cddefb397a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 71,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cd9a0305b64562b02b439eb7fd71ced930542ace5952c71d42e58fcb97375a5a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 71,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1641192dbe17af207ff59ba20948345df46db874d7cd96638893e66385482168"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 72,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "64081773da7b35842467e0074327785586702df5e4e96e4421784257cd26faa3"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 72,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eb06b31f664cc03353e6445d16726ccc45fca5ecade95d1f7321c91e09689fb5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 72,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cf0a2f291027ec7726193ff14fb5f408293634fdfb8ebf3af0faf4310def6880"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 73,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "20357d782d8dd9f8fd33ee9bcfdfece9424608b90f92be123c860a1986ff81ac"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 73,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cd16d9340c4f8506ce0ecbddc764e51674eea0e5b6373ed662cdd75e265f84ce"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 73,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "906a86315fe97fbf85f43e4da2eb5beb6f64147d2c2950f4fd027cfcc9e55802"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 74,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7fb20c55bb9167a9a07c2b0ddb00f61557047d3bed12f51d0ac41a73dea976bc"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 74,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "78e2dcbe51613bdbf84ae76ffc586ddd83e38cfd8428ba0dc0bb58081d17a8c0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 74,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3265cf076164a1b6b02c76b610747d7c5c87e11522ee4b58014c955ec2e5fd3d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 75,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ba6afbb7f7c7b72e9d90a38e8a2a0c34273ad95f6ea8928a2419d55d6a024440"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 75,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "57c64d7ab7e17c61aa3abb245c7fa725fb6e4987a6b42ce56be2e681a8786578"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 75,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "77051ca4acd407401900be6c8054de240043353ca888d42847b65957ac6dc163"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 76,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b543172d347959e914d5686bc13c9c6a545b1ba2d971a1b3fc837dddfa7d13ef"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 76,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fca18b2b648b34b5c4c812a95d05d44f44ea3ea068252aa3739fc0bbb1cdd929"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 76,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "50133fc97dae1920b3c735db6ca75221149dd4424c738bbbb33738e21133ec43"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 77,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cee8fe922da07645be877321409d33898291db7ee82365873e46eb12414afb14"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 77,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fd6a266bc4c9e7de1b305f525afcb016fe2f876ee76001cb70a4f4c7191fdec7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 77,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "50d0d13a633957ec388f32b83b12c3eb00c905b87f9ce21e90a038aee065194c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 78,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9dac7f6a6205faab6d3fe3dbd43315af95445cfb30f54f94ecd06b36c301618d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 78,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3d4b7389fcc8ae37135620e7e0fba8f5e9d972272461299f4a11888554fe558f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 78,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8900ebcbe3e4ce5e11d1bd5b9b1817a10822012a9af2aea92497597a50008bdb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 79,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8e523c9b00e0bb4a6b9d2e71cbda23533ddc37a6abbc42c436f774e9c48c7195"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 79,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2e6385ce6703b407d2b8daf1c39955f7331caaca0668b283deedc1b30fa36a87"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 79,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7d0aea0950c95da622555361ac7184296ffebdc27256160f238e643af058fc97"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 80,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "de61a8e32ac3e9f89933d7cb54a7dd5fd7c54c558c01b43221bc7e1d3287b775"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 80,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bf4c246ee45d62d352af4112838c45c86eef608471c9863c8a539623d1a95197"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 80,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fe527fb886086f94afc0c6b245f02d4c0a7d76fe7db1bc1657a1028a56118ab8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 81,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "063fc632198ab0e08d6bcda9621090c76ce135a39075b26f98fc52527e7678ef"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 81,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "78219f0d1427209127e204cdb3100d301f40c46b661f2ad68215cffb451c872a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 81,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "61faa684d167239143147a076ca65212226acbae9ad26919802f1de27d079706"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 82,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "75e0225fb62f6c26c0ae9af582269a0ae1893e48c36201531fe257e3beaeef15"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 82,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f4bd77f2d6545666151515af59b359e8ce6e6c9971352bf25cc73ae404ad84aa"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 82,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8143ce90c4479113268b287ec309c6bb339a9477d969458c9c67a668c07e8fae"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 83,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b0d5de85798fa00bc93ba6ab0a02cc64aeb8df039f6ad3e26e133ce30a99107c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 83,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2e8579abea07151642f1132210a5a6e2d5d496b8ceb036a9179de4c3db304ae6"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 83,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7f28df314203d58db662a537b49d1aff0fe0de349eed7f8ef3a180cf2d734aab"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 84,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0957e740889b5dfe262e7d3616885c9f5c19e6a4b93c9a185455327a90c376ba"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 84,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "832ba0749e3a9d469b4514cde7a1c6855ef2988a6807aa0b791a33b92f803924"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 84,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1fed951b3853db18ef4575a571d29f782f5ca70c46452b027843d65b295312fd"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 85,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5805c5f6e061ca8930daf55d9fee832c0cbf0feb0e67ba355b1bd55a7e6cd2b9"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 85,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "644504e768d19b46f8fc65c995deb35fb21cdcf5046c635fcb536da214a31e0c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 85,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "28ce3327741b3cbba68dc83e533e86242ae5edcb4e6471c2bb981e586b336be9"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 86,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "60305300657a0bd07f479912a39b33a035bf540500c80c93bf04518ac17cac17"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 86,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7afe2bbba72457172afd57e701ff2ad2f0df4b28f4cd10799a8d3dee7cb2ec36"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 86,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6b2877db211e1fa44272fe6f66613259acff0bdfff7351759fbbe22976e2bd01"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 87,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5b719650db04fdb55d5a71bc3a06e10f7efc5ff3bc42a43415011371fe501201"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 87,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "863c35afb65a733d95f10e6421f03a13ed21b4c5841a54b6d2b62065ba00a60d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 87,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3b15824265b46b1bde23b2a292ad357566b6726b36fe86319b223aec73044922"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 88,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "798dc9b7e92b22d91b170d519493b2c66369b8db58c772eb7b0fe6352f3fa9c5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 88,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "30597422b27720216fa0c507386b3832c02a1dd88f29b3b0a238862997ea1752"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 88,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "75f89586dbfe01032afb9084092148547179a47510a001a0e8f639baf4bbcb2a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 89,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d9537ef4f2124d6b62759af98a6efdad1a14bc73a1ab2a925d6c23c7ef0a813a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 89,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "67e952d1e3bf744a15e560fc857a6eaa9c920fcd669fa987aad66d0ebfd893f5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 89,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b5422d8d7eb347566491953df3d47f54e793a1d50ba886d4ccfa8aa85bbbf7f8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 90,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6b71a431efa4d13ec798724ec5e8a46853ae7fff3d17bc4a06b0e79eff38199e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 90,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5cfca441edd9ccbdbd9d60fb29057417092232aee10ed6ea8099ac17b45dd529"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 90,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "028049a48db82aa1f36e0578fe0e0a0b56c5769d340c09af83abf707c691367f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 91,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cc33fc95e53efd66eb575dabdc765870f70208f83a5f243d9640adb203e43fd3"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 91,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ac3af7598a0521106588814cdfd9c694be8d6ad684b730472bba7991bcab8e82"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 91,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e94be80f358673b2ee660aa169f9725d5e6e299dfff335b926d066500da3bf69"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 92,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2c86571dcf6b15eaf6aafe87c20faa69eb08781b48612f843ef14ff1c43db9b3"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 92,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5beb945ad43d58cb490639c3c51fd5b0dd04cf5c858df22d15105e6901a39ff7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 92,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0baaffded23499db4bbfc091ff689be9faa1fb9e408bb49cfed23cf72717907f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 93,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "499fac41fd94d4676a36c7444cf9ec34acbfd8501be3abbca7118cef948d9faf"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 93,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "be2d838a9444da55d4edf4b193a06a425b706cc83b6e75db4db84441d9d71751"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 93,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ae70a38a3bc5ac4c7a8cbe5f350b28505b6ce5a90d0f1f851a271378aac9509e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 94,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8d9b2ee41da0bf45214a17d43548978a3a2e5765431697bc2f7ca8a01f94899f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 94,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "02b6f97f764668b6318f201db08a1aa67ecfa400b9fde973e8b59d856b39ddbf"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 94,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "df8800bc44140636dc832cfaf9d1030247a4a94864a553be218a528ea543f441"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 95,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "38cc2288c163909848ad244c7b39ed5057ca440cde2a5c0c0cf5fd90e167db12"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 95,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c11385c9aea045a09b966175c93daa3432ed98142be0b28a1e1ed1e97c29143b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 95,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ed22eaa6e4ef1f25c3d8a2fe8152de7872effdc1d26a9033098a4d6c736f9b2b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 96,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f8e0496c935d97ae703d3f895057028033ea935c4d2892603849083639221894"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 96,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5c08d85a1c31c6bf83537184ac5ae1d40e9183b1942b4cefd1b553712bb7a0c7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 96,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6002d87003813cf068aa8d31f317454121ca5633610e0535e0fa3e43601dab4d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 97,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8e5943019d6e3c0a52b50753e6e2d8f8d8d029e7673a13b6094c5e92089af61e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 97,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bdc14e4f155e0e15cc0504a07c25809fd2eb2e22052a34a127dfe4b5585f881c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 97,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c9979c0d8016db71d681068e7195c21139f8b23f0cdc29d88d04efe35f41baeb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 98,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1f7d86ad69a8055c2362d40ac98bc318d4cc104fd14d0d61730247fad72c34af"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 98,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "53586669318ac0bd78e7ea2724b334952489c1c9b339170224b9fe46f6b12ba5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 98,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d7fc875ff8652b72ac6a9b4f1447aa77322df63ceda7b4798fb00f6849e97928"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 99,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6b20559b7fbb193ff305d5ccb66b2930794a695ffa0546ac5c653eae2663276c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 99,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a518bf47cce154111a47bf1ae826de51070f669c694c1b3176d3b82f53b37f35"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 99,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "963403152b7275b109c2df3e98db08acf242db7a149723ebd8f912af4d317c51"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 100,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "69020f37d15f8cb19561c6fdb6872279fd7fbf0ac6ab4717d0948fbfc91a5ec0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 100,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2137646299695cb7a5124da29501a511338222dc5ea40d18f0a25c26d224c66c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 100,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1b82fa698049f21df463dd7a58d9cf0fcc18e54e5844104c3edeca7bfff9267e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 101,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "045417da4fbb62d3d12d196a86fce074bf64435593fd323fde8cd86eaaed745b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 101,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b9605dc3e34eabcc1d7576e278342c98df9c0754a43e71176cae1d54569916b6"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 101,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9acc4400c5e04b53e2f1ade1cabcd3718a8fe949ffc02c9032c398d29d6b2b9b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 102,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "22099820dfc17be80712e633c3126e3332d425977752973b7fe2a32a0c5e9552"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 102,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "017947fd75709565f8338bd14b58bc64e77a0b2ae20f6c61ca4a1ca9e0b3babc"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 102,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ab206010d6fb53dc09dcb66cb0b0da9dda94a815e1f48085a84bd8b1cd812b1c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 103,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fac22799a45f14dd46162fb713acbf2920c84079b59896d6d572ccdc99504c88"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 103,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a5b30d054e8dd85cf3fd9d0ee5059de07a37e137b3632a413973830b624fcc3d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 103,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "94021778e7eea5b205a92dd899bd32b76671b307afe95d470ce6269bffb825d4"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 104,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2b250f10a3c57cde287354d3b3c9c44613fbce6c4fe21b4ad7a6b1a9aad5ab49"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 104,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bfe1407382841d036e031ea5d9073ef844395fd5c35bc7ab3b4b06756d814908"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 104,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6949b2261396a6541e3be448fe747a579a8c65ca3c65c9a50d5d47b7015acea3"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 105,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bb96c975508e6902ff897642e831e58ba928d3033920e0d7178db248b95a9252"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 105,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4f6c867e374d133170d96aa733a416b2b4ab15ce7389c055f44e0ec2b33a9891"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 105,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c2a435eacd40865e325607f7c04f084fbf6f1d3d10f82755e769e29f3db79e1a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 106,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6897003542614066a87e9a0fac371990fe16b4af7e3868705ce45103a183c98b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 106,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1295fd42e7477223c27fdea17748d7973bfbf912b3f99871e7231d134c522ba0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 106,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "16dccfac801567fb7622c029e0843ebdbf79c5c34e1ca9c66aa5924df086fe13"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 107,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fbc92d4a6f622960208de3dea723b3d04ae67cc35e064e45da3a7ee190b94675"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 107,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a7de65a87db2575b4f027309c636c4cabbd239d6ef669e8191939ba35d594e7d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 107,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "46e1a59d5cff5bee880613c69847e54e7f74f8462960b164f45db9c61e64bfac"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 108,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4fd55da5dd4b0f354ce3be189bf2697f812137552659ca2077f60c2767825be4"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 108,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f5a39d660fb9e153011e03efd75730e2d4a76e8c0848ed0438586ffb8ac42d2c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 108,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "300b787dc6d5f298cf7ac1b0452bbaac9a5bd2a75fb7a7160a67daa6f5d9ee2d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 109,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b70500e8038fee106681ee304b31de4f6273f29e7718976e4754043f1fdec915"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 109,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cef308bbae396b9881f3434e70e4e533bd5c9dde5c32e74772f4ed46c0ea0593"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 109,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cf53df9d93b384dd02db3e638a2f9fd91ee1271a570dcf026732e24e518f702e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 110,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "43700aeb34a8ef23dcbeeb5fd211e335d2f2f376c08c08dd5560b6a311cb9bf6"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 110,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a4f2352d6c00e32a4405c3b0e893f27cfbc380a6cc38b0828c1d3109e4abec11"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 110,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d1070322b0d05fa392ddaea26d34712e8b1be01db722e35268d13ba5d8c1b134"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 111,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4ee9d3ebaa62e601633941e6149e424077e067c53e5611ef811ced84489ac77b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 111,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3a9877025db525538cb23b6a65d7de699d96f9c9728664d1b45a9def97738d7c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 111,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "46b91a47682b954b23168f9d689faa749a6e1016cea86bbc1c996fb30cab7a18"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 112,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fc288d55ff0265a4c0dc439ea0918d3e98a2a76e0b60791878c48b8145857e8e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 112,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b6fcfe62d787872ddbacae23a7e3eca478205dd737756a096d51a8f7da9f7076"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 112,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f2f15c40fb82b4e5452756b96dec507932d2d71ccbe34325fd128cd529fc9f2b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 113,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "afd20a23055e3c91b38f0ffba97f26750973cdfef4d2ad7fceea1189cafcf9c8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 113,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bb69276ee5645edf7d6d27cec1e96138aef11705450edfb1d8115fd5f7b078de"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 113,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "af1496d3e2df04e7e4c2bdcf22e75aa98a3ed0bdbcd138175ccd17046e695984"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 114,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c84cddfb99c60ab914eb1406c9d55eae9f1691ec3b626a2cff96d6ab0204ab49"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 114,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "70795dfe9f86ff0fe933802262bc944ebbf1e49dca5eea932dd45742c2f75d2c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 114,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a2f64ff71e3889ab1a182997963ba4bed60e62625943670a4207f86e47abebf4"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 115,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "240f5b3b7ec42afa5942a7c4e2c0cad0bf72452eb6610513104b1333dce10296"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 115,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e9208d74faa5aef437256714c5fa189597ec8a4d5756ae974d3e4ed82c3956ea"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 115,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e36cd78dfa939f980447a4fd109f3ba33ef463d6d310f1c82d0cb44192ec38d8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 116,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5d5c74a4c69ba41fa2c37a21834e53b3880a22e5ab331fe267555e559bb4f438"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 116,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0cae40356286414c1e7beeecf0957af624a436bda7adfbfbad67be69de432286"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 116,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "f67f515791eba2e6761a7ac79b30294ec4ef76f008db0b4557245fcb869c81d0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 117,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6d95121c1c176145d41a3015fcc9ed7424f221a7401f8276d7a119bb47acbea0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 117,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "485978efef17289146433898957000e7129b0bae88553baf38d38cc7e08b6290"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 117,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d6de839e1fc009c019d43c85681871608ddf959c2a28593b60f618ea96843ea7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 118,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b930e0a4b388aafd62582c55aea1c87bf13a1801733f0bc2fa2628c5ad45caf8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 118,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "554093205f32c73624e4445c39bf8756c5501ff7c5bc57cebe4d347c913fd7fa"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 118,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9aad595856f02aa9b550de569bf5d3448e206b1574f6d6a6f116e21bced7bab5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 119,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e3891da5d5d4ed96f51c1e9c055b8fa99afce25947ca86b91c70006944c82819"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 119,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5713600174cbe90f3ebefe407be12f7b2ba0393605fbcfe0bb15b5ca7be743bb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 119,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8f172cb63a73ff967164f9df0089e8d36b9fb003aba039e536b08a6a17c6bc4b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 120,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d460e0aa6c4d13a43b8708c7cdeba72c9f16f3811b3e35f65f0342b79826e1d1"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 120,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bce825b214a04d8739ba3249c5d27fb2dc1dfb9487b423d6f5316971115c636d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 120,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1ecb4683aaec5caeb1546344e3210265f884300c368c838a44251639193885aa"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 121,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "5482572e5e89f15180e4eff47d1b33c36c7a1a4bfb487638676532c93a37f37b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 121,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "28ef43f4b7351b2dfd020c164b0bcc682561b3995d8b0baaf9dac68e05bbe1a1"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 121,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8debdfca4c6de6cba09e89e8521b86d56f4fc8f493cd6a86b5219555c7eed6bb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 122,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2e19fba105bce72163c3aa060ec3413002af001461f404dcaa6522154094debc"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 122,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6f464ac7e951e93b51b191544951cb72e6960badd4af7cb31b7bef06dd08760c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 122,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4c68160cc2ff8d0a7a8a3d43933ee2fbd0c3eecde5b4be1c56307f860d03b6fe"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 123,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "978e0ceae0c5cf2ceaa93a85f7421f387f7110c527c4f332584d06548790f32b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 123,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "94c381388661b07761a93f4c9fe31864e8235f641bdefa5473c26ab690748f0c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 123,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "3e41b24d6920e177c0139269922fc8a1a4f17750f4b39a0f60aa40385bcc3e31"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 124,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2194a97db593090964ce09f9ac7cc22c5e4a49e750befd257902cfa2205cc420"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 124,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "af52edeb141f7cc1550023d3a1bba338ba76a889d59fc5f828c8fa83bcff97f8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 124,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0c845bb617f356d9516864a9724e50526734ea8cf2e78188d9fa22b96d0d3757"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 125,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cd7397082fc79b0661776809d7e2f3983ac3516fc039bbd147d8911f38b6f09f"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 125,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "34db870ce099dee5a7fe702b145e327bf2f35fdf7a97aa29f5c758398dd0ba4a"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 125,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "2435443b1a85ed2d97ad1966add56eaff720d4e03e4850a42fcbd9bcdb0f1688"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 126,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cc070488aa4047f79d2ea391aba691ee82abead3af59c14bd88530a3570e0146"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 126,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a755da60742ac98f13bce9d9c52ca1f1438bb95261e2d7870b09586f29d1e5cd"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 126,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "55a61fba7cf764ab90d13c345a173a9ef057a45ff27141a69e643556b91ea210"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 127,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cd4c7217585555ab0f86ed74ffaaa71153bc7a6d76dd91ce40a3cf76c3cacfc0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 127,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c99c9791a4a48c109020f7a2f056a1cea29eb7e17f277522ad27e19c05906978"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 127,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "11f46fbf7fa610f589f8038b0a4ecd4b618113f0d22c8832848e0887106d54d7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 128,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "52b3525357efca269b0e4229dad08465e18bc9995aa6cc2137464550a7535c11"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 128,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "749d0327ee5d868110ab2b06d48c374760e67a700305a891c1baa6c5a84d40ec"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 128,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "30eb7e3259c3e1ec1becc14ec46ab86cf508770eec40b15fce71926fb3eafb09"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 129,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e7a89048e0ca3e54f0abba4e9f9569dd192ebf8c19dfb2b2cd93a0af5a7b72c1"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 129,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4b93d4587e04129986d3e618690b440c284cab8d5e1d74332f2d29c6d7d59b28"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 129,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "24e8cf881dff980631d1619aee194198123a5f84d4d237c368bb619401b5b549"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 130,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ea95955fccf2c30c6c76335cc0c1f818e9826a45e4aca3ab6980f876bb48d402"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 130,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0a0b96578193978a8893661ef61d2585abdf0d021ec423e5c1890132a963169b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 130,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4a29ebf890c6a497a9844ecfd8b05b1d0e7cc6a3912fe5a9f1ee800830120692"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 131,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "06b110f6db69aacc83d1781fe6ec1e832037d043b491761ca49fd02a5f28061c"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 131,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "73fae9f2fee71e894c75dce7eddfb31887fdaa4b5b87647a0c931e0cb351f9c5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 131,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "7c8b6677cef0710ec182efcb7a062b043b8cfac8950041c748e7a9a67dc35b28"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 132,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a8e19cc439e63cabf60b8a094cd83670cf66ea163eca88f2ac46d7f0b3fa7709"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 132,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "480bb212a4b4ce09b8d3e8e6ecc67ef908d36c44e1c04c1e695188bda9a31333"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 132,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "86ff10a1332fa925a85232495a7b3e2ebd457bb019b53754e7ccd093df20dedd"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 133,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "9a4cef8942969dcc95fc56974e4e77c4e7cd9c1430a8f8eefcb1fb124ea98770"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 133,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "d60cf21e8f35a19781b56a38023e8ab8a9b2d85e078444b34fa5ad9d006fa8c0"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 133,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "6fecedc2f9dbc712ae19190e8b5076a36e74e6220187da71ca2f40e26cb267ae"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 134,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "bc1bbb56c90484857d553d4e4a2cfc7d340272e71339e85e47c2e2075482b0c7"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 134,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "4f41f3c7d7e7ac7f147918a08b08f1ce9d55b6f3e79f383f57fe24a1de4f4974"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 134,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "e35c872f1261aca45eb961ef6aeee7e95ee4df20da892fdce1c737e3a4298287"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 135,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "314341e3c4489f4df597bb314f58fe177f0c2a339c4983df626acbb609e4c65e"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 135,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "0919bd84c81b98654a48edf395d6a992715cbe87ff41de27e50a907cf29c44bc"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 135,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b65e16e7066e3a13a4ed35a54f279ca7f5bd6b12efedd353b863c0bed81ea880"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 136,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a4aa70af08864bd98faec9760c82a4d720c1d227a02847c8d864ea67bed3285b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 136,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "67cea89a3df6277b1db35761790ffee55e327261298241cb283485c0e5c406a3"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 136,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "fe3f64b2f20b6687500fafce19cd1c6f4c0977b09ed47566fcb6ef6f38e88986"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 137,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "645072cf8b69527c29a5992f30571afaee1b01996d5c3c6b2d008400b62a7aee"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 137,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "46400759ec51acf38d9a77a05492d86f309c29a42f9766df7cc9b7921e0c14b8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 137,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "32d3e91fe98e65392b0fd8fbf673d6ecdebf466dcea5b4ed5ad6d0868cdbfff5"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 138,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "1a5e4bff91541cdcbc6eaec4c7f86d03f83d0b5f502d74be8c0ad00060b48203"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 138,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "ed1a73661e571b38a6c8e37d021d1fea4e30efa71e02be21e2112ce2639bdf59"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 138,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b1beab94dca93c1b78bf02f315b373c9e324520a911fe6c3b9a173fc42d6db0d"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 139,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c6ee094fa934b113a9f569053312d152faa24a42f9dd467d57eb643800476c30"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 139,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8473df16f784419f18a5c2311e07ab2dd9c9e0a24388be6cae448f0d79abed53"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 139,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "b591d133220610db42d98015d6a45507dafca31624cc692fdcb9b9b628e68aeb"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 140,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "eda8f95e51ec53ddba95d70c353b6f04d6a9822540cfd25cd293234c8190278b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 140,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "cb3821e1b4f20bd6e3e39c65692888685f908b5dc8078aef84fb91c48dede360"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 140,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "c3f3f9b47d40d2797b9113aab42ae5881fa158698c7b86303cc54b871d1ccce8"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 141,
+    "sigma": 0.0005,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "09673ffa24add225aac65239c9c738f7ff8693d02355f32bd570b47ff02916d1"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 141,
+    "sigma": 0.001,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "8777f614261ea2bbdaf46e7409a7d4265e00a165916e3017d0f0f04b84b9930b"
+  },
+  {
+    "base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
+    "seed": 141,
+    "sigma": 0.002,
+    "rng": "randopt-per-tensor-v1",
+    "sign": 1,
+    "candidate_id": "a237b04e4a5cda100504919253f247a8ae592f1bb9db09802db8a2587276cafa"
+  }
+]

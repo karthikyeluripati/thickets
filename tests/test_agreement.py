@@ -1,4 +1,5 @@
 import itertools
+import math
 
 import pytest
 
@@ -50,6 +51,11 @@ def test_exhaustive_small_trace_round_bound_and_accounting():
         s = simulate_prefix(b, c, k)
         p = compare_tokens(b, c)["common_prefix_tokens"]
         assert s["accepted_draft_tokens"] == p
+        # Independent closed form: full accepted blocks, at most one rejected
+        # block (which also emits the correction), then individual fallback.
+        expected_rounds = (len(c) - p + p // k if p < min(len(b), len(c))
+                           else math.ceil(p / k) + len(c) - p)
+        assert s["ideal_candidate_output_rounds"] == expected_rounds
         assert s["all_accepted_oracle_rounds"] <= s["ideal_candidate_output_rounds"] <= len(c)
         assert s["accepted_draft_tokens"] + int(s["rejected"]) + s["fallback_token_rounds"] == len(c)
         assert 0 <= s["wasted_positions_after_rejection"] < k

@@ -1,0 +1,147 @@
+{
+  "run": "results\\shared-speculative-20261003\\run-01",
+  "checksummed_files_verified": 333,
+  "raw_token_metrics_reproduced": true,
+  "candidate_identities_valid": true,
+  "all_base_and_candidate_rewards_reproduced_from_text": true,
+  "aggregate_and_gate_reproduced": true,
+  "gate": {
+    "pass": false,
+    "status": "negative",
+    "controls_passed": true,
+    "bounded_sweep_complete": true,
+    "enough_candidates": true,
+    "checks": [
+      {
+        "sigma": 0.0005,
+        "block_size": 4,
+        "both_workloads_pass": false
+      },
+      {
+        "sigma": 0.0005,
+        "block_size": 8,
+        "both_workloads_pass": false
+      },
+      {
+        "sigma": 0.001,
+        "block_size": 4,
+        "both_workloads_pass": false
+      },
+      {
+        "sigma": 0.001,
+        "block_size": 8,
+        "both_workloads_pass": false
+      },
+      {
+        "sigma": 0.002,
+        "block_size": 4,
+        "both_workloads_pass": false
+      },
+      {
+        "sigma": 0.002,
+        "block_size": 8,
+        "both_workloads_pass": false
+      }
+    ],
+    "actual_speedup_measured": false
+  },
+  "source_commit": "0c392f8dcb159af6a5cf765b7f46f9d6895d28bb",
+  "candidates": 300,
+  "seeds_per_sigma": 100,
+  "peak_allocated_bytes": 16844292608,
+  "peak_reserved_bytes": 16959668224,
+  "workloads": {
+    "gsm8k32": {
+      "0.0005": {
+        "base_reward": 0.3125,
+        "candidate_reward": 0.3534375,
+        "reward_prefix_spearman": 0.23859876916400052,
+        "above_base_candidates": 61,
+        "top_quartile_candidates_with_ties": 33,
+        "top_quartile_prefix_mean": 29.836174242424242,
+        "top_quartile_prefix_median": 19.0,
+        "above_base_prefix_mean": 28.802254098360656,
+        "above_base_prefix_median": 17.0
+      },
+      "0.001": {
+        "base_reward": 0.3125,
+        "candidate_reward": 0.2990625,
+        "reward_prefix_spearman": 0.28620799694756793,
+        "above_base_candidates": 34,
+        "top_quartile_candidates_with_ties": 34,
+        "top_quartile_prefix_mean": 12.227941176470589,
+        "top_quartile_prefix_median": 5.0,
+        "above_base_prefix_mean": 12.227941176470589,
+        "above_base_prefix_median": 5.0
+      },
+      "0.002": {
+        "base_reward": 0.3125,
+        "candidate_reward": 0.1371875,
+        "reward_prefix_spearman": 0.1753359432529778,
+        "above_base_candidates": 0,
+        "top_quartile_candidates_with_ties": 31,
+        "top_quartile_prefix_mean": 4.232862903225806,
+        "top_quartile_prefix_median": 1.0,
+        "above_base_prefix_mean": null,
+        "above_base_prefix_median": null
+      }
+    },
+    "natural8": {
+      "0.0005": {
+        "base_reward": 0.25,
+        "candidate_reward": 0.43375,
+        "reward_prefix_spearman": -0.5082830563418407,
+        "above_base_candidates": 89,
+        "top_quartile_candidates_with_ties": 45,
+        "top_quartile_prefix_mean": 18.022222222222222,
+        "top_quartile_prefix_median": 20.0,
+        "above_base_prefix_mean": 19.810393258426966,
+        "above_base_prefix_median": 20.0
+      },
+      "0.001": {
+        "base_reward": 0.25,
+        "candidate_reward": 0.38375,
+        "reward_prefix_spearman": -0.11097010483431806,
+        "above_base_candidates": 69,
+        "top_quartile_candidates_with_ties": 35,
+        "top_quartile_prefix_mean": 13.617857142857142,
+        "top_quartile_prefix_median": 14.0,
+        "above_base_prefix_mean": 14.81340579710145,
+        "above_base_prefix_median": 15.0
+      },
+      "0.002": {
+        "base_reward": 0.25,
+        "candidate_reward": 0.1575,
+        "reward_prefix_spearman": 0.2262254932554965,
+        "above_base_candidates": 13,
+        "top_quartile_candidates_with_ties": 40,
+        "top_quartile_prefix_mean": 7.825,
+        "top_quartile_prefix_median": 3.0,
+        "above_base_prefix_mean": 8.701923076923077,
+        "above_base_prefix_median": 4.5
+      }
+    }
+  },
+  "work1_cross_run_controls": [
+    {
+      "candidate_id": "1ed92a64535d622e238b372d91d43d04eea3fdfc6ec94a113fbfa3a52ee553d4",
+      "same_state": true,
+      "same_natural_tokens": true
+    },
+    {
+      "candidate_id": "344d54792930df1324c54b34f4da7a8e94badd4bcad990aa46592d79d86af335",
+      "same_state": true,
+      "same_natural_tokens": true
+    },
+    {
+      "candidate_id": "88e0e9cd5346308f66b5a93fcbdbb3915349debbf2c13b6c891a3564f97a0123",
+      "same_state": true,
+      "same_natural_tokens": true
+    },
+    {
+      "candidate_id": "562b536fb3ed620f053f3808a37393b01d2cc14ebaab923e4ee7293ee57fb63c",
+      "same_state": true,
+      "same_natural_tokens": true
+    }
+  ]
+}

@@ -29,6 +29,13 @@ natural-stopping workload. Inference dominates, but the HF numerical range does
 not generalize. Packed native tensors change the perturbation associated with a
 seed, so cross-backend candidate identities are explicitly distinguished.
 
+The [shared-base speculative feasibility study](docs/SHARED_SPECULATIVE_FEASIBILITY_2026-10-03.md)
+is also complete on `research/shared-speculative-feasibility`: 300 independently
+generated, snapshot-anchored candidates across three sigmas and 40 frozen prompts.
+Short word problems share substantial prefixes, but the GSM8K subset supports only
+1.1–8.1% ideal round reduction at block size 16 before real costs. The frozen gate
+failed; no speculative verifier, optimized kernel or measured speedup is claimed.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.
