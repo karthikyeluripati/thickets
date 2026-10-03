@@ -42,6 +42,9 @@ def audit_phase(root, phase, protocol, datasets, base_id):
     if manifest['base_id']!=base_id: raise ValueError('base state differs')
     if manifest['model_revision']!=protocol['model_revision'] or manifest['processor_revision']!=protocol['processor_revision']:
         raise ValueError('model or processor revision differs')
+    native=read(root/'native-state.json')
+    if native['base_id']!=base_id or not native['all_parameters_perturbed'] or native['perturb_visual']!='1':
+        raise ValueError('native parameter scope differs from the frozen all-parameter contract')
     bases=read(root/'base.json.gz')
     expected_splits={'selection','heldout'} if phase=='baseline' else ({'heldout'} if phase=='heldout' else {'selection'})
     if set(bases)!=expected_splits or set(manifest['generation_splits'])!=expected_splits:
@@ -62,6 +65,8 @@ def audit_phase(root, phase, protocol, datasets, base_id):
     traces={}
     for record in records:
         c=record['candidate']; cid=c['candidate_id']
+        if c['rng']!='randopt-per-tensor-v1' or c['sign']!=1 or c['parameter_mask']!='all-parameters-including-vision' or c['parameter_mask_sha256']!=native['parameter_mask_sha256']:
+            raise ValueError('candidate RNG or parameter scope changed')
         spec=CandidateSpec(**{k:c[k] for k in ('base_id','seed','sigma','rng','sign')})
         raw=read(root/'candidates'/(cid+'.json.gz'))
         if c['base_id']!=base_id or cid in traces or spec.candidate_id!=cid or raw['candidate']!=c or raw['candidate_state_id']!=record['candidate_state_id'] or not raw['restoration']['exact_base']:
@@ -125,6 +130,14 @@ def main():
                 raise ValueError('pre-phase frozen lock differs from final lock')
     for phase,(manifest,bases,_,_) in phases.items():
         if manifest['protocol_sha256']!=sha(a.protocol): raise ValueError('phase protocol changed')
+        if manifest['dataset_manifest_sha256']!=sha(Path(protocol['dataset'])/'manifest.json'):
+            raise ValueError('phase dataset changed')
+        lock={'baseline':baseline_lock,'calibration':sigma_lock,'search':selection_lock}.get(phase)
+        if lock:
+            if lock['run_manifest_sha256']!=sha(getattr(a,phase)/'run-manifest.json') or lock['run_checksum_sha256']!=sha(getattr(a,phase)/'sha256.json') or lock['base_id']!=baseline_lock['base_id']:
+                raise ValueError('lock was not derived from the audited phase')
+            if phase!='baseline' and lock['heldout_candidate_outcomes_used'] is not False:
+                raise ValueError('candidate decision used held-out outcomes')
         for s,value in bases.items():
             if value['output_identity']!=baseline_lock['output_identities'][s]: raise ValueError('cross-phase base changed')
     baseline_summary={s:summarize(v['outputs'],datasets[s]) for s,v in phases['baseline'][1].items()}
