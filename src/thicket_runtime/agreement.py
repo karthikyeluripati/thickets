@@ -206,7 +206,12 @@ def feasibility_gate(summary, protocol, *, controls_passed, complete):
                             and reduction is not None and reduction >= config["minimum_round_reduction"]
                             and acceptance >= config["minimum_initial_block_acceptance"])
             checks.append({"sigma": sigma, "block_size": k, "both_workloads_pass": bool(passing)})
-    passed = bool(controls_passed and complete and any(c["both_workloads_pass"] for c in checks))
-    return {"pass": passed, "status": "pass" if passed else "negative" if controls_passed and complete else "inconclusive",
+    enough_data = all(summary.get(w["name"], {}).get(str(s), {}).get("candidates", 0)
+                      >= config["minimum_candidates_per_sigma"]
+                      for w in protocol["workloads"] for s in protocol["sigmas"])
+    valid = controls_passed and complete and enough_data
+    passed = bool(valid and any(c["both_workloads_pass"] for c in checks))
+    return {"pass": passed, "status": "pass" if passed else "negative" if valid else "inconclusive",
             "controls_passed": controls_passed, "bounded_sweep_complete": complete,
+            "enough_candidates": enough_data,
             "checks": checks, "actual_speedup_measured": False}

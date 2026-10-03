@@ -149,6 +149,8 @@ def main(argv=None):
     reward = load_reward(args.upstream_root)
     workloads = []
     for spec in protocol["workloads"]:
+        if sha256(spec["path"]) != spec["sha256"]:
+            raise ValueError("frozen workload checksum mismatch")
         data = [json.loads(line) for line in Path(spec["path"]).read_text(encoding="utf-8").splitlines()]
         if len(data) != spec["count"] or len({r["id"] for r in data}) != len(data):
             raise ValueError("frozen prompt count/identity mismatch")
@@ -210,6 +212,8 @@ def main(argv=None):
         api = TraceExecutor(engines[0], [], [], None)
         state = api.rpc(vllm_audit.initialize)
         write_json(root / "native-state.json", state)
+        if state["base_id"] != protocol["expected_native_base_id"]:
+            raise ValueError("native base identity differs from pinned Work 1 baseline")
         manifest["native_base_id"] = state["base_id"]
         manifest["environment"] = state["environment"]
         candidates = []

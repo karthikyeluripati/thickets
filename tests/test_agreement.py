@@ -87,4 +87,6 @@ def test_gate_requires_same_scale_and_block_on_both_workloads_and_controls():
     assert not feasibility_gate(summary, protocol, controls_passed=False, complete=True)["pass"]
     assert feasibility_gate(summary, protocol, controls_passed=True, complete=False)["status"] == "inconclusive"
     summary["b"] = {}
+    assert feasibility_gate(summary, protocol, controls_passed=True, complete=True)["status"] == "inconclusive"
+    summary["b"] = {"0.001": dict(good, common_prefix_tokens={"median": 1})}
     assert feasibility_gate(summary, protocol, controls_passed=True, complete=True)["status"] == "negative"

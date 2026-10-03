@@ -3,6 +3,7 @@
   "baseline_commit": "3d9e029f6231d3d07ac904c77c945617ebe3f136",
   "model": "Qwen/Qwen2.5-0.5B",
   "model_revision": "060db6499f32faf8b98477b0a26969ef7d8b9987",
+  "expected_native_base_id": "991345c343a27a7aa28528a633c876aa4a0ea7d52f3f6291d6240702058e622f",
   "upstream_commit": "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
   "precision": "bfloat16",
   "tensor_parallel_size": 1,
@@ -17,8 +18,8 @@
   "sweep_budget_seconds": 2700,
   "budget_rule": "Finish each paired seed across all sigmas; stop before next seed if elapsed plus 1.5 times slowest seed duration exceeds budget. Never select by reward or agreement. Setup and controls are outside sweep budget.",
   "workloads": [
-    {"name": "natural8", "path": "examples/search_word_problems.jsonl", "count": 8, "max_tokens": 128, "stop": ["\nQuestion:"], "scorer": "last-signed-integer-exact-match-v1"},
-    {"name": "gsm8k32", "path": "examples/gsm8k_train32.jsonl", "count": 32, "max_tokens": 512, "stop": [], "scorer": "pinned-randopt-gsm8k-strict-then-flexible"}
+    {"name": "natural8", "path": "examples/search_word_problems.jsonl", "sha256": "3864c82980757d18f26bf3825ee7c5a53e5846558ec90e7b4c1ec6d0dec6262b", "count": 8, "max_tokens": 128, "stop": ["\nQuestion:"], "scorer": "last-signed-integer-exact-match-v1"},
+    {"name": "gsm8k32", "path": "examples/gsm8k_train32.jsonl", "sha256": "28a36d10f48f9d548e1d66b14059ffbf675764331ba1077681d04c6e38cb0ba3", "count": 32, "max_tokens": 512, "stop": [], "scorer": "pinned-randopt-gsm8k-strict-then-flexible"}
   ],
   "dataset": {
     "repo": "openai/gsm8k", "revision": "740312add88f781978c0658806c59bc2815b9866", "configuration": "main", "split": "train", "indices": "0..31 inclusive in original order",
