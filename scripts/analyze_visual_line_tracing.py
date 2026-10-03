@@ -21,6 +21,9 @@ def audit_outputs(result, rows, reference=None):
         raise ValueError('incomplete generation or stale visual embeddings')
     if output_identity(outputs)!=result['output_identity']:
         raise ValueError('output identity mismatch')
+    cache=result['cache_audit']
+    if cache['after']['images_encoded']-cache['before']['images_encoded']!=len(rows) or cache['before']['cached_items_after']!=0:
+        raise ValueError('encoder cache evidence differs from the fresh-image contract')
     for i,(o,r) in enumerate(zip(outputs,rows)):
         if (o['id']!=r['id'] or o['image_sha256']!=r['image_sha256'] or
             o['answer']!=parse_answer(o['text']) or o['correct']!=(o['answer']==r['answer'])):
@@ -40,6 +43,9 @@ def audit_phase(root, phase, protocol, datasets, base_id):
     if manifest['model_revision']!=protocol['model_revision'] or manifest['processor_revision']!=protocol['processor_revision']:
         raise ValueError('model or processor revision differs')
     bases=read(root/'base.json.gz')
+    expected_splits={'selection','heldout'} if phase=='baseline' else ({'heldout'} if phase=='heldout' else {'selection'})
+    if set(bases)!=expected_splits or set(manifest['generation_splits'])!=expected_splits:
+        raise ValueError('phase generated an unauthorized split')
     for s,base in bases.items():
         audit_outputs(base,datasets[s])
         repeat=read(root/'base-repeat.json.gz')[s]
@@ -58,21 +64,32 @@ def audit_phase(root, phase, protocol, datasets, base_id):
         c=record['candidate']; cid=c['candidate_id']
         spec=CandidateSpec(**{k:c[k] for k in ('base_id','seed','sigma','rng','sign')})
         raw=read(root/'candidates'/(cid+'.json.gz'))
-        if cid in traces or spec.candidate_id!=cid or raw['candidate']!=c or raw['candidate_state_id']!=record['candidate_state_id'] or not raw['restoration']['exact_base']:
+        if c['base_id']!=base_id or cid in traces or spec.candidate_id!=cid or raw['candidate']!=c or raw['candidate_state_id']!=record['candidate_state_id'] or not raw['restoration']['exact_base']:
             raise ValueError('candidate identity or restoration mismatch')
         split=record['split']
+        if set(raw['splits'])!=expected_splits or split not in expected_splits:
+            raise ValueError('candidate used an unauthorized split')
         outputs=audit_outputs(raw['splits'][split],datasets[split],bases[split]['outputs'])
-        if sum(o['correct'] for o in outputs)!=record['correct_count'] or sum(not o['answer'] for o in outputs)!=record['invalid_count']:
+        if record['examples']!=len(outputs) or record['output_identity']!=raw['splits'][split]['output_identity'] or sum(o['correct'] for o in outputs)!=record['correct_count'] or sum(not o['answer'] for o in outputs)!=record['invalid_count']:
             raise ValueError('selection record does not reproduce')
         traces[cid]=raw
+    if len(list((root/'candidates').glob('*.json.gz')))!=len(traces):
+        raise ValueError('unrecorded candidate artifact')
+    first={}
+    for record in records:
+        first.setdefault(record['candidate']['sigma'],record['candidate']['candidate_id'])
+    repeated_ids=set()
     for path in root.glob('repeat-*.json.gz'):
         repeated=read(path)
+        repeated_ids.add(repeated['candidate']['candidate_id'])
         original=traces[repeated['candidate']['candidate_id']]
         if repeated['candidate_state_id']!=original['candidate_state_id'] or not repeated['restoration']['exact_base']:
             raise ValueError('reconstruction control failed')
         for s,output in repeated['splits'].items():
             audit_outputs(output,datasets[s],bases[s]['outputs'])
             if output['output_identity']!=original['splits'][s]['output_identity']: raise ValueError('candidate output repeat failed')
+    if repeated_ids!=set(first.values()):
+        raise ValueError('required first-candidate repeat evidence is missing')
     return manifest,bases,records,traces
 
 
@@ -80,21 +97,29 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--protocol',type=Path,default=Path('experiments/visual_line_tracing_protocol.json'))
     for phase in ('baseline','calibration','search','heldout'):
-        p.add_argument('--'+phase,type=Path,required=True)
+        p.add_argument('--'+phase,type=Path,required=phase in ('baseline','calibration'))
+    p.add_argument('--calibration-stop',action='store_true',help='Audit the predeclared all-scales-failed operational stop; never emit a scientific NO-GO.')
     p.add_argument('--locks',type=Path,required=True)
     p.add_argument('--out',type=Path,required=True)
     a=p.parse_args()
+    if a.calibration_stop and (a.search or a.heldout):
+        p.error('calibration stop cannot include search or held-out candidate phases')
+    if not a.calibration_stop and not (a.search and a.heldout):
+        p.error('the scientific gate requires both search and held-out phases')
     if a.out.exists(): raise FileExistsError(a.out)
     protocol=read(a.protocol)
     datasets={s:load_split(protocol['dataset'],s) for s in ('selection','heldout')}
     selected,held=datasets.values()
     disjoint=not {r['seed'] for r in selected}&{r['seed'] for r in held} and not {r['image_sha256'] for r in selected}&{r['image_sha256'] for r in held}
-    baseline_lock,sigma_lock,selection_lock=[read(a.locks/(n+'.json')) for n in ('baseline','sigma','selection')]
-    for lock in (baseline_lock,sigma_lock,selection_lock):
+    baseline_lock,sigma_lock=[read(a.locks/(n+'.json')) for n in ('baseline','sigma')]
+    selection_lock=read(a.locks/'selection.json') if not a.calibration_stop else None
+    for lock in [baseline_lock,sigma_lock]+([selection_lock] if selection_lock else []):
         if lock['protocol_sha256']!=sha(a.protocol) or lock['dataset_manifest_sha256']!=sha(Path(protocol['dataset'])/'manifest.json'):
             raise ValueError('locks changed')
-    phases={phase:audit_phase(getattr(a,phase),phase,protocol,datasets,baseline_lock['base_id']) for phase in ('baseline','calibration','search','heldout')}
+    phase_names=('baseline','calibration') if a.calibration_stop else ('baseline','calibration','search','heldout')
+    phases={phase:audit_phase(getattr(a,phase),phase,protocol,datasets,baseline_lock['base_id']) for phase in phase_names}
     for phase,names in {'calibration':['baseline'],'search':['baseline','sigma'],'heldout':['baseline','selection']}.items():
+        if phase not in phases: continue
         for name in names:
             if (getattr(a,phase)/(name+'.json')).read_bytes()!=(a.locks/(name+'.json')).read_bytes():
                 raise ValueError('pre-phase frozen lock differs from final lock')
@@ -102,9 +127,34 @@ def main():
         if manifest['protocol_sha256']!=sha(a.protocol): raise ValueError('phase protocol changed')
         for s,value in bases.items():
             if value['output_identity']!=baseline_lock['output_identities'][s]: raise ValueError('cross-phase base changed')
+    baseline_summary={s:summarize(v['outputs'],datasets[s]) for s,v in phases['baseline'][1].items()}
+    if baseline_summary!=baseline_lock['summary'] or not baseline_lock['accepted']:
+        raise ValueError('baseline acceptance does not reproduce')
+    conf=protocol['calibration']
+    expected={(conf['seed_start']+j*conf['candidates_per_sigma']+i,sigma) for i in range(conf['candidates_per_sigma']) for j,sigma in enumerate(conf['sigmas'])}
+    if {(r['candidate']['seed'],r['candidate']['sigma']) for r in phases['calibration'][2]}!=expected:
+        raise ValueError('calibration recipes differ from the frozen plan')
     calibration=calibrate(phases['calibration'][2],baseline_lock['summary']['selection']['accuracy'],protocol['calibration'])
-    if not calibration['scale_valid'] or calibration['sigma']!=sigma_lock['sigma'] or calibration['table']!=sigma_lock['table']:
+    if any(calibration[k]!=sigma_lock[k] for k in calibration):
         raise ValueError('sigma was not frozen by declared rule')
+    if a.calibration_stop:
+        if calibration['scale_valid'] or selection_lock or (a.locks/'selection.json').exists():
+            raise ValueError('operational stop requires all three scales failed and no selected experts')
+        a.out.mkdir(parents=True)
+        decision={'decision':'STOP_operational_scale_failure','scientific_go_no_go':None,
+                  'search_candidates':0,'heldout_candidates':0,'controls_pass':True,'sets_disjoint':bool(disjoint),
+                  'reason':'All three sigmas meet the predeclared scale-failure rule. The held-out transfer hypothesis is untested.'}
+        write(a.out/'manifest.json',{'source':revision_info(),'command':[sys.executable,*sys.argv],
+              'protocol_sha256':sha(a.protocol),'all_raw_generations_rescored':True,
+              'phase_manifest_sha256':{phase:sha(getattr(a,phase)/'run-manifest.json') for phase in phases},
+              'dataset_disjoint':bool(disjoint),'candidate_heldout_generated':False})
+        write(a.out/'baseline.json',baseline_summary)
+        write(a.out/'calibration.json',calibration)
+        write(a.out/'gate.json',decision)
+        print(json.dumps(decision))
+        return
+    if not calibration['scale_valid']:
+        raise ValueError('all-scales-failed calibration must stop before search')
     ranked=rank_selection(phases['search'][2],protocol['search'])
     if ranked!=selection_lock['ranked_candidates'] or ranked[:10]!=selection_lock['top10']:
         raise ValueError('selection-only ranking lock changed')
