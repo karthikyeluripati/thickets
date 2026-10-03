@@ -1,0 +1,8 @@
+{
+  "status": "endpoint_unavailable",
+  "command": "ssh -tt -o BatchMode=yes -o ConnectTimeout=20 -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 6qhxytn85vurvw-64411fc6@ssh.runpod.io",
+  "response": "container not found; Connection to ssh.runpod.io closed.",
+  "fresh_gpu_outputs_collected": false,
+  "scientific_gate_result": null,
+  "required_input": "Current H100 SSH endpoint; requested asynchronously while offline work continued"
+}

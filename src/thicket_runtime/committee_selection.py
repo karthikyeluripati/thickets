@@ -104,7 +104,8 @@ def voting_details(answers, committee, gold, reward):
         result.append({'answer': winner, 'correct': bool(winner and reward('#### ' + winner, str(expected)) > 0),
                        'winning_votes': count, 'runner_up_votes': second, 'valid_votes': valid,
                        'margin': count - second, 'margin_fraction': (count - second) / valid if valid else 0.,
-                       'winning_tie_count': sum(n == count for a, n in ranked), 'counts': ranked})
+                       'winning_tie_count': sum(n == count for a, n in ranked),
+                       'counts': [[str(a), int(n)] for a, n in ranked]})
     return result
 
 

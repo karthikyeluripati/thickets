@@ -1,0 +1,8 @@
+{
+  "command": "python -m pytest -q tests/test_committee_selection.py tests/test_committee_validation.py",
+  "passed": 6,
+  "seconds": 6.82,
+  "purpose": "Validate JSON round-trip vote equality after normalizing Counter tuples to lists; voting and selection behavior unchanged",
+  "compile_command": "python -m compileall -q scripts/analyze_complementarity.py",
+  "compile_exit_code": 0
+}

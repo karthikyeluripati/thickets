@@ -1,4 +1,5 @@
 from collections import Counter
+import json
 
 import numpy as np
 import pytest
@@ -58,6 +59,14 @@ def test_random_controls_preserve_exact_quality_multiset_for_every_prefix():
     assert len(set(actual)) == len(actual)
     assert [scores[i] for i in actual] == [scores[i] for i in original]
     assert actual == matched_random(original, scores, list(map(str, range(8))), 101)
+
+
+def test_voting_details_round_trip_preserves_exact_counter_ties_and_margins():
+    votes = voting_details([['2', ''], ['1', '1']], [0, 1], ['2', '1'], reward)
+    assert votes == json.loads(json.dumps(votes))
+    assert votes[0]['answer'] == '2' and votes[0]['margin'] == 0
+    assert votes[0]['winning_tie_count'] == 2 and votes[0]['correct']
+    assert votes[1]['valid_votes'] == 1 and votes[1]['correct']
 
 
 def test_gate_requires_same_comparison_on_both_populations_and_exact_thresholds():
