@@ -7,9 +7,11 @@ import argparse
 import base64
 import hashlib
 import io
+import json
 from pathlib import Path
 import re
 import subprocess
+import sys
 import tarfile
 
 p=argparse.ArgumentParser(description=__doc__)
@@ -76,4 +78,10 @@ with tarfile.open(fileobj=io.BytesIO(payload),mode='r:xz') as archive:
         else:
             target.parent.mkdir(parents=True,exist_ok=True)
             target.write_bytes(archive.extractfile(item).read())
+receipt=destination/'retrieval.json'
+if receipt.exists(): raise FileExistsError(receipt)
+receipt.write_bytes((json.dumps({'command':[sys.executable,*sys.argv],
+    'archive_bytes':len(payload),'archive_sha256':match[1],
+    'lock_bundle_sha256':hashlib.sha256((root/'runs/visual-locks.bundle').read_bytes()).hexdigest(),
+    'verified_transport_sha256':True,'existing_files_overwritten':False},indent=2)+'\n').encode())
 print(f'Retrieved {len(payload)} bytes; SHA256 {match[1]}')
