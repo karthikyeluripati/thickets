@@ -44,27 +44,6 @@ def initialize(worker):
     return info
 
 
-def engine_class():
-    """Upstream RandOptNcclLLM plus an image cache in the actor. Ray does not release
-    per-call request objects fast enough (each call carried ~0.9 GB of full-resolution
-    images and the object store spilled to disk), so each process ships its images once
-    and every generation sends only (image key, prompt, fresh UUID). The worker
-    extension and all weight operations are unchanged."""
-    from core.engine import RandOptNcclLLM
-
-    class CachedImageLLM(RandOptNcclLLM):
-        def cache_images(self, images):
-            self._thicket_images = dict(getattr(self, '_thicket_images', {}), **images)
-            return sorted(self._thicket_images)
-
-        def generate_cached(self, items, sampling):
-            requests = [{'prompt': prompt, 'multi_modal_data': {'image': self._thicket_images[key]},
-                         'multi_modal_uuids': {'image': [uuid]}} for key, prompt, uuid in items]
-            return self.generate(requests, sampling, use_tqdm=False)
-
-    return CachedImageLLM
-
-
 def validation_plan(locks, protocol):
     """Frozen top 50 in search order, then density-audit candidates not already in it (manifest order)."""
     records = {r['index']: r for r in locks['search']['records']}
@@ -79,7 +58,13 @@ class PerspectiveExecutor(VisualExecutor):
     the pinned Qwen3-VL processor performs its own resizing."""
     def __init__(self, engine, processor, images, protocol, run_identity):
         super().__init__(engine, processor, images, protocol, run_identity)
-        self.preprocess, self.shipped = {}, set()
+        self.preprocess = {}
+
+    def rpc(self, method, *args):
+        result = self.engine.collective_rpc(method, args=args)
+        if len(result) != 1:
+            raise RuntimeError('this study requires exactly one worker')
+        return result[0]
 
     def fingerprint(self):
         return self.rpc(fast_state.fingerprint)
@@ -108,16 +93,13 @@ class PerspectiveExecutor(VisualExecutor):
         self.call_index += 1
         for row in rows:
             self.prepare(row)
-        new = {r['uid']: self.images[r['uid']] for r in rows if r['uid'] not in self.shipped}
-        if new:
-            cached = self.ray.get(self.engine.cache_images.remote(new), timeout=1800)
-            if not set(new) <= set(cached): raise RuntimeError('actor image cache incomplete')
-            self.shipped |= set(new)
         cache_before = self.rpc(encoder_audit, True)
-        items = [(r['uid'], self.prompts[r['uid']], f"{self.run_identity}:{self.call_index}:{r['image_sha256']}:{r['uid']}") for r in rows]
+        requests = [{'prompt': self.prompts[r['uid']], 'multi_modal_data': {'image': self.images[r['uid']]},
+                     'multi_modal_uuids': {'image': [f"{self.run_identity}:{self.call_index}:{r['image_sha256']}:{r['uid']}"]}}
+                    for r in rows]
         sampling = SamplingParams(temperature=0, seed=0, max_tokens=self.protocol['max_tokens'])
         started = time.perf_counter()
-        result = self.ray.get(self.engine.generate_cached.remote(items, sampling), timeout=7200)
+        result = self.engine.generate(requests, sampling, use_tqdm=False)
         elapsed = time.perf_counter() - started
         after = self.rpc(encoder_audit)
         if after['images_encoded'] - cache_before['images_encoded'] != len(rows):
@@ -139,31 +121,31 @@ class PerspectiveExecutor(VisualExecutor):
 
 
 def launch(protocol, upstream_root, repo):
-    import ray
+    """In-process vLLM engine on this process's single visible GPU (uni executor) with the
+    unchanged pinned RandOpt WorkerExtension. Operational change from the Ray executor:
+    vLLM's Ray executor retained ~0.9 GB of per-step multimodal tensors per generation
+    call and exhausted the object store and disk. Weight operations are the same worker
+    methods via collective_rpc; every shard's zero control must reproduce the committed
+    baseline outputs exactly."""
     from huggingface_hub import snapshot_download
-    from ray.util.placement_group import placement_group
-    from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
     sys.path.insert(0, str(upstream_root))
+    from vllm import LLM
     path = snapshot_download(protocol['model'], revision=protocol['model_revision'],
                              allow_patterns=['*.json', '*.safetensors', '*.txt', '*.model', '*.jinja'])
     if Path(path).name != protocol['model_revision']:
         raise ValueError('unpinned model snapshot')
-    env = {'PYTHONPATH': os.pathsep.join([str(upstream_root), str(repo / 'src')]), 'OMP_NUM_THREADS': '1',
-           'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '1', 'VLLM_USE_V1': '1'}
-    os.environ.update(env)
-    ray.init(num_cpus=8, num_gpus=1, include_dashboard=False, object_store_memory=48 * 1024**3, runtime_env={'env_vars': env})
-    pg = placement_group([{'GPU': 1, 'CPU': 0}])
-    ray.get(pg.ready(), timeout=120)
-    strategy = PlacementGroupSchedulingStrategy(placement_group=pg, placement_group_capture_child_tasks=True, placement_group_bundle_index=0)
+    if len(os.environ.get('CUDA_VISIBLE_DEVICES', '').split(',')) != 1:
+        raise ValueError('exactly one visible GPU required per process')
+    os.environ.update({'OMP_NUM_THREADS': '1', 'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '1', 'VLLM_USE_V1': '1'})
     e = protocol['engine']
     kwargs = dict(model=path, tokenizer=path, dtype=protocol['dtype'], tensor_parallel_size=1,
-                  distributed_executor_backend='ray', worker_extension_cls='utils.worker_extn.WorkerExtension',
+                  distributed_executor_backend='uni', worker_extension_cls='utils.worker_extn.WorkerExtension',
                   enforce_eager=True, enable_prefix_caching=False, gpu_memory_utilization=e['gpu_memory_utilization'],
                   max_model_len=e['max_model_len'], max_num_seqs=e['max_num_seqs'], max_num_batched_tokens=e['max_num_batched_tokens'],
                   disable_log_stats=True, limit_mm_per_prompt={'image': 1, 'video': 0}, mm_processor_cache_gb=0, seed=0)
-    engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(engine_class()).remote(**kwargs)
-    ray.get(engine.collective_rpc.remote('store_base_weights', args=()), timeout=1800)
-    return engine, pg, path, kwargs
+    engine = LLM(**kwargs)
+    engine.collective_rpc('store_base_weights', args=())
+    return engine, None, path, kwargs
 
 
 def planned(phase, protocol, locks, shard):
@@ -230,7 +212,6 @@ def main():
     records, controls = [], {}
     try:
         from transformers import AutoProcessor
-        import ray
         engine, pg, path, kwargs = launch(protocol, a.upstream_root.resolve(), repo)
         write(root/'engine-config.json', kwargs)
         api = PerspectiveExecutor(engine, AutoProcessor.from_pretrained(path), a.images, protocol, root.name)
@@ -316,10 +297,7 @@ def main():
     finally:
         m['ended_utc'] = datetime.now(timezone.utc).isoformat()
         write(root/'run-manifest.json', m)
-        if engine:
-            from core.engine import cleanup_engines
-            cleanup_engines([engine], [pg])
-        elif 'ray' in locals(): ray.shutdown()
+        engine = None
         (root/'gpu-after.txt').write_bytes(subprocess.check_output(['nvidia-smi', '-q']))
         write(root/'sha256.json', {f.relative_to(root).as_posix(): sha(f) for f in sorted(root.rglob('*')) if f.is_file()})
 
