@@ -62,6 +62,12 @@ scales had near-chance mean accuracy (24.93–25.60%); state and output controls
 passed. No sigma qualified, so the 300-candidate search and candidate held-out
 evaluation were not run. This does not establish a scientific GO or NO-GO.
 
+[Visual Line Tracing v2](docs/VISUAL_LINE_TRACING_V2.md) is prepared and validated
+with easier geometry: 1 / 2–3 / 4–5 swaps across easy/medium/hard. Its 650 images
+are frozen separately; prompts, rendering style and inference/scoring settings
+are unchanged. No v2 model evaluation has run. The documentation includes the
+positional shortcuts introduced by the one-swap easy bucket.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.

@@ -1,0 +1,91 @@
+{
+  "status": "dataset_validated_no_model_evaluation",
+  "source": {
+    "commit": "d037be5542530466d23b20c037166c4338543cab",
+    "working_tree_status": "M README.md\n M scripts/freeze_line_tracing.py\n?? docs/VISUAL_LINE_TRACING_V2.md\n?? examples/visual-line-tracing-v2/\n?? experiments/visual_line_tracing_v2_protocol.json\n?? results/visual-line-tracing-v2-20261003/\n?? scripts/validate_line_tracing_v2.py\n?? src/thicket_runtime/line_tracing_v2.py\n?? tests/test_line_tracing_v2.py"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/validate_line_tracing_v2.py",
+    "--reviewed-image",
+    "images/selection-0000.png",
+    "--reviewed-image",
+    "images/selection-0001.png",
+    "--reviewed-image",
+    "images/selection-0002.png",
+    "--reviewed-image",
+    "images/selection-0004.png",
+    "--reviewed-image",
+    "images/selection-0005.png"
+  ],
+  "freeze_command": "PYTHONPATH=src python scripts/freeze_line_tracing.py --version v2 --out examples/visual-line-tracing-v2",
+  "test_command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "-m",
+    "pytest",
+    "-q"
+  ],
+  "test_log_sha256": "65ea0b46cfa97644cf8eb6219477167090d3bef605d3f1ed14f843570fb2b64d",
+  "python": "3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]",
+  "pillow": "12.3.0",
+  "dataset_manifest_sha256": "2b16f28c5501ddc0f739b4b685f6b54373d5b92fdd8f7b92681db07978c79e34",
+  "source_sha256": {
+    "src/thicket_runtime/line_tracing_v2.py": "095c640d870438091d0f0a86295785ad472d3aba53bd9feb03ca3280d6dd2595",
+    "scripts/freeze_line_tracing.py": "20c186924093ed427fe58e8c176de5f46a09befbf8687315a5026c92e8f93c08",
+    "scripts/validate_line_tracing_v2.py": "7e70bbe0e5a88829a88ac4a75358abebca1b95f829142de7a4b993c3d17542a4",
+    "tests/test_line_tracing_v2.py": "e5e03e1960369c5e13bd36a5dd47d0ab63074334d9c76c10e8f8b2320cc1c1a2",
+    "experiments/visual_line_tracing_v2_protocol.json": "97aa692a402178b95af381df5dbfa8584872e1fd98848bc44cf6f23700587239"
+  },
+  "within_v2_splits_disjoint": true,
+  "v1_v2_image_hashes_disjoint": true,
+  "v1_v2_seed_pairing_intentional": true,
+  "images": 650,
+  "visually_reviewed_images": [
+    {
+      "image": "images/selection-0000.png",
+      "sha256": "a7b23532511d413cd66331f1906e56767d3ac28be8f78d7abe7509eaa31a0bdb",
+      "swaps": 1,
+      "answer": "2"
+    },
+    {
+      "image": "images/selection-0001.png",
+      "sha256": "db9937e40d636e40bead36b374da1bb305ebd161e0041cf81022084247c4a6f7",
+      "swaps": 3,
+      "answer": "3"
+    },
+    {
+      "image": "images/selection-0002.png",
+      "sha256": "0659e26a5b9f000831bbad62bf542ea969706174f84f55d8fba4aa0179ee6fbb",
+      "swaps": 5,
+      "answer": "4"
+    },
+    {
+      "image": "images/selection-0004.png",
+      "sha256": "1a349ba46ced85e73e6116432440ada870751ab295fb25e6f5bec14c81db3dc9",
+      "swaps": 2,
+      "answer": "4"
+    },
+    {
+      "image": "images/selection-0005.png",
+      "sha256": "4fa5142e7c88358dd8ca93fd693789c70fd6a81f20900f8163a3370ec73f59d0",
+      "swaps": 4,
+      "answer": "4"
+    }
+  ],
+  "protocol_changed_fields": [
+    "dataset",
+    "parent_commit",
+    "schema"
+  ],
+  "gpu_experiment_run": false,
+  "prior_indexed_artifacts_verified": {
+    "results/adaptive-evaluation-20261003": 573,
+    "results/complementarity-selection-20261003": 302,
+    "results/llm-bounded-20261003": 39,
+    "results/shared-speculative-20261003": 344,
+    "results/visual-line-tracing-20261003": 151,
+    "results/work1-closure-20261003": 133
+  },
+  "protected_changes": [],
+  "main_ref": "deb414253139cc2559d19cdfe7e6b4786e7c40db"
+}
