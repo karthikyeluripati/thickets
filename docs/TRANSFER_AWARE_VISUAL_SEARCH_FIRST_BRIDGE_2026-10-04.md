@@ -168,7 +168,7 @@ search shards and validation:
 
 | Lock | Commit | Committed (UTC) | Consuming phase started (UTC) |
 |---|---|---|---|
-| Baseline | `014cac9` | 12:26:44 | every used search shard; the earliest started 12:50:56 |
+| Baseline | `014cac9` | 12:26:44 | every used search shard; the earliest started 12:50:58 |
 | Ranking | `006a981` | 14:50:50 | validation, 14:50:51.98 |
 | Validation gate | `37076d3` | 15:17:25 | — (records NO-GO) |
 
