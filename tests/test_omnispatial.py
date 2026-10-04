@@ -125,8 +125,9 @@ def test_search_and_validation_lock_scripts(tmp_path, monkeypatch):
                              'split': 'search', 'examples': 705, 'correct_count': sum(x['correct'] for x in o)})
                 traces[cid] = {'splits': {'search': {'outputs': o}}}
             return {'manifest': {'phase': 'search'}, 'records': recs, 'traces': traces}
+        assert run.name == f'validation-shard-{shard:02d}'
         traces = {r['candidate']['candidate_id']: {'splits': {'validation': {'outputs': outs(sets['validation'], rng.random(475) < .32, pred='C')}}}
-                  for r in locks['search']['top30']}
+                  for r in locks['search']['top30'][shard * 8:(shard + 1) * 8]}
         return {'manifest': {'phase': 'validation'}, 'records': [], 'traces': traces}
     monkeypatch.setattr(audit, 'phase', fake)
     for lock in ('search', 'validation'):
@@ -135,6 +136,7 @@ def test_search_and_validation_lock_scripts(tmp_path, monkeypatch):
     s, v = read(root / 'locks/search.json'), read(root / 'locks/validation.json')
     assert len(s['records']) == 400 and s['top30'] == om.rank_search(s['records'], P)[:30]
     assert set(v['candidates']) == {r['candidate']['candidate_id'] for r in s['top30']}
+    assert list(v['validation_phases']) == [f'validation-shard-{j:02d}' for j in range(4)]
     assert v['rank1'] == v['top5'][0] and len(v['top5']) == 5
     order = om.rank_validation(s['top30'], {c: x['summary']['correct_count'] for c, x in v['candidates'].items()})
     assert v['top5'] == order[:5]

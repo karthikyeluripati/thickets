@@ -2,7 +2,8 @@
 
 baseline: base + zero perturbation on search/validation/test, base repeat.
 search --shard k: 50 of the 400 frozen candidates on SEARCH.
-validation: the committed search top 30 on VALIDATION.
+validation --shard j: a fixed slice of the committed search top 30 on VALIDATION
+(operational sharding across single-GPU processes; VALIDATION_SHARD_SIZE each).
 test: the committed validation top 5 on the official TEST subset.
 """
 import argparse
@@ -29,6 +30,7 @@ from .transfer_aware_runtime import recipe
 ZERO_SEED = 5100000
 LOCKS = {'baseline': (), 'search': ('baseline',), 'validation': ('baseline', 'search'),
          'test': ('baseline', 'search', 'validation')}
+VALIDATION_SHARD_SIZE = 8
 QWEN_VL_UTILS_WHEEL_SHA256 = '2988aa08256f3d7ee6f08d7b27b004e840608b61ed36d0b32d1775be56a1639d'
 
 
@@ -127,7 +129,13 @@ def planned(phase, protocol, locks, shard):
         return []
     if phase == 'search':
         return [(seed, sigma, None) for seed, sigma in shard_plan(protocol, shard)]
-    frozen = locks['search']['top30'] if phase == 'validation' else locks['validation']['top5']
+    if phase == 'validation':
+        top = locks['search']['top30']
+        if not 0 <= shard < -(-len(top) // VALIDATION_SHARD_SIZE):
+            raise ValueError('unknown validation shard')
+        frozen = top[shard * VALIDATION_SHARD_SIZE:(shard + 1) * VALIDATION_SHARD_SIZE]
+    else:
+        frozen = locks['validation']['top5']
     return [(r['candidate']['seed'], r['candidate']['sigma'], r) for r in frozen]
 
 
@@ -141,8 +149,8 @@ def main():
     p.add_argument('--upstream-root', type=Path, required=True)
     p.add_argument('--out', type=Path, required=True)
     a = p.parse_args()
-    if (a.phase == 'search') != (a.shard is not None):
-        raise ValueError('--shard is required for, and only for, search')
+    if (a.phase in ('search', 'validation')) != (a.shard is not None):
+        raise ValueError('--shard is required for, and only for, search and validation')
     committed(a.protocol)
     protocol = read(a.protocol)
     if protocol['schema'] != 'omnispatial-visual-expert-v1': raise ValueError('wrong protocol')

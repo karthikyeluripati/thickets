@@ -16,6 +16,7 @@ from thicket_runtime.line_tracing import sha
 from thicket_runtime.visual_runtime import read, write
 from thicket_runtime.omnispatial import compare, counts, rank_search, rank_validation, splits, summarize, verify_inputs
 from thicket_runtime.omnispatial_audit import phase
+from thicket_runtime.omnispatial_runtime import VALIDATION_SHARD_SIZE
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('lock', choices=['baseline', 'search', 'validation'])
@@ -61,21 +62,26 @@ elif a.lock == 'search':
              'best': ranked[0], 'top30': ranked[:k], 'base_search': locks['baseline']['summary']['search'],
              'ranking_inputs': 'audited SEARCH records only; no validation/test candidate output exists'}
 else:
-    audit = phase(a.root/'validation', protocol, a.protocol, locks, base_reference=base_ref)
+    top = locks['search']['top30']
+    traces, checks = {}, {}
+    for j in range(-(-len(top) // VALIDATION_SHARD_SIZE)):
+        run = a.root/f'validation-shard-{j:02d}'
+        audit = phase(run, protocol, a.protocol, locks, shard=j, base_reference=base_ref)
+        traces.update(audit['traces'])
+        checks[run.name] = {'manifest_sha256': sha(run/'run-manifest.json'), 'checksums_sha256': sha(run/'sha256.json')}
+    if set(traces) != {r['candidate']['candidate_id'] for r in top}: raise ValueError('validation does not cover exactly the frozen top 30')
     rows = sets['validation']
     base_out = base_raw['validation']['outputs']
     indices = np.random.default_rng(protocol['statistics']['bootstrap_seed']).integers(
         0, len(rows), size=(protocol['statistics']['bootstrap_replicates'], len(rows)), dtype=np.int64)
-    top = locks['search']['top30']
     results, correct = {}, {}
     for r in top:
         cid = r['candidate']['candidate_id']
-        outs = audit['traces'][cid]['splits']['validation']['outputs']
+        outs = traces[cid]['splits']['validation']['outputs']
         results[cid] = compare(base_out, outs, rows, indices, protocol['gate']['answer_share_limit'])
         correct[cid] = results[cid]['summary']['correct_count']
     order = rank_validation(top, correct)
-    value = {**common, 'validation_phase': {'manifest_sha256': sha(a.root/'validation/run-manifest.json'),
-                                            'checksums_sha256': sha(a.root/'validation/sha256.json')},
+    value = {**common, 'validation_phases': checks,
              'base': summarize(base_out, rows), 'candidates': results,
              'validation_ranked_ids': [r['candidate']['candidate_id'] for r in order],
              'rank1': order[0], 'top5': order[:5],

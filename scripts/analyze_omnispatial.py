@@ -42,7 +42,8 @@ def before(lock, phase_dir):
 
 timeline = {f'baseline_before_search_shard_{k:02d}': before('baseline', a.root/f'search-shard-{k:02d}')
             for k in range(protocol['candidates']['count'] // protocol['candidates']['shard_size'])}
-timeline['search_before_validation'] = before('search', a.root/'validation')
+for j in range(len(locks['validation']['validation_phases'])):
+    timeline[f'search_before_validation_shard_{j:02d}'] = before('search', a.root/f'validation-shard-{j:02d}')
 timeline['validation_before_test'] = before('validation', a.root/'test')
 base_raw = read(a.root/'baseline/base.json.gz')
 base_ref = {s: v['outputs'] for s, v in base_raw.items()}
