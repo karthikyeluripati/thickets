@@ -44,6 +44,27 @@ def initialize(worker):
     return info
 
 
+def engine_class():
+    """Upstream RandOptNcclLLM plus an image cache in the actor. Ray does not release
+    per-call request objects fast enough (each call carried ~0.9 GB of full-resolution
+    images and the object store spilled to disk), so each process ships its images once
+    and every generation sends only (image key, prompt, fresh UUID). The worker
+    extension and all weight operations are unchanged."""
+    from core.engine import RandOptNcclLLM
+
+    class CachedImageLLM(RandOptNcclLLM):
+        def cache_images(self, images):
+            self._thicket_images = dict(getattr(self, '_thicket_images', {}), **images)
+            return sorted(self._thicket_images)
+
+        def generate_cached(self, items, sampling):
+            requests = [{'prompt': prompt, 'multi_modal_data': {'image': self._thicket_images[key]},
+                         'multi_modal_uuids': {'image': [uuid]}} for key, prompt, uuid in items]
+            return self.generate(requests, sampling, use_tqdm=False)
+
+    return CachedImageLLM
+
+
 def validation_plan(locks, protocol):
     """Frozen top 50 in search order, then density-audit candidates not already in it (manifest order)."""
     records = {r['index']: r for r in locks['search']['records']}
@@ -58,7 +79,7 @@ class PerspectiveExecutor(VisualExecutor):
     the pinned Qwen3-VL processor performs its own resizing."""
     def __init__(self, engine, processor, images, protocol, run_identity):
         super().__init__(engine, processor, images, protocol, run_identity)
-        self.preprocess = {}
+        self.preprocess, self.shipped = {}, set()
 
     def fingerprint(self):
         return self.rpc(fast_state.fingerprint)
@@ -87,13 +108,16 @@ class PerspectiveExecutor(VisualExecutor):
         self.call_index += 1
         for row in rows:
             self.prepare(row)
+        new = {r['uid']: self.images[r['uid']] for r in rows if r['uid'] not in self.shipped}
+        if new:
+            cached = self.ray.get(self.engine.cache_images.remote(new), timeout=1800)
+            if not set(new) <= set(cached): raise RuntimeError('actor image cache incomplete')
+            self.shipped |= set(new)
         cache_before = self.rpc(encoder_audit, True)
-        requests = [{'prompt': self.prompts[r['uid']], 'multi_modal_data': {'image': self.images[r['uid']]},
-                     'multi_modal_uuids': {'image': [f"{self.run_identity}:{self.call_index}:{r['image_sha256']}:{r['uid']}"]}}
-                    for r in rows]
+        items = [(r['uid'], self.prompts[r['uid']], f"{self.run_identity}:{self.call_index}:{r['image_sha256']}:{r['uid']}") for r in rows]
         sampling = SamplingParams(temperature=0, seed=0, max_tokens=self.protocol['max_tokens'])
         started = time.perf_counter()
-        result = self.ray.get(self.engine.generate.remote(requests, sampling, use_tqdm=False), timeout=7200)
+        result = self.ray.get(self.engine.generate_cached.remote(items, sampling), timeout=7200)
         elapsed = time.perf_counter() - started
         after = self.rpc(encoder_audit)
         if after['images_encoded'] - cache_before['images_encoded'] != len(rows):
@@ -120,7 +144,6 @@ def launch(protocol, upstream_root, repo):
     from ray.util.placement_group import placement_group
     from ray.util.scheduling_strategies import PlacementGroupSchedulingStrategy
     sys.path.insert(0, str(upstream_root))
-    from core.engine import RandOptNcclLLM
     path = snapshot_download(protocol['model'], revision=protocol['model_revision'],
                              allow_patterns=['*.json', '*.safetensors', '*.txt', '*.model', '*.jinja'])
     if Path(path).name != protocol['model_revision']:
@@ -138,7 +161,7 @@ def launch(protocol, upstream_root, repo):
                   enforce_eager=True, enable_prefix_caching=False, gpu_memory_utilization=e['gpu_memory_utilization'],
                   max_model_len=e['max_model_len'], max_num_seqs=e['max_num_seqs'], max_num_batched_tokens=e['max_num_batched_tokens'],
                   disable_log_stats=True, limit_mm_per_prompt={'image': 1, 'video': 0}, mm_processor_cache_gb=0, seed=0)
-    engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(RandOptNcclLLM).remote(**kwargs)
+    engine = ray.remote(num_cpus=0, num_gpus=0, scheduling_strategy=strategy)(engine_class()).remote(**kwargs)
     ray.get(engine.collective_rpc.remote('store_base_weights', args=()), timeout=1800)
     return engine, pg, path, kwargs
 
