@@ -151,7 +151,7 @@ def launch(protocol, upstream_root, repo):
     env = {'PYTHONPATH': os.pathsep.join([str(upstream_root), str(repo / 'src')]), 'OMP_NUM_THREADS': '1',
            'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '1', 'VLLM_USE_V1': '1'}
     os.environ.update(env)
-    ray.init(num_cpus=8, num_gpus=1, include_dashboard=False, object_store_memory=16 * 1024**3, runtime_env={'env_vars': env})
+    ray.init(num_cpus=8, num_gpus=1, include_dashboard=False, object_store_memory=48 * 1024**3, runtime_env={'env_vars': env})
     pg = placement_group([{'GPU': 1, 'CPU': 0}])
     ray.get(pg.ready(), timeout=120)
     strategy = PlacementGroupSchedulingStrategy(placement_group=pg, placement_group_capture_child_tasks=True, placement_group_bundle_index=0)
