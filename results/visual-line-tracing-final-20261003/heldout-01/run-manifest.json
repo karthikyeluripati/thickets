@@ -1,0 +1,61 @@
+{
+  "phase": "heldout",
+  "status": "complete",
+  "source": {
+    "commit": "da0d6eb8e9d537f93658d26ca279082d35fbbff6",
+    "working_tree_status": "?? results/visual-line-tracing-final-20261003/diagnostic-01.log\n?? results/visual-line-tracing-final-20261003/diagnostic-01/\n?? results/visual-line-tracing-final-20261003/execution-notes.json\n?? results/visual-line-tracing-final-20261003/gpu-tests.txt\n?? results/visual-line-tracing-final-20261003/heldout-01.log\n?? results/visual-line-tracing-final-20261003/heldout-01/\n?? results/visual-line-tracing-final-20261003/search-01.log\n?? results/visual-line-tracing-final-20261003/search-01/\n?? results/visual-line-tracing-final-20261003/study.log"
+  },
+  "command": [
+    "/workspace/venv-visual/bin/python",
+    "/workspace/thickets-visual-final/src/thicket_runtime/visual_final_runtime.py",
+    "--phase",
+    "heldout",
+    "--sigma-lock",
+    "results/visual-line-tracing-final-20261003/locks/sigma.json",
+    "--selection-lock",
+    "results/visual-line-tracing-final-20261003/locks/selection.json",
+    "--upstream-root",
+    "/workspace/RandOpt-visual",
+    "--out",
+    "results/visual-line-tracing-final-20261003/heldout-01"
+  ],
+  "started_utc": "2026-10-04T03:14:47.535311+00:00",
+  "protocol_sha256": "23e0cc8d80dd6ca4109932f24214571e479f1ea570f799d4b08f25163701748f",
+  "dataset_manifest_sha256": "3384f6bd8f43d547d636f3f6da91a6da2ceb02f57ac2ea4a84f2bfb6043de3fd",
+  "dataset_proof": {
+    "commit": "49bb56e160691e83c786fc7bac40be290c0e8f75",
+    "files_verified": 654,
+    "manifest_sha256": "3384f6bd8f43d547d636f3f6da91a6da2ceb02f57ac2ea4a84f2bfb6043de3fd"
+  },
+  "model_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+  "processor_revision": "66285546d2b821cf421d4f5eb2576359d3770cd3",
+  "upstream": {
+    "commit": "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
+    "git_blobs": {
+      "utils/worker_extn.py": "3b672d6636364845474be02e01cce764b6e18af3",
+      "core/engine.py": "6603321e9c89f67e0b922313c1bc2d0581d7beec",
+      "randopt.py": "134c627940b54516177614108d77aa59a0b5fc91"
+    }
+  },
+  "versions": {
+    "torch": "2.8.0+cu128",
+    "vllm": "0.10.2",
+    "ray": "2.49.2",
+    "transformers": "4.56.2",
+    "numpy": "2.1.2",
+    "Pillow": "12.3.0",
+    "tokenizers": "0.22.2",
+    "huggingface-hub": "0.36.2"
+  },
+  "evaluation_sets": {
+    "heldout": {
+      "examples": 500,
+      "population_sha256": "4ffd5bacf41f50466c546e51d2439359e14d788b69d323d173ece8b6cf2fc74b"
+    }
+  },
+  "completed_candidates": 10,
+  "reference_base_path": "results/visual-line-tracing-20261003/baseline-v1/base.json.gz",
+  "selection_lock_commit": "da0d6eb8e9d537f93658d26ca279082d35fbbff6",
+  "base_id": "d51b308f7a01a09732301ec836200002d082333d0765330b6c2809fe6332fc20",
+  "ended_utc": "2026-10-04T03:21:25.882788+00:00"
+}

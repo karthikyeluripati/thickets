@@ -11,8 +11,10 @@ from thicket_runtime.visual_runtime import read
 
 p = argparse.ArgumentParser(description=__doc__)
 p.add_argument('--analysis',type=Path,required=True)
+p.add_argument('--stem',default='selection-and-transfer')
 a = p.parse_args()
-targets = [a.analysis/('selection-and-transfer.'+suffix) for suffix in ('png','svg')]
+if Path(a.stem).name != a.stem: raise ValueError('figure stem must be a filename')
+targets = [a.analysis/(a.stem+'.'+suffix) for suffix in ('png','svg')]
 if any(path.exists() for path in targets): raise FileExistsError('figure outputs already exist')
 distribution = read(a.analysis/'distribution.json')
 experts = read(a.analysis/'individual_experts.json')
@@ -32,7 +34,8 @@ axes[1].axvline(0,color='#333333',linestyle='--',label='Base held-out')
 axes[1].axvline(5,color='#48864c',linestyle=':',label='+5 pp effect-size threshold')
 axes[1].set(xlabel='Held-out gain over base (percentage points)',ylabel='Frozen selection rank',
             title='Top-10 held-out transfer; paired 95% intervals',yticks=range(1,11),ylim=(10.7,.3))
-axes[1].legend(frameon=False,fontsize=8,loc='best')
+axes[1].text(0,.65,'Base',ha='center',va='bottom',fontsize=8,color='#333333')
+axes[1].text(5,.65,'+5 pp threshold',ha='center',va='bottom',fontsize=8,color='#48864c')
 fig.suptitle('Final v1 line tracing: selection150 → held-out500',fontsize=13)
 for target in targets: fig.savefig(target,dpi=180)
 plt.close(fig)

@@ -76,6 +76,13 @@ before any nonzero RandOpt candidates. This is a NO-GO to proceeding on this
 benchmark; it does not test the weight-space search hypothesis. All baseline
 controls passed and the frozen v2 dataset is unchanged.
 
+The [final v1 tail-search experiment](docs/VISUAL_THICKETS_FINAL_LINE_TRACING_2026-10-03.md)
+completed all 300 new candidates at sigma 0.0005 and evaluated the frozen top 10
+on held-out images, with no early scientific gates. Rank-1 scored 26.60%, equal
+to base; none of the top 10 gained at least 3 pp, and their mean gain was 0.44 pp.
+All runtime controls passed. The predefined result is
+`NO_GO_VISUAL_THICKET_LINE_TRACING`, closing this bounded model/task direction.
+
 ## What is implemented
 
 - Versioned candidate recipes bound to a hash of actual base parameters/buffers.

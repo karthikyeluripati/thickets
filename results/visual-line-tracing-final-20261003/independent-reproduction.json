@@ -1,0 +1,71 @@
+{
+  "source": {
+    "commit": "fb7a6aa266621fd8d6a098f8c8105eadb38bd0aa",
+    "working_tree_status": "?? results/visual-line-tracing-final-20261003/analysis/\n?? results/visual-line-tracing-final-20261003/diagnostic-01.log\n?? results/visual-line-tracing-final-20261003/diagnostic-01/\n?? results/visual-line-tracing-final-20261003/execution-notes.json\n?? results/visual-line-tracing-final-20261003/gpu-tests.txt\n?? results/visual-line-tracing-final-20261003/heldout-01.log\n?? results/visual-line-tracing-final-20261003/heldout-01/\n?? results/visual-line-tracing-final-20261003/retrieval.json\n?? results/visual-line-tracing-final-20261003/search-01.log\n?? results/visual-line-tracing-final-20261003/search-01/\n?? results/visual-line-tracing-final-20261003/study.log\n?? scripts/verify_visual_final_reproduction.py"
+  },
+  "command": [
+    "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+    "scripts/verify_visual_final_reproduction.py",
+    "--root",
+    "results/visual-line-tracing-final-20261003",
+    "--reproduced",
+    "runs/visual-final-independent-audit"
+  ],
+  "remote_analysis_manifest_sha256": "3d975f6feef4816bd83295db832d063b8608170b7cd9975b22264d0cedbb1e6e",
+  "local_reproduction_manifest": {
+    "source": {
+      "commit": "fb7a6aa266621fd8d6a098f8c8105eadb38bd0aa",
+      "working_tree_status": "?? results/visual-line-tracing-final-20261003/analysis/\n?? results/visual-line-tracing-final-20261003/diagnostic-01.log\n?? results/visual-line-tracing-final-20261003/diagnostic-01/\n?? results/visual-line-tracing-final-20261003/execution-notes.json\n?? results/visual-line-tracing-final-20261003/gpu-tests.txt\n?? results/visual-line-tracing-final-20261003/heldout-01.log\n?? results/visual-line-tracing-final-20261003/heldout-01/\n?? results/visual-line-tracing-final-20261003/retrieval.json\n?? results/visual-line-tracing-final-20261003/search-01.log\n?? results/visual-line-tracing-final-20261003/search-01/\n?? results/visual-line-tracing-final-20261003/study.log"
+    },
+    "command": [
+      "C:\\Users\\karth\\AppData\\Local\\Microsoft\\WindowsApps\\PythonSoftwareFoundation.Python.3.12_qbz5n2kfra8p0\\python.exe",
+      "scripts/analyze_visual_final.py",
+      "--root",
+      "results/visual-line-tracing-final-20261003",
+      "--out",
+      "runs/visual-final-independent-audit"
+    ],
+    "protocol_sha256": "23e0cc8d80dd6ca4109932f24214571e479f1ea570f799d4b08f25163701748f",
+    "dataset_proof": {
+      "commit": "49bb56e160691e83c786fc7bac40be290c0e8f75",
+      "files_verified": 654,
+      "manifest_sha256": "3384f6bd8f43d547d636f3f6da91a6da2ceb02f57ac2ea4a84f2bfb6043de3fd"
+    },
+    "all_raw_generations_rescored": true,
+    "ranking_reselected": false,
+    "selection_lock_commit": "da0d6eb8e9d537f93658d26ca279082d35fbbff6",
+    "selection_lock_committed_at": "2026-10-04T03:14:46+00:00",
+    "phase_manifest_sha256": {
+      "diagnostic": "14fffaa53fe7b60f66feb81a47af58577df55594391068eeedb6c7cad01ba368",
+      "search": "61448464d70a865cc24704d99e7c01e21853768fc7ab05008d3652a3364b388f",
+      "heldout": "ef740325c94edafa0d1f10fe4ee8f14a796d5643faf26be0140a6d1b4993f1ed"
+    },
+    "numpy": "2.5.2",
+    "bootstrap_indices_sha256": "a412c0273e6fddabb5addc9f51a39b8b27a35e5be0098c75ed3ccd667f80b8a7",
+    "control_image_requests": 1300,
+    "nonzero_distinct_candidates": 311,
+    "statistical_limitation": "Fixed 500 questions; percentile bootstrap unadjusted secondary comparisons. Top-10 experts are correlated, selection-enriched, and not independent replication cohorts."
+  },
+  "files_compared": [
+    "base.json",
+    "diagnostic.json",
+    "distribution.json",
+    "ensembles.json",
+    "gate.json",
+    "individual_experts.json",
+    "per_question.json.gz",
+    "tables.md",
+    "votes.json"
+  ],
+  "float_absolute_tolerance": 1e-12,
+  "bootstrap_indices_identical": true,
+  "all_outcomes_and_gate_reproduced": true,
+  "unique_search_state_fingerprints": 300,
+  "actual_image_requests": {
+    "diagnostic": 500,
+    "search": 45300,
+    "heldout": 6000
+  },
+  "total_image_requests": 51800,
+  "mismatches": []
+}
