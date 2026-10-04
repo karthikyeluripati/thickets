@@ -65,8 +65,16 @@ evaluation were not run. This does not establish a scientific GO or NO-GO.
 [Visual Line Tracing v2](docs/VISUAL_LINE_TRACING_V2.md) is prepared and validated
 with easier geometry: 1 / 2–3 / 4–5 swaps across easy/medium/hard. Its 650 images
 are frozen separately; prompts, rendering style and inference/scoring settings
-are unchanged. No v2 model evaluation has run. The documentation includes the
+are unchanged. Dataset preparation ran no model evaluation. The documentation includes the
 positional shortcuts introduced by the one-swap easy bucket.
+
+The [v2.1 baseline experiment](docs/VISUAL_THICKETS_LINE_TRACING_V2_RESULT_2026-10-03.md)
+uses Medium+Hard as its primary endpoint and keeps Easy diagnostic only. Base
+held-out accuracy is 27.03% (90/333), below the required 30%; Medium and Hard
+individually score 29.34% and 24.70%. The frozen capability gate stopped the run
+before any nonzero RandOpt candidates. This is a NO-GO to proceeding on this
+benchmark; it does not test the weight-space search hypothesis. All baseline
+controls passed and the frozen v2 dataset is unchanged.
 
 ## What is implemented
 

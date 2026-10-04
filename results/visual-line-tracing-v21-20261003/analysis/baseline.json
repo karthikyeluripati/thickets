@@ -1,0 +1,90 @@
+{
+  "selection": {
+    "overall": {
+      "n": 150,
+      "correct_count": 51,
+      "accuracy": 0.34,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 99,
+      "capped_count": 0
+    },
+    "difficulty": {
+      "easy": {
+        "n": 50,
+        "correct_count": 25,
+        "accuracy": 0.5,
+        "invalid_count": 0,
+        "wrong_endpoint_count": 25,
+        "capped_count": 0
+      },
+      "medium": {
+        "n": 50,
+        "correct_count": 13,
+        "accuracy": 0.26,
+        "invalid_count": 0,
+        "wrong_endpoint_count": 37,
+        "capped_count": 0
+      },
+      "hard": {
+        "n": 50,
+        "correct_count": 13,
+        "accuracy": 0.26,
+        "invalid_count": 0,
+        "wrong_endpoint_count": 37,
+        "capped_count": 0
+      }
+    },
+    "primary": {
+      "n": 100,
+      "correct_count": 26,
+      "accuracy": 0.26,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 74,
+      "capped_count": 0
+    }
+  },
+  "heldout": {
+    "overall": {
+      "n": 500,
+      "correct_count": 165,
+      "accuracy": 0.33,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 335,
+      "capped_count": 0
+    },
+    "difficulty": {
+      "easy": {
+        "n": 167,
+        "correct_count": 75,
+        "accuracy": 0.4491017964071856,
+        "invalid_count": 0,
+        "wrong_endpoint_count": 92,
+        "capped_count": 0
+      },
+      "medium": {
+        "n": 167,
+        "correct_count": 49,
+        "accuracy": 0.2934131736526946,
+        "invalid_count": 0,
+        "wrong_endpoint_count": 118,
+        "capped_count": 0
+      },
+      "hard": {
+        "n": 166,
+        "correct_count": 41,
+        "accuracy": 0.2469879518072289,
+        "invalid_count": 0,
+        "wrong_endpoint_count": 125,
+        "capped_count": 0
+      }
+    },
+    "primary": {
+      "n": 333,
+      "correct_count": 90,
+      "accuracy": 0.2702702702702703,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 243,
+      "capped_count": 0
+    }
+  }
+}
