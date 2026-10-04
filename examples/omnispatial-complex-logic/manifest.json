@@ -1,0 +1,225 @@
+{
+  "schema": "omnispatial-complex-logic-v1",
+  "repository": "https://github.com/qizekun/OmniSpatial",
+  "repository_commit": "208bac258d8671c6857b3be2834997936ba7fc51",
+  "official_blobs": {
+    "vlms_eval/system_prompts.py": "38fa3ebb87f4b02559d0d763e32d4fea8482796d",
+    "vlms_eval/qwenvl_eval.py": "b25906caaf9c2d4ffef8d20a0052870ce147e678"
+  },
+  "dataset": "qizekun/OmniSpatial",
+  "dataset_revision": "6691f3288bb1ff207d6ead4d841b505de08a6fd8",
+  "zip_lfs_sha256": {
+    "train": {
+      "file": "OmniSpatial-train.zip",
+      "sha256": "6f3878c1cd839e4395dcd70c313228782e67a5d018488071890622aa88f1e198"
+    },
+    "test": {
+      "file": "OmniSpatial-test.zip",
+      "sha256": "6c2cc57a62e7ef6219c26593017e18a9fbc00b82fd2e86f31c01f42e8b97c988"
+    }
+  },
+  "data_json_sha256": {
+    "train": "491f5db39cb0fe748d2136858324b418377d0294d3c05c861a15dd9b293640dd",
+    "test": "ca7cdd22fef4b59cb7dad8c98313e919df83460ccab6d0835355ace694ccce12"
+  },
+  "task_type": "Complex_Logic",
+  "official_counts": {
+    "train": {
+      "n": 1180,
+      "sub_task_type": {
+        "Geometric_Reasoning": 1180
+      },
+      "answer_letter": {
+        "A": 313,
+        "B": 324,
+        "C": 336,
+        "D": 207
+      },
+      "answer_by_sub_task": {
+        "Geometric_Reasoning": {
+          "A": 313,
+          "B": 324,
+          "C": 336,
+          "D": 207
+        }
+      },
+      "option_count": {
+        "4": 1180
+      },
+      "distinct_question_texts": 197,
+      "visual_tokens_at_official_resolution": {
+        "min": 80,
+        "median": 4400,
+        "max": 9545,
+        "sum": 5267195
+      },
+      "media": "single PNG image per QA pair; no video"
+    },
+    "test": {
+      "n": 252,
+      "sub_task_type": {
+        "Geometric_Reasoning": 155,
+        "Pattern_Recognition": 97
+      },
+      "answer_letter": {
+        "A": 66,
+        "B": 67,
+        "C": 56,
+        "D": 63
+      },
+      "answer_by_sub_task": {
+        "Geometric_Reasoning": {
+          "A": 37,
+          "B": 41,
+          "C": 34,
+          "D": 43
+        },
+        "Pattern_Recognition": {
+          "A": 29,
+          "B": 26,
+          "C": 22,
+          "D": 20
+        }
+      },
+      "option_count": {
+        "0": 229,
+        "2": 2,
+        "4": 21
+      },
+      "distinct_question_texts": 70,
+      "visual_tokens_at_official_resolution": {
+        "min": 35,
+        "median": 182,
+        "max": 1508,
+        "sum": 69223
+      },
+      "media": "single PNG image per QA pair; no video"
+    }
+  },
+  "splits": {
+    "search": {
+      "n": 705,
+      "sub_task_type": {
+        "Geometric_Reasoning": 705
+      },
+      "answer_letter": {
+        "A": 187,
+        "B": 193,
+        "C": 200,
+        "D": 125
+      },
+      "answer_by_sub_task": {
+        "Geometric_Reasoning": {
+          "A": 187,
+          "B": 193,
+          "C": 200,
+          "D": 125
+        }
+      },
+      "option_count": {
+        "4": 705
+      },
+      "distinct_question_texts": 136,
+      "visual_tokens_at_official_resolution": {
+        "min": 80,
+        "median": 4400,
+        "max": 9545,
+        "sum": 3172437
+      },
+      "media": "single PNG image per QA pair; no video"
+    },
+    "validation": {
+      "n": 475,
+      "sub_task_type": {
+        "Geometric_Reasoning": 475
+      },
+      "answer_letter": {
+        "A": 126,
+        "B": 131,
+        "C": 136,
+        "D": 82
+      },
+      "answer_by_sub_task": {
+        "Geometric_Reasoning": {
+          "A": 126,
+          "B": 131,
+          "C": 136,
+          "D": 82
+        }
+      },
+      "option_count": {
+        "4": 475
+      },
+      "distinct_question_texts": 115,
+      "visual_tokens_at_official_resolution": {
+        "min": 99,
+        "median": 4400,
+        "max": 9430,
+        "sum": 2094758
+      },
+      "media": "single PNG image per QA pair; no video"
+    },
+    "test": {
+      "n": 252,
+      "sub_task_type": {
+        "Geometric_Reasoning": 155,
+        "Pattern_Recognition": 97
+      },
+      "answer_letter": {
+        "A": 66,
+        "B": 67,
+        "C": 56,
+        "D": 63
+      },
+      "answer_by_sub_task": {
+        "Geometric_Reasoning": {
+          "A": 37,
+          "B": 41,
+          "C": 34,
+          "D": 43
+        },
+        "Pattern_Recognition": {
+          "A": 29,
+          "B": 26,
+          "C": 22,
+          "D": 20
+        }
+      },
+      "option_count": {
+        "0": 229,
+        "2": 2,
+        "4": 21
+      },
+      "distinct_question_texts": 70,
+      "visual_tokens_at_official_resolution": {
+        "min": 35,
+        "median": 182,
+        "max": 1508,
+        "sum": 69223
+      },
+      "media": "single PNG image per QA pair; no video"
+    }
+  },
+  "split_rule": "60/40 search/validation over identical-image groups (byte-identical PNGs never\n    straddle splits). Each group is represented by its smallest uid; strata =\n    (sub_task_type, answer) of that representative. Inside a stratum, groups are\n    shuffled with the committed seed, then ordered by question text (spreads\n    templates), and every k with floor((k+1)*0.4) > floor(k*0.4) goes to validation\n    (systematic 40% sampling). All group members inherit the assignment.",
+  "split_seed": 20261004,
+  "split_jsonl_sha256": {
+    "search": "49fc459fbcf5bed11a267cdc7df4f387c44997dd7a64d91d9a34a386ac7a160f",
+    "validation": "63e79b825440570aabf2d9de37fc3c12351d7b8b95409c2e10164ed236fcbe72",
+    "test": "168a41c1e22e1f01dd6ead468ab3ffad5f626ba492979c625af6d56d7e74aa8f"
+  },
+  "image_sha256_count": 1432,
+  "duplicate_image_groups": {
+    "search": 21,
+    "validation": 17,
+    "test": 0
+  },
+  "audit_findings": [
+    "Official train Complex_Logic contains only Geometric_Reasoning (no Pattern_Recognition).",
+    "Official test Complex_Logic has 229/252 QA pairs with options drawn inside the image (empty options list); 2 have two options.",
+    "Official train contains byte-identical images under different ids; identical-image groups are kept within one split.",
+    "Train questions come from a small set of templated puzzle texts; test questions are IQ-test style. No test question text occurs in train."
+  ],
+  "images_committed": false,
+  "images_source": "pinned zips; every image verified by sha256 before use",
+  "model_outputs_used": false
+}
