@@ -1,0 +1,137 @@
+{
+  "protocol_sha256": "eb27ac7f5543dc8db77b4f978ab42df6c3a06f43ef4564de3a62a90a8e8b711c",
+  "source": {
+    "commit": "0d188d3b0a8efd042ed1961778fcedeb48275b7f",
+    "working_tree_status": "?? results/transfer-aware-visual-20261004.study.log\n?? results/transfer-aware-visual-20261004/"
+  },
+  "command": [
+    "/usr/local/bin/python",
+    "scripts/freeze_transfer_aware_lock.py",
+    "baseline",
+    "--root",
+    "results/transfer-aware-visual-20261004"
+  ],
+  "base_id": "835bd28ba706a6e8581f792c2b5a766ff6b18a36345939336f55cdf1729c2b23",
+  "phase_manifest_sha256": "8fa6b5584cf1d9bd799f07479c78b440eb36edeecb3bb75e6e5dfbf4969f3665",
+  "phase_checksums_sha256": "55e8acf3dfbb0635e18e9d682c5ae8d85138bce80b65f58943c24ab87458a401",
+  "base_path": "baseline/base.json.gz",
+  "output_identities": {
+    "search": "33790eb9cb61dead7674cb9a64abe4094bf2b4affc6c9b1a5d79f006ee0c37a6",
+    "validation": "e0500ba791b52deec00aed6c36c5c98b8ed18b02410c7623f442782db09aa648",
+    "test": "9ef615715fe78cb4b40766c8b1e851281e8d445d73d29620e8c3cfc60bfd7a4a"
+  },
+  "summary": {
+    "search": {
+      "n": 300,
+      "correct_count": 73,
+      "accuracy": 0.24333333333333335,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 227,
+      "capped_count": 0,
+      "difficulty": {
+        "easy": {
+          "n": 100,
+          "correct_count": 28,
+          "accuracy": 0.28,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 72,
+          "capped_count": 0
+        },
+        "medium": {
+          "n": 100,
+          "correct_count": 23,
+          "accuracy": 0.23,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 77,
+          "capped_count": 0
+        },
+        "hard": {
+          "n": 100,
+          "correct_count": 22,
+          "accuracy": 0.22,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 78,
+          "capped_count": 0
+        }
+      }
+    },
+    "validation": {
+      "n": 300,
+      "correct_count": 81,
+      "accuracy": 0.27,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 219,
+      "capped_count": 0,
+      "difficulty": {
+        "easy": {
+          "n": 100,
+          "correct_count": 29,
+          "accuracy": 0.29,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 71,
+          "capped_count": 0
+        },
+        "medium": {
+          "n": 100,
+          "correct_count": 25,
+          "accuracy": 0.25,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 75,
+          "capped_count": 0
+        },
+        "hard": {
+          "n": 100,
+          "correct_count": 27,
+          "accuracy": 0.27,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 73,
+          "capped_count": 0
+        }
+      }
+    },
+    "test": {
+      "n": 1000,
+      "correct_count": 270,
+      "accuracy": 0.27,
+      "invalid_count": 0,
+      "wrong_endpoint_count": 730,
+      "capped_count": 0,
+      "difficulty": {
+        "easy": {
+          "n": 334,
+          "correct_count": 83,
+          "accuracy": 0.24850299401197604,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 251,
+          "capped_count": 0
+        },
+        "medium": {
+          "n": 333,
+          "correct_count": 94,
+          "accuracy": 0.2822822822822823,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 239,
+          "capped_count": 0
+        },
+        "hard": {
+          "n": 333,
+          "correct_count": 93,
+          "accuracy": 0.27927927927927926,
+          "invalid_count": 0,
+          "wrong_endpoint_count": 240,
+          "capped_count": 0
+        }
+      }
+    }
+  },
+  "search_base": {
+    "pooled_correct": 73,
+    "pooled_accuracy": 0.24333333333333335,
+    "fold_accuracy": {
+      "A": 0.3,
+      "B": 0.15,
+      "C": 0.28
+    }
+  },
+  "no_base_capability_gate": true
+}

@@ -1,0 +1,72 @@
+{
+  "source": {
+    "commit": "37076d358a101bdd98ae31bded08797d6eaff1d6",
+    "working_tree_status": "?? results/transfer-aware-visual-20261004.study.log\n?? results/transfer-aware-visual-20261004/baseline.log\n?? results/transfer-aware-visual-20261004/baseline/\n?? results/transfer-aware-visual-20261004/search-shard-00.failed-1.log\n?? results/transfer-aware-visual-20261004/search-shard-00.failed-1/\n?? results/transfer-aware-visual-20261004/search-shard-00.failed-2.log\n?? results/transfer-aware-visual-20261004/search-shard-00.failed-2/\n?? results/transfer-aware-visual-20261004/search-shard-00.log\n?? results/transfer-aware-visual-20261004/search-shard-00/\n?? results/transfer-aware-visual-20261004/search-shard-01.log\n?? results/transfer-aware-visual-20261004/search-shard-01/\n?? results/transfer-aware-visual-20261004/search-shard-02.log\n?? results/transfer-aware-visual-20261004/search-shard-02/\n?? results/transfer-aware-visual-20261004/search-shard-03.log\n?? results/transfer-aware-visual-20261004/search-shard-03/\n?? results/transfer-aware-visual-20261004/search-shard-04.log\n?? results/transfer-aware-visual-20261004/search-shard-04/\n?? results/transfer-aware-visual-20261004/search-shard-05.log\n?? results/transfer-aware-visual-20261004/search-shard-05/\n?? results/transfer-aware-visual-20261004/search-shard-06.log\n?? results/transfer-aware-visual-20261004/search-shard-06/\n?? results/transfer-aware-visual-20261004/search-shard-07.log\n?? results/transfer-aware-visual-20261004/search-shard-07/\n?? results/transfer-aware-visual-20261004/validation.log\n?? results/transfer-aware-visual-20261004/validation/"
+  },
+  "command": [
+    "/usr/local/bin/python",
+    "scripts/analyze_transfer_aware.py",
+    "--root",
+    "results/transfer-aware-visual-20261004"
+  ],
+  "protocol_sha256": "eb27ac7f5543dc8db77b4f978ab42df6c3a06f43ef4564de3a62a90a8e8b711c",
+  "dataset_proof": {
+    "commit": "dd89aae0c5ababab38d339f260920749750d57b0",
+    "files_verified": 1606,
+    "manifest_sha256": "44e0b2c9e7527b6f28d8832f982fa24889531c1655a308b4af2c7dd0745318a1"
+  },
+  "lock_sha256": {
+    "baseline": "2a63722acb8c1e0f3086f730c9431503c3a7ce413aabaa647d69548996b4d4b9",
+    "ranking": "702420a6a08432dada1ab09e0fa498ea50ab74736e0eb557dcc488fdd4983378",
+    "validation": "2c5b7b1c79d7ab82b209d35a431d8bf95b2acd94f94ee77b348d62e38315843d"
+  },
+  "timeline": {
+    "ranking_before_validation": {
+      "commit": "006a9818be7de03d8c5b8859c011b022fba0762e",
+      "committed_at": "2026-10-04T14:50:50+00:00",
+      "phase_started_utc": "2026-10-04T14:50:51.984901+00:00"
+    },
+    "baseline_before_search_shard_00": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T12:50:58.742232+00:00"
+    },
+    "baseline_before_search_shard_01": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T13:30:43.769964+00:00"
+    },
+    "baseline_before_search_shard_02": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T14:09:54.497293+00:00"
+    },
+    "baseline_before_search_shard_03": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T13:02:40.216500+00:00"
+    },
+    "baseline_before_search_shard_04": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T13:36:18.694050+00:00"
+    },
+    "baseline_before_search_shard_05": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T14:10:17.759881+00:00"
+    },
+    "baseline_before_search_shard_06": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T13:01:56.187856+00:00"
+    },
+    "baseline_before_search_shard_07": {
+      "commit": "014cac9c646a340816b71ab8e656b8320a415801",
+      "committed_at": "2026-10-04T12:26:44+00:00",
+      "phase_started_utc": "2026-10-04T13:34:14.984149+00:00"
+    }
+  },
+  "numpy": "2.1.2",
+  "all_raw_generations_rescored": true
+}

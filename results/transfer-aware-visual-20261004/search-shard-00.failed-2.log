@@ -1,0 +1,172 @@
+INFO 10-04 12:50:13 [__init__.py:216] Automatically detected platform cuda.
+2026-10-04 12:50:18,697	INFO worker.py:1951 -- Started a local Ray instance.
+*** SIGTERM received at time=1791118224 on cpu 31 ***
+[failure_signal_handler.cc : 345] RAW: Signal 15 raised at PC=0x7a935234af48 while already in AbslFailureSignalHandler()
+*** SIGTERM received at time=1791118224 on cpu 31 ***
+PC: @     0x7a935234af48  (unknown)  pthread_sigmask
+    @     0x7a93522ec330       3616  (unknown)
+    @     0x7a9233957f24        464  absl::lts_20230802::base_internal::DoAllocWithArena()
+    @     0x7a92339584bc         32  absl::lts_20230802::base_internal::LowLevelAlloc::NewArena()
+    @     0x7a9233953175         80  absl::lts_20230802::Symbolize()
+    @     0x7a923395108d       2144  absl::lts_20230802::debugging_internal::(anonymous namespace)::DumpPCAndFrameSizeAndSymbol()
+    @     0x7a92339511c1        192  absl::lts_20230802::debugging_internal::DumpPCAndFrameSizesAndStackTrace()
+    @     0x7a9233950b46        496  absl::lts_20230802::WriteStackTrace()
+    @     0x7a9233950d51         80  absl::lts_20230802::AbslFailureSignalHandler()
+    @     0x7a93522ec330       3440  (unknown)
+    @     0x7a9233950cdc         80  absl::lts_20230802::AbslFailureSignalHandler()
+    @     0x7a93522ec330  (unknown)  (unknown)
+    @     0x7a9352342c8e        224  pthread_cond_timedwait
+    @     0x7a9232ea48bf       1184  ray::core::GetRequest::Wait()
+    @     0x7a9232ea6d27       1424  ray::core::CoreWorkerMemoryStore::GetImpl()
+    @     0x7a9232ea77be         64  ray::core::CoreWorkerMemoryStore::Get()
+    @     0x7a9232ea79cd        208  ray::core::CoreWorkerMemoryStore::Get()
+    @     0x7a9232d73296       1776  ray::core::CoreWorker::GetObjects()
+    @     0x7a9232d78ca0        160  ray::core::CoreWorker::Get()
+    @     0x7a9232cae5c0        240  __pyx_pw_3ray_7_raylet_10CoreWorker_41get_objects()
+    @           0x549cf5         32  PyObject_Vectorcall
+    @           0x5d68bf        384  _PyEval_EvalFrameDefault
+    @           0x5d4dab        128  PyEval_EvalCode
+    @           0x5d2bac        112  (unknown)
+    @           0x5818ed         64  (unknown)
+    @           0x549cf5         32  PyObject_Vectorcall
+    @           0x5d68bf        384  _PyEval_EvalFrameDefault
+    @           0x6bc192         80  (unknown)
+    @           0x6bbdc2        288  Py_RunMain
+    @           0x6bba2d         48  Py_BytesMain
+    @     0x7a93522d11ca        160  (unknown)
+    @     0x7a93522d128b         96  __libc_start_main
+    @           0x656a35  (unknown)  _start
+[2026-10-04 12:50:24,318 E 9634 9634] logging.cc:474: *** SIGTERM received at time=1791118224 on cpu 31 ***
+[2026-10-04 12:50:24,318 E 9634 9634] logging.cc:474: PC: @     0x7a935234af48  (unknown)  pthread_sigmask
+[2026-10-04 12:50:24,318 E 9634 9634] logging.cc:474:     @     0x7a93522ec330       3616  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9233957f24        464  absl::lts_20230802::base_internal::DoAllocWithArena()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a92339584bc         32  absl::lts_20230802::base_internal::LowLevelAlloc::NewArena()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9233953175         80  absl::lts_20230802::Symbolize()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a923395108d       2144  absl::lts_20230802::debugging_internal::(anonymous namespace)::DumpPCAndFrameSizeAndSymbol()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a92339511c1        192  absl::lts_20230802::debugging_internal::DumpPCAndFrameSizesAndStackTrace()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9233950b46        496  absl::lts_20230802::WriteStackTrace()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9233950d51         80  absl::lts_20230802::AbslFailureSignalHandler()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a93522ec330       3440  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9233950cdc         80  absl::lts_20230802::AbslFailureSignalHandler()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a93522ec330  (unknown)  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9352342c8e        224  pthread_cond_timedwait
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232ea48bf       1184  ray::core::GetRequest::Wait()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232ea6d27       1424  ray::core::CoreWorkerMemoryStore::GetImpl()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232ea77be         64  ray::core::CoreWorkerMemoryStore::Get()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232ea79cd        208  ray::core::CoreWorkerMemoryStore::Get()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232d73296       1776  ray::core::CoreWorker::GetObjects()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232d78ca0        160  ray::core::CoreWorker::Get()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a9232cae5c0        240  __pyx_pw_3ray_7_raylet_10CoreWorker_41get_objects()
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x549cf5         32  PyObject_Vectorcall
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x5d68bf        384  _PyEval_EvalFrameDefault
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x5d4dab        128  PyEval_EvalCode
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x5d2bac        112  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x5818ed         64  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x549cf5         32  PyObject_Vectorcall
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x5d68bf        384  _PyEval_EvalFrameDefault
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x6bc192         80  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x6bbdc2        288  Py_RunMain
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x6bba2d         48  Py_BytesMain
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a93522d11ca        160  (unknown)
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @     0x7a93522d128b         96  __libc_start_main
+[2026-10-04 12:50:24,319 E 9634 9634] logging.cc:474:     @           0x656a35  (unknown)  _start
+PC: @     0x7a93523ce28d  (unknown)  syscall
+    @     0x7a93522ec330       3440  (unknown)
+    @     0x7a9233950cdc         80  absl::lts_20230802::AbslFailureSignalHandler()
+    @     0x7a93522ec330  (unknown)  (unknown)
+    @     0x7a9352342c8e        224  pthread_cond_timedwait
+    @     0x7a9232ea48bf       1184  ray::core::GetRequest::Wait()
+    @     0x7a9232ea6d27       1424  ray::core::CoreWorkerMemoryStore::GetImpl()
+    @     0x7a9232ea77be         64  ray::core::CoreWorkerMemoryStore::Get()
+    @     0x7a9232ea79cd        208  ray::core::CoreWorkerMemoryStore::Get()
+    @     0x7a9232d73296       1776  ray::core::CoreWorker::GetObjects()
+    @     0x7a9232d78ca0        160  ray::core::CoreWorker::Get()
+    @     0x7a9232cae5c0        240  __pyx_pw_3ray_7_raylet_10CoreWorker_41get_objects()
+    @           0x549cf5         32  PyObject_Vectorcall
+    @           0x5d68bf        384  _PyEval_EvalFrameDefault
+    @           0x5d4dab        128  PyEval_EvalCode
+    @           0x5d2bac        112  (unknown)
+    @           0x5818ed         64  (unknown)
+    @           0x549cf5         32  PyObject_Vectorcall
+    @           0x5d68bf        384  _PyEval_EvalFrameDefault
+    @           0x6bc192         80  (unknown)
+    @           0x6bbdc2        288  Py_RunMain
+    @           0x6bba2d         48  Py_BytesMain
+    @     0x7a93522d11ca        160  (unknown)
+    @     0x7a93522d128b         96  __libc_start_main
+    @           0x656a35  (unknown)  _start
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474: *** SIGTERM received at time=1791118224 on cpu 31 ***
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474: PC: @     0x7a93523ce28d  (unknown)  syscall
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a93522ec330       3440  (unknown)
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9233950cdc         80  absl::lts_20230802::AbslFailureSignalHandler()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a93522ec330  (unknown)  (unknown)
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9352342c8e        224  pthread_cond_timedwait
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232ea48bf       1184  ray::core::GetRequest::Wait()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232ea6d27       1424  ray::core::CoreWorkerMemoryStore::GetImpl()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232ea77be         64  ray::core::CoreWorkerMemoryStore::Get()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232ea79cd        208  ray::core::CoreWorkerMemoryStore::Get()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232d73296       1776  ray::core::CoreWorker::GetObjects()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232d78ca0        160  ray::core::CoreWorker::Get()
+[2026-10-04 12:50:24,321 E 9634 9634] logging.cc:474:     @     0x7a9232cae5c0        240  __pyx_pw_3ray_7_raylet_10CoreWorker_41get_objects()
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x549cf5         32  PyObject_Vectorcall
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x5d68bf        384  _PyEval_EvalFrameDefault
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x5d4dab        128  PyEval_EvalCode
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x5d2bac        112  (unknown)
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x5818ed         64  (unknown)
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x549cf5         32  PyObject_Vectorcall
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x5d68bf        384  _PyEval_EvalFrameDefault
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x6bc192         80  (unknown)
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x6bbdc2        288  Py_RunMain
+[2026-10-04 12:50:24,322 E 9634 9634] logging.cc:474:     @           0x6bba2d         48  Py_BytesMain
+[2026-10-04 12:50:24,323 E 9634 9634] logging.cc:474:     @     0x7a93522d11ca        160  (unknown)
+[2026-10-04 12:50:24,323 E 9634 9634] logging.cc:474:     @     0x7a93522d128b         96  __libc_start_main
+[2026-10-04 12:50:24,323 E 9634 9634] logging.cc:474:     @           0x656a35  (unknown)  _start
+[failure_signal_handler.cc : 345] RAW: Signal 15 raised at PC=0x7a935233fd71 while already in AbslFailureSignalHandler()
+*** SIGTERM received at time=1791118224 on cpu 31 ***
+PC: @     0x7a935233fd71  (unknown)  (unknown)
+    @     0x7a93522ec330  (unknown)  (unknown)
+    @     0x7a9352342c8e        224  pthread_cond_timedwait
+    @     0x7a9232ea48bf       1184  ray::core::GetRequest::Wait()
+    @     0x7a9232ea6d27       1424  ray::core::CoreWorkerMemoryStore::GetImpl()
+    @     0x7a9232ea77be         64  ray::core::CoreWorkerMemoryStore::Get()
+    @     0x7a9232ea79cd        208  ray::core::CoreWorkerMemoryStore::Get()
+    @     0x7a9232d73296       1776  ray::core::CoreWorker::GetObjects()
+    @     0x7a9232d78ca0        160  ray::core::CoreWorker::Get()
+    @     0x7a9232cae5c0        240  __pyx_pw_3ray_7_raylet_10CoreWorker_41get_objects()
+    @           0x549cf5         32  PyObject_Vectorcall
+    @           0x5d68bf        384  _PyEval_EvalFrameDefault
+    @           0x5d4dab        128  PyEval_EvalCode
+    @           0x5d2bac        112  (unknown)
+    @           0x5818ed         64  (unknown)
+    @           0x549cf5         32  PyObject_Vectorcall
+    @           0x5d68bf        384  _PyEval_EvalFrameDefault
+    @           0x6bc192         80  (unknown)
+    @           0x6bbdc2        288  Py_RunMain
+    @           0x6bba2d         48  Py_BytesMain
+    @     0x7a93522d11ca        160  (unknown)
+    @     0x7a93522d128b         96  __libc_start_main
+    @           0x656a35  (unknown)  _start
+[2026-10-04 12:50:24,324 E 9634 9634] logging.cc:474: *** SIGTERM received at time=1791118224 on cpu 31 ***
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474: PC: @     0x7a935233fd71  (unknown)  (unknown)
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a93522ec330  (unknown)  (unknown)
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9352342c8e        224  pthread_cond_timedwait
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232ea48bf       1184  ray::core::GetRequest::Wait()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232ea6d27       1424  ray::core::CoreWorkerMemoryStore::GetImpl()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232ea77be         64  ray::core::CoreWorkerMemoryStore::Get()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232ea79cd        208  ray::core::CoreWorkerMemoryStore::Get()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232d73296       1776  ray::core::CoreWorker::GetObjects()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232d78ca0        160  ray::core::CoreWorker::Get()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @     0x7a9232cae5c0        240  __pyx_pw_3ray_7_raylet_10CoreWorker_41get_objects()
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x549cf5         32  PyObject_Vectorcall
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x5d68bf        384  _PyEval_EvalFrameDefault
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x5d4dab        128  PyEval_EvalCode
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x5d2bac        112  (unknown)
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x5818ed         64  (unknown)
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x549cf5         32  PyObject_Vectorcall
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x5d68bf        384  _PyEval_EvalFrameDefault
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x6bc192         80  (unknown)
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x6bbdc2        288  Py_RunMain
+[2026-10-04 12:50:24,325 E 9634 9634] logging.cc:474:     @           0x6bba2d         48  Py_BytesMain
+[2026-10-04 12:50:24,326 E 9634 9634] logging.cc:474:     @     0x7a93522d11ca        160  (unknown)
+[2026-10-04 12:50:24,326 E 9634 9634] logging.cc:474:     @     0x7a93522d128b         96  __libc_start_main
+[2026-10-04 12:50:24,326 E 9634 9634] logging.cc:474:     @           0x656a35  (unknown)  _start
