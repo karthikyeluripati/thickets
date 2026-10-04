@@ -1,0 +1,273 @@
+{
+  "schema": "omnispatial-perspective-taking-v1",
+  "repository": "https://github.com/qizekun/OmniSpatial",
+  "repository_commit": "208bac258d8671c6857b3be2834997936ba7fc51",
+  "official_blobs": {
+    "vlms_eval/system_prompts.py": "38fa3ebb87f4b02559d0d763e32d4fea8482796d",
+    "vlms_eval/qwenvl_eval.py": "b25906caaf9c2d4ffef8d20a0052870ce147e678"
+  },
+  "dataset": "qizekun/OmniSpatial",
+  "dataset_revision": "6691f3288bb1ff207d6ead4d841b505de08a6fd8",
+  "zip_lfs_sha256": {
+    "train": {
+      "file": "OmniSpatial-train.zip",
+      "sha256": "6f3878c1cd839e4395dcd70c313228782e67a5d018488071890622aa88f1e198"
+    },
+    "test": {
+      "file": "OmniSpatial-test.zip",
+      "sha256": "6c2cc57a62e7ef6219c26593017e18a9fbc00b82fd2e86f31c01f42e8b97c988"
+    }
+  },
+  "data_json_sha256": {
+    "train": "491f5db39cb0fe748d2136858324b418377d0294d3c05c861a15dd9b293640dd",
+    "test": "ca7cdd22fef4b59cb7dad8c98313e919df83460ccab6d0835355ace694ccce12"
+  },
+  "task_type": "Perspective_Taking",
+  "official_counts": {
+    "train": {
+      "n": 3079,
+      "images": 1304,
+      "sub_task_type": {
+        "Allocentric": 996,
+        "Egocentric": 1838,
+        "Hypothetical": 245
+      },
+      "answer_letter": {
+        "A": 784,
+        "B": 864,
+        "C": 701,
+        "D": 730
+      },
+      "answer_by_sub_task": {
+        "Allocentric": {
+          "A": 259,
+          "B": 259,
+          "C": 232,
+          "D": 246
+        },
+        "Egocentric": {
+          "A": 468,
+          "B": 551,
+          "C": 395,
+          "D": 424
+        },
+        "Hypothetical": {
+          "A": 57,
+          "B": 54,
+          "C": 74,
+          "D": 60
+        }
+      },
+      "option_count": {
+        "4": 3079
+      },
+      "image_pixels": {
+        "median": 273920,
+        "max": 10036224
+      }
+    },
+    "test": {
+      "n": 561,
+      "images": 561,
+      "sub_task_type": {
+        "Allocentric": 376,
+        "Egocentric": 102,
+        "Hypothetical": 83
+      },
+      "answer_letter": {
+        "A": 160,
+        "B": 137,
+        "C": 143,
+        "D": 121
+      },
+      "answer_by_sub_task": {
+        "Allocentric": {
+          "A": 103,
+          "B": 96,
+          "C": 93,
+          "D": 84
+        },
+        "Egocentric": {
+          "A": 37,
+          "B": 22,
+          "C": 28,
+          "D": 15
+        },
+        "Hypothetical": {
+          "A": 20,
+          "B": 19,
+          "C": 22,
+          "D": 22
+        }
+      },
+      "option_count": {
+        "4": 561
+      },
+      "image_pixels": {
+        "median": 960000,
+        "max": 15305648
+      }
+    }
+  },
+  "official_train_questions_per_image": {
+    "1": 308,
+    "2": 217,
+    "3": 779
+  },
+  "official_train_images_with_multiple_questions": 996,
+  "official_train_byte_identical_extra_image_files": 0,
+  "official_train_images_identical_to_test": 0,
+  "splits": {
+    "search": {
+      "n": 200,
+      "images": 200,
+      "sub_task_type": {
+        "Allocentric": 65,
+        "Egocentric": 119,
+        "Hypothetical": 16
+      },
+      "answer_letter": {
+        "A": 51,
+        "B": 56,
+        "C": 46,
+        "D": 47
+      },
+      "answer_by_sub_task": {
+        "Allocentric": {
+          "A": 17,
+          "B": 17,
+          "C": 15,
+          "D": 16
+        },
+        "Egocentric": {
+          "A": 30,
+          "B": 36,
+          "C": 26,
+          "D": 27
+        },
+        "Hypothetical": {
+          "A": 4,
+          "B": 3,
+          "C": 5,
+          "D": 4
+        }
+      },
+      "option_count": {
+        "4": 200
+      },
+      "image_pixels": {
+        "median": 273920,
+        "max": 10036224
+      }
+    },
+    "validation": {
+      "n": 200,
+      "images": 200,
+      "sub_task_type": {
+        "Allocentric": 65,
+        "Egocentric": 119,
+        "Hypothetical": 16
+      },
+      "answer_letter": {
+        "A": 51,
+        "B": 56,
+        "C": 46,
+        "D": 47
+      },
+      "answer_by_sub_task": {
+        "Allocentric": {
+          "A": 17,
+          "B": 17,
+          "C": 15,
+          "D": 16
+        },
+        "Egocentric": {
+          "A": 30,
+          "B": 36,
+          "C": 26,
+          "D": 27
+        },
+        "Hypothetical": {
+          "A": 4,
+          "B": 3,
+          "C": 5,
+          "D": 4
+        }
+      },
+      "option_count": {
+        "4": 200
+      },
+      "image_pixels": {
+        "median": 287360,
+        "max": 10036224
+      }
+    },
+    "test": {
+      "n": 561,
+      "images": 561,
+      "sub_task_type": {
+        "Allocentric": 376,
+        "Egocentric": 102,
+        "Hypothetical": 83
+      },
+      "answer_letter": {
+        "A": 160,
+        "B": 137,
+        "C": 143,
+        "D": 121
+      },
+      "answer_by_sub_task": {
+        "Allocentric": {
+          "A": 103,
+          "B": 96,
+          "C": 93,
+          "D": 84
+        },
+        "Egocentric": {
+          "A": 37,
+          "B": 22,
+          "C": 28,
+          "D": 15
+        },
+        "Hypothetical": {
+          "A": 20,
+          "B": 19,
+          "C": 22,
+          "D": 22
+        }
+      },
+      "option_count": {
+        "4": 561
+      },
+      "image_pixels": {
+        "median": 960000,
+        "max": 15305648
+      }
+    }
+  },
+  "cell_targets": {
+    "Allocentric|A": 17,
+    "Allocentric|B": 17,
+    "Allocentric|C": 15,
+    "Allocentric|D": 16,
+    "Egocentric|A": 30,
+    "Egocentric|B": 36,
+    "Egocentric|C": 26,
+    "Egocentric|D": 27,
+    "Hypothetical|A": 4,
+    "Hypothetical|B": 3,
+    "Hypothetical|C": 5,
+    "Hypothetical|D": 4
+  },
+  "split_rule": "One QA pair per image; no image (by sha256) shared between SEARCH, VALIDATION\n    or the official TEST. Within each (sub_task, answer) cell, QA pairs are visited in\n    a seeded random order; the first eligible pairs fill SEARCH, the next VALIDATION.\n    Remaining train records are left unused. Per (sub_task_type, answer) counts for a 200-item split: sub-task shares follow\n    the official train distribution; answer positions follow it within each sub-task.",
+  "split_seed": 20261005,
+  "unused_train_records": 2679,
+  "split_jsonl_sha256": {
+    "search": "5471632b46ead0ba2d4374176e0ebb1b0524e3557ea85b39fc6c58f98ed3ae07",
+    "validation": "75872ffbe111285f546bae55f696996b48a04bf1e90edb2f0c82222b496e2bb1",
+    "test": "8c681c36675cf2fd9837e522a5e16e694e707b8f9f9b45f26dca3352652f5194"
+  },
+  "source_metadata": "OmniSpatial records carry no image-source field; stratification uses sub_task_type and answer position only.",
+  "images_committed": false,
+  "model_outputs_used": false
+}
