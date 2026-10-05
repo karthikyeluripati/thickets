@@ -1,0 +1,69 @@
+{
+  "phase": "committee",
+  "shard": 5,
+  "status": "complete",
+  "source": {
+    "commit": "0762d7666e3f0e9dbe30e09fb64497f6489f874f",
+    "working_tree_status": "?? results/perspective-taking-n5000-20261004/committee-test-shard-00.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-00/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-01.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-01/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-02.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-02/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-03.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-03/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-04.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-04/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-05.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-05/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-06.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-06/\n?? results/perspective-taking-n5000-20261004/committee-test-shard-07.log\n?? results/perspective-taking-n5000-20261004/committee-test-shard-07/"
+  },
+  "command": [
+    "/usr/local/bin/python",
+    "/workspace/thickets-pt/src/thicket_runtime/perspective_runtime.py",
+    "--phase",
+    "committee",
+    "--shard",
+    "5",
+    "--locks",
+    "results/perspective-taking-n5000-20261004/locks",
+    "--images",
+    "/workspace/pt-images",
+    "--upstream-root",
+    "/workspace/RandOpt-visual",
+    "--out",
+    "results/perspective-taking-n5000-20261004/committee-test-shard-05"
+  ],
+  "started_utc": "2026-10-05T12:38:50.009462+00:00",
+  "protocol_sha256": "f342045e9d60b507593d6ffd603d77c6137797b16cb0f938c3c7cf4c8d7a4b41",
+  "dataset_proof": {
+    "commit": "faf8f54b8c91639b63de8c68412f10d2154531f9",
+    "files_verified": 5,
+    "manifest_sha256": "3a85579544e1e309de38629ff49c72f6bfb7cf268604b740c658da85093b9319"
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "model_revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+  "upstream": {
+    "commit": "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
+    "git_blobs": {
+      "utils/worker_extn.py": "3b672d6636364845474be02e01cce764b6e18af3",
+      "core/engine.py": "6603321e9c89f67e0b922313c1bc2d0581d7beec",
+      "randopt.py": "134c627940b54516177614108d77aa59a0b5fc91"
+    }
+  },
+  "versions": {
+    "torch": "2.8.0+cu128",
+    "vllm": "0.11.0",
+    "ray": "2.49.2",
+    "transformers": "4.57.1",
+    "numpy": "2.1.2",
+    "Pillow": "12.3.0",
+    "tokenizers": "0.22.2",
+    "huggingface-hub": "0.36.2"
+  },
+  "lock_commits": {
+    "baseline": "833e4458eba4878b51a6b3de1feef7c57bf03b5c 2026-10-04T18:05:31+00:00",
+    "search": "220ba162caccbd01a6cd8b00da9104ab9d80b39e 2026-10-05T03:55:03+00:00",
+    "committee": "b43e47fd9d0ea69c22f5805f09610491d7319f47 2026-10-05T08:29:28-04:00"
+  },
+  "evaluation_sets": {
+    "test": {
+      "examples": 561,
+      "population_sha256": "2cae195c1a05668945e55de7fdcf256e836408beff87fa83b7673aacf9712d7f"
+    }
+  },
+  "planned_candidates": 5,
+  "completed_candidates": 5,
+  "host": "b2f007a61f4c",
+  "cuda_visible_devices": "5",
+  "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+  "ended_utc": "2026-10-05T12:53:34.494001+00:00"
+}

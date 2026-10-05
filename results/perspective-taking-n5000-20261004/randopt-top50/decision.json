@@ -1,0 +1,20 @@
+{
+  "standalone_expert": "NO_GO_STANDALONE_PERSPECTIVE_EXPERT",
+  "standalone_source": "previous study decision NO_GO_VISUAL_NEURAL_THICKET_PERSPECTIVE_N5000 (unchanged)",
+  "randopt_ensemble": "NO_GO_RANDOPT_PERSPECTIVE_ENSEMBLE",
+  "rule": "GO_RANDOPT_PERSPECTIVE_ENSEMBLE if the K=50 ensemble TEST accuracy is strictly greater than base TEST accuracy; otherwise NO_GO_RANDOPT_PERSPECTIVE_ENSEMBLE. The paired bootstrap 95% CI and exact McNemar test are reported alongside and are not part of the rule. The standalone-expert conclusion is preserved as NO_GO_STANDALONE_PERSPECTIVE_EXPERT.",
+  "top50_gain": 0.0,
+  "top50_paired": {
+    "gain": 0.0,
+    "candidate_only_correct": 7,
+    "base_only_correct": 7,
+    "both_correct": 252,
+    "both_wrong": 295,
+    "paired_bootstrap95": [
+      -0.012477718360071301,
+      0.012477718360071301
+    ],
+    "mcnemar_exact_two_sided_p": 1.0,
+    "discordant_pairs": 14
+  }
+}

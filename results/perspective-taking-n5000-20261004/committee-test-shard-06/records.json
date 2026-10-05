@@ -1,0 +1,92 @@
+[
+  {
+    "candidate": {
+      "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+      "seed": 9503283,
+      "sigma": 0.002,
+      "rng": "randopt-per-tensor-v1",
+      "sign": 1,
+      "candidate_id": "22a7ea37d049fb3796d1d62374d85880b5088534ee983f628589c0cb8e859d91",
+      "parameter_mask": "all-parameters-including-vision",
+      "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+    },
+    "candidate_state_id": "d13354af3ea891f887f42c80edde1430ae41b01176adcb9b88b95df881f36964",
+    "split": "test",
+    "examples": 561,
+    "correct_count": 249,
+    "invalid_count": 0,
+    "output_identity": "512e0f89969f552dc97f31b87254fe26b22985cc6b9ca55a89c3a7f56abd8547"
+  },
+  {
+    "candidate": {
+      "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+      "seed": 9501749,
+      "sigma": 0.0005,
+      "rng": "randopt-per-tensor-v1",
+      "sign": 1,
+      "candidate_id": "4e30a3bcc17e9edc303ed428dbfe87c15a0954355aafdbc1a75b57288f536f94",
+      "parameter_mask": "all-parameters-including-vision",
+      "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+    },
+    "candidate_state_id": "22a905cf064f5f8dac12c45bc22f5329fbc9d4fc5cab431c1c0d7c0b5c8e462e",
+    "split": "test",
+    "examples": 561,
+    "correct_count": 258,
+    "invalid_count": 0,
+    "output_identity": "367d493fb7f95e42da8a65ca634e689b63f97953a0f9d586d679976909a8ce83"
+  },
+  {
+    "candidate": {
+      "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+      "seed": 9503839,
+      "sigma": 0.002,
+      "rng": "randopt-per-tensor-v1",
+      "sign": 1,
+      "candidate_id": "093e6cb7dc80f6e32b4ed838f8687ccde8f6fb62a0e958c2f23a525672bea722",
+      "parameter_mask": "all-parameters-including-vision",
+      "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+    },
+    "candidate_state_id": "89e0d98feec30811c74b6ed067dbed76372c47ee4e4f3db1448ce35926648ece",
+    "split": "test",
+    "examples": 561,
+    "correct_count": 253,
+    "invalid_count": 0,
+    "output_identity": "d5148d5c5b4656c3584a27dfc223bcfb3941aa4d62f9ea38864b3707b2e2747b"
+  },
+  {
+    "candidate": {
+      "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+      "seed": 9500909,
+      "sigma": 0.0005,
+      "rng": "randopt-per-tensor-v1",
+      "sign": 1,
+      "candidate_id": "f686a886b7f72c7d003d6a650ffd17acce3c4aa805af76248dd3d1e642265184",
+      "parameter_mask": "all-parameters-including-vision",
+      "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+    },
+    "candidate_state_id": "dacd858b2a1ea1e882288b54fdae5f9fda42779dd0d45c3378d1eb80e9545aa4",
+    "split": "test",
+    "examples": 561,
+    "correct_count": 260,
+    "invalid_count": 0,
+    "output_identity": "1e19a4e08d0ca0dc3a2900510e2b290bf8ca9d381f245f7d789d01dbfaa16908"
+  },
+  {
+    "candidate": {
+      "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+      "seed": 9504189,
+      "sigma": 0.0005,
+      "rng": "randopt-per-tensor-v1",
+      "sign": 1,
+      "candidate_id": "971fb9ab8ffe5a41ebb7393ce6f2735aa9ef9224dfc0eb3f76f24e796a432935",
+      "parameter_mask": "all-parameters-including-vision",
+      "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+    },
+    "candidate_state_id": "797f4d49b557d4ac4362ab1c0490034f84faee20e940c6b5f6f73a7167c49685",
+    "split": "test",
+    "examples": 561,
+    "correct_count": 259,
+    "invalid_count": 0,
+    "output_identity": "f119188280a4578bfee03668738738706fe9ac27b2eabf81a688d0ab07dce52d"
+  }
+]
