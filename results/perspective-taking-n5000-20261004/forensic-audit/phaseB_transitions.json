@@ -1,0 +1,3313 @@
+{
+ "search": {
+  "overall": {
+   "both_wrong": 118,
+   "both_correct": 67,
+   "base_wrong->cand_correct": 10,
+   "base_correct->cand_wrong": 5
+  },
+  "by_subtask": {
+   "Allocentric": {
+    "both_wrong": 42,
+    "both_correct": 21,
+    "base_correct->cand_wrong": 1,
+    "base_wrong->cand_correct": 1,
+    "net": 0,
+    "n": 65
+   },
+   "Egocentric": {
+    "both_wrong": 64,
+    "both_correct": 42,
+    "base_wrong->cand_correct": 9,
+    "base_correct->cand_wrong": 4,
+    "net": 5,
+    "n": 119
+   },
+   "Hypothetical": {
+    "both_wrong": 12,
+    "both_correct": 4,
+    "net": 0,
+    "n": 16
+   }
+  },
+  "by_true_answer": {
+   "A": {
+    "both_correct": 15,
+    "both_wrong": 33,
+    "base_wrong->cand_correct": 2,
+    "base_correct->cand_wrong": 1,
+    "net": 1,
+    "n": 51
+   },
+   "B": {
+    "both_correct": 23,
+    "both_wrong": 29,
+    "base_wrong->cand_correct": 1,
+    "base_correct->cand_wrong": 3,
+    "net": -2,
+    "n": 56
+   },
+   "C": {
+    "both_wrong": 25,
+    "both_correct": 18,
+    "base_wrong->cand_correct": 2,
+    "base_correct->cand_wrong": 1,
+    "net": 1,
+    "n": 46
+   },
+   "D": {
+    "both_wrong": 31,
+    "both_correct": 11,
+    "base_wrong->cand_correct": 5,
+    "net": 5,
+    "n": 47
+   }
+  },
+  "by_base_prediction": {
+   "A": {
+    "both_wrong": 24,
+    "both_correct": 15,
+    "base_correct->cand_wrong": 1,
+    "base_wrong->cand_correct": 1,
+    "net": 0,
+    "n": 41
+   },
+   "B": {
+    "both_wrong": 39,
+    "both_correct": 23,
+    "base_wrong->cand_correct": 5,
+    "base_correct->cand_wrong": 3,
+    "net": 2,
+    "n": 70
+   },
+   "C": {
+    "both_wrong": 31,
+    "both_correct": 18,
+    "base_wrong->cand_correct": 4,
+    "base_correct->cand_wrong": 1,
+    "net": 3,
+    "n": 54
+   },
+   "D": {
+    "both_wrong": 24,
+    "both_correct": 11,
+    "net": 0,
+    "n": 35
+   }
+  },
+  "by_candidate_prediction": {
+   "A": {
+    "both_wrong": 25,
+    "both_correct": 15,
+    "base_wrong->cand_correct": 2,
+    "base_correct->cand_wrong": 2,
+    "net": 0,
+    "n": 44
+   },
+   "B": {
+    "both_wrong": 33,
+    "both_correct": 23,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 57
+   },
+   "C": {
+    "both_wrong": 37,
+    "both_correct": 18,
+    "base_wrong->cand_correct": 2,
+    "base_correct->cand_wrong": 2,
+    "net": 0,
+    "n": 59
+   },
+   "D": {
+    "both_wrong": 23,
+    "both_correct": 11,
+    "base_wrong->cand_correct": 5,
+    "base_correct->cand_wrong": 1,
+    "net": 4,
+    "n": 40
+   }
+  },
+  "by_image_id_bin": {
+   "0000-0099": {
+    "both_correct": 2,
+    "both_wrong": 3,
+    "net": 0,
+    "n": 5
+   },
+   "0100-0199": {
+    "both_wrong": 5,
+    "both_correct": 2,
+    "net": 0,
+    "n": 7
+   },
+   "0200-0299": {
+    "both_wrong": 6,
+    "both_correct": 4,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 11
+   },
+   "0300-0399": {
+    "both_wrong": 12,
+    "base_wrong->cand_correct": 1,
+    "both_correct": 5,
+    "net": 1,
+    "n": 18
+   },
+   "0400-0499": {
+    "both_wrong": 11,
+    "both_correct": 6,
+    "base_wrong->cand_correct": 2,
+    "net": 2,
+    "n": 19
+   },
+   "0500-0599": {
+    "both_correct": 3,
+    "both_wrong": 10,
+    "net": 0,
+    "n": 13
+   },
+   "0600-0699": {
+    "both_wrong": 14,
+    "both_correct": 4,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 19
+   },
+   "0700-0799": {
+    "both_correct": 4,
+    "both_wrong": 13,
+    "base_correct->cand_wrong": 2,
+    "net": -2,
+    "n": 19
+   },
+   "0800-0899": {
+    "both_correct": 11,
+    "both_wrong": 6,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 18
+   },
+   "0900-0999": {
+    "both_wrong": 13,
+    "both_correct": 7,
+    "base_wrong->cand_correct": 2,
+    "base_correct->cand_wrong": 1,
+    "net": 1,
+    "n": 23
+   },
+   "1000-1099": {
+    "both_wrong": 8,
+    "both_correct": 9,
+    "net": 0,
+    "n": 17
+   },
+   "1100-1199": {
+    "both_correct": 5,
+    "both_wrong": 9,
+    "base_wrong->cand_correct": 2,
+    "net": 2,
+    "n": 16
+   },
+   "1200-1299": {
+    "both_wrong": 8,
+    "base_correct->cand_wrong": 1,
+    "both_correct": 5,
+    "base_wrong->cand_correct": 1,
+    "net": 0,
+    "n": 15
+   }
+  },
+  "by_question_template": {
+   "as the baby in the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the bird in the": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "as the boy holding the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the boy in the": {
+    "both_correct": 1,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 2
+   },
+   "as the boy wearing a": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the cat in the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "as the girl in the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "as the man in the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "as the man wearing black": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "considering the camera s perspective": {
+    "both_wrong": 7,
+    "both_correct": 4,
+    "net": 0,
+    "n": 11
+   },
+   "from a woman s perspective": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the perspective of a": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the perspective of the": {
+    "both_wrong": 27,
+    "both_correct": 3,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 31
+   },
+   "from the perspective of this": {
+    "both_wrong": 4,
+    "both_correct": 1,
+    "net": 0,
+    "n": 5
+   },
+   "from the woman s perspective": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from this girl s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from this man s perspective": {
+    "both_correct": 1,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 2
+   },
+   "from this woman s perspective": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "if you stand at cabinet": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at door": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at bed looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at box looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at refrigerator looking": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at television looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at window looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine you re the boy": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "imagine you re the giraffe": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "imagine you re the little": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "imagine you re the man": {
+    "both_correct": 5,
+    "both_wrong": 3,
+    "net": 0,
+    "n": 8
+   },
+   "imagine you re the woman": {
+    "both_wrong": 1,
+    "both_correct": 3,
+    "net": 0,
+    "n": 4
+   },
+   "picture yourself as the baby": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "picture yourself as the man": {
+    "base_correct->cand_wrong": 1,
+    "both_wrong": 3,
+    "both_correct": 1,
+    "net": -1,
+    "n": 5
+   },
+   "picture yourself as the woman": {
+    "both_wrong": 2,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 3
+   },
+   "standing at sofa gazing at": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "standing at toilet gazing at": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "standing at window gazing at": {
+    "both_wrong": 3,
+    "net": 0,
+    "n": 3
+   },
+   "suppose you are in the": {
+    "both_correct": 10,
+    "base_wrong->cand_correct": 4,
+    "both_wrong": 4,
+    "base_correct->cand_wrong": 1,
+    "net": 3,
+    "n": 19
+   },
+   "taking the camera lens as": {
+    "both_wrong": 13,
+    "both_correct": 7,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 21
+   },
+   "taking the camera s viewpoint": {
+    "both_correct": 5,
+    "both_wrong": 14,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 20
+   },
+   "when positioned at bookshelf facing": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "when positioned at cabinet facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "when positioned at window facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does the man": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "which hand does the woman": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does this boy": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does this man": {
+    "both_correct": 2,
+    "both_wrong": 2,
+    "net": 0,
+    "n": 4
+   },
+   "which hand is the boy": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the man": {
+    "both_wrong": 1,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 2
+   },
+   "which hand is the person": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the woman": {
+    "both_correct": 2,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 3
+   },
+   "with the camera s viewpoint": {
+    "both_correct": 5,
+    "both_wrong": 8,
+    "net": 0,
+    "n": 13
+   }
+  },
+  "flow_base_pred_to_candidate_pred": {
+   "A->A": 37,
+   "B->B": 54,
+   "D->D": 31,
+   "C->C": 47,
+   "C->D": 5,
+   "C->A": 1,
+   "B->C": 8,
+   "D->B": 2,
+   "B->A": 6,
+   "B->D": 2,
+   "A->C": 2,
+   "A->D": 2,
+   "D->C": 2,
+   "C->B": 1
+  },
+  "gains_by_flow": {
+   "C->D (gold D)": 3,
+   "B->C (gold C)": 2,
+   "B->A (gold A)": 2,
+   "A->D (gold D)": 1,
+   "C->B (gold B)": 1,
+   "B->D (gold D)": 1
+  },
+  "losses_by_flow": {
+   "C->D (gold C)": 1,
+   "A->C (gold A)": 1,
+   "B->A (gold B)": 2,
+   "B->C (gold B)": 1
+  }
+ },
+ "validation": {
+  "overall": {
+   "both_wrong": 101,
+   "base_wrong->cand_correct": 20,
+   "both_correct": 75,
+   "base_correct->cand_wrong": 4
+  },
+  "by_subtask": {
+   "Allocentric": {
+    "both_wrong": 43,
+    "both_correct": 17,
+    "base_correct->cand_wrong": 3,
+    "base_wrong->cand_correct": 2,
+    "net": -1,
+    "n": 65
+   },
+   "Egocentric": {
+    "both_wrong": 48,
+    "base_wrong->cand_correct": 15,
+    "both_correct": 55,
+    "base_correct->cand_wrong": 1,
+    "net": 14,
+    "n": 119
+   },
+   "Hypothetical": {
+    "both_wrong": 10,
+    "base_wrong->cand_correct": 3,
+    "both_correct": 3,
+    "net": 3,
+    "n": 16
+   }
+  },
+  "by_true_answer": {
+   "A": {
+    "base_wrong->cand_correct": 8,
+    "base_correct->cand_wrong": 2,
+    "both_wrong": 27,
+    "both_correct": 14,
+    "net": 6,
+    "n": 51
+   },
+   "B": {
+    "both_wrong": 25,
+    "both_correct": 27,
+    "base_correct->cand_wrong": 2,
+    "base_wrong->cand_correct": 2,
+    "net": 0,
+    "n": 56
+   },
+   "C": {
+    "both_wrong": 19,
+    "both_correct": 21,
+    "base_wrong->cand_correct": 6,
+    "net": 6,
+    "n": 46
+   },
+   "D": {
+    "both_wrong": 30,
+    "both_correct": 13,
+    "base_wrong->cand_correct": 4,
+    "net": 4,
+    "n": 47
+   }
+  },
+  "by_base_prediction": {
+   "A": {
+    "both_wrong": 15,
+    "base_correct->cand_wrong": 2,
+    "both_correct": 14,
+    "base_wrong->cand_correct": 2,
+    "net": 0,
+    "n": 33
+   },
+   "B": {
+    "base_wrong->cand_correct": 9,
+    "both_wrong": 35,
+    "both_correct": 27,
+    "base_correct->cand_wrong": 2,
+    "net": 7,
+    "n": 73
+   },
+   "C": {
+    "both_wrong": 31,
+    "base_wrong->cand_correct": 6,
+    "both_correct": 21,
+    "net": 6,
+    "n": 58
+   },
+   "D": {
+    "both_wrong": 20,
+    "both_correct": 13,
+    "base_wrong->cand_correct": 3,
+    "net": 3,
+    "n": 36
+   }
+  },
+  "by_candidate_prediction": {
+   "A": {
+    "both_wrong": 13,
+    "base_wrong->cand_correct": 8,
+    "both_correct": 14,
+    "base_correct->cand_wrong": 1,
+    "net": 7,
+    "n": 36
+   },
+   "B": {
+    "both_wrong": 31,
+    "both_correct": 27,
+    "base_correct->cand_wrong": 2,
+    "base_wrong->cand_correct": 2,
+    "net": 0,
+    "n": 62
+   },
+   "C": {
+    "both_wrong": 36,
+    "both_correct": 21,
+    "base_wrong->cand_correct": 6,
+    "base_correct->cand_wrong": 1,
+    "net": 5,
+    "n": 64
+   },
+   "D": {
+    "both_wrong": 21,
+    "both_correct": 13,
+    "base_wrong->cand_correct": 4,
+    "net": 4,
+    "n": 38
+   }
+  },
+  "by_image_id_bin": {
+   "0000-0099": {
+    "both_wrong": 3,
+    "base_wrong->cand_correct": 2,
+    "net": 2,
+    "n": 5
+   },
+   "0100-0199": {
+    "both_wrong": 3,
+    "base_wrong->cand_correct": 1,
+    "both_correct": 3,
+    "net": 1,
+    "n": 7
+   },
+   "0200-0299": {
+    "both_wrong": 9,
+    "both_correct": 6,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 16
+   },
+   "0300-0399": {
+    "both_correct": 6,
+    "both_wrong": 5,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 12
+   },
+   "0400-0499": {
+    "both_wrong": 11,
+    "base_wrong->cand_correct": 2,
+    "both_correct": 8,
+    "base_correct->cand_wrong": 1,
+    "net": 1,
+    "n": 22
+   },
+   "0500-0599": {
+    "both_wrong": 9,
+    "both_correct": 7,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 17
+   },
+   "0600-0699": {
+    "both_correct": 8,
+    "base_wrong->cand_correct": 2,
+    "both_wrong": 7,
+    "net": 2,
+    "n": 17
+   },
+   "0700-0799": {
+    "both_wrong": 9,
+    "both_correct": 6,
+    "base_wrong->cand_correct": 3,
+    "net": 3,
+    "n": 18
+   },
+   "0800-0899": {
+    "base_wrong->cand_correct": 2,
+    "both_wrong": 13,
+    "both_correct": 4,
+    "net": 2,
+    "n": 19
+   },
+   "0900-0999": {
+    "both_correct": 10,
+    "both_wrong": 5,
+    "net": 0,
+    "n": 15
+   },
+   "1000-1099": {
+    "both_wrong": 15,
+    "base_wrong->cand_correct": 3,
+    "both_correct": 6,
+    "base_correct->cand_wrong": 1,
+    "net": 2,
+    "n": 25
+   },
+   "1100-1199": {
+    "both_wrong": 11,
+    "both_correct": 4,
+    "base_wrong->cand_correct": 2,
+    "base_correct->cand_wrong": 1,
+    "net": 1,
+    "n": 18
+   },
+   "1200-1299": {
+    "both_correct": 7,
+    "base_wrong->cand_correct": 1,
+    "both_wrong": 1,
+    "net": 1,
+    "n": 9
+   }
+  },
+  "by_question_template": {
+   "as the bear in the": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "as the black bird in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the boy in the": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "as the girl in black": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the little boy in": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the man carrying the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the man holding a": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the man in red": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "as the man in the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "as the man wearing the": {
+    "base_wrong->cand_correct": 2,
+    "net": 2,
+    "n": 2
+   },
+   "as the woman in blue": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "as the woman in the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "considering the camera s perspective": {
+    "both_wrong": 13,
+    "both_correct": 6,
+    "net": 0,
+    "n": 19
+   },
+   "from a woman s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the boy s perspective": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the dog s perspective": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the man s perspective": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the perspective of a": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from the perspective of the": {
+    "both_wrong": 9,
+    "both_correct": 8,
+    "net": 0,
+    "n": 17
+   },
+   "from the perspective of this": {
+    "both_wrong": 3,
+    "both_correct": 1,
+    "net": 0,
+    "n": 4
+   },
+   "from this girl s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from this man s perspective": {
+    "both_wrong": 3,
+    "both_correct": 1,
+    "net": 0,
+    "n": 4
+   },
+   "from this woman s perspective": {
+    "both_wrong": 7,
+    "net": 0,
+    "n": 7
+   },
+   "if you stand at bookshelf": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at chair": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at desk": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at lamp": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at picture": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at refrigerator": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at sofa": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand at toilet": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at bathtub looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine standing at desk looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine you re the elephant": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine you re the giraffe": {
+    "both_wrong": 2,
+    "both_correct": 1,
+    "net": 0,
+    "n": 3
+   },
+   "imagine you re the girl": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "imagine you re the man": {
+    "both_wrong": 3,
+    "both_correct": 5,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 9
+   },
+   "imagine you re the woman": {
+    "both_correct": 2,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 3
+   },
+   "picture yourself as the boy": {
+    "both_correct": 3,
+    "net": 0,
+    "n": 3
+   },
+   "picture yourself as the dog": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "picture yourself as the man": {
+    "both_correct": 7,
+    "both_wrong": 2,
+    "net": 0,
+    "n": 9
+   },
+   "picture yourself as the rooster": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "picture yourself as the sheep": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "picture yourself as the woman": {
+    "base_wrong->cand_correct": 2,
+    "both_wrong": 3,
+    "both_correct": 1,
+    "net": 2,
+    "n": 6
+   },
+   "standing at desk gazing at": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "standing at window gazing at": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "suppose you are in the": {
+    "base_wrong->cand_correct": 6,
+    "both_correct": 5,
+    "both_wrong": 3,
+    "net": 6,
+    "n": 14
+   },
+   "taking the camera lens as": {
+    "both_wrong": 14,
+    "base_correct->cand_wrong": 3,
+    "both_correct": 4,
+    "net": -3,
+    "n": 21
+   },
+   "taking the camera s viewpoint": {
+    "both_wrong": 9,
+    "base_wrong->cand_correct": 1,
+    "both_correct": 2,
+    "net": 1,
+    "n": 12
+   },
+   "when positioned at shelves facing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "when positioned at shower curtain": {
+    "base_wrong->cand_correct": 1,
+    "both_wrong": 1,
+    "net": 1,
+    "n": 2
+   },
+   "when positioned at window facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does the man": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does the woman": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does this boy": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "which hand does this girl": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand does this person": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the boy": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the man": {
+    "both_correct": 2,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 3
+   },
+   "which hand is the woman": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is this girl": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "with the camera s viewpoint": {
+    "both_wrong": 7,
+    "both_correct": 5,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 13
+   }
+  },
+  "flow_base_pred_to_candidate_pred": {
+   "C->C": 51,
+   "A->A": 26,
+   "B->A": 7,
+   "B->B": 57,
+   "C->A": 3,
+   "A->B": 3,
+   "D->D": 30,
+   "B->C": 7,
+   "D->C": 5,
+   "A->D": 3,
+   "C->D": 3,
+   "D->B": 1,
+   "C->B": 1,
+   "B->D": 2,
+   "A->C": 1
+  },
+  "gains_by_flow": {
+   "B->A (gold A)": 5,
+   "C->A (gold A)": 3,
+   "B->C (gold C)": 3,
+   "D->C (gold C)": 3,
+   "A->B (gold B)": 1,
+   "C->D (gold D)": 2,
+   "C->B (gold B)": 1,
+   "A->D (gold D)": 1,
+   "B->D (gold D)": 1
+  },
+  "losses_by_flow": {
+   "A->B (gold A)": 2,
+   "B->A (gold B)": 1,
+   "B->C (gold B)": 1
+  }
+ },
+ "test": {
+  "overall": {
+   "both_wrong": 279,
+   "both_correct": 221,
+   "base_wrong->cand_correct": 23,
+   "base_correct->cand_wrong": 38
+  },
+  "by_subtask": {
+   "Allocentric": {
+    "both_wrong": 222,
+    "both_correct": 114,
+    "base_wrong->cand_correct": 13,
+    "base_correct->cand_wrong": 27,
+    "net": -14,
+    "n": 376
+   },
+   "Egocentric": {
+    "both_wrong": 20,
+    "both_correct": 71,
+    "base_wrong->cand_correct": 3,
+    "base_correct->cand_wrong": 8,
+    "net": -5,
+    "n": 102
+   },
+   "Hypothetical": {
+    "both_correct": 36,
+    "both_wrong": 37,
+    "base_wrong->cand_correct": 7,
+    "base_correct->cand_wrong": 3,
+    "net": 4,
+    "n": 83
+   }
+  },
+  "by_true_answer": {
+   "A": {
+    "both_wrong": 76,
+    "both_correct": 66,
+    "base_correct->cand_wrong": 13,
+    "base_wrong->cand_correct": 5,
+    "net": -8,
+    "n": 160
+   },
+   "B": {
+    "both_wrong": 67,
+    "both_correct": 57,
+    "base_correct->cand_wrong": 11,
+    "base_wrong->cand_correct": 2,
+    "net": -9,
+    "n": 137
+   },
+   "C": {
+    "both_wrong": 69,
+    "base_wrong->cand_correct": 8,
+    "both_correct": 59,
+    "base_correct->cand_wrong": 7,
+    "net": 1,
+    "n": 143
+   },
+   "D": {
+    "both_wrong": 67,
+    "base_wrong->cand_correct": 8,
+    "base_correct->cand_wrong": 7,
+    "both_correct": 39,
+    "net": 1,
+    "n": 121
+   }
+  },
+  "by_base_prediction": {
+   "A": {
+    "both_wrong": 50,
+    "both_correct": 66,
+    "base_wrong->cand_correct": 5,
+    "base_correct->cand_wrong": 13,
+    "net": -8,
+    "n": 134
+   },
+   "B": {
+    "both_correct": 57,
+    "both_wrong": 83,
+    "base_correct->cand_wrong": 11,
+    "base_wrong->cand_correct": 10,
+    "net": -1,
+    "n": 161
+   },
+   "C": {
+    "both_wrong": 84,
+    "base_wrong->cand_correct": 5,
+    "both_correct": 59,
+    "base_correct->cand_wrong": 7,
+    "net": -2,
+    "n": 155
+   },
+   "D": {
+    "both_wrong": 62,
+    "base_correct->cand_wrong": 7,
+    "both_correct": 39,
+    "base_wrong->cand_correct": 3,
+    "net": -4,
+    "n": 111
+   }
+  },
+  "by_candidate_prediction": {
+   "A": {
+    "both_wrong": 45,
+    "both_correct": 66,
+    "base_correct->cand_wrong": 9,
+    "base_wrong->cand_correct": 5,
+    "net": -4,
+    "n": 125
+   },
+   "B": {
+    "both_correct": 57,
+    "both_wrong": 78,
+    "base_correct->cand_wrong": 11,
+    "base_wrong->cand_correct": 2,
+    "net": -9,
+    "n": 148
+   },
+   "C": {
+    "both_wrong": 93,
+    "base_wrong->cand_correct": 8,
+    "both_correct": 59,
+    "base_correct->cand_wrong": 8,
+    "net": 0,
+    "n": 168
+   },
+   "D": {
+    "both_wrong": 63,
+    "base_wrong->cand_correct": 8,
+    "base_correct->cand_wrong": 10,
+    "both_correct": 39,
+    "net": -2,
+    "n": 120
+   }
+  },
+  "by_image_id_bin": {
+   "0000-0099": {
+    "both_wrong": 60,
+    "base_wrong->cand_correct": 5,
+    "both_correct": 31,
+    "base_correct->cand_wrong": 4,
+    "net": 1,
+    "n": 100
+   },
+   "0100-0199": {
+    "both_wrong": 62,
+    "both_correct": 27,
+    "base_wrong->cand_correct": 3,
+    "base_correct->cand_wrong": 8,
+    "net": -5,
+    "n": 100
+   },
+   "0200-0299": {
+    "both_wrong": 63,
+    "both_correct": 28,
+    "base_wrong->cand_correct": 5,
+    "base_correct->cand_wrong": 4,
+    "net": 1,
+    "n": 100
+   },
+   "0300-0399": {
+    "both_wrong": 54,
+    "base_wrong->cand_correct": 7,
+    "both_correct": 28,
+    "base_correct->cand_wrong": 11,
+    "net": -4,
+    "n": 100
+   },
+   "0400-0499": {
+    "both_wrong": 30,
+    "both_correct": 62,
+    "base_correct->cand_wrong": 5,
+    "base_wrong->cand_correct": 3,
+    "net": -2,
+    "n": 100
+   },
+   "0500-0599": {
+    "both_correct": 45,
+    "both_wrong": 10,
+    "base_correct->cand_wrong": 6,
+    "net": -6,
+    "n": 61
+   }
+  },
+  "by_question_template": {
+   "": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "according to the boy in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "according to the man in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "according to the number player": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "according to the robot s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "after taking the elevator from": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "assuming the antenna end is": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "can the farthest bird see": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "during surgery where is the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "facing the pool where is": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "facing the stage while standing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "for the person wearing the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from athlete number s viewpoint": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from athlete s viewpoint how": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from bull s perspective how": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from contestant s perspective where": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from its viewpoint should the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from player number s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from shenzhen airlines perspective how": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the adult capybara s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the adult man s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the adult meerkat s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the athlete wearing yellow": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the audience s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the baby capybara standing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the baby giraffe s": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the ball holder s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the basketball hoop s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the bed s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the bird closest to": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the bird inside the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the bird s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the bird standing at": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the black cat s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the black goldfish s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the black train s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the black uniformed player": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from the blackboard outside the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the blond athlete s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the blonde woman s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the blue inflatable boat": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the blue mouse s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the boy in yellow": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the boy s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the boy sitting on": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the brown and white": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the brown dog s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the camel s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the cat closest to": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the cat s perspective": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the cheetah that is": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the child feeding the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the closed mouth white": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the clownfish facing sideways": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the coffin s point": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the competitor wearing a": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the computer s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the cow that is": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the dancer s perspective": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the dark brown dog": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the dark green bird": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the deer facing the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the deer looking to": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the deer standing in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the diver s perspective": {
+    "both_wrong": 2,
+    "both_correct": 1,
+    "net": 0,
+    "n": 3
+   },
+   "from the diver s point": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the divers perspective which": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the dog turning its": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the dunker s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the dunker s viewpoint": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the elephant s perspective": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the exploration robot s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the fawn s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the ferret closest to": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the fighter jet s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the fish closest to": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the forklift s perspective": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the girl s point": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the gray colored person": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the gray fox facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the gymnast in the": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the gymnast s perspective": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the howling black wolf": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the hyena s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the kangaroo standing on": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the large cow s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the large deer s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the lion cub facing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the little girl s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the lizard s perspective": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the long haired player": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the lying monkey s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the lynx turning its": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the male gymnast s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the man in black": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the man in blue": {
+    "base_wrong->cand_correct": 1,
+    "both_wrong": 1,
+    "net": 1,
+    "n": 2
+   },
+   "from the man in gray": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the man in the": {
+    "both_wrong": 3,
+    "both_correct": 2,
+    "net": 0,
+    "n": 5
+   },
+   "from the man in white": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from the man playing guitar": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the man sitting at": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the man wearing the": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the man with glasses": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the meerkat turning its": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the mirror s perspective": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the mirror s point": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the monkey eating red": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the monkey facing the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the monkey lying on": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the monkey under the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the number player in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the number white uniformed": {
+    "both_correct": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the open mouthed chimpanzee": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the open mouthed penguin": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the orange and black": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the otter holding a": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the panda s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the patient s perspective": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the penguin whose head": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the person in the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from the person on the": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the person standing at": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the person standing in": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the person wearing white": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the person with red": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the perspective of player": {
+    "base_correct->cand_wrong": 2,
+    "net": -2,
+    "n": 2
+   },
+   "from the perspective of the": {
+    "both_wrong": 14,
+    "base_correct->cand_wrong": 3,
+    "both_correct": 2,
+    "net": -3,
+    "n": 19
+   },
+   "from the photographer s perspective": {
+    "base_correct->cand_wrong": 4,
+    "both_wrong": 10,
+    "both_correct": 25,
+    "net": -4,
+    "n": 39
+   },
+   "from the pink boat s": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the player in black": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the player in the": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from the player s point": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the projection wall s": {
+    "both_correct": 1,
+    "both_wrong": 2,
+    "net": 0,
+    "n": 3
+   },
+   "from the rabbit s perspective": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the red athlete s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the red car s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the red goldfish s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the red headed bird": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the red number player": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the red parrot s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the red tailed fish": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the roaring lion s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the robot s perspective": {
+    "both_correct": 5,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 6
+   },
+   "from the robot s viewpoint": {
+    "both_correct": 3,
+    "net": 0,
+    "n": 3
+   },
+   "from the shark s perspective": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the sheep s point": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the short player s": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the shorter athlete s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the skier in the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the skier s perspective": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the sled dog in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the smallest sheep s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the sow s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the squirrel monkey facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the standing dog s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the standpoint of car": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the tank s point": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the teacher s point": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the teddy bear s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the top bird s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the toy blue shark": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the toy tiger s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the turtle s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the tuskless elephant s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the tv on the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the two clownfish at": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the vantage point of": {
+    "both_wrong": 3,
+    "both_correct": 2,
+    "net": 0,
+    "n": 5
+   },
+   "from the view of the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the viewpoint of athlete": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the viewpoint of racer": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the viewpoint of the": {
+    "both_wrong": 2,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 3
+   },
+   "from the white bird in": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "from the white clad athlete": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the white fox facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the white parrot s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the white rabbit s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the white seal s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the whiteboard s vantage": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the wild boar s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the woman in the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "from the woman in white": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "from the woman s perspective": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "from the woman with glasses": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the worker wearing orange": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the yacht s point": {
+    "base_correct->cand_wrong": 1,
+    "both_wrong": 1,
+    "net": -1,
+    "n": 2
+   },
+   "from the yellow monkey s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from the yellow vested referee": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from their own perspective which": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from this gymnast s perspective": {
+    "both_correct": 5,
+    "net": 0,
+    "n": 5
+   },
+   "from this man s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from this woman s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from this woman s viewpoint": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from this worker s perspective": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from turkish airlines point of": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from your position behind the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "from your position on the": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "how can the robot move": {
+    "both_wrong": 1,
+    "both_correct": 2,
+    "net": 0,
+    "n": 3
+   },
+   "how many antelopes are looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many attackers are outside": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many cows have their": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many cranes have their": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many dancers have their": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many deer are facing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many deer have their": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "how many electronic components are": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "how many hot air balloons": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many hyenas are facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many items are there": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many kangaroos are standing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many lions are facing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many lions are to": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many machine balls are": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many meerkats are looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many narwhals have their": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many owl monkeys are": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "how many owls are looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many penguins are diving": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many penguins are facing": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many penguins are looking": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many penguins have their": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "how many people are on": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many people are outside": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many people have the": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "how many pizza that robot": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many polar bear cubs": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many polar bears have": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many rhinos are facing": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "how many robotic arms are": {
+    "both_correct": 3,
+    "net": 0,
+    "n": 3
+   },
+   "how many robots are in": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "how many robots are there": {
+    "both_correct": 5,
+    "both_wrong": 1,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 7
+   },
+   "how many robots are working": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many seals are looking": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many vehicles are on": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many white robot modules": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how many zebras are facing": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "how will the mechanical arm": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if a new item needs": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if all the jars are": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if the robot needs to": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "if the robot wants to": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if the section with a": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are a housekeeping": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are facing the": {
+    "both_correct": 2,
+    "net": 0,
+    "n": 2
+   },
+   "if you are in the": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "if you are lying flat": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are lying on": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are lying with": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are sitting across": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are sitting against": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are sitting in": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you are using the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you enter the classroom": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "if you just entered through": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you just walked in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re about to": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re at the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re conducting where": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re driving the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re facing the": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "if you re getting a": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re in the": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "if you re lying down": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re lying on": {
+    "both_wrong": 5,
+    "both_correct": 2,
+    "net": 0,
+    "n": 7
+   },
+   "if you re on the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re playing the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re riding that": {
+    "both_correct": 2,
+    "net": 0,
+    "n": 2
+   },
+   "if you re seated in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re seated on": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "if you re sitting across": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re sitting against": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re sitting at": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re sitting in": {
+    "both_wrong": 4,
+    "both_correct": 4,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 9
+   },
+   "if you re sitting next": {
+    "both_correct": 1,
+    "base_wrong->cand_correct": 1,
+    "both_wrong": 1,
+    "net": 1,
+    "n": 3
+   },
+   "if you re sitting on": {
+    "both_wrong": 6,
+    "both_correct": 1,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 8
+   },
+   "if you re sitting to": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re standing on": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "if you re standing to": {
+    "both_correct": 1,
+    "both_wrong": 1,
+    "net": 0,
+    "n": 2
+   },
+   "if you re steering the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you re using the": {
+    "both_wrong": 1,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 2
+   },
+   "if you re washing your": {
+    "both_correct": 2,
+    "net": 0,
+    "n": 2
+   },
+   "if you sat in the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you stand on the": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "if you were sitting in": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "if you were sitting on": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the mechanical dog s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the middle robot s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the picture does the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the picture how many": {
+    "both_correct": 3,
+    "both_wrong": 1,
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 5
+   },
+   "in the picture is the": {
+    "both_wrong": 3,
+    "both_correct": 4,
+    "net": 0,
+    "n": 7
+   },
+   "in the picture where is": {
+    "both_correct": 4,
+    "both_wrong": 1,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 6
+   },
+   "in the picture which letter": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the picture which of": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the picture which robot": {
+    "both_correct": 4,
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 5
+   },
+   "in the picture which side": {
+    "both_correct": 14,
+    "base_correct->cand_wrong": 1,
+    "both_wrong": 1,
+    "net": -1,
+    "n": 16
+   },
+   "in the picture which staff": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the picture who is": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in the robot s perspective": {
+    "both_correct": 2,
+    "net": 0,
+    "n": 2
+   },
+   "in this image how many": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in which direction is the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "in which direction is this": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "is the athlete turning to": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "is the mechanical arm closer": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "is the transport robot above": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "judging by the direction of": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "judging from the brown seat": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "judging from the direction of": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "judging from the picture above": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "judging from where the man": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "looking from car no s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "looking from the projection wall": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "looking from the submarine model": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "looking from the white car": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "on which arm of the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from car no where": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the bicycle s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the clock s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the doraemon on": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the game console": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the hanging painting": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the red boat": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the red car": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "seen from the statue s": {
+    "both_wrong": 2,
+    "net": 0,
+    "n": 2
+   },
+   "standing across from the bald": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "standing on the riverbank which": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from the blue aircraft": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from the car s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from the computer s": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from the projection wall": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from where the boot": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from where the faucet": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "thinking from where the forklift": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from where the full": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "thinking from where the white": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "to attach closer should the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "to get higher where will": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "watching the gray kayak from": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "watching the race from the": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where can the car move": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where does the robot need": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is shelf no according": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the bedside lamp": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the electric fan": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the man in": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the man located": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the model plane": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the other inflatable": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the sunken ship": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the white clad": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where is the window from": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where should the mechanical arm": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where will the car move": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where will the robot go": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "where will the robot s": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which arm is the athlete": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which arm is the young": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which arm of the athlete": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which arm of the winner": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which bear is looking toward": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which calf is the athlete": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which direction is the skier": {
+    "both_wrong": 1,
+    "both_correct": 1,
+    "net": 0,
+    "n": 2
+   },
+   "which direction is the teddy": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which dog is farthest from": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which flipper is the seal": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which flipper of the seal": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which foot of the athlete": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is not holding": {
+    "base_correct->cand_wrong": 2,
+    "net": -2,
+    "n": 2
+   },
+   "which hand is the athlete": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the barber": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the fencer": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which hand is the red": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "which hand of the blue": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which is closer to the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which leg of the athlete": {
+    "base_correct->cand_wrong": 1,
+    "both_wrong": 1,
+    "net": -1,
+    "n": 2
+   },
+   "which leg of the person": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which leg of the white": {
+    "base_correct->cand_wrong": 1,
+    "net": -1,
+    "n": 1
+   },
+   "which numbered player is closest": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which person is closer to": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which player is farthest from": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   },
+   "which type of block is": {
+    "both_wrong": 1,
+    "net": 0,
+    "n": 1
+   },
+   "while standing on the red": {
+    "base_wrong->cand_correct": 1,
+    "net": 1,
+    "n": 1
+   },
+   "who is farthest from the": {
+    "both_correct": 1,
+    "net": 0,
+    "n": 1
+   }
+  },
+  "flow_base_pred_to_candidate_pred": {
+   "D->D": 99,
+   "C->C": 141,
+   "B->B": 132,
+   "A->A": 108,
+   "C->D": 6,
+   "B->D": 8,
+   "A->C": 12,
+   "A->D": 7,
+   "B->C": 12,
+   "A->B": 7,
+   "D->A": 3,
+   "D->B": 6,
+   "C->A": 5,
+   "B->A": 9,
+   "D->C": 3,
+   "C->B": 3
+  },
+  "gains_by_flow": {
+   "C->D (gold D)": 2,
+   "A->C (gold C)": 2,
+   "D->C (gold C)": 2,
+   "C->A (gold A)": 2,
+   "B->C (gold C)": 4,
+   "B->D (gold D)": 4,
+   "A->D (gold D)": 2,
+   "C->B (gold B)": 1,
+   "A->B (gold B)": 1,
+   "B->A (gold A)": 2,
+   "D->A (gold A)": 1
+  },
+  "losses_by_flow": {
+   "A->D (gold A)": 4,
+   "A->B (gold A)": 5,
+   "A->C (gold A)": 4,
+   "D->A (gold D)": 1,
+   "B->D (gold B)": 3,
+   "D->B (gold D)": 5,
+   "C->A (gold C)": 3,
+   "B->A (gold B)": 5,
+   "C->D (gold C)": 3,
+   "D->C (gold D)": 1,
+   "B->C (gold B)": 3,
+   "C->B (gold C)": 1
+  }
+ }
+}

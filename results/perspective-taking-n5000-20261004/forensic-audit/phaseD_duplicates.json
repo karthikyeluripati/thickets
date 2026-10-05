@@ -1,0 +1,54 @@
+{
+ "exact_duplicate_qa_records": 0,
+ "duplicate_uids": 0,
+ "search_vs_validation": {
+  "shared_uids": 0,
+  "shared_image_hashes": 0,
+  "shared_question_texts": 26,
+  "shared_normalized_questions": 26,
+  "shared_question_plus_options": 2,
+  "shared_option_sets": 40
+ },
+ "search_vs_test": {
+  "shared_uids": 0,
+  "shared_image_hashes": 0,
+  "shared_question_texts": 0,
+  "shared_normalized_questions": 0,
+  "shared_question_plus_options": 0,
+  "shared_option_sets": 1
+ },
+ "validation_vs_test": {
+  "shared_uids": 0,
+  "shared_image_hashes": 0,
+  "shared_question_texts": 0,
+  "shared_normalized_questions": 0,
+  "shared_question_plus_options": 0,
+  "shared_option_sets": 1
+ },
+ "within_split": {
+  "search": {
+   "duplicate_image_hashes": 0,
+   "same_question_text_repeats": 42
+  },
+  "validation": {
+   "duplicate_image_hashes": 0,
+   "same_question_text_repeats": 46
+  },
+  "test": {
+   "duplicate_image_hashes": 0,
+   "same_question_text_repeats": 21
+  }
+ },
+ "official_train_vs_test": {
+  "train_records": 3079,
+  "test_records": 561,
+  "shared_image_hashes": 0,
+  "shared_question_texts": 0,
+  "shared_normalized_questions": 0,
+  "shared_question_plus_options": 0,
+  "train_images_with_multiple_questions": 996,
+  "train_duplicate_image_files_by_hash": 0,
+  "test_duplicate_image_files_by_hash": 0,
+  "train_same_question_text_on_different_images": 277
+ }
+}

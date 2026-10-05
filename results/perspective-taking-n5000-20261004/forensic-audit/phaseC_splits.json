@@ -1,0 +1,426 @@
+{
+ "splits": {
+  "search": {
+   "n": 200,
+   "unique_images": 200,
+   "questions_per_image": {
+    "1": 200
+   },
+   "subtask": {
+    "Egocentric": 119,
+    "Allocentric": 65,
+    "Hypothetical": 16
+   },
+   "answer": {
+    "C": 46,
+    "A": 51,
+    "D": 47,
+    "B": 56
+   },
+   "subtask_x_answer": {
+    "Allocentric": {
+     "D": 16,
+     "B": 17,
+     "C": 15,
+     "A": 17
+    },
+    "Egocentric": {
+     "C": 26,
+     "A": 30,
+     "B": 36,
+     "D": 27
+    },
+    "Hypothetical": {
+     "C": 5,
+     "A": 4,
+     "D": 4,
+     "B": 3
+    }
+   },
+   "source_split": {
+    "train": 200
+   },
+   "image_mode": {
+    "RGB": 199,
+    "L": 1
+   },
+   "image_pixels_median": 273920,
+   "option_count": {
+    "4": 200
+   },
+   "templates_top": [
+    [
+     "from the perspective of the",
+     31
+    ],
+    [
+     "taking the camera lens as",
+     21
+    ],
+    [
+     "taking the camera s viewpoint",
+     20
+    ],
+    [
+     "suppose you are in the",
+     19
+    ],
+    [
+     "with the camera s viewpoint",
+     13
+    ],
+    [
+     "considering the camera s perspective",
+     11
+    ],
+    [
+     "imagine you re the man",
+     8
+    ],
+    [
+     "from the perspective of this",
+     5
+    ],
+    [
+     "picture yourself as the man",
+     5
+    ],
+    [
+     "imagine you re the woman",
+     4
+    ],
+    [
+     "which hand does this man",
+     4
+    ],
+    [
+     "which hand is the woman",
+     3
+    ]
+   ],
+   "distinct_templates": 51,
+   "base_accuracy_by_subtask": {
+    "Allocentric": 0.3384615384615385,
+    "Egocentric": 0.3865546218487395,
+    "Hypothetical": 0.25
+   },
+   "base_prediction": {
+    "A": 41,
+    "B": 70,
+    "D": 35,
+    "C": 54
+   }
+  },
+  "validation": {
+   "n": 200,
+   "unique_images": 200,
+   "questions_per_image": {
+    "1": 200
+   },
+   "subtask": {
+    "Egocentric": 119,
+    "Allocentric": 65,
+    "Hypothetical": 16
+   },
+   "answer": {
+    "B": 56,
+    "D": 47,
+    "A": 51,
+    "C": 46
+   },
+   "subtask_x_answer": {
+    "Allocentric": {
+     "B": 17,
+     "C": 15,
+     "D": 16,
+     "A": 17
+    },
+    "Egocentric": {
+     "B": 36,
+     "D": 27,
+     "A": 30,
+     "C": 26
+    },
+    "Hypothetical": {
+     "A": 4,
+     "C": 5,
+     "B": 3,
+     "D": 4
+    }
+   },
+   "source_split": {
+    "train": 200
+   },
+   "image_mode": {
+    "RGB": 200
+   },
+   "image_pixels_median": 287360,
+   "option_count": {
+    "4": 200
+   },
+   "templates_top": [
+    [
+     "taking the camera lens as",
+     21
+    ],
+    [
+     "considering the camera s perspective",
+     19
+    ],
+    [
+     "from the perspective of the",
+     17
+    ],
+    [
+     "suppose you are in the",
+     14
+    ],
+    [
+     "with the camera s viewpoint",
+     13
+    ],
+    [
+     "taking the camera s viewpoint",
+     12
+    ],
+    [
+     "picture yourself as the man",
+     9
+    ],
+    [
+     "imagine you re the man",
+     9
+    ],
+    [
+     "from this woman s perspective",
+     7
+    ],
+    [
+     "picture yourself as the woman",
+     6
+    ],
+    [
+     "from the perspective of this",
+     4
+    ],
+    [
+     "from this man s perspective",
+     4
+    ]
+   ],
+   "distinct_templates": 62,
+   "base_accuracy_by_subtask": {
+    "Allocentric": 0.3076923076923077,
+    "Egocentric": 0.47058823529411764,
+    "Hypothetical": 0.1875
+   },
+   "base_prediction": {
+    "C": 58,
+    "A": 33,
+    "B": 73,
+    "D": 36
+   }
+  },
+  "test": {
+   "n": 561,
+   "unique_images": 561,
+   "questions_per_image": {
+    "1": 561
+   },
+   "subtask": {
+    "Allocentric": 376,
+    "Hypothetical": 83,
+    "Egocentric": 102
+   },
+   "answer": {
+    "C": 143,
+    "A": 160,
+    "B": 137,
+    "D": 121
+   },
+   "subtask_x_answer": {
+    "Allocentric": {
+     "C": 93,
+     "A": 103,
+     "B": 96,
+     "D": 84
+    },
+    "Egocentric": {
+     "A": 37,
+     "C": 28,
+     "B": 22,
+     "D": 15
+    },
+    "Hypothetical": {
+     "D": 22,
+     "A": 20,
+     "C": 22,
+     "B": 19
+    }
+   },
+   "source_split": {
+    "test": 561
+   },
+   "image_mode": {
+    "RGB": 191,
+    "RGBA": 363,
+    "P": 7
+   },
+   "image_pixels_median": 960000,
+   "option_count": {
+    "4": 561
+   },
+   "templates_top": [
+    [
+     "from the photographer s perspective",
+     39
+    ],
+    [
+     "from the perspective of the",
+     19
+    ],
+    [
+     "in the picture which side",
+     16
+    ],
+    [
+     "if you re sitting in",
+     9
+    ],
+    [
+     "if you re sitting on",
+     8
+    ],
+    [
+     "if you re lying on",
+     7
+    ],
+    [
+     "how many robots are there",
+     7
+    ],
+    [
+     "in the picture is the",
+     7
+    ],
+    [
+     "from the robot s perspective",
+     6
+    ],
+    [
+     "in the picture where is",
+     6
+    ],
+    [
+     "from the vantage point of",
+     5
+    ],
+    [
+     "from the man in the",
+     5
+    ]
+   ],
+   "distinct_templates": 381,
+   "base_accuracy_by_subtask": {
+    "Allocentric": 0.375,
+    "Egocentric": 0.7745098039215687,
+    "Hypothetical": 0.46987951807228917
+   },
+   "base_prediction": {
+    "D": 111,
+    "C": 155,
+    "B": 161,
+    "A": 134
+   }
+  }
+ },
+ "comparisons": {
+  "search_vs_validation": {
+   "subtask": {
+    "tvd": 0.0,
+    "chi2": 0.0,
+    "dof": 2,
+    "p": 1.0
+   },
+   "answer": {
+    "tvd": 0.0,
+    "chi2": 0.0,
+    "dof": 3,
+    "p": 1.0
+   },
+   "subtask_x_answer": {
+    "tvd": 0.0,
+    "chi2": 0.0,
+    "dof": 11,
+    "p": 1.0
+   },
+   "template": {
+    "tvd": 0.34
+   },
+   "template_overlap": {
+    "shared_templates": 27,
+    "search_templates": 51,
+    "validation_templates": 62,
+    "validation_questions_with_template_seen_in_search": 159
+   }
+  },
+  "search_vs_test": {
+   "subtask": {
+    "tvd": 0.4131818181818182,
+    "chi2": 122.2289203496614,
+    "dof": 2,
+    "p": 2.8729441379638093e-27
+   },
+   "answer": {
+    "tvd": 0.05510695187165775,
+    "chi2": 1.8471881339581593,
+    "dof": 3,
+    "p": 0.6047204965192441
+   },
+   "subtask_x_answer": {
+    "tvd": 0.41318181818181815,
+    "chi2": 130.67469900286744,
+    "dof": 11,
+    "p": 1.2711619132035585e-22
+   },
+   "template": {
+    "tvd": 0.9607843137254902
+   },
+   "template_overlap": {
+    "shared_templates": 4,
+    "search_templates": 51,
+    "test_templates": 381,
+    "test_questions_with_template_seen_in_search": 22
+   }
+  },
+  "validation_vs_test": {
+   "subtask": {
+    "tvd": 0.4131818181818182,
+    "chi2": 122.2289203496614,
+    "dof": 2,
+    "p": 2.8729441379638093e-27
+   },
+   "answer": {
+    "tvd": 0.05510695187165775,
+    "chi2": 1.8471881339581593,
+    "dof": 3,
+    "p": 0.6047204965192441
+   },
+   "subtask_x_answer": {
+    "tvd": 0.41318181818181815,
+    "chi2": 130.67469900286744,
+    "dof": 11,
+    "p": 1.2711619132035585e-22
+   },
+   "template": {
+    "tvd": 0.9607843137254902
+   },
+   "template_overlap": {
+    "shared_templates": 4,
+    "validation_templates": 62,
+    "test_templates": 381,
+    "test_questions_with_template_seen_in_validation": 22
+   }
+  }
+ }
+}

@@ -1,0 +1,363 @@
+{
+ "0.00025": {
+  "n": 125,
+  "mean_search_gain_pp": 0.43200000000000033,
+  "mean_val_gain_pp": -0.22000000000000028,
+  "search_prediction_shift_pp": {
+   "A": -0.2759999999999998,
+   "B": 0.35199999999999676,
+   "C": 0.7839999999999989,
+   "D": -0.8599999999999994
+  },
+  "search_subtask_gain_pp": {
+   "Allocentric": 0.11076923076923095,
+   "Egocentric": 0.598319327731095,
+   "Hypothetical": 0.5000000000000004
+  },
+  "validation_prediction_shift_pp": {
+   "A": -0.5399999999999991,
+   "B": -0.1319999999999979,
+   "C": 0.21600000000000108,
+   "D": 0.4559999999999996
+  },
+  "validation_subtask_gain_pp": {
+   "Allocentric": -0.5907692307692447,
+   "Egocentric": -0.22857142857141688,
+   "Hypothetical": 1.3500000000000012
+  }
+ },
+ "0.0005": {
+  "n": 125,
+  "mean_search_gain_pp": -0.08799999999999995,
+  "mean_val_gain_pp": -0.1920000000000007,
+  "search_prediction_shift_pp": {
+   "A": -0.015999999999998238,
+   "B": 0.5959999999999965,
+   "C": 0.9520000000000018,
+   "D": -1.532
+  },
+  "search_subtask_gain_pp": {
+   "Allocentric": 0.22153846153845635,
+   "Egocentric": -0.3428571428571392,
+   "Hypothetical": 0.5500000000000005
+  },
+  "validation_prediction_shift_pp": {
+   "A": -0.9480000000000004,
+   "B": 0.09199999999999875,
+   "C": 0.26399999999999935,
+   "D": 0.5919999999999987
+  },
+  "validation_subtask_gain_pp": {
+   "Allocentric": -1.3046153846153874,
+   "Egocentric": 0.047058823529416705,
+   "Hypothetical": 2.5499999999999994
+  }
+ },
+ "0.001": {
+  "n": 125,
+  "mean_search_gain_pp": -0.6759999999999995,
+  "mean_val_gain_pp": -0.06000000000000104,
+  "search_prediction_shift_pp": {
+   "A": -0.2079999999999984,
+   "B": 0.9799999999999969,
+   "C": 0.7560000000000002,
+   "D": -1.5280000000000005
+  },
+  "search_subtask_gain_pp": {
+   "Allocentric": 0.036923076923084386,
+   "Egocentric": -1.0285714285714176,
+   "Hypothetical": -0.9500000000000008
+  },
+  "validation_prediction_shift_pp": {
+   "A": -1.3960000000000008,
+   "B": 0.6880000000000024,
+   "C": 0.2519999999999989,
+   "D": 0.4559999999999996
+  },
+  "validation_subtask_gain_pp": {
+   "Allocentric": -3.0892307692307774,
+   "Egocentric": 0.8941176470588341,
+   "Hypothetical": 5.149999999999999
+  }
+ },
+ "0.002": {
+  "n": 125,
+  "mean_search_gain_pp": -1.611999999999998,
+  "mean_val_gain_pp": 0.6759999999999984,
+  "search_prediction_shift_pp": {
+   "A": -0.7360000000000007,
+   "B": 0.6799999999999997,
+   "C": 2.0799999999999983,
+   "D": -2.023999999999999
+  },
+  "search_subtask_gain_pp": {
+   "Allocentric": -0.81230769230769,
+   "Egocentric": -1.5126050420168125,
+   "Hypothetical": -5.6
+  },
+  "validation_prediction_shift_pp": {
+   "A": -1.0199999999999996,
+   "B": 0.759999999999998,
+   "C": 1.1400000000000006,
+   "D": -0.879999999999999
+  },
+  "validation_subtask_gain_pp": {
+   "Allocentric": -5.341538461538464,
+   "Egocentric": 3.025210084033614,
+   "Hypothetical": 7.650000000000001
+  }
+ },
+ "val_gain_vs_prediction_shift_sigma_0.002": {
+  "A": -0.004334396162777471,
+  "B": -0.40401327729765607,
+  "C": 0.1991932746248856,
+  "D": 0.20833758752174436
+ },
+ "search_gain_vs_prediction_shift_sigma_0.002": {
+  "A": 0.3150345002148648,
+  "B": 0.008259257310883032,
+  "C": -0.43067497867887955,
+  "D": 0.10103855811605056
+ },
+ "val_questions_most_often_gained_by_random_sigma_0.002": [
+  {
+   "uid": "train:329_1",
+   "subtask": "Egocentric",
+   "template": "which hand does this boy",
+   "gold": "B",
+   "base_pred": "A",
+   "frac_random_0.002_correct": 0.8
+  },
+  {
+   "uid": "train:589_2",
+   "subtask": "Egocentric",
+   "template": "suppose you are in the",
+   "gold": "B",
+   "base_pred": "C",
+   "frac_random_0.002_correct": 0.784
+  },
+  {
+   "uid": "train:802_2",
+   "subtask": "Egocentric",
+   "template": "as the man wearing the",
+   "gold": "D",
+   "base_pred": "A",
+   "frac_random_0.002_correct": 0.616
+  },
+  {
+   "uid": "train:1120_2",
+   "subtask": "Egocentric",
+   "template": "suppose you are in the",
+   "gold": "C",
+   "base_pred": "D",
+   "frac_random_0.002_correct": 0.48
+  },
+  {
+   "uid": "train:411_1",
+   "subtask": "Egocentric",
+   "template": "picture yourself as the dog",
+   "gold": "C",
+   "base_pred": "D",
+   "frac_random_0.002_correct": 0.472
+  },
+  {
+   "uid": "train:597_2",
+   "subtask": "Egocentric",
+   "template": "suppose you are in the",
+   "gold": "A",
+   "base_pred": "C",
+   "frac_random_0.002_correct": 0.432
+  },
+  {
+   "uid": "train:1068_1",
+   "subtask": "Egocentric",
+   "template": "from this woman s perspective",
+   "gold": "A",
+   "base_pred": "C",
+   "frac_random_0.002_correct": 0.432
+  },
+  {
+   "uid": "train:846_2",
+   "subtask": "Egocentric",
+   "template": "suppose you are in the",
+   "gold": "C",
+   "base_pred": "D",
+   "frac_random_0.002_correct": 0.424
+  },
+  {
+   "uid": "train:97_0",
+   "subtask": "Hypothetical",
+   "template": "standing at desk gazing at",
+   "gold": "D",
+   "base_pred": "B",
+   "frac_random_0.002_correct": 0.416
+  },
+  {
+   "uid": "train:40_0",
+   "subtask": "Hypothetical",
+   "template": "standing at window gazing at",
+   "gold": "D",
+   "base_pred": "C",
+   "frac_random_0.002_correct": 0.408
+  },
+  {
+   "uid": "train:383_2",
+   "subtask": "Egocentric",
+   "template": "as the boy in the",
+   "gold": "D",
+   "base_pred": "A",
+   "frac_random_0.002_correct": 0.4
+  },
+  {
+   "uid": "train:1213_2",
+   "subtask": "Egocentric",
+   "template": "suppose you are in the",
+   "gold": "C",
+   "base_pred": "B",
+   "frac_random_0.002_correct": 0.368
+  },
+  {
+   "uid": "train:605_2",
+   "subtask": "Egocentric",
+   "template": "as the woman in blue",
+   "gold": "A",
+   "base_pred": "C",
+   "frac_random_0.002_correct": 0.344
+  },
+  {
+   "uid": "train:105_0",
+   "subtask": "Hypothetical",
+   "template": "when positioned at shower curtain",
+   "gold": "C",
+   "base_pred": "B",
+   "frac_random_0.002_correct": 0.328
+  },
+  {
+   "uid": "train:1073_2",
+   "subtask": "Egocentric",
+   "template": "suppose you are in the",
+   "gold": "A",
+   "base_pred": "B",
+   "frac_random_0.002_correct": 0.312
+  },
+  {
+   "uid": "train:520_0",
+   "subtask": "Allocentric",
+   "template": "with the camera s viewpoint",
+   "gold": "C",
+   "base_pred": "A",
+   "frac_random_0.002_correct": 0.296
+  },
+  {
+   "uid": "train:745_2",
+   "subtask": "Egocentric",
+   "template": "imagine you re the woman",
+   "gold": "C",
+   "base_pred": "D",
+   "frac_random_0.002_correct": 0.264
+  },
+  {
+   "uid": "train:1282_0",
+   "subtask": "Egocentric",
+   "template": "which hand does the man",
+   "gold": "B",
+   "base_pred": "A",
+   "frac_random_0.002_correct": 0.24
+  },
+  {
+   "uid": "train:494_1",
+   "subtask": "Egocentric",
+   "template": "from this woman s perspective",
+   "gold": "B",
+   "base_pred": "C",
+   "frac_random_0.002_correct": 0.224
+  },
+  {
+   "uid": "train:610_2",
+   "subtask": "Egocentric",
+   "template": "imagine you re the man",
+   "gold": "A",
+   "base_pred": "B",
+   "frac_random_0.002_correct": 0.216
+  }
+ ],
+ "val_net_gain_by_subtask_template_sigma_0.002": {
+  "subtask": [
+   [
+    3.6000000000000005,
+    "Egocentric",
+    119
+   ],
+   [
+    1.224,
+    "Hypothetical",
+    16
+   ],
+   [
+    -3.4720000000000004,
+    "Allocentric",
+    65
+   ]
+  ],
+  "template": [
+   [
+    2.6879999999999997,
+    "suppose you are in the",
+    14
+   ],
+   [
+    0.8,
+    "which hand does this boy",
+    1
+   ],
+   [
+    0.6960000000000001,
+    "from this woman s perspective",
+    7
+   ],
+   [
+    0.688,
+    "as the man wearing the",
+    2
+   ],
+   [
+    0.472,
+    "picture yourself as the dog",
+    1
+   ],
+   [
+    0.416,
+    "standing at desk gazing at",
+    1
+   ],
+   [
+    0.408,
+    "standing at window gazing at",
+    1
+   ],
+   [
+    0.344,
+    "as the woman in blue",
+    1
+   ],
+   [
+    0.328,
+    "when positioned at shower curtain",
+    2
+   ],
+   [
+    0.256,
+    "picture yourself as the woman",
+    6
+   ]
+  ]
+ },
+ "search_net_gain_by_subtask_sigma_0.002": {
+  "Egocentric": -1.8,
+  "Allocentric": -0.528,
+  "Hypothetical": -0.8960000000000001
+ },
+ "candidate_vs_random_0.002_per_question_gain_correlation": 0.5779530464083029,
+ "candidate_gained_questions_mean_random_gain_rate": 0.31880000000000003,
+ "other_questions_mean_random_gain_rate": -0.02059090909090909
+}

@@ -1,0 +1,125 @@
+{
+ "manifest": {
+  "index": 4111,
+  "seed": 9504111,
+  "sigma": 0.002,
+  "shard": 41,
+  "rule": "candidate i=0..4999: seed 9500000+i, sigma sigma_mixture[i % 4], shard i // 100; exactly 1250 per sigma; manifest fixed before inference; no calibration, early stop, reallocation, extra sigma or population change"
+ },
+ "consistent_across_all_phases": {
+  "base_id": [
+   true,
+   "\"5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485\""
+  ],
+  "base_id_flat": [
+   true,
+   "\"b54f6e4598fc551d671e6c7e23825967f1e632489bb550e8bb9ad8d2a0ae408f\""
+  ],
+  "perturb_visual": [
+   true,
+   "\"1\""
+  ],
+  "all_parameters_perturbed": [
+   true,
+   "true"
+  ],
+  "mask": [
+   true,
+   "\"68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746\""
+  ],
+  "layout": [
+   true,
+   "\"e3cf49a0f9ebecce80d795fa174686aacdb8b101549702962bbc3b5a1d44a9a9\""
+  ],
+  "model_revision": [
+   true,
+   "\"0c351dd01ed87e9c1b53cbc748cba10e6187ff3b\""
+  ],
+  "dtype": [
+   true,
+   "\"bfloat16\""
+  ],
+  "model_path_revision": [
+   true,
+   "\"0c351dd01ed87e9c1b53cbc748cba10e6187ff3b\""
+  ],
+  "tokenizer_path_revision": [
+   true,
+   "\"0c351dd01ed87e9c1b53cbc748cba10e6187ff3b\""
+  ],
+  "fingerprint_contract": [
+   true,
+   "\"state-sha256-tree-v1\""
+  ]
+ },
+ "versions_consistent": true,
+ "phases_audited": 76,
+ "recomputed_candidate_id": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+ "raw_files": [
+  {
+   "phase_dir": "search-shard-041",
+   "file": "results/perspective-taking-n5000-20261004/search-shard-041/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz",
+   "seed": 9504111,
+   "sigma": 0.002,
+   "rng": "randopt-per-tensor-v1",
+   "sign": 1,
+   "mask": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746",
+   "candidate_id_in_file": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+   "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+   "expected_state_checked_before_generation": false,
+   "expected_state_id": null,
+   "restore_exact": true
+  },
+  {
+   "phase_dir": "test",
+   "file": "results/perspective-taking-n5000-20261004/test/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz",
+   "seed": 9504111,
+   "sigma": 0.002,
+   "rng": "randopt-per-tensor-v1",
+   "sign": 1,
+   "mask": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746",
+   "candidate_id_in_file": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+   "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+   "expected_state_checked_before_generation": true,
+   "expected_state_id": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+   "restore_exact": true
+  },
+  {
+   "phase_dir": "validation-shard-01",
+   "file": "results/perspective-taking-n5000-20261004/validation-shard-01/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz",
+   "seed": 9504111,
+   "sigma": 0.002,
+   "rng": "randopt-per-tensor-v1",
+   "sign": 1,
+   "mask": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746",
+   "candidate_id_in_file": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+   "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+   "expected_state_checked_before_generation": true,
+   "expected_state_id": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+   "restore_exact": true
+  }
+ ],
+ "search_lock_record": {
+  "count": 1,
+  "index": 4111,
+  "shard": 41,
+  "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+  "search_correct": 77,
+  "search_rank": 40
+ },
+ "in_top50": 40,
+ "validation_lock": {
+  "rank1_is_candidate": true,
+  "top10_position": 1,
+  "state_in_lock": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2",
+  "validation_correct": 95
+ },
+ "verdict": {
+  "single_state_fingerprint_everywhere": true,
+  "single_candidate_id_everywhere": true,
+  "seed_sigma_exact_everywhere": true,
+  "index_shard_match_manifest": true,
+  "checked_before_generation_in_validation_and_test": true
+ },
+ "population_identity_mismatches": []
+}

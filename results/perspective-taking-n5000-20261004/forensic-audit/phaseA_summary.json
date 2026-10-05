@@ -1,0 +1,90 @@
+{
+  "status": "PHASE_A_REPRODUCED",
+  "summary": {
+    "search": {
+      "n": 200,
+      "base_correct": 72,
+      "candidate_correct": 77,
+      "base_accuracy": 0.36,
+      "candidate_accuracy": 0.385,
+      "gain_pp": 2.5
+    },
+    "validation": {
+      "n": 200,
+      "base_correct": 79,
+      "candidate_correct": 95,
+      "base_accuracy": 0.395,
+      "candidate_accuracy": 0.475,
+      "gain_pp": 8.0
+    },
+    "test": {
+      "n": 561,
+      "base_correct": 259,
+      "candidate_correct": 244,
+      "base_accuracy": 0.46167557932263814,
+      "candidate_accuracy": 0.43493761140819964,
+      "gain_pp": -2.6737967914438503
+    }
+  },
+  "reported": {
+    "validation": [
+      79,
+      95
+    ],
+    "test": [
+      259,
+      244
+    ]
+  },
+  "mismatches": {},
+  "independent_vs_original_scorer_disagreements": [],
+  "prompt_hash_equal_all": true,
+  "images_rehashed_from_original_png": 961,
+  "candidate_files": {
+    "search": {
+      "file": "results/perspective-taking-n5000-20261004/search-shard-041/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz",
+      "sha256": "37c6ef9d1d64d9f161da5431e96ebe614725c1e55cfbf2d1b4bc15565bf7abb8",
+      "candidate": {
+        "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+        "seed": 9504111,
+        "sigma": 0.002,
+        "rng": "randopt-per-tensor-v1",
+        "sign": 1,
+        "candidate_id": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+        "parameter_mask": "all-parameters-including-vision",
+        "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+      },
+      "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2"
+    },
+    "validation": {
+      "file": "results/perspective-taking-n5000-20261004/validation-shard-01/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz",
+      "sha256": "f71c62fbc3b5c765f1615da59e8a4f490ee2824fb1cbfa42b3a0d6ca41dd25ca",
+      "candidate": {
+        "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+        "seed": 9504111,
+        "sigma": 0.002,
+        "rng": "randopt-per-tensor-v1",
+        "sign": 1,
+        "candidate_id": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+        "parameter_mask": "all-parameters-including-vision",
+        "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+      },
+      "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2"
+    },
+    "test": {
+      "file": "results/perspective-taking-n5000-20261004/test/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz",
+      "sha256": "b85cfd6e0896d049121b947dc4fe7b0f8f2833da26f856c1c86230c8f57313ee",
+      "candidate": {
+        "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+        "seed": 9504111,
+        "sigma": 0.002,
+        "rng": "randopt-per-tensor-v1",
+        "sign": 1,
+        "candidate_id": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+        "parameter_mask": "all-parameters-including-vision",
+        "parameter_mask_sha256": "68ba405d17d0902501eb9b7667a57ec5c41f5f43517f26d4a29e12b098005746"
+      },
+      "state": "7f0bdb3b62424fde81dcf1113419e6b1652e0c2f6ff13e6eb4f65b9d621c62b2"
+    }
+  }
+}

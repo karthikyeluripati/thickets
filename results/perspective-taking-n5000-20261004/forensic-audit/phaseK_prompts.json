@@ -1,0 +1,26 @@
+{
+ "uids": 961,
+ "uids_with_more_than_one_prompt_hash": 0,
+ "engine_configs_distinct": 2,
+ "engine_config_example": {
+  "model": "/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+  "tokenizer": "/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+  "dtype": "bfloat16",
+  "tensor_parallel_size": 1,
+  "distributed_executor_backend": "ray",
+  "worker_extension_cls": "utils.worker_extn.WorkerExtension",
+  "enforce_eager": true,
+  "enable_prefix_caching": false,
+  "gpu_memory_utilization": 0.5,
+  "max_model_len": 16384,
+  "max_num_seqs": 64,
+  "max_num_batched_tokens": 16384,
+  "disable_log_stats": true,
+  "limit_mm_per_prompt": {
+   "image": 1,
+   "video": 0
+  },
+  "mm_processor_cache_gb": 0,
+  "seed": 0
+ }
+}
