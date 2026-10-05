@@ -92,28 +92,91 @@ sources alone can't separate:
 3. **Checkpoint identity and revision.** Not stated by EASI.
 4. **Harness and image preprocessing.**
 
-We do not attribute the gap to any one of these without a controlled run.
+The sources alone do not attribute the gap to any one of these; the controlled
+run below tests the prompt and decoding factors directly.
 
-## 6. Planned controlled check (Part N, ≤ $5 GPU)
+## 6. Controlled check (Part N, 1× H100, 2026-10-05)
 
-Run the pinned base checkpoint on all 561 TEST questions with the official
-OmniSpatial manual-CoT + `re` prompt and parser. The run holds model, engine and
-images fixed and changes only the prompt, extraction and length. Section 7 is
-filled in from that run.
+The run used the pinned base checkpoint on all 561 TEST questions. Model,
+engine (vLLM 0.11.0) and images (SHA256-verified) were held fixed. Only the
+prompt, answer extraction and length changed, to:
 
-## 7. Controlled run result
+- the official OmniSpatial manual-CoT + `re` prompt, rebuilt from the vendored
+  official `system_prompts.py`;
+- the official parser, copied from `qwenvl_eval.py@208bac2`: last
+  `Answer: X`, case-insensitive, fallback "A";
+- `max_new_tokens = 8192`.
 
-*Pending (Part N).*
+**Engine check.** In the same process, our original direct-letter prompt
+reproduced the stored base outputs byte for byte: 259/561, 0 mismatches.
+
+| Base, official manual-CoT | Ego /102 | Allo /376 | Hypo /83 | Total /561 | Micro % | Truncated at 8,192 |
+|---|---:|---:|---:|---:|---:|---:|
+| Greedy (T = 0) | 75 | 140 | 36 | 251 | 44.74 | 29 |
+| Sampled, checkpoint defaults (T 0.7, top-p 0.8, top-k 20), seed 1 | 82 | 141 | 37 | 260 | 46.35 | 27 |
+| … seed 2 | 77 | 133 | 36 | 246 | 43.85 | 23 |
+| … seed 3 | 73 | 129 | 33 | 235 | 41.89 | 35 |
+| … seed 4 | 74 | 115 | 31 | 220 | 39.22 | 35 |
+| Sampled mean (SD) | 76.5 (4.0) | 129.5 (10.9) | 34.2 (2.8) | 240.2 (16.9) | 42.83 (3.0) | — |
+| **EASI Table 13** | 70 | 120 | 36 | 226 | 40.29 | — |
+| Ours, direct letter (study protocol) | 79 | 141 | 39 | 259 | 46.17 | — |
+
+The sampled runs use the decoding of the official script, which calls HF
+`generate` with checkpoint defaults. Two sampled runs agree on only 74.8% of
+answers. A single sampled pass of the official protocol therefore moves by
+±3 pp on these 561 items.
+
+## 7. What the controlled run shows
+
+1. **The prompt and protocol difference explains the gap.** Under the official
+   protocol our own pinned checkpoint scores 220–260 in single sampled passes
+   (greedy 251). The published single-pass EASI value of 226 lies inside that
+   range, as do its Allocentric (120) and Hypothetical (36) counts. Only
+   Egocentric (70) falls slightly below our 4-run range (73–82). That is
+   1.6 SD under our mean, which is unremarkable for 4 runs.
+2. **The protocol is high-variance.** Free-form CoT plus "A" fallback on
+   truncation (23–35 runaway generations per pass) produces a single-pass SD of
+   about 3 pp. Our direct-letter greedy protocol has no truncation or sampling
+   noise and sits at the top of that range (46.17%).
+3. **No checkpoint difference has to be invoked.** We cannot verify which
+   checkpoint EASI used ("Qwen3-8B-Instruct", citing the Qwen3 text report). But
+   its number is reproduced within noise by Qwen3-VL-8B-Instruct @ `0c351dd`
+   under the official protocol.
 
 ## Status
 
-**`BASELINE_DISCREPANCY_UNRESOLVED`** (provisional; to be updated after Part N).
+**`BASELINE_DISCREPANCY_EXPLAINED`**
 
-**Limitation to keep in the paper.** Our base differs from the published EASI
-Qwen3-family manual-CoT number on the identical 561 items by +5.9 pp (micro).
-The published row does not identify its checkpoint, decoding or repeat count.
-All our claims are relative (candidate versus base under one frozen protocol),
-so they don't depend on matching the absolute level.
+**Exact cause.** The published number comes from a different evaluation
+protocol from ours: the official manual-CoT prompt with `re` extraction and
+"A" fallback, a single pass, and the model's default sampling (inferred from
+the official script). Ours is the official direct-letter prompt with greedy
+decoding. Under the published protocol, our pinned checkpoint scores 220–260/561
+(SD 16.9) in single passes, which contains the published 226/561. The
+remaining difference (our direct-letter 259 against their 226) is therefore
+protocol choice plus single-pass sampling variance, not a pipeline error.
+
+**Caveats for the paper:**
+
+- EASI does not state its checkpoint revision, decoding or repeat count. "Single
+  pass" is inferred from its exact k/n subtask fractions.
+- We ran 4 sampled passes, not the OmniSpatial paper's 5. Our sampled-run mean
+  is 42.8% (micro), or 50.2% macro.
+- All study claims are relative (candidate versus base under one frozen
+  protocol), so they don't depend on the absolute level.
+
+## GPU cost
+
+1× H100 80GB at $3.49/h, from pod start 16:31:34 to DONE 17:13:27 UTC, then
+automatic stop (≈ 1 min). **≈ $2.50 total, under the $5 cap.**
+
+- Setup and model load: $0.25.
+- Integrity check and preflight: $0.22.
+- Priority 1: $0.25.
+- Priority 2: $0.58.
+- 4 sampled repeats: $1.14.
+
+Per-step log: `results/paper-analysis/prompt-robustness/cost_log.json`.
 
 ### Sources
 

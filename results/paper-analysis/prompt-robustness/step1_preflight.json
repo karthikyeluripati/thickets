@@ -1,0 +1,21 @@
+{
+ "split": "TEST",
+ "n": 64,
+ "correct_official": 20,
+ "correct_strict": 19,
+ "no_answer_match": 5,
+ "truncated": 5,
+ "by_subtask_official": {
+  "Allocentric": [
+   20,
+   64
+  ]
+ },
+ "gen_tokens_total": 55080,
+ "gen_tokens_max": 8192,
+ "seconds": 112.19330286979675,
+ "p1_s": 983.4444204680622,
+ "p2_s": 1744.6525634042919,
+ "repeat_s": 983.4444204680622,
+ "projected_p1_p2_usd": 3.582351028569188
+}

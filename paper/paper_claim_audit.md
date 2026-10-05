@@ -55,7 +55,8 @@ Verdicts:
 | 14 | The top-50 oracle (any member right) reaches 64.3% on TEST | Oracle 361/561 | **SCOPE.** Report it together with symmetric churn: 102 base-wrong questions are fixed by ≥ 1 member, while 114 base-right ones are broken by ≥ 1 member (38 vs 37 at ≥ 10 members). The majority fixes 7 and breaks 7. It is **not** evidence of complementary expertise, and the abstract must not quote the oracle alone. |
 | 15 | The committee converges to the base | Base answer is the majority on 96.6% of questions; questions where the majority differs from base fall from 60 (K = 1) to 19 (K = 50) | **OK** |
 | 16 | Members are near-copies | Mean pairwise prediction disagreement 12.2%; mean error Jaccard 0.84 | **OK** |
-| 17 | Base accuracy matches published OmniSpatial numbers | Not true: our base is +5.9 pp (micro) above the only published Qwen3-family manual-CoT row (EASI) on identical items; the checkpoint label there is ambiguous | **SCOPE.** State it as a limitation (`baseline_reconciliation.md`). The final status depends on Part N. |
+| 17 | Base accuracy matches published OmniSpatial numbers | Our direct-letter base (259/561) is +5.9 pp above EASI Table 13 (226/561, identical items, manual-CoT). Under that official protocol our pinned checkpoint scores 220–260 in single sampled passes (greedy 251). | **SCOPE.** `BASELINE_DISCREPANCY_EXPLAINED`: protocol choice plus single-pass sampling variance (SD ≈ 3 pp). State our protocol next to the absolute number; note the published checkpoint is unverified. |
+| 18 | 9504111's RERANK advantage reflects the model, not the prompt | Part N: official manual-CoT prompt, greedy: RERANK −1.5 pp [−7.0, +4.0], TEST −4.28 pp [−7.8, −0.7] | **CONTRADICTED.** Say: "the selected advantage is prompt-sensitive: it exists only under the direct-letter prompt used for selection". One alternative prompt, one candidate: no general claim. |
 
 ## 4. Never claim
 
@@ -78,11 +79,13 @@ Verdicts:
 > selection set and was −2.67 pp worse on the official test. Its RERANK gain is
 > about what selecting from a pool of correlated near-copies flipping the same
 > fragile items would produce. A RandOpt-style top-50 majority vote returns
-> exactly the base accuracy.
+> exactly the base accuracy. Under the official OmniSpatial prompt, the
+> winner's selection-set advantage disappears (−1.5 pp).
 
 ## Status of this audit
 
 **Every quantitative claim in the reports reproduces. Four statements need
 rewording (claims 1, 7, 10, 12). One causal explanation (claim 8) is partly
-contradicted by the new analyses and must be replaced.** Without these fixes the
+contradicted by the new analyses and must be replaced. Part N adds one limitation the paper must state:
+the selected advantage is prompt-sensitive (claim 18).** Without these fixes the
 paper would not meet its own standard.

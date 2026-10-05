@@ -14,6 +14,7 @@ ROWS = [  # (analysis, status, commit, what it fixed or found)
     ('Forensic audit and GPU reproduction', 'post hoc', '0099a29', 'Result reproduced; split-specific effect'),
     ('Allocentric specialist search', 'post hoc', '4ec4dd4', 'No signal beyond structured null'),
     ('Paper analyses (decomposition, overlap, nulls, oracle)', 'post hoc', 'this branch', 'Descriptive; no new candidates'),
+    ('Official-prompt robustness (1 GPU, \\$2.50)', 'post hoc', 'this branch', 'RERANK +8.0 becomes -1.5; TEST -4.3'),
 ]
 
 

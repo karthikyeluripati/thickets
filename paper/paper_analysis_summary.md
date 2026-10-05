@@ -12,7 +12,27 @@ unchanged.
 
 ## Final verdict
 
-*Pending Part N; see the end of this file.*
+**`PAPER_READY_WORKSHOP`**
+
+The evidence package for the primary claim is complete. Every number reproduces
+from committed artifacts; the precommitted chain is git-timestamped
+(`table_analysis_provenance.tex`); the baseline discrepancy is explained
+(`BASELINE_DISCREPANCY_EXPLAINED`); and no further experiment is needed.
+
+The verdict holds only if the draft adopts the corrections in
+`paper_claim_audit.md`:
+
+1. Call RERANK a second-stage selection set, not validation.
+2. Drop the "Egocentric share caused the collapse" and template-overlap
+   explanations. The subtask mix explains under half of the drop (Part E), and
+   unseen question forms gain as much as seen ones (Part F).
+3. Report the oracle only together with its symmetric churn.
+4. State prompt sensitivity as a limitation (Part N): the +8 pp exists only
+   under the direct-letter prompt used for selection.
+5. Label every post-hoc analysis as post hoc.
+
+Writing the paper from the old report wording would make it
+`PAPER_NEEDS_FIXES`.
 
 ## 1. Deliverables
 
@@ -94,15 +114,46 @@ compile.
   +11.5 pp on questions whose exact text appeared in SEARCH and **+14.6 pp on
   unseen forms**. "Templated items seen during search" cannot carry the
   explanation.
-- **Baseline level (Part M).** Our direct-letter base is **+5.9 pp above** the
-  only published Qwen3-family OmniSpatial Perspective-Taking number (EASI
-  Table 13, manual-CoT) on the identical 561 items. That row is labelled
-  "Qwen3-8B-Instruct" and doesn't give its checkpoint, decoding or repeat count.
-  See Part N.
+- **Baseline level (Parts M/N).** Our direct-letter base (259/561) is +5.9 pp
+  above the only published Qwen3-family OmniSpatial Perspective-Taking number
+  (EASI Table 13: 226/561, same items).
+  - Under the official manual-CoT protocol, our pinned checkpoint scores 220–260
+    in single sampled passes (greedy 251), which contains 226.
+  - **`BASELINE_DISCREPANCY_EXPLAINED`**: protocol choice plus single-pass
+    sampling variance (SD ≈ 3 pp). Details in `baseline_reconciliation.md`.
 
-## 3. Part N: official-prompt robustness
+## 3. Part N: official-prompt robustness (`POST_HOC_PROMPT_ROBUSTNESS_DIAGNOSTIC`)
 
-*Pending GPU run.*
+Setup: the same pinned weights and engine, with the candidate state hash
+verified, greedy decoding, and the official OmniSpatial manual-CoT prompt and
+`re` parser. Paired bootstrap CIs. Files are in
+`results/paper-analysis/prompt-robustness/`, `table_prompt_robustness.tex` and
+`fig9_prompt_robustness`.
+
+| Prompt | Split | Base | Candidate 9504111 | Gain (pp) [95% CI] |
+|---|---|---:|---:|---:|
+| Direct-letter original | RERANK | 79/200 | 95/200 | **+8.00** [+3.5, +13.0] |
+| Direct-letter original | TEST | 259/561 | 244/561 | −2.67 [−5.3, 0.0] |
+| Official OmniSpatial-style | RERANK | 97/200 | 94/200 | **−1.50** [−7.0, +4.0] |
+| Official OmniSpatial-style | TEST | 251/561 | 227/561 | **−4.28** [−7.8, −0.7] |
+
+With the strict parser (no "A" fallback) the gains are −0.5 (RERANK) and −4.28
+(TEST). Truncations at 8,192 tokens are similar for base and candidate: 9 vs 5
+on RERANK, 29 vs 28 on TEST.
+
+**Outcome.** No collapse can be measured under the official prompt, because
+there is no RERANK gain to collapse from. The +8 pp advantage of the selected
+candidate exists only under the direct-letter prompt it was selected with.
+Under the official prompt it is −1.5 pp on the same 200 questions. The TEST
+harm persists and is larger (−4.28 pp, CI excludes 0). As the spec requires:
+
+> **the expert-mirage phenomenon is prompt-sensitive.**
+
+The *selected advantage* does not survive a change of prompt even on the
+selection set itself. That is consistent with the mirage account, since the
+"expertise" is specific to the exact condition it was selected under. But it is
+a limitation, and the paper must state it: we tested one alternative prompt,
+on one candidate.
 
 ## 4. Evidence hierarchy (Part T)
 
@@ -128,7 +179,9 @@ Perturbations of a Vision-Language Model*
 can be an artefact of selecting the maximum over a large pool of correlated
 near-copies that flip the same fragile items. A precommitted three-stage design
 exposes it: the +8 pp RERANK winner loses 2.67 pp on the official test, and the
-RandOpt top-50 vote collapses to the base.
+RandOpt top-50 vote collapses to the base. The winner's advantage is also
+specific to the prompt it was selected under: with the official OmniSpatial
+prompt it vanishes even on the selection set (−1.5 pp).
 
 **Abstract structure:**
 
@@ -140,7 +193,9 @@ RandOpt top-50 vote collapses to the base.
 3. Result: +8.0 → −2.67 pp; vote = base.
 4. Why: selection maximum, shared fragile items, tie instability; not leakage and
    not a bug.
-5. Scope: one model, one task, one population.
+5. Prompt sensitivity: under the official OmniSpatial prompt the winner's
+   RERANK advantage vanishes (−1.5 pp) and TEST harm remains (−4.3 pp).
+6. Scope: one model, one task, one population, one alternative prompt.
 
 **Contributions:**
 
@@ -202,4 +257,19 @@ RandOpt top-50 vote collapses to the base.
 
 ## 9. GPU cost log
 
-*Pending Part N.*
+Part N was the only new GPU work: 1× H100 80GB at $3.49/h (rate read from the
+RunPod API). The pod ran from 16:31:34 to 17:13:27 UTC, then stopped
+automatically after the results were pulled.
+
+| Step | Cumulative $ |
+|---|---:|
+| Setup and model load | 0.25 |
+| Integrity: direct-prompt base reproduces stored text (259, 0 mismatches) | 0.36 |
+| Preflight: 64 questions; projected P1 + P2 $3.58 including setup | 0.47 |
+| Priority 1: base TEST, official prompt | 0.73 |
+| Priority 2: base RERANK; candidate RERANK + TEST | 1.30 |
+| 4 sampled base repeats on TEST (budget permitted) | 2.44 |
+| Stop, about 1 min | **≈ 2.50** |
+
+A hard-cap guard on the pod would have stopped it at $4.85. No other GPU
+work was run: no seeds, no N, no GQA, no masks, no σ, no other model.
