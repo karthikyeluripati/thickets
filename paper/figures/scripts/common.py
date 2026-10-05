@@ -44,7 +44,9 @@ def master():
 
 def save(fig, name):
     FIG.mkdir(parents=True, exist_ok=True)
-    for ext, kw in (('pdf', {}), ('svg', {}), ('png', {'dpi': 300})):
+    # No embedded dates, and fixed SVG ids, so reruns are byte-identical.
+    plt.rcParams['svg.hashsalt'] = name
+    for ext, kw in (('pdf', {'metadata': {'CreationDate': None}}), ('svg', {'metadata': {'Date': None}}), ('png', {'dpi': 300})):
         fig.savefig(FIG / f'{name}.{ext}', **kw)
     plt.close(fig)
 

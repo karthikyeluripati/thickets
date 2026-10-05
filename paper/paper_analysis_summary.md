@@ -44,7 +44,7 @@ python paper/figures/scripts/tables_static.py
 ```
 
 Each analysis part has its own seeded random stream, so all numeric outputs
-(data files and tables) regenerate identically. Figure files differ only in
+(data files, tables) and figure files regenerate byte-identically; figures carry no
 embedded timestamps. The tables need `booktabs` and `adjustbox`, and all of them
 compile.
 
