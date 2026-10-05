@@ -1,0 +1,45 @@
++ cd /workspace
++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1 PIP_BREAK_SYSTEM_PACKAGES=1
++ HF_HOME=/workspace/hf
++ HF_HUB_DISABLE_XET=1
++ PIP_BREAK_SYSTEM_PACKAGES=1
++ python -m pip install --no-input vllm==0.11.0 'ray[default]==2.49.2' transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen3-VL-8B-Instruct'\'',revision='\''0c351dd01ed87e9c1b53cbc748cba10e6187ff3b'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ mkdir -p /workspace/repro
++ cd /workspace/repro
++ tar xzf /workspace/repro.tgz
+tar: results/perspective-taking-n5000-20261004/test/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/test/candidates/2a688dce9ee3f6910a66c8306e45a673347e6c2da97ca4f612e37eadc34f421f.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/test/candidates/6b6f91ba62efae00f09fbbdb547009f73ef44ff90923e257225aa6c928379dbe.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/test/candidates/a3a9766514890add553eb639947da5ae68bd92450572e8ba728a23d86c0aea11.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/test/candidates/f6856a3437439e58b35ad8fedba5c2f1cabd89bb5550dc0db11d0fd01247215d.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/validation-shard-00/candidates/2a688dce9ee3f6910a66c8306e45a673347e6c2da97ca4f612e37eadc34f421f.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/validation-shard-00/candidates/f6856a3437439e58b35ad8fedba5c2f1cabd89bb5550dc0db11d0fd01247215d.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/validation-shard-01/candidates/25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/validation-shard-01/candidates/6b6f91ba62efae00f09fbbdb547009f73ef44ff90923e257225aa6c928379dbe.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/validation-shard-01/candidates/a3a9766514890add553eb639947da5ae68bd92450572e8ba728a23d86c0aea11.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/perspective-taking-n5000-20261004/baseline/base.json.gz: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: scripts/forensic_repro_perspective.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: third_party/omnispatial/system_prompts.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/.gitattributes: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/manifest.json: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/search.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/test.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/validation.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: Exiting with failure status due to previous errors
++ python -c 'import importlib.metadata as m;print({n:m.version(n) for n in ['\''torch'\'','\''vllm'\'','\''transformers'\'','\''Pillow'\'']})'
+{'torch': '2.8.0+cu128', 'vllm': '0.11.0', 'transformers': '4.57.1', 'Pillow': '12.3.0'}
++ cd /workspace/repro
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/forensic_repro_perspective.py --images /workspace/pt-images --upstream /workspace/RandOpt --out /workspace/repro/forensic-repro --mask-diagnostic
+++ date -u +%FT%TZ
++ echo 'exit=1 2026-10-05T14:08:53Z'
