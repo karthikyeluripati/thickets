@@ -1,0 +1,72 @@
+[
+ {
+  "analysis": "Data splits (SEARCH/RERANK/TEST)",
+  "status": "precommitted",
+  "commit": "faf8f54",
+  "committed_at": "2026-10-04T17:47:37+00:00",
+  "note": "Splits frozen before any inference"
+ },
+ {
+  "analysis": "Protocol, K, sigma grid, density audit",
+  "status": "precommitted",
+  "commit": "e5bb2ce",
+  "committed_at": "2026-10-04T17:49:34+00:00",
+  "note": "GO rules, 500 audit candidates fixed"
+ },
+ {
+  "analysis": "Base outputs",
+  "status": "precommitted",
+  "commit": "833e445",
+  "committed_at": "2026-10-04T18:05:31+00:00",
+  "note": "Base answers frozen before search"
+ },
+ {
+  "analysis": "SEARCH ranking and top 50",
+  "status": "precommitted",
+  "commit": "220ba16",
+  "committed_at": "2026-10-05T03:55:03+00:00",
+  "note": "Locked before RERANK inference"
+ },
+ {
+  "analysis": "RERANK selection (rank 1, top 5/10)",
+  "status": "precommitted",
+  "commit": "f0c3cf6",
+  "committed_at": "2026-10-05T04:47:36+00:00",
+  "note": "Locked before TEST inference"
+ },
+ {
+  "analysis": "Standalone TEST result",
+  "status": "precommitted",
+  "commit": "a193a87",
+  "committed_at": "2026-10-05T05:18:03+00:00",
+  "note": "NO-GO: winner -2.67 pp"
+ },
+ {
+  "analysis": "RandOpt top-50 committee",
+  "status": "post hoc (addendum)",
+  "commit": "b43e47f",
+  "committed_at": "2026-10-05T12:29:28+00:00",
+  "note": "Committee frozen before its TEST run; = base"
+ },
+ {
+  "analysis": "Forensic audit and GPU reproduction",
+  "status": "post hoc",
+  "commit": "0099a29",
+  "committed_at": "2026-10-05T14:36:32+00:00",
+  "note": "Result reproduced; split-specific effect"
+ },
+ {
+  "analysis": "Allocentric specialist search",
+  "status": "post hoc",
+  "commit": "4ec4dd4",
+  "committed_at": "2026-10-05T15:22:52+00:00",
+  "note": "No signal beyond structured null"
+ },
+ {
+  "analysis": "Paper analyses (decomposition, overlap, nulls, oracle)",
+  "status": "post hoc",
+  "commit": "this branch",
+  "committed_at": "2026-10-05",
+  "note": "Descriptive; no new candidates"
+ }
+]

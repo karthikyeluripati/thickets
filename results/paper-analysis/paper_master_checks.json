@@ -1,0 +1,18 @@
+{
+ "rows": 1137611,
+ "candidate_phase_pairs": 5596,
+ "base_search_72": true,
+ "base_rerank_79": true,
+ "base_test_259": true,
+ "search_candidates_5000": true,
+ "rerank_candidates_543": true,
+ "test_candidates_50": true,
+ "search_scores_match_lock": true,
+ "rerank_scores_match_lock": true,
+ "candidate_9504111": {
+  "SEARCH": 77,
+  "RERANK": 95,
+  "TEST": 244
+ },
+ "candidate_9504111_expected": true
+}

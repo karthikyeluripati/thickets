@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{llrrrrrrr}
+\toprule
+Stage & Question form vs SEARCH & $n$ & Base & Cand. & Cand.-only & Base-only & Gain (pp) & Random $\sigma{=}0.002$ gain \\
+\midrule
+RERANK & exact text seen in SEARCH & 61 & 36.1 & 47.5 & 8 & 1 & +11.5 & +1.89 \\
+ & form seen in SEARCH & 98 & 38.8 & 41.8 & 6 & 3 & +3.1 & -1.37 \\
+ & unseen form & 41 & 46.3 & 61.0 & 6 & 0 & +14.6 & +3.77 \\
+\midrule
+TEST & exact text seen in SEARCH & 0 & -- & -- & -- & -- & -- & -- \\
+ & form seen in SEARCH & 22 & 22.7 & 13.6 & 1 & 3 & -9.1 & -- \\
+ & unseen form & 539 & 47.1 & 44.7 & 22 & 35 & -2.4 & -- \\
+\bottomrule
+\end{tabular}
+\caption{Seed 9504111 by recurrence of the question phrasing in SEARCH. ``Form is a normalized question-form family (first five lower-cased words); questions always differ in image. Last column: mean gain of the 125 precommitted random $\sigma{=}0.002$ audit candidates on the same RERANK questions.}
+\label{tab:forms}
+\end{table}

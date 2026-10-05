@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lr}
+\toprule
+SEARCH top-50 committee on TEST & Value \\
+\midrule
+Individual TEST accuracy, mean (SD) & 45.82 (0.96) \\
+Individual TEST accuracy, min / max & 43.49 / 47.42 \\
+Members above base (46.17\%) & 17 / 50 \\
+Mean pairwise prediction disagreement & 12.2\% \\
+Mean pairwise error Jaccard & 0.841 \\
+Mean member disagreement with base & 9.0\% \\
+Questions with unanimous committee & 53.5\% \\
+Base answer is committee majority & 96.6\% \\
+\midrule
+Base correct / majority correct / oracle correct & 259 / 259 / 361 (of 561) \\
+Base-wrong questions fixed by $\ge$1 / $\ge$5 / $\ge$10 members & 102 / 59 / 38 (of 302) \\
+\bottomrule
+\end{tabular}
+\caption{Diversity of the SEARCH-selected top-50 committee on the official TEST set. Oracle = at least one member correct.}
+\label{tab:committee}
+\end{table}

@@ -1,0 +1,35 @@
+{
+ "search": {
+  "N": 5000,
+  "examples": 200,
+  "base_acc": 36.0,
+  "best_gain": 5.5,
+  "above_base": 1759,
+  "ge1": 1025,
+  "ge3": 25,
+  "ge5": 1
+ },
+ "rerank": {
+  "K": 50,
+  "examples": 200,
+  "base_acc": 39.5,
+  "best_gain": 8.0,
+  "above_base": 34,
+  "ge1": 30,
+  "ge3": 10,
+  "ge5": 2
+ },
+ "test": {
+  "examples": 561,
+  "base_acc": 46.16755793226381,
+  "rerank_rank1_gain": -2.6737967914438503,
+  "best_frozen_top10_gain": 1.0695187165775402,
+  "best_top50_individual_gain": 1.2477718360071302,
+  "top50_mean_gain": -0.34937611408199637,
+  "top50_majority_vote_gain": 0.0,
+  "top50_above_base": 17,
+  "top50_ge1": 4,
+  "top50_ge3": 0,
+  "top50_ge5": 0
+ }
+}

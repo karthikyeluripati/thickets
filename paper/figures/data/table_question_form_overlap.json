@@ -1,0 +1,60 @@
+{
+ "RERANK": {
+  "exact text seen in SEARCH": {
+   "n": 61,
+   "base_acc": 36.0655737704918,
+   "cand_acc": 47.540983606557376,
+   "candidate_only": 8,
+   "base_only": 1,
+   "net": 7,
+   "gain_pp": 11.475409836065573,
+   "random_sigma002_mean_gain_pp": 1.8885245901639331,
+   "random_sigma002_n": 125
+  },
+  "form seen in SEARCH": {
+   "n": 98,
+   "base_acc": 38.775510204081634,
+   "cand_acc": 41.83673469387755,
+   "candidate_only": 6,
+   "base_only": 3,
+   "net": 3,
+   "gain_pp": 3.061224489795918,
+   "random_sigma002_mean_gain_pp": -1.3714285714285703,
+   "random_sigma002_n": 125
+  },
+  "unseen form": {
+   "n": 41,
+   "base_acc": 46.34146341463415,
+   "cand_acc": 60.97560975609756,
+   "candidate_only": 6,
+   "base_only": 0,
+   "net": 6,
+   "gain_pp": 14.634146341463415,
+   "random_sigma002_mean_gain_pp": 3.7658536585365843,
+   "random_sigma002_n": 125
+  }
+ },
+ "TEST": {
+  "exact text seen in SEARCH": {
+   "n": 0
+  },
+  "form seen in SEARCH": {
+   "n": 22,
+   "base_acc": 22.727272727272727,
+   "cand_acc": 13.636363636363635,
+   "candidate_only": 1,
+   "base_only": 3,
+   "net": -2,
+   "gain_pp": -9.090909090909092
+  },
+  "unseen form": {
+   "n": 539,
+   "base_acc": 47.124304267161406,
+   "cand_acc": 44.712430426716146,
+   "candidate_only": 22,
+   "base_only": 35,
+   "net": -13,
+   "gain_pp": -2.411873840445269
+  }
+ }
+}

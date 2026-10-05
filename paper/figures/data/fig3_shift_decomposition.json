@@ -1,0 +1,90 @@
+{
+ "per_subtask_rerank": {
+  "Allocentric": {
+   "n": 65,
+   "base_acc": 30.76923076923077,
+   "cand_acc": 29.230769230769234,
+   "gain": -1.5384615384615385,
+   "wins": 2,
+   "losses": 3
+  },
+  "Egocentric": {
+   "n": 119,
+   "base_acc": 47.05882352941176,
+   "cand_acc": 58.82352941176471,
+   "gain": 11.764705882352944,
+   "wins": 15,
+   "losses": 1
+  },
+  "Hypothetical": {
+   "n": 16,
+   "base_acc": 18.75,
+   "cand_acc": 37.5,
+   "gain": 18.75,
+   "wins": 3,
+   "losses": 0
+  }
+ },
+ "per_subtask_test": {
+  "Allocentric": {
+   "n": 376,
+   "base_acc": 37.5,
+   "cand_acc": 33.77659574468085,
+   "gain": -3.7234042553191515,
+   "wins": 13,
+   "losses": 27
+  },
+  "Egocentric": {
+   "n": 102,
+   "base_acc": 77.45098039215686,
+   "cand_acc": 72.54901960784314,
+   "gain": -4.90196078431373,
+   "wins": 3,
+   "losses": 8
+  },
+  "Hypothetical": {
+   "n": 83,
+   "base_acc": 46.98795180722892,
+   "cand_acc": 51.80722891566265,
+   "gain": 4.819277108433734,
+   "wins": 7,
+   "losses": 3
+  }
+ },
+ "weights_rerank": {
+  "Allocentric": 0.325,
+  "Egocentric": 0.595,
+  "Hypothetical": 0.08
+ },
+ "weights_test": {
+  "Allocentric": 0.6702317290552585,
+  "Egocentric": 0.18181818181818182,
+  "Hypothetical": 0.14795008912655971
+ },
+ "rerank_observed": 8.0,
+ "test_observed": -2.673796791443853,
+ "cfA_test_mixture_rerank_behaviour": 3.8819758672699853,
+ "cfB_rerank_mixture_test_behaviour": -3.741230880970695,
+ "mixture_component": -4.118024132730015,
+ "within_subtask_component": -6.555772658713838,
+ "bootstrap95": {
+  "rerank": [
+   3.5,
+   12.5
+  ],
+  "cfA": [
+   -1.4275999735558564,
+   9.375994716068243
+  ],
+  "test": [
+   -5.3475935828877015,
+   2.220446049250313e-16
+  ],
+  "cfB": [
+   -7.7947160984362975,
+   0.12813247671537104
+  ]
+ },
+ "P_cfA_le_0": 0.0789,
+ "note": "Counterfactuals reweight per-subtask gains; they are descriptive accounting identities, not causal estimates."
+}
