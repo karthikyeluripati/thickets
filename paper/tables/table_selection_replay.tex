@@ -1,0 +1,20 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{rrrrrrrrrr}
+\toprule
+$M$ & $K$ & SEARCH gain & RERANK gain & HOLDOUT gain [95\% of trials] & Optimism & P(H$>$0) & P(H$\ge$3pp) & Null H gain & Null P(H$>$0) \\
+\midrule
+10 & 5 & +1.42 & +2.13 & +0.21 [-3.0, +3.5] & +1.92 & 0.48 & 0.07 & -0.33 & 0.34 \\
+25 & 5 & +2.49 & +2.44 & +0.45 [-3.0, +4.5] & +1.98 & 0.53 & 0.11 & -0.41 & 0.34 \\
+50 & 5 & +3.31 & +2.79 & +0.61 [-3.0, +5.0] & +2.18 & 0.55 & 0.14 & -0.38 & 0.36 \\
+100 & 10 & +3.46 & +3.70 & +0.95 [-3.0, +5.5] & +2.74 & 0.61 & 0.20 & -0.47 & 0.34 \\
+250 & 25 & +3.69 & +4.83 & +1.33 [-2.5, +5.5] & +3.50 & 0.68 & 0.27 & -0.48 & 0.36 \\
+500 & 50 & +3.77 & +5.72 & +1.71 [-2.5, +5.5] & +4.01 & 0.74 & 0.35 & -0.53 & 0.33 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{POST HOC replay of the two-stage procedure on the 500 precommitted audit candidates: SEARCH100 $\to$ top $K$ $\to$ RERANK100 winner $\to$ fresh HOLDOUT200 (disjoint, stratified, 400 train-side questions; hash tie-break as in the study; 2,000 trials per $M$, random pools for $M<500$). Gains in pp over base. Optimism = RERANK $-$ HOLDOUT gain of the winner. Null: item-fragility permutation.}
+\label{tab:selection-replay}
+\end{table}

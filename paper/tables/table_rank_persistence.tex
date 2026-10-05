@@ -1,0 +1,19 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{rrrrrrr}
+\toprule
+Top $K$ on A & Mean net gain on B (questions) & Pool mean on B & Mean rank on B (pct, 50 = random) & Share in top $K$ on B & Enrichment & Null enrichment \\
+\midrule
+10 & -0.29 & -0.54 & 48.4 & 0.031 & 15.37 & 1.08 \\
+25 & -0.44 & -0.54 & 49.9 & 0.032 & 6.33 & 1.00 \\
+50 & -0.50 & -0.54 & 50.2 & 0.031 & 3.12 & 0.90 \\
+100 & -0.50 & -0.54 & 50.0 & 0.034 & 1.68 & 0.81 \\
+250 & -0.42 & -0.54 & 48.8 & 0.058 & 1.16 & 0.81 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{POST HOC. Rank persistence for all 5,000 candidates, SEARCH100 (A) vs SEARCH100 (B), random tie-breaking, 5,000 splits. Enrichment = share / ($K/N$).}
+\label{tab:rank-persistence}
+\end{table}

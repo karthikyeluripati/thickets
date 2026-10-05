@@ -1,0 +1,24 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrr}
+\toprule
+ & Repair rate & Damage rate & Selectivity $S$ & Transfer $r$ (Pearson / Spearman) & Perm.\ null mean (pct) \\
+\midrule
+9504111, SEARCH & 0.078 (10/128) & 0.069 & +0.009 & -- & -- \\
+9504111, RERANK & 0.165 (20/121) & 0.051 & +0.115 & -- & -- \\
+9504111, TEST & 0.076 (23/302) & 0.147 & -0.071 & -- & -- \\
+\midrule
+Audit 500: SEARCH vs RERANK & -- & -- & -- & 0.32 / 0.30 & 0.14 (100) \\
+\quad within $\sigma$=0.00025 & -- & -- & -- & 0.11 / 0.12 & 0.00 (88) \\
+\quad within $\sigma$=0.0005 & -- & -- & -- & 0.17 / 0.17 & 0.00 (97) \\
+\quad within $\sigma$=0.001 & -- & -- & -- & 0.26 / 0.27 & 0.00 (100) \\
+\quad within $\sigma$=0.002 & -- & -- & -- & 0.31 / 0.31 & -0.00 (100) \\
+Top 50: RERANK vs TEST & -- & -- & -- & -0.15 / -0.05 & 0.03 (11) \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{POST HOC. Repair rate $=P(\mathrm{correct}\mid\mathrm{base\ wrong})$, damage rate $=P(\mathrm{wrong}\mid\mathrm{base\ correct})$, $S$ = repair $-$ damage, recomputed from raw predictions. Transfer: correlation of per-candidate $S$ across disjoint question sets; null permutes candidate identity (within $\sigma$ for pooled rows).}
+\label{tab:repair-selectivity}
+\end{table}

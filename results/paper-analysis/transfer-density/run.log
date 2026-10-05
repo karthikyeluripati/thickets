@@ -1,0 +1,58 @@
+{
+ "candidates": 5000,
+ "unique": 5000,
+ "search_questions": 200,
+ "per_sigma": {
+  "0.00025": 1250,
+  "0.0005": 1250,
+  "0.001": 1250,
+  "0.002": 1250
+ },
+ "base_search_complete": true,
+ "audit": 500,
+ "audit_per_sigma": {
+  "0.00025": 125,
+  "0.0005": 125,
+  "0.001": 125,
+  "0.002": 125
+ },
+ "audit_search_rerank_complete": true,
+ "pool_questions": 400,
+ "pool_unique_qids": 400,
+ "pool_duplicate_image_hashes": 0,
+ "gold_letters_match_jsonl": true
+}
+primary 0
+primary 500
+primary 1000
+primary 1500
+primary 2000
+primary 2500
+primary 3000
+primary 3500
+primary 4000
+primary 4500
+primary null 0
+primary null 100
+primary null 200
+primary null 300
+primary null 400
+size 25
+size 50
+size 75
+size 100
+size 150
+size 200
+replay M 10
+replay M 25
+replay M 50
+replay M 100
+replay M 250
+replay M 500
+replay null M 10
+replay null M 25
+replay null M 50
+replay null M 100
+replay null M 250
+replay null M 500
+COMPUTE_DONE

@@ -1,0 +1,47 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{llrrrrrrr}
+\toprule
+$n$ & Threshold (net questions) & $\rho_A$ & $\rho_B$ & Joint $\rho$ & $\tau_{A\to B}$ & Lift & Null lift & Jaccard \\
+\midrule
+25 & $>0$ ($\ge$1) & 0.259 & 0.259 & 0.071 & 0.276 & 1.06 & 1.09 & 0.128 \\
+ & $\ge$+1 pp ($\ge$1) & 0.259 & 0.259 & 0.071 & 0.276 & 1.06 & 1.09 & 0.128 \\
+ & $\ge$+3 pp ($\ge$1) & 0.259 & 0.259 & 0.071 & 0.276 & 1.06 & 1.09 & 0.128 \\
+ & $\ge$+5 pp ($\ge$2) & 0.069 & 0.066 & 0.007 & 0.107 & 1.61 & 1.26 & 0.039 \\
+\midrule
+50 & $>0$ ($\ge$1) & 0.328 & 0.318 & 0.103 & 0.314 & 0.99 & 0.79 & 0.165 \\
+ & $\ge$+1 pp ($\ge$1) & 0.328 & 0.318 & 0.103 & 0.314 & 0.99 & 0.79 & 0.165 \\
+ & $\ge$+3 pp ($\ge$2) & 0.129 & 0.123 & 0.020 & 0.152 & 1.23 & 0.73 & 0.067 \\
+ & $\ge$+5 pp ($\ge$3) & 0.046 & 0.044 & 0.004 & 0.086 & 1.96 & -- & 0.034 \\
+\midrule
+75 & $>0$ ($\ge$1) & 0.347 & 0.353 & 0.122 & 0.351 & 1.00 & 0.88 & 0.191 \\
+ & $\ge$+1 pp ($\ge$1) & 0.347 & 0.353 & 0.122 & 0.351 & 1.00 & 0.88 & 0.191 \\
+ & $\ge$+3 pp ($\ge$3) & 0.071 & 0.071 & 0.009 & 0.121 & 1.72 & 0.80 & 0.054 \\
+ & $\ge$+5 pp ($\ge$4) & 0.031 & 0.030 & 0.002 & 0.079 & -- & -- & 0.033 \\
+\midrule
+100 & $>0$ ($\ge$1) & 0.364 & 0.367 & 0.130 & 0.357 & 0.97 & 0.91 & 0.203 \\
+ & $\ge$+1 pp ($\ge$1) & 0.364 & 0.367 & 0.130 & 0.357 & 0.97 & 0.91 & 0.203 \\
+ & $\ge$+3 pp ($\ge$3) & 0.092 & 0.095 & 0.013 & 0.139 & 1.47 & 1.10 & 0.067 \\
+ & $\ge$+5 pp ($\ge$5) & 0.021 & 0.021 & 0.001 & 0.065 & -- & -- & 0.028 \\
+\midrule
+150 & $>0$ ($\ge$1) & 0.372 & 0.380 & 0.138 & 0.372 & 0.98 & 0.86 & 0.221 \\
+ & $\ge$+1 pp ($\ge$2) & 0.223 & 0.231 & 0.052 & 0.235 & 1.02 & 0.76 & 0.127 \\
+ & $\ge$+3 pp ($\ge$5) & 0.036 & 0.038 & 0.004 & 0.111 & -- & -- & 0.060 \\
+ & $\ge$+5 pp ($\ge$8) & 0.006 & 0.007 & 0.000 & 0.028 & -- & -- & 0.012 \\
+\midrule
+200 & $>0$ ($\ge$1) & 0.379 & 0.385 & 0.144 & 0.381 & 0.99 & 0.76 & 0.237 \\
+ & $\ge$+1 pp ($\ge$2) & 0.245 & 0.252 & 0.064 & 0.259 & 1.03 & 0.61 & 0.152 \\
+ & $\ge$+3 pp ($\ge$6) & 0.031 & 0.032 & 0.003 & 0.103 & -- & -- & 0.064 \\
+ & $\ge$+5 pp ($\ge$10) & 0.004 & 0.004 & 0.000 & 0.000 & -- & -- & 0.000 \\
+\midrule
+100 (5,000) & $>0$ ($\ge$1) & 0.336 & 0.339 & 0.102 & 0.304 & 0.89 & 0.89 & 0.182 \\
+ & $\ge$+3 pp ($\ge$3) & 0.053 & 0.055 & 0.001 & 0.028 & 0.50 & 0.31 & 0.017 \\
+ & $\ge$+5 pp ($\ge$5) & 0.005 & 0.006 & 0.000 & 0.011 & -- & -- & 0.010 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{POST HOC. Empirical improvement density on one question sample ($\rho_A$), on a disjoint sample ($\rho_B$), jointly, the empirical transfer rate $\tau_{A\to B}=P(g_B\ge m\mid g_A\ge m)$ and lift $\tau/\rho_B$ (1 = no persistence), pooled over split trials ($\tau$ = mean joint density / mean $\rho_A$; lift omitted where the mean joint improver count is below 2 candidates). Upper block: 500 precommitted audit candidates on stratified disjoint splits of the 400 SEARCH+RERANK questions (2,000 splits per $n$). Last block: all 5,000 candidates, SEARCH100 vs SEARCH100 (5,000 splits). Null: $\sigma$-stratified per-question permutation of candidate identity. Means over split trials; these describe one observed prediction matrix, not repeated searches.}
+\label{tab:transfer-density}
+\end{table}
