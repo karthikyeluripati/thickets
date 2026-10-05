@@ -1,0 +1,47 @@
+{
+ "search_unique_candidates": 5000,
+ "records": 5000,
+ "master_search_candidates_equal_lock": true,
+ "sigma_counts": {
+  "0.00025": 1250,
+  "0.0005": 1250,
+  "0.001": 1250,
+  "0.002": 1250
+ },
+ "top50_equals_lock_top50_field": true,
+ "top50_sigma_mix": {
+  "0.00025": 0,
+  "0.0005": 12,
+  "0.001": 11,
+  "0.002": 27
+ },
+ "audit_count": 500,
+ "audit_sigma": {
+  "0.00025": 125,
+  "0.0005": 125,
+  "0.001": 125,
+  "0.002": 125
+ },
+ "audit_equals_master_flag": true,
+ "test_candidates_equal_top50": true,
+ "top50_in_audit": 7,
+ "search_matrix_shape": [
+  5000,
+  200
+ ],
+ "search_scores_match_lock": true,
+ "base_search_correct": 72,
+ "base_matches_raw": true,
+ "raw_spot_check_25_identical": true
+}
+null 0
+null 100
+null 200
+null 300
+null 400
+null 500
+null 600
+null 700
+null 800
+null 900
+COMPUTE_DONE

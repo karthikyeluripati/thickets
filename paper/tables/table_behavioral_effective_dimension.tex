@@ -1,0 +1,29 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{llrrrrrrrr}
+\toprule
+Population & Representation (features) & Raw $r_{\mathrm{ent}}$ & Raw $r_{\mathrm{PR}}$ & Std.\ $r_{\mathrm{ent}}$ & Std.\ null med. & k90 & Raw null med. & Raw null 95\% & Ceiling \\
+\midrule
+All 5,000 & Answer dev. (800) & 78.9 & 39.5 & 211.6 & 221.4 & 78 & 82.9 & [82.8, 83.0] & 275 \\
+$\sigma$=0.00025 (1,250) & Answer dev. (800) & 23.8 & 20.0 & 44.6 & 44.7 & 20 & 23.9 & [23.9, 24.0] & 46 \\
+$\sigma$=0.0005 (1,250) & Answer dev. (800) & 39.3 & 32.3 & 69.4 & 70.0 & 33 & 40.0 & [39.9, 40.0] & 73 \\
+$\sigma$=0.001 (1,250) & Answer dev. (800) & 67.2 & 53.1 & 121.9 & 125.0 & 56 & 70.1 & [70.0, 70.2] & 136 \\
+$\sigma$=0.002 (1,250) & Answer dev. (800) & 117.5 & 79.9 & 220.1 & 236.4 & 105 & 130.4 & [130.2, 130.6] & 275 \\
+SEARCH top 50 & Answer dev. (800) & 31.9 & 24.4 & 32.8 & 33.9 & 29 & 33.0 & [32.5, 33.6] & 49 \\
+TEST top 50$^\dagger$ & Answer dev. (2244) & 37.0 & 29.5 & 35.8 & 37.3 & 33 & 38.7 & [38.4, 39.0] & 49 \\
+\midrule
+All 5,000 & Correctness dev. (200) & 43.5 & 26.3 & 106.6 & 110.1 & 40 & 45.1 & [45.0, 45.1] & 123 \\
+$\sigma$=0.00025 (1,250) & Correctness dev. (200) & 14.8 & 12.3 & 27.6 & 27.7 & 12 & 14.8 & [14.8, 14.9] & 28 \\
+$\sigma$=0.0005 (1,250) & Correctness dev. (200) & 24.2 & 20.3 & 42.1 & 42.3 & 21 & 24.5 & [24.5, 24.6] & 43 \\
+$\sigma$=0.001 (1,250) & Correctness dev. (200) & 38.9 & 32.6 & 61.1 & 62.4 & 33 & 40.1 & [40.0, 40.2] & 64 \\
+$\sigma$=0.002 (1,250) & Correctness dev. (200) & 61.7 & 47.2 & 111.3 & 117.2 & 52 & 66.5 & [66.4, 66.6] & 123 \\
+SEARCH top 50 & Correctness dev. (200) & 26.8 & 20.3 & 28.7 & 30.2 & 24 & 27.9 & [27.2, 28.6] & 49 \\
+TEST top 50$^\dagger$ & Correctness dev. (561) & 35.4 & 27.8 & 35.0 & 36.4 & 32 & 37.0 & [36.6, 37.4] & 49 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Effective behavioral dimension (entropy effective rank $r_{\mathrm{ent}}$, participation ratio $r_{\mathrm{PR}}$) of candidate prediction deviations from the base, with a $\sigma$-stratified per-question permutation null (1,000 replicates) that preserves every question's answer distribution per $\sigma$ but destroys persistent candidate identity. These are dimensions of observed behavioral variation, not counts of independent models. Ceilings differ between representations and populations; compare each row with its own null. $^\dagger$SELECTED\_COMMITTEE\_TEST\_GEOMETRY: 561 TEST questions; the null permutes within the committee.}
+\label{tab:effective-dimension}
+\end{table}

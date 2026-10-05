@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrr}
+\toprule
+Metric (SEARCH200) & Selected top 50 & $\sigma$-matched median [95\%] & Pct. & $\sigma$+score-matched median [95\%] & Pct. \\
+\midrule
+Answer eff.\ rank (raw) & 31.863 & 32.547 [31.433, 33.586] & 10.9 & 32.242 [31.511, 32.927] & 14.2 \\
+Answer eff.\ rank (std.) & 32.807 & 33.044 [31.748, 34.227] & 35.5 & 33.113 [32.317, 33.911] & 22.6 \\
+Correctness eff.\ rank (raw) & 26.833 & 26.781 [25.518, 27.974] & 53.5 & 26.252 [25.490, 26.987] & 94.0 \\
+Correctness eff.\ rank (std.) & 28.749 & 28.957 [27.385, 30.439] & 39.3 & 28.791 [27.931, 29.611] & 46.0 \\
+Mean pairwise disagreement & 0.140 & 0.152 [0.145, 0.159] & 0.0 & 0.141 [0.138, 0.144] & 23.4 \\
+Mean error Jaccard & 0.873 & 0.869 [0.863, 0.876] & 84.4 & 0.874 [0.871, 0.877] & 15.2 \\
+Mean distance from base & 0.110 & 0.112 [0.107, 0.117] & 20.2 & 0.109 [0.107, 0.112] & 74.0 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{Diversity of the frozen SEARCH top 50 versus 10,000 random committees of 50 drawn from the 5,000 candidates with exactly the same $\sigma$ composition (12$\times$0.0005, 11$\times$0.001, 27$\times$0.002), and versus 2,000 committees additionally matched member by member on SEARCH correct count ($\pm$1, widened only when exhausted; mean gap -1.74 questions). Score matching removes the agreement that high accuracy on the selection questions forces mechanically.}
+\label{tab:selection-diversity}
+\end{table}
