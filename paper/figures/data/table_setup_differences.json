@@ -1,0 +1,47 @@
+[
+ {
+  "property": "Model",
+  "upstream": "LLMs (Qwen2.5, Olmo); GQA model unstated",
+  "ours": "Qwen3-VL-8B-Instruct"
+ },
+ {
+  "property": "Population $N$ / committee $K$",
+  "upstream": "5,000 / 50--500",
+  "ours": "5,000 / 50"
+ },
+ {
+  "property": "Selection examples",
+  "upstream": "200 (train reward)",
+  "ours": "SEARCH200, then RERANK200"
+ },
+ {
+  "property": "$\\sigma$",
+  "upstream": "uniform over \\{5e-4, 1e-3, 2e-3\\}",
+  "ours": "fixed mix \\{2.5e-4, 5e-4, 1e-3, 2e-3\\}"
+ },
+ {
+  "property": "Parameters perturbed",
+  "upstream": "language only (default)",
+  "ours": "all, incl. vision encoder"
+ },
+ {
+  "property": "Restoration",
+  "upstream": "add / subtract",
+  "ours": "exact snapshot"
+ },
+ {
+  "property": "Voting",
+  "upstream": "\\texttt{Counter.most\\_common}",
+  "ours": "identical"
+ },
+ {
+  "property": "Prompt / answer",
+  "upstream": "step-by-step, \\texttt{\\textbackslash boxed\\{\\}}",
+  "ours": "official direct letter (A--D)"
+ },
+ {
+  "property": "Generation length",
+  "upstream": "256 tokens",
+  "ours": "16 tokens"
+ }
+]

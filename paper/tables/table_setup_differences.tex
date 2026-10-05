@@ -1,0 +1,21 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lll}
+\toprule
+Property & Released RandOpt (GQA) & This study \\
+\midrule
+Model & LLMs (Qwen2.5, Olmo); GQA model unstated & Qwen3-VL-8B-Instruct \\
+Population $N$ / committee $K$ & 5,000 / 50--500 & 5,000 / 50 \\
+Selection examples & 200 (train reward) & SEARCH200, then RERANK200 \\
+$\sigma$ & uniform over \{5e-4, 1e-3, 2e-3\} & fixed mix \{2.5e-4, 5e-4, 1e-3, 2e-3\} \\
+Parameters perturbed & language only (default) & all, incl. vision encoder \\
+Restoration & add / subtract & exact snapshot \\
+Voting & \texttt{Counter.most\_common} & identical \\
+Prompt / answer & step-by-step, \texttt{\textbackslash boxed\{\}} & official direct letter (A--D) \\
+Generation length & 256 tokens & 16 tokens \\
+\bottomrule
+\end{tabular}
+\caption{Setup differences from the released RandOpt code (pinned \texttt{4000d34}), read from code only. The upstream GQA invocation is not published, so its vision-encoder setting is uncertain.}
+\label{tab:setup}
+\end{table}

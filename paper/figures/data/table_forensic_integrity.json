@@ -1,0 +1,46 @@
+[
+ {
+  "check": "Independent re-scoring of base and 9504111",
+  "result": "0 of 1,922 decisions differ; 79$\\to$95 and 259$\\to$244 reproduce"
+ },
+ {
+  "check": "Re-scoring of all 1,137,611 stored outputs",
+  "result": "every SEARCH and RERANK count equals the locked value"
+ },
+ {
+  "check": "Clean-process GPU re-run (base, 9504111 twice, 4 others)",
+  "result": "byte-identical raw text on every question"
+ },
+ {
+  "check": "Base weights restored after candidates",
+  "result": "yes (state hash identical)"
+ },
+ {
+  "check": "Candidate weights identical across phases",
+  "result": "one state fingerprint, SEARCH$\\to$TEST"
+ },
+ {
+  "check": "Split leakage (QA, image hash, question text vs.\\ TEST)",
+  "result": "none"
+ },
+ {
+  "check": "Vision encoder recomputed per candidate",
+  "result": "yes (runtime hook counts)"
+ },
+ {
+  "check": "Answer-letter distribution shift RERANK vs.\\ TEST",
+  "result": "none (TVD 0.055, $p$=0.60)"
+ },
+ {
+  "check": "Subtask distribution shift RERANK vs.\\ TEST",
+  "result": "large (Egocentric 59.5\\% vs.\\ 18.2\\%)"
+ },
+ {
+  "check": "Parser edge cases",
+  "result": "0 malformed of 1,137,611"
+ },
+ {
+  "check": "Mask diagnostic (post hoc): 9504111 RERANK / TEST",
+  "result": "language-only 91/255, vision-only 82/259, all 95/244 (base 79/259)"
+ }
+]

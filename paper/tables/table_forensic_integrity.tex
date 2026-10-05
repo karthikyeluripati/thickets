@@ -1,0 +1,23 @@
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{p{6.3cm}p{6.3cm}}
+\toprule
+Check & Result \\
+\midrule
+Independent re-scoring of base and 9504111 & 0 of 1,922 decisions differ; 79$\to$95 and 259$\to$244 reproduce \\
+Re-scoring of all 1,137,611 stored outputs & every SEARCH and RERANK count equals the locked value \\
+Clean-process GPU re-run (base, 9504111 twice, 4 others) & byte-identical raw text on every question \\
+Base weights restored after candidates & yes (state hash identical) \\
+Candidate weights identical across phases & one state fingerprint, SEARCH$\to$TEST \\
+Split leakage (QA, image hash, question text vs.\ TEST) & none \\
+Vision encoder recomputed per candidate & yes (runtime hook counts) \\
+Answer-letter distribution shift RERANK vs.\ TEST & none (TVD 0.055, $p$=0.60) \\
+Subtask distribution shift RERANK vs.\ TEST & large (Egocentric 59.5\% vs.\ 18.2\%) \\
+Parser edge cases & 0 malformed of 1,137,611 \\
+Mask diagnostic (post hoc): 9504111 RERANK / TEST & language-only 91/255, vision-only 82/259, all 95/244 (base 79/259) \\
+\bottomrule
+\end{tabular}
+\caption{Forensic integrity checks. No implementation error was found; the collapse reproduces exactly.}
+\label{tab:forensic}
+\end{table}
