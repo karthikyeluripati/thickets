@@ -1,0 +1,124 @@
+{
+  "decision": "NO_GO_VISUAL_NEURAL_THICKET_PERSPECTIVE_N5000",
+  "primary_pass": false,
+  "replicated": {
+    "at_least_3_with_3pp": false,
+    "at_least_1_with_5pp": false,
+    "mean_top10_at_least_3pp": false,
+    "a_5pp_candidate_passes_expert_checks": false,
+    "controls": true
+  },
+  "replicated_pass": false,
+  "experts": [
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": true,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": true,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": false,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": false,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": false,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": false,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": false,
+        "answer_bias_spread": false,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": true,
+        "answer_bias_spread": true,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": true,
+        "answer_bias_spread": true,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    },
+    {
+      "checks": {
+        "gain_at_least_5pp": false,
+        "bootstrap_lower_positive": false,
+        "positive_in_two_sub_tasks": true,
+        "answer_bias_spread": true,
+        "runtime_controls": true
+      },
+      "transferable_expert": false
+    }
+  ],
+  "transferable_expert_ranks": [],
+  "rank1_gain": -0.0267379679144385,
+  "best_top10_gain": 0.010695187165775388,
+  "mean_top10_gain": -0.006951871657754011,
+  "top10_counts": {
+    "strictly_above_base": 2,
+    "at_least_1pp": 1,
+    "at_least_3pp": 0,
+    "at_least_5pp": 0
+  }
+}

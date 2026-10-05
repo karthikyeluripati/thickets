@@ -1,0 +1,67 @@
+{
+  "phase": "search",
+  "shard": 36,
+  "status": "complete",
+  "source": {
+    "commit": "e67c9a7fdb79bcc76bba801c8f83c0c5bcc2ac2e",
+    "working_tree_status": "?? results/perspective-taking-n5000-20261004.gpu0.log\n?? results/perspective-taking-n5000-20261004.gpu1.log\n?? results/perspective-taking-n5000-20261004.gpu2.log\n?? results/perspective-taking-n5000-20261004.gpu3.log\n?? results/perspective-taking-n5000-20261004.gpu4.log\n?? results/perspective-taking-n5000-20261004.gpu5.log\n?? results/perspective-taking-n5000-20261004.gpu6.log\n?? results/perspective-taking-n5000-20261004.gpu7.log\n?? results/perspective-taking-n5000-20261004/baseline.log\n?? results/perspective-taking-n5000-20261004/baseline/\n?? results/perspective-taking-n5000-20261004/search-shard-000.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-000.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-000.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-000.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-000.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-000.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-000.log\n?? results/perspective-taking-n5000-20261004/search-shard-000/\n?? results/perspective-taking-n5000-20261004/search-shard-001.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-001.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-001.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-001.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-001.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-001.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-001.log\n?? results/perspective-taking-n5000-20261004/search-shard-001/\n?? results/perspective-taking-n5000-20261004/search-shard-002.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-002.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-002.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-002.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-002.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-002.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-002.log\n?? results/perspective-taking-n5000-20261004/search-shard-002/\n?? results/perspective-taking-n5000-20261004/search-shard-003.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-003.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-003.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-003.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-003.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-003.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-003.log\n?? results/perspective-taking-n5000-20261004/search-shard-003/\n?? results/perspective-taking-n5000-20261004/search-shard-004.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-004.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-004.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-004.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-004.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-004.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-004.log\n?? results/perspective-taking-n5000-20261004/search-shard-004/\n?? results/perspective-taking-n5000-20261004/search-shard-005.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-005.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-005.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-005.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-005.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-005.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-005.log\n?? results/perspective-taking-n5000-20261004/search-shard-005/\n?? results/perspective-taking-n5000-20261004/search-shard-006.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-006.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-006.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-006.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-006.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-006.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-006.log\n?? results/perspective-taking-n5000-20261004/search-shard-006/\n?? results/perspective-taking-n5000-20261004/search-shard-007.failed-1.log\n?? results/perspective-taking-n5000-20261004/search-shard-007.failed-1/\n?? results/perspective-taking-n5000-20261004/search-shard-007.failed-2.log\n?? results/perspective-taking-n5000-20261004/search-shard-007.failed-2/\n?? results/perspective-taking-n5000-20261004/search-shard-007.failed-3.log\n?? results/perspective-taking-n5000-20261004/search-shard-007.failed-3/\n?? results/perspective-taking-n5000-20261004/search-shard-007.log\n?? results/perspective-taking-n5000-20261004/search-shard-007/\n?? results/perspective-taking-n5000-20261004/search-shard-008.log\n?? results/perspective-taking-n5000-20261004/search-shard-008/\n?? results/perspective-taking-n5000-20261004/search-shard-009.log\n?? results/perspective-taking-n5000-20261004/search-shard-009/\n?? results/perspective-taking-n5000-20261004/search-shard-010.log\n?? results/perspective-taking-n5000-20261004/search-shard-010/\n?? results/perspective-taking-n5000-20261004/search-shard-011.log\n?? results/perspective-taking-n5000-20261004/search-shard-011/\n?? results/perspective-taking-n5000-20261004/search-shard-012.log\n?? results/perspective-taking-n5000-20261004/search-shard-012/\n?? results/perspective-taking-n5000-20261004/search-shard-013.log\n?? results/perspective-taking-n5000-20261004/search-shard-013/\n?? results/perspective-taking-n5000-20261004/search-shard-014.log\n?? results/perspective-taking-n5000-20261004/search-shard-014/\n?? results/perspective-taking-n5000-20261004/search-shard-015.log\n?? results/perspective-taking-n5000-20261004/search-shard-015/\n?? results/perspective-taking-n5000-20261004/search-shard-016.log\n?? results/perspective-taking-n5000-20261004/search-shard-016/\n?? results/perspective-taking-n5000-20261004/search-shard-017.log\n?? results/perspective-taking-n5000-20261004/search-shard-017/\n?? results/perspective-taking-n5000-20261004/search-shard-018.log\n?? results/perspective-taking-n5000-20261004/search-shard-018/\n?? results/perspective-taking-n5000-20261004/search-shard-019.log\n?? results/perspective-taking-n5000-20261004/search-shard-019/\n?? results/perspective-taking-n5000-20261004/search-shard-020.log\n?? results/perspective-taking-n5000-20261004/search-shard-020/\n?? results/perspective-taking-n5000-20261004/search-shard-021.log\n?? results/perspective-taking-n5000-20261004/search-shard-021/\n?? results/perspective-taking-n5000-20261004/search-shard-022.log\n?? results/perspective-taking-n5000-20261004/search-shard-022/\n?? results/perspective-taking-n5000-20261004/search-shard-023.log\n?? results/perspective-taking-n5000-20261004/search-shard-023/\n?? results/perspective-taking-n5000-20261004/search-shard-024.log\n?? results/perspective-taking-n5000-20261004/search-shard-024/\n?? results/perspective-taking-n5000-20261004/search-shard-025.log\n?? results/perspective-taking-n5000-20261004/search-shard-025/\n?? results/perspective-taking-n5000-20261004/search-shard-026.log\n?? results/perspective-taking-n5000-20261004/search-shard-026/\n?? results/perspective-taking-n5000-20261004/search-shard-027.log\n?? results/perspective-taking-n5000-20261004/search-shard-027/\n?? results/perspective-taking-n5000-20261004/search-shard-028.log\n?? results/perspective-taking-n5000-20261004/search-shard-028/\n?? results/perspective-taking-n5000-20261004/search-shard-029.log\n?? results/perspective-taking-n5000-20261004/search-shard-029/\n?? results/perspective-taking-n5000-20261004/search-shard-030.log\n?? results/perspective-taking-n5000-20261004/search-shard-030/\n?? results/perspective-taking-n5000-20261004/search-shard-031.log\n?? results/perspective-taking-n5000-20261004/search-shard-031/\n?? results/perspective-taking-n5000-20261004/search-shard-032.log\n?? results/perspective-taking-n5000-20261004/search-shard-032/\n?? results/perspective-taking-n5000-20261004/search-shard-033.log\n?? results/perspective-taking-n5000-20261004/search-shard-033/\n?? results/perspective-taking-n5000-20261004/search-shard-034.log\n?? results/perspective-taking-n5000-20261004/search-shard-034/\n?? results/perspective-taking-n5000-20261004/search-shard-035.log\n?? results/perspective-taking-n5000-20261004/search-shard-035/\n?? results/perspective-taking-n5000-20261004/search-shard-036.log\n?? results/perspective-taking-n5000-20261004/search-shard-036/\n?? results/perspective-taking-n5000-20261004/search-shard-037.log\n?? results/perspective-taking-n5000-20261004/search-shard-037/\n?? results/perspective-taking-n5000-20261004/search-shard-038.log\n?? results/perspective-taking-n5000-20261004/search-shard-038/\n?? results/perspective-taking-n5000-20261004/search-shard-039.log\n?? results/perspective-taking-n5000-20261004/search-shard-039/"
+  },
+  "command": [
+    "/usr/local/bin/python",
+    "/workspace/thickets-pt/src/thicket_runtime/perspective_runtime.py",
+    "--phase",
+    "search",
+    "--shard",
+    "36",
+    "--locks",
+    "results/perspective-taking-n5000-20261004/locks",
+    "--images",
+    "/workspace/pt-images",
+    "--upstream-root",
+    "/workspace/RandOpt-visual",
+    "--out",
+    "results/perspective-taking-n5000-20261004/search-shard-036"
+  ],
+  "started_utc": "2026-10-05T00:31:35.916385+00:00",
+  "protocol_sha256": "f342045e9d60b507593d6ffd603d77c6137797b16cb0f938c3c7cf4c8d7a4b41",
+  "dataset_proof": {
+    "commit": "faf8f54b8c91639b63de8c68412f10d2154531f9",
+    "files_verified": 5,
+    "manifest_sha256": "3a85579544e1e309de38629ff49c72f6bfb7cf268604b740c658da85093b9319"
+  },
+  "model": "Qwen/Qwen3-VL-8B-Instruct",
+  "model_revision": "0c351dd01ed87e9c1b53cbc748cba10e6187ff3b",
+  "upstream": {
+    "commit": "4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca",
+    "git_blobs": {
+      "utils/worker_extn.py": "3b672d6636364845474be02e01cce764b6e18af3",
+      "core/engine.py": "6603321e9c89f67e0b922313c1bc2d0581d7beec",
+      "randopt.py": "134c627940b54516177614108d77aa59a0b5fc91"
+    }
+  },
+  "versions": {
+    "torch": "2.8.0+cu128",
+    "vllm": "0.11.0",
+    "ray": "2.49.2",
+    "transformers": "4.57.1",
+    "numpy": "2.1.2",
+    "Pillow": "12.3.0",
+    "tokenizers": "0.22.2",
+    "huggingface-hub": "0.36.2"
+  },
+  "lock_commits": {
+    "baseline": "833e4458eba4878b51a6b3de1feef7c57bf03b5c 2026-10-04T18:05:31+00:00"
+  },
+  "evaluation_sets": {
+    "search": {
+      "examples": 200,
+      "population_sha256": "7a83403f734841e82a9a1e6693090e454d53cb87c34bc452125dbb9e430c6c1a"
+    }
+  },
+  "planned_candidates": 100,
+  "completed_candidates": 100,
+  "host": "d4962a52b709",
+  "cuda_visible_devices": "4",
+  "base_id": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485",
+  "ended_utc": "2026-10-05T01:39:40.559085+00:00"
+}

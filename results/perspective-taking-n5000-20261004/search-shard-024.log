@@ -1,0 +1,140 @@
+INFO 10-04 23:22:00 [__init__.py:216] Automatically detected platform cuda.
+INFO 10-04 23:22:01 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b] to model_path [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b]
+INFO 10-04 23:22:01 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b] to model_path [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b]
+INFO 10-04 23:22:01 [utils.py:233] non-default args: {'tokenizer': '/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b', 'dtype': 'bfloat16', 'seed': 0, 'max_model_len': 16384, 'distributed_executor_backend': 'uni', 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.5, 'max_num_batched_tokens': 16384, 'max_num_seqs': 64, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'image': 1, 'video': 0}, 'mm_processor_cache_gb': 0, 'worker_extension_cls': 'utils.worker_extn.WorkerExtension', 'model': '/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b'}
+INFO 10-04 23:22:01 [model.py:547] Resolved architecture: Qwen3VLForConditionalGeneration
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 10-04 23:22:01 [model.py:1510] Using max model len 16384
+INFO 10-04 23:22:03 [scheduler.py:205] Chunked prefill is enabled with max_num_batched_tokens=16384.
+INFO 10-04 23:22:03 [__init__.py:381] Cudagraph is disabled under eager mode
+INFO 10-04 23:22:06 [core.py:77] Initializing a V1 LLM engine (v0.11.0) with config: model='/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b', speculative_config=None, tokenizer='/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=16384, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b, enable_prefix_caching=False, chunked_prefill_enabled=True, pooler_config=None, compilation_config={"level":0,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":null,"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":0,"use_cudagraph":true,"cudagraph_num_of_warmups":0,"cudagraph_capture_sizes":[],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"use_inductor_graph_partition":false,"pass_config":{},"max_capture_size":0,"local_cache_dir":null}
+INFO 10-04 23:22:07 [worker_base.py:243] Injected <class 'utils.worker_extn.WorkerExtension'> into <class 'vllm.v1.worker.gpu_worker.Worker'> for extended collective_rpc calls ['_set_seed', '_should_perturb', 'apply_averaged_perturbations', 'apply_perturbation', 'broadcast_all_weights', 'cleanup_gpu_memory', 'clear_base_weights', 'dump_noise_for_seed', 'generate_with_logits_callback', 'get_logits_for_prompt', 'get_worker_ip', 'init_inter_engine_group', 'perturb_self_weights', 'print_model_weights_stats', 'reset_to_base_weights', 'restore_self_weights', 'save_self_weights_to_disk', 'store_base_weights', 'update_weights_from_seeds']
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+INFO 10-04 23:22:07 [parallel_state.py:1208] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+WARNING 10-04 23:22:07 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+INFO 10-04 23:22:10 [gpu_model_runner.py:2602] Starting to load model /workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b...
+INFO 10-04 23:22:10 [gpu_model_runner.py:2634] Loading model from scratch...
+INFO 10-04 23:22:10 [cuda.py:366] Using Flash Attention backend on V1 engine.
+Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:00<00:02,  1.20it/s]
+Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:01<00:01,  1.21it/s]
+Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:02<00:00,  1.16it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:03<00:00,  1.35it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:03<00:00,  1.29it/s]
+
+INFO 10-04 23:22:13 [default_loader.py:267] Loading weights took 3.14 seconds
+INFO 10-04 23:22:14 [gpu_model_runner.py:2653] Model loading took 16.9678 GiB and 3.271357 seconds
+INFO 10-04 23:22:14 [gpu_model_runner.py:3344] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
+INFO 10-04 23:22:21 [gpu_worker.py:298] Available KV cache memory: 18.72 GiB
+INFO 10-04 23:22:21 [kv_cache_utils.py:1087] GPU KV cache size: 136,336 tokens
+INFO 10-04 23:22:21 [kv_cache_utils.py:1091] Maximum concurrency for 16,384 tokens per request: 8.32x
+WARNING 10-04 23:22:21 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+INFO 10-04 23:22:21 [core.py:210] init engine (profile, create kv cache, warmup model) took 7.09 seconds
+INFO 10-04 23:22:21 [llm.py:306] Supported_tasks: ('generate',)
+{"phase": "search", "shard": 24, "completed": 1, "planned": 100, "seed": 9502400, "sigma": 0.00025, "correct_count": 72, "seconds": 41.8, "generation_seconds": 21.7}
+{"phase": "search", "shard": 24, "completed": 2, "planned": 100, "seed": 9502401, "sigma": 0.0005, "correct_count": 71, "seconds": 41.9, "generation_seconds": 21.7}
+{"phase": "search", "shard": 24, "completed": 3, "planned": 100, "seed": 9502402, "sigma": 0.001, "correct_count": 68, "seconds": 42.1, "generation_seconds": 22.1}
+{"phase": "search", "shard": 24, "completed": 4, "planned": 100, "seed": 9502403, "sigma": 0.002, "correct_count": 73, "seconds": 40.2, "generation_seconds": 20.5}
+{"phase": "search", "shard": 24, "completed": 5, "planned": 100, "seed": 9502404, "sigma": 0.00025, "correct_count": 72, "seconds": 40.3, "generation_seconds": 20.7}
+{"phase": "search", "shard": 24, "completed": 6, "planned": 100, "seed": 9502405, "sigma": 0.0005, "correct_count": 70, "seconds": 40.0, "generation_seconds": 20.6}
+{"phase": "search", "shard": 24, "completed": 7, "planned": 100, "seed": 9502406, "sigma": 0.001, "correct_count": 71, "seconds": 40.0, "generation_seconds": 20.5}
+{"phase": "search", "shard": 24, "completed": 8, "planned": 100, "seed": 9502407, "sigma": 0.002, "correct_count": 70, "seconds": 40.3, "generation_seconds": 20.5}
+{"phase": "search", "shard": 24, "completed": 9, "planned": 100, "seed": 9502408, "sigma": 0.00025, "correct_count": 73, "seconds": 40.1, "generation_seconds": 20.3}
+{"phase": "search", "shard": 24, "completed": 10, "planned": 100, "seed": 9502409, "sigma": 0.0005, "correct_count": 72, "seconds": 38.7, "generation_seconds": 20.4}
+{"phase": "search", "shard": 24, "completed": 11, "planned": 100, "seed": 9502410, "sigma": 0.001, "correct_count": 71, "seconds": 39.5, "generation_seconds": 20.3}
+{"phase": "search", "shard": 24, "completed": 12, "planned": 100, "seed": 9502411, "sigma": 0.002, "correct_count": 71, "seconds": 39.8, "generation_seconds": 20.7}
+{"phase": "search", "shard": 24, "completed": 13, "planned": 100, "seed": 9502412, "sigma": 0.00025, "correct_count": 71, "seconds": 40.3, "generation_seconds": 21.4}
+{"phase": "search", "shard": 24, "completed": 14, "planned": 100, "seed": 9502413, "sigma": 0.0005, "correct_count": 74, "seconds": 40.8, "generation_seconds": 21.2}
+{"phase": "search", "shard": 24, "completed": 15, "planned": 100, "seed": 9502414, "sigma": 0.001, "correct_count": 71, "seconds": 40.7, "generation_seconds": 21.1}
+{"phase": "search", "shard": 24, "completed": 16, "planned": 100, "seed": 9502415, "sigma": 0.002, "correct_count": 67, "seconds": 40.9, "generation_seconds": 21.7}
+{"phase": "search", "shard": 24, "completed": 17, "planned": 100, "seed": 9502416, "sigma": 0.00025, "correct_count": 72, "seconds": 39.8, "generation_seconds": 21.1}
+{"phase": "search", "shard": 24, "completed": 18, "planned": 100, "seed": 9502417, "sigma": 0.0005, "correct_count": 69, "seconds": 40.9, "generation_seconds": 21.3}
+{"phase": "search", "shard": 24, "completed": 19, "planned": 100, "seed": 9502418, "sigma": 0.001, "correct_count": 72, "seconds": 39.1, "generation_seconds": 20.6}
+{"phase": "search", "shard": 24, "completed": 20, "planned": 100, "seed": 9502419, "sigma": 0.002, "correct_count": 60, "seconds": 40.8, "generation_seconds": 21.2}
+{"phase": "search", "shard": 24, "completed": 21, "planned": 100, "seed": 9502420, "sigma": 0.00025, "correct_count": 71, "seconds": 40.7, "generation_seconds": 20.4}
+{"phase": "search", "shard": 24, "completed": 22, "planned": 100, "seed": 9502421, "sigma": 0.0005, "correct_count": 72, "seconds": 42.6, "generation_seconds": 21.7}
+{"phase": "search", "shard": 24, "completed": 23, "planned": 100, "seed": 9502422, "sigma": 0.001, "correct_count": 71, "seconds": 41.1, "generation_seconds": 20.4}
+{"phase": "search", "shard": 24, "completed": 24, "planned": 100, "seed": 9502423, "sigma": 0.002, "correct_count": 74, "seconds": 41.0, "generation_seconds": 20.7}
+{"phase": "search", "shard": 24, "completed": 25, "planned": 100, "seed": 9502424, "sigma": 0.00025, "correct_count": 71, "seconds": 40.4, "generation_seconds": 20.7}
+{"phase": "search", "shard": 24, "completed": 26, "planned": 100, "seed": 9502425, "sigma": 0.0005, "correct_count": 73, "seconds": 39.1, "generation_seconds": 20.2}
+{"phase": "search", "shard": 24, "completed": 27, "planned": 100, "seed": 9502426, "sigma": 0.001, "correct_count": 66, "seconds": 39.8, "generation_seconds": 20.0}
+{"phase": "search", "shard": 24, "completed": 28, "planned": 100, "seed": 9502427, "sigma": 0.002, "correct_count": 68, "seconds": 39.7, "generation_seconds": 20.3}
+{"phase": "search", "shard": 24, "completed": 29, "planned": 100, "seed": 9502428, "sigma": 0.00025, "correct_count": 71, "seconds": 38.4, "generation_seconds": 19.5}
+{"phase": "search", "shard": 24, "completed": 30, "planned": 100, "seed": 9502429, "sigma": 0.0005, "correct_count": 71, "seconds": 38.7, "generation_seconds": 19.7}
+{"phase": "search", "shard": 24, "completed": 31, "planned": 100, "seed": 9502430, "sigma": 0.001, "correct_count": 73, "seconds": 38.6, "generation_seconds": 18.9}
+{"phase": "search", "shard": 24, "completed": 32, "planned": 100, "seed": 9502431, "sigma": 0.002, "correct_count": 67, "seconds": 41.0, "generation_seconds": 21.5}
+{"phase": "search", "shard": 24, "completed": 33, "planned": 100, "seed": 9502432, "sigma": 0.00025, "correct_count": 73, "seconds": 41.4, "generation_seconds": 21.5}
+{"phase": "search", "shard": 24, "completed": 34, "planned": 100, "seed": 9502433, "sigma": 0.0005, "correct_count": 76, "seconds": 40.9, "generation_seconds": 20.9}
+{"phase": "search", "shard": 24, "completed": 35, "planned": 100, "seed": 9502434, "sigma": 0.001, "correct_count": 70, "seconds": 39.7, "generation_seconds": 20.4}
+{"phase": "search", "shard": 24, "completed": 36, "planned": 100, "seed": 9502435, "sigma": 0.002, "correct_count": 66, "seconds": 40.1, "generation_seconds": 20.5}
+{"phase": "search", "shard": 24, "completed": 37, "planned": 100, "seed": 9502436, "sigma": 0.00025, "correct_count": 75, "seconds": 41.4, "generation_seconds": 22.1}
+{"phase": "search", "shard": 24, "completed": 38, "planned": 100, "seed": 9502437, "sigma": 0.0005, "correct_count": 68, "seconds": 41.0, "generation_seconds": 21.2}
+{"phase": "search", "shard": 24, "completed": 39, "planned": 100, "seed": 9502438, "sigma": 0.001, "correct_count": 64, "seconds": 41.5, "generation_seconds": 21.7}
+{"phase": "search", "shard": 24, "completed": 40, "planned": 100, "seed": 9502439, "sigma": 0.002, "correct_count": 64, "seconds": 40.5, "generation_seconds": 20.7}
+{"phase": "search", "shard": 24, "completed": 41, "planned": 100, "seed": 9502440, "sigma": 0.00025, "correct_count": 72, "seconds": 40.7, "generation_seconds": 21.1}
+{"phase": "search", "shard": 24, "completed": 42, "planned": 100, "seed": 9502441, "sigma": 0.0005, "correct_count": 75, "seconds": 40.5, "generation_seconds": 21.5}
+{"phase": "search", "shard": 24, "completed": 43, "planned": 100, "seed": 9502442, "sigma": 0.001, "correct_count": 67, "seconds": 41.7, "generation_seconds": 21.3}
+{"phase": "search", "shard": 24, "completed": 44, "planned": 100, "seed": 9502443, "sigma": 0.002, "correct_count": 64, "seconds": 40.4, "generation_seconds": 20.4}
+{"phase": "search", "shard": 24, "completed": 45, "planned": 100, "seed": 9502444, "sigma": 0.00025, "correct_count": 75, "seconds": 39.8, "generation_seconds": 19.7}
+{"phase": "search", "shard": 24, "completed": 46, "planned": 100, "seed": 9502445, "sigma": 0.0005, "correct_count": 70, "seconds": 38.8, "generation_seconds": 19.2}
+{"phase": "search", "shard": 24, "completed": 47, "planned": 100, "seed": 9502446, "sigma": 0.001, "correct_count": 64, "seconds": 38.3, "generation_seconds": 18.8}
+{"phase": "search", "shard": 24, "completed": 48, "planned": 100, "seed": 9502447, "sigma": 0.002, "correct_count": 77, "seconds": 38.2, "generation_seconds": 18.2}
+{"phase": "search", "shard": 24, "completed": 49, "planned": 100, "seed": 9502448, "sigma": 0.00025, "correct_count": 74, "seconds": 38.7, "generation_seconds": 19.0}
+{"phase": "search", "shard": 24, "completed": 50, "planned": 100, "seed": 9502449, "sigma": 0.0005, "correct_count": 73, "seconds": 39.0, "generation_seconds": 20.0}
+{"phase": "search", "shard": 24, "completed": 51, "planned": 100, "seed": 9502450, "sigma": 0.001, "correct_count": 71, "seconds": 39.5, "generation_seconds": 19.6}
+{"phase": "search", "shard": 24, "completed": 52, "planned": 100, "seed": 9502451, "sigma": 0.002, "correct_count": 71, "seconds": 38.2, "generation_seconds": 18.9}
+{"phase": "search", "shard": 24, "completed": 53, "planned": 100, "seed": 9502452, "sigma": 0.00025, "correct_count": 72, "seconds": 39.6, "generation_seconds": 19.2}
+{"phase": "search", "shard": 24, "completed": 54, "planned": 100, "seed": 9502453, "sigma": 0.0005, "correct_count": 73, "seconds": 39.1, "generation_seconds": 19.6}
+{"phase": "search", "shard": 24, "completed": 55, "planned": 100, "seed": 9502454, "sigma": 0.001, "correct_count": 67, "seconds": 40.8, "generation_seconds": 20.9}
+{"phase": "search", "shard": 24, "completed": 56, "planned": 100, "seed": 9502455, "sigma": 0.002, "correct_count": 65, "seconds": 38.6, "generation_seconds": 19.5}
+{"phase": "search", "shard": 24, "completed": 57, "planned": 100, "seed": 9502456, "sigma": 0.00025, "correct_count": 71, "seconds": 39.1, "generation_seconds": 19.5}
+{"phase": "search", "shard": 24, "completed": 58, "planned": 100, "seed": 9502457, "sigma": 0.0005, "correct_count": 75, "seconds": 37.7, "generation_seconds": 18.5}
+{"phase": "search", "shard": 24, "completed": 59, "planned": 100, "seed": 9502458, "sigma": 0.001, "correct_count": 70, "seconds": 37.4, "generation_seconds": 18.4}
+{"phase": "search", "shard": 24, "completed": 60, "planned": 100, "seed": 9502459, "sigma": 0.002, "correct_count": 64, "seconds": 38.0, "generation_seconds": 18.7}
+{"phase": "search", "shard": 24, "completed": 61, "planned": 100, "seed": 9502460, "sigma": 0.00025, "correct_count": 72, "seconds": 37.2, "generation_seconds": 17.9}
+{"phase": "search", "shard": 24, "completed": 62, "planned": 100, "seed": 9502461, "sigma": 0.0005, "correct_count": 71, "seconds": 39.7, "generation_seconds": 19.7}
+{"phase": "search", "shard": 24, "completed": 63, "planned": 100, "seed": 9502462, "sigma": 0.001, "correct_count": 70, "seconds": 39.3, "generation_seconds": 19.5}
+{"phase": "search", "shard": 24, "completed": 64, "planned": 100, "seed": 9502463, "sigma": 0.002, "correct_count": 71, "seconds": 38.3, "generation_seconds": 18.6}
+{"phase": "search", "shard": 24, "completed": 65, "planned": 100, "seed": 9502464, "sigma": 0.00025, "correct_count": 72, "seconds": 39.3, "generation_seconds": 19.4}
+{"phase": "search", "shard": 24, "completed": 66, "planned": 100, "seed": 9502465, "sigma": 0.0005, "correct_count": 71, "seconds": 39.3, "generation_seconds": 19.7}
+{"phase": "search", "shard": 24, "completed": 67, "planned": 100, "seed": 9502466, "sigma": 0.001, "correct_count": 72, "seconds": 38.7, "generation_seconds": 20.0}
+{"phase": "search", "shard": 24, "completed": 68, "planned": 100, "seed": 9502467, "sigma": 0.002, "correct_count": 72, "seconds": 38.6, "generation_seconds": 19.1}
+{"phase": "search", "shard": 24, "completed": 69, "planned": 100, "seed": 9502468, "sigma": 0.00025, "correct_count": 73, "seconds": 38.6, "generation_seconds": 18.8}
+{"phase": "search", "shard": 24, "completed": 70, "planned": 100, "seed": 9502469, "sigma": 0.0005, "correct_count": 70, "seconds": 38.4, "generation_seconds": 19.2}
+{"phase": "search", "shard": 24, "completed": 71, "planned": 100, "seed": 9502470, "sigma": 0.001, "correct_count": 69, "seconds": 38.2, "generation_seconds": 19.0}
+{"phase": "search", "shard": 24, "completed": 72, "planned": 100, "seed": 9502471, "sigma": 0.002, "correct_count": 74, "seconds": 39.1, "generation_seconds": 18.3}
+{"phase": "search", "shard": 24, "completed": 73, "planned": 100, "seed": 9502472, "sigma": 0.00025, "correct_count": 71, "seconds": 38.2, "generation_seconds": 18.7}
+{"phase": "search", "shard": 24, "completed": 74, "planned": 100, "seed": 9502473, "sigma": 0.0005, "correct_count": 68, "seconds": 38.8, "generation_seconds": 19.3}
+{"phase": "search", "shard": 24, "completed": 75, "planned": 100, "seed": 9502474, "sigma": 0.001, "correct_count": 64, "seconds": 37.3, "generation_seconds": 18.1}
+{"phase": "search", "shard": 24, "completed": 76, "planned": 100, "seed": 9502475, "sigma": 0.002, "correct_count": 57, "seconds": 38.0, "generation_seconds": 18.5}
+{"phase": "search", "shard": 24, "completed": 77, "planned": 100, "seed": 9502476, "sigma": 0.00025, "correct_count": 73, "seconds": 38.7, "generation_seconds": 18.8}
+{"phase": "search", "shard": 24, "completed": 78, "planned": 100, "seed": 9502477, "sigma": 0.0005, "correct_count": 72, "seconds": 40.4, "generation_seconds": 21.0}
+{"phase": "search", "shard": 24, "completed": 79, "planned": 100, "seed": 9502478, "sigma": 0.001, "correct_count": 74, "seconds": 40.7, "generation_seconds": 20.8}
+{"phase": "search", "shard": 24, "completed": 80, "planned": 100, "seed": 9502479, "sigma": 0.002, "correct_count": 72, "seconds": 40.2, "generation_seconds": 20.6}
+{"phase": "search", "shard": 24, "completed": 81, "planned": 100, "seed": 9502480, "sigma": 0.00025, "correct_count": 74, "seconds": 39.8, "generation_seconds": 21.3}
+{"phase": "search", "shard": 24, "completed": 82, "planned": 100, "seed": 9502481, "sigma": 0.0005, "correct_count": 73, "seconds": 40.9, "generation_seconds": 21.1}
+{"phase": "search", "shard": 24, "completed": 83, "planned": 100, "seed": 9502482, "sigma": 0.001, "correct_count": 70, "seconds": 39.8, "generation_seconds": 21.1}
+{"phase": "search", "shard": 24, "completed": 84, "planned": 100, "seed": 9502483, "sigma": 0.002, "correct_count": 69, "seconds": 39.2, "generation_seconds": 20.4}
+{"phase": "search", "shard": 24, "completed": 85, "planned": 100, "seed": 9502484, "sigma": 0.00025, "correct_count": 75, "seconds": 39.6, "generation_seconds": 20.6}
+{"phase": "search", "shard": 24, "completed": 86, "planned": 100, "seed": 9502485, "sigma": 0.0005, "correct_count": 75, "seconds": 39.7, "generation_seconds": 20.7}
+{"phase": "search", "shard": 24, "completed": 87, "planned": 100, "seed": 9502486, "sigma": 0.001, "correct_count": 74, "seconds": 40.1, "generation_seconds": 20.2}
+{"phase": "search", "shard": 24, "completed": 88, "planned": 100, "seed": 9502487, "sigma": 0.002, "correct_count": 70, "seconds": 39.6, "generation_seconds": 19.9}
+{"phase": "search", "shard": 24, "completed": 89, "planned": 100, "seed": 9502488, "sigma": 0.00025, "correct_count": 74, "seconds": 38.3, "generation_seconds": 18.9}
+{"phase": "search", "shard": 24, "completed": 90, "planned": 100, "seed": 9502489, "sigma": 0.0005, "correct_count": 73, "seconds": 38.5, "generation_seconds": 19.2}
+{"phase": "search", "shard": 24, "completed": 91, "planned": 100, "seed": 9502490, "sigma": 0.001, "correct_count": 73, "seconds": 38.6, "generation_seconds": 18.9}
+{"phase": "search", "shard": 24, "completed": 92, "planned": 100, "seed": 9502491, "sigma": 0.002, "correct_count": 74, "seconds": 38.8, "generation_seconds": 19.0}
+{"phase": "search", "shard": 24, "completed": 93, "planned": 100, "seed": 9502492, "sigma": 0.00025, "correct_count": 72, "seconds": 37.8, "generation_seconds": 18.8}
+{"phase": "search", "shard": 24, "completed": 94, "planned": 100, "seed": 9502493, "sigma": 0.0005, "correct_count": 71, "seconds": 39.0, "generation_seconds": 19.3}
+{"phase": "search", "shard": 24, "completed": 95, "planned": 100, "seed": 9502494, "sigma": 0.001, "correct_count": 74, "seconds": 38.4, "generation_seconds": 18.9}
+{"phase": "search", "shard": 24, "completed": 96, "planned": 100, "seed": 9502495, "sigma": 0.002, "correct_count": 68, "seconds": 39.8, "generation_seconds": 20.0}
+{"phase": "search", "shard": 24, "completed": 97, "planned": 100, "seed": 9502496, "sigma": 0.00025, "correct_count": 73, "seconds": 39.2, "generation_seconds": 19.4}
+{"phase": "search", "shard": 24, "completed": 98, "planned": 100, "seed": 9502497, "sigma": 0.0005, "correct_count": 71, "seconds": 37.9, "generation_seconds": 18.7}
+{"phase": "search", "shard": 24, "completed": 99, "planned": 100, "seed": 9502498, "sigma": 0.001, "correct_count": 69, "seconds": 38.8, "generation_seconds": 19.0}
+{"phase": "search", "shard": 24, "completed": 100, "planned": 100, "seed": 9502499, "sigma": 0.002, "correct_count": 74, "seconds": 38.7, "generation_seconds": 18.9}
+{"phase": "search", "shard": 24, "status": "complete", "candidates": 100}
+[rank0]:[W1005 00:31:22.136288809 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

@@ -1,0 +1,49 @@
+{
+  "base_slow": {
+    "changed_values": 0,
+    "parameter_values": 8767123696,
+    "changed_fraction": 0.0,
+    "changed_buffer_values": 0,
+    "max_abs": 0.0,
+    "finite": true,
+    "exact_base": true
+  },
+  "base_fast": {
+    "changed_values": 0,
+    "parameter_values": 8767123696,
+    "changed_fraction": 0.0,
+    "changed_buffer_values": 0,
+    "max_abs": 0.0,
+    "finite": true,
+    "exact_base": true,
+    "slow_path_tensors": 0
+  },
+  "perturbed_slow": {
+    "changed_values": 8579039331,
+    "parameter_values": 8767123696,
+    "changed_fraction": 0.9785466281163783,
+    "changed_buffer_values": 0,
+    "max_abs": 0.0118408203125,
+    "finite": true,
+    "exact_base": false
+  },
+  "perturbed_fast": {
+    "changed_values": 8579039331,
+    "parameter_values": 8767123696,
+    "changed_fraction": 0.9785466281163783,
+    "changed_buffer_values": 0,
+    "max_abs": 0.0118408203125,
+    "finite": true,
+    "exact_base": false,
+    "slow_path_tensors": 641
+  },
+  "checks": {
+    "base_drift_equal": true,
+    "perturbed_drift_equal": true,
+    "perturbed_not_exact": true,
+    "tree_fingerprint_deterministic": true,
+    "tree_fingerprint_changes": true,
+    "flat_fingerprint_changes": true,
+    "base_restored_after_proof": true
+  }
+}
