@@ -1,6 +1,7 @@
 \begin{table}[t]
 \centering
 \small
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{lrrrrrrr}
 \toprule
 Stage & Examples & Base acc.\,(\%) & Best gain (pp) & $>$base & $\ge$+1 & $\ge$+3 & $\ge$+5 \\
@@ -10,6 +11,7 @@ Stage & Examples & Base acc.\,(\%) & Best gain (pp) & $>$base & $\ge$+1 & $\ge$+
 \textbf{TEST} (SEARCH top 50) & 561 & 46.17 & +1.25 & 17 & 4 & 0 & 0 \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \caption{Three-stage results. RERANK is a second-stage selection set (historically named VALIDATION200), not an unbiased validation estimate. On TEST, the RERANK rank-1 candidate scores -2.67 pp; the best of the frozen RERANK top 10 +1.07 pp; the SEARCH top-50 mean is -0.35 pp and their majority vote +0.00 pp.}
 \label{tab:main}
 \end{table}

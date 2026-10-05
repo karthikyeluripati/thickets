@@ -1,6 +1,7 @@
 \begin{table}[t]
 \centering
 \small
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{p{6.3cm}p{6.3cm}}
 \toprule
 Check & Result \\
@@ -18,6 +19,7 @@ Parser edge cases & 0 malformed of 1,137,611 \\
 Mask diagnostic (post hoc): 9504111 RERANK / TEST & language-only 91/255, vision-only 82/259, all 95/244 (base 79/259) \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \caption{Forensic integrity checks. No implementation error was found; the collapse reproduces exactly.}
 \label{tab:forensic}
 \end{table}

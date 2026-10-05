@@ -1,6 +1,7 @@
 \begin{table}[t]
 \centering
 \small
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{lll}
 \toprule
 Property & Released RandOpt (GQA) & This study \\
@@ -16,6 +17,7 @@ Prompt / answer & step-by-step, \texttt{\textbackslash boxed\{\}} & official dir
 Generation length & 256 tokens & 16 tokens \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \caption{Setup differences from the released RandOpt code (pinned \texttt{4000d34}), read from code only. The upstream GQA invocation is not published, so its vision-encoder setting is uncertain.}
 \label{tab:setup}
 \end{table}

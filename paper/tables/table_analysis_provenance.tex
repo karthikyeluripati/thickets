@@ -1,6 +1,7 @@
 \begin{table}[t]
 \centering
 \small
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{p{4.2cm}llll}
 \toprule
 Analysis & Status & Commit & Committed (UTC) & Outcome \\
@@ -18,6 +19,7 @@ Allocentric specialist search & post hoc & \texttt{4ec4dd4} & 2026-10-05 15:22 &
 Paper analyses (decomposition, overlap, nulls, oracle) & post hoc & \texttt{this branch} & 2026-10-05 & Descriptive; no new candidates \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \caption{Provenance of every analysis. Rows above the rule were frozen in git before the data they evaluate were generated; rows below are post hoc and are reported as exploratory.}
 \label{tab:provenance}
 \end{table}

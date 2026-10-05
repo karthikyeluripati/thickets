@@ -1,6 +1,7 @@
 \begin{table}[t]
 \centering
 \small
+\begin{adjustbox}{max width=\linewidth}
 \begin{tabular}{rrl}
 \toprule
 SEARCH score (/200) & Candidates & In top 50? \\
@@ -15,6 +16,7 @@ SEARCH score (/200) & Candidates & In top 50? \\
 75 & 284 & no \\
 \bottomrule
 \end{tabular}
+\end{adjustbox}
 \caption{SEARCH score counts near the top-50 cut-off. 25 of the top 50 (including seed 9504111) were admitted from a 33-way tie at 77/200 by the hash tie-break. Among tie members evaluated on RERANK, gains ranged -1.5 to +8.0 pp.}
 \label{tab:tie}
 \end{table}

@@ -79,9 +79,11 @@ def tex_escape(s):
 def write_tex(name, header, rows, caption, label, colspec=None):
     TABLES.mkdir(parents=True, exist_ok=True)
     colspec = colspec or 'l' + 'r' * (len(header) - 1)
-    lines = ['\\begin{table}[t]', '\\centering', '\\small', f'\\begin{{tabular}}{{{colspec}}}', '\\toprule',
+    # Requires \usepackage{booktabs,adjustbox}; adjustbox only shrinks tables wider than the column.
+    lines = ['\\begin{table}[t]', '\\centering', '\\small', '\\begin{adjustbox}{max width=\\linewidth}',
+             f'\\begin{{tabular}}{{{colspec}}}', '\\toprule',
              ' & '.join(header) + ' \\\\', '\\midrule']
     for r in rows:
         lines.append('\\midrule' if r == 'MIDRULE' else ' & '.join(str(x) for x in r) + ' \\\\')
-    lines += ['\\bottomrule', '\\end{tabular}', f'\\caption{{{caption}}}', f'\\label{{{label}}}', '\\end{table}']
+    lines += ['\\bottomrule', '\\end{tabular}', '\\end{adjustbox}', f'\\caption{{{caption}}}', f'\\label{{{label}}}', '\\end{table}']
     (TABLES / f'{name}.tex').write_text('\n'.join(lines) + '\n', encoding='utf-8')

@@ -240,7 +240,7 @@ def part_f():
         rows.append('MIDRULE')
     rows = rows[:-1]
     write_tex('table_question_form_overlap', ['Stage', 'Question form vs SEARCH', '$n$', 'Base', 'Cand.', 'Cand.-only', 'Base-only', 'Gain (pp)', 'Random $\\sigma{=}0.002$ gain'],
-              rows, 'Seed 9504111 by recurrence of the question phrasing in SEARCH. ``Form'' is a normalized question-form family (first five '
+              rows, 'Seed 9504111 by recurrence of the question phrasing in SEARCH. ``Form\'\' is a normalized question-form family (first five '
               'lower-cased words); questions always differ in image. Last column: mean gain of the 125 precommitted random $\\sigma{=}0.002$ '
               'audit candidates on the same RERANK questions.', 'tab:forms', 'llrrrrrrr')
     fig, ax = plt.subplots(figsize=(3.4, 2.2))
@@ -535,4 +535,5 @@ def part_k():
 PARTS = {'B': part_b, 'C': part_c, 'D': part_d, 'E': part_e, 'F': part_f, 'G': part_g, 'H': part_h, 'I': part_i, 'J': part_j, 'K': part_k}
 if __name__ == '__main__':
     for p in (sys.argv[1:] or list(PARTS)):
+        RNG = np.random.default_rng([20261005, ord(p)])  # per-part stream: results do not depend on which parts ran
         PARTS[p]()
