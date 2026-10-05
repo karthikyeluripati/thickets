@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrr}
+\toprule
+$\sigma$ & SEARCH & RERANK & HOLDOUT (all 125) & HOLDOUT (selected winner) \\
+\midrule
+0.00025 & 1.8 / 1.9 & 1.5 / 2.8 & 1.6 / 2.4 & 1.5 / 2.8 \\
+0.0005 & 2.1 / 4.1 & 2.3 / 4.1 & 2.2 / 4.1 & 2.6 / 4.1 \\
+0.001 & 3.7 / 8.4 & 4.5 / 7.0 & 4.1 / 7.6 & 4.5 / 7.4 \\
+0.002 & 6.3 / 15.7 & 9.0 / 12.0 & 7.6 / 13.8 & 9.4 / 10.6 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{POST HOC. Repair rate / damage rate (\%) by radius, 125 audit candidates per $\sigma$. Repair = P(correct $\mid$ base wrong); damage = P(wrong $\mid$ base correct). HOLDOUT values average the 5,000 replay holdouts.}
+\label{tab:radius-repair}
+\end{table}

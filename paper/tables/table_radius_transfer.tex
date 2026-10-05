@@ -1,0 +1,18 @@
+\begin{table}[t]
+\centering
+\small
+\begin{adjustbox}{max width=\linewidth}
+\begin{tabular}{lrrrrrrrrrrrr}
+\toprule
+$\sigma$ & SEARCH & RERANK & HOLDOUT mean / median & HOLDOUT 95\% & P($>$0) & P($\ge$1) & P($\ge$3) & P($\ge$5) & Optimism & Transfer fraction & HOLDOUT by origin S / R & Null HOLDOUT \\
+\midrule
+0.00025 & +1.47 & +2.08 & -0.14 / +0.0 & [-2.0, +1.5] & 0.32 & 0.13 & 0.00 & 0.00 & +2.22 & -0.07 & +0.42 / -0.70 & +0.09 \\
+0.0005 & +1.76 & +2.69 & +0.03 / +0.0 & [-2.0, +2.0] & 0.42 & 0.26 & 0.01 & 0.00 & +2.65 & 0.01 & +0.07 / -0.01 & -0.10 \\
+0.001 & +2.11 & +3.39 & +0.03 / +0.0 & [-3.0, +2.5] & 0.46 & 0.31 & 0.01 & 0.00 & +3.35 & 0.01 & -0.14 / +0.21 & -0.36 \\
+0.002 & +3.62 & +5.81 & +1.85 / +2.0 & [-2.5, +5.5] & 0.76 & 0.70 & 0.37 & 0.07 & +3.96 & 0.32 & -0.06 / +3.76 & -0.50 \\
+\bottomrule
+\end{tabular}
+\end{adjustbox}
+\caption{POST HOC replay within each radius: 125 precommitted audit candidates $\to$ SEARCH100 top 25 $\to$ RERANK100 winner $\to$ fresh HOLDOUT200, with identical stratified splits for all four radii in each of 5,000 trials. Gains of the selected winner in pp; intervals are 2.5--97.5\% of replays (one observed matrix, not independent searches). Optimism = RERANK $-$ HOLDOUT; transfer fraction = mean HOLDOUT / mean RERANK. Origin: HOLDOUT gain on SEARCH200- vs RERANK200-origin items. Null: item-fragility permutation within $\sigma$.}
+\label{tab:radius-transfer}
+\end{table}
