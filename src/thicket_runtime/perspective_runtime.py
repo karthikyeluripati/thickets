@@ -4,6 +4,8 @@ baseline: base + zero perturbation on SEARCH/VALIDATION/TEST, base repeat.
 search --shard k: the frozen manifest candidates of shard k on SEARCH200.
 validation --shard j: slice j of [frozen top 50] + [precommitted density audit not in top 50] on VALIDATION200.
 test: the frozen validation top 10 on the official TEST subset.
+committee --shard j: RandOpt re-evaluation addendum; the committed SEARCH top-50 members that
+lack TEST outputs, COMMITTEE_SHARD_SIZE per shard, on the official TEST subset.
 """
 import argparse
 from datetime import datetime, timezone
@@ -29,7 +31,9 @@ from . import fast_state, vllm_audit
 
 ZERO_SEED = 5100000
 VALIDATION_SHARD_SIZE = 35
-LOCKS = {'baseline': (), 'search': ('baseline',), 'validation': ('baseline', 'search'), 'test': ('baseline', 'search', 'validation')}
+LOCKS = {'baseline': (), 'search': ('baseline',), 'validation': ('baseline', 'search'), 'test': ('baseline', 'search', 'validation'),
+         'committee': ('baseline', 'search', 'committee')}
+COMMITTEE_SHARD_SIZE = 5
 
 
 def output_identity(outputs):
@@ -158,6 +162,10 @@ def planned(phase, protocol, locks, shard):
         part = plan[shard * VALIDATION_SHARD_SIZE:(shard + 1) * VALIDATION_SHARD_SIZE]
         if shard < 0 or not part:
             raise ValueError('unknown validation shard')
+    elif phase == 'committee':
+        part = locks['committee']['to_generate'][shard * COMMITTEE_SHARD_SIZE:(shard + 1) * COMMITTEE_SHARD_SIZE]
+        if shard < 0 or not part:
+            raise ValueError('unknown committee shard')
     else:
         part = locks['validation']['top10']
     return [(r['candidate']['seed'], r['candidate']['sigma'], r) for r in part]
@@ -173,8 +181,8 @@ def main():
     p.add_argument('--upstream-root', type=Path, required=True)
     p.add_argument('--out', type=Path, required=True)
     a = p.parse_args()
-    if (a.phase in ('search', 'validation')) != (a.shard is not None):
-        raise ValueError('--shard is required for, and only for, search and validation')
+    if (a.phase in ('search', 'validation', 'committee')) != (a.shard is not None):
+        raise ValueError('--shard is required for, and only for, search, validation and committee')
     committed(a.protocol)
     protocol = read(a.protocol)
     if protocol['schema'] != 'perspective-taking-n5000-v1': raise ValueError('wrong protocol')

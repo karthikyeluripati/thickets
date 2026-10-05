@@ -13,7 +13,8 @@ from .omnispatial_data import load
 from .visual_final import rank_hash
 
 SPLITS = ('search', 'validation', 'test')
-PHASE_SPLITS = {'baseline': SPLITS, 'search': ('search',), 'validation': ('validation',), 'test': ('test',)}
+PHASE_SPLITS = {'baseline': SPLITS, 'search': ('search',), 'validation': ('validation',), 'test': ('test',),
+                'committee': ('test',)}
 
 
 def splits(protocol):
