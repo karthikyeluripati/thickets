@@ -1,0 +1,14 @@
++ cd /workspace/repro
++ tar xzf /workspace/r2b.tgz --no-same-owner
++ python scripts/geometry_extract_images.py
+IMAGES_VERIFIED 961
++ O=/workspace/repro/results/paper-analysis/r2/gpu
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/r2_gradient.py --images /workspace/pt-images --out /workspace/repro/results/paper-analysis/r2/gpu --check /workspace/repro/results/paper-analysis/r2/gpu/vllm_stream_check.json
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:00<00:00, 140.21it/s]
+The image processor of type `Qwen2VLImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. Note that this behavior will be extended to all models in a future release.
+{"letter_ids": [32, 33, 34, 35], "n_stream": 544997376, "mapping_gate": {"identical": 525, "of": 525}}
+{"groups": ["embed", "L00-03", "L04-07", "L08-11", "L12-15", "L16-19", "L20-23", "L24-27", "final_norm_head", "vision"], "gradient_seconds": 79.16671180725098, "group_norms": {"embed": 8.776639938354492, "L00-03": 13.466392517089844, "L04-07": 18.134811401367188, "L08-11": 21.908613204956055, "L12-15": 29.867149353027344, "L16-19": 23.616470336914062, "L20-23": 11.818050384521484, "L24-27": 12.128986358642578, "final_norm_head": 19.826595306396484, "vision": 60.064964294433594}, "minutes_total": 2.1111640334129333}

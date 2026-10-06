@@ -1,0 +1,152 @@
+RATE=3.49 START=1791320017 CAP=6.00
++ touch /workspace/JOB_RUNNING
++ python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen2.5-VL-7B-Instruct'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5
++ python -c 'from huggingface_hub import HfApi;print('\''MODEL_SHA'\'',HfApi().model_info('\''Qwen/Qwen2.5-VL-7B-Instruct'\'').sha)'
++ tee /workspace/model_sha.txt
+MODEL_SHA cc594898137f460bfe9f0759e9844b3ce807cfb5
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ pip freeze
++ nvidia-smi -L
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY /workspace/SETUP_DONE
++ echo SETUP_DONE
+SETUP_DONE
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/01-check.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-06T20:57:43Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-check.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-check.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-check.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-check.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-check.sh /workspace/jobs/02-grad.sh /workspace/jobs/03-measure.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-grad.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/02-grad.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-06T21:02:05Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-measure.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/03-measure.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-06T21:28:56Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-check.sh /workspace/jobs/02-grad.sh /workspace/jobs/03-measure.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-grad.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-measure.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-check.sh /workspace/jobs/02-grad.sh /workspace/jobs/03-measure.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-check.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-grad.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-measure.rc ']'
++ continue
++ sleep 10

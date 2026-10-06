@@ -1,0 +1,40 @@
+{
+ "n_perturbations": 80,
+ "n_items": 96,
+ "S1a_spearman_brown": 0.5176598446876258,
+ "S1a_pass": false,
+ "S1b_fidelity_all_ok": true,
+ "missing_letter_fraction": 0.0,
+ "missing_flag": false,
+ "P1_position_var_share_NOV": 0.15642538424078653,
+ "P1_content_ok": true,
+ "R2_primary_r_predNOV_TNOV": 0.9203024105070171,
+ "R2_slope": 0.8435328935867726,
+ "R2_share_r2_TNOV_TFULL": 0.9449667535287187,
+ "secondary": {
+  "r_predNOV_TFULL": 0.9121234642291134,
+  "r_predNOV+predV_TFULL": 0.7273189331733066,
+  "r_predNOV_content_part": 0.8249680964314812
+ },
+ "L2_predicted_var_share_by_group": {
+  "embed": 0.022546872227646005,
+  "L00-03": 0.059964201200541155,
+  "L04-07": 0.11105985921212401,
+  "L08-11": 0.14630044081522878,
+  "L12-15": 0.30307310321209746,
+  "L16-19": 0.15029600635923773,
+  "L20-23": 0.04618311881012723,
+  "L24-27": 0.04908371987582521,
+  "final_norm_head": 0.11149269201116707
+ },
+ "L2_mid_blocks_share": 0.710729409598688,
+ "L2_mid_supported": true,
+ "sd": {
+  "T_FULL": 0.11394563396920483,
+  "T_NOV": 0.11888682595009578,
+  "pred_NOV": 0.1297066579516218
+ },
+ "R2_verdict": "PASS",
+ "interpretable": false,
+ "replication": "INCONCLUSIVE"
+}
