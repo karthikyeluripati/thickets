@@ -32,6 +32,7 @@ def main():
     ap.add_argument('--usd-per-hour', type=float, required=True); ap.add_argument('--pod-start-epoch', type=float, required=True)
     ap.add_argument('--cap-usd', type=float, required=True)
     ap.add_argument('--lists', default='results/paper-analysis/geometry-gpu-a/candidate_lists.json')
+    ap.add_argument('--resume-s2c', action='store_true')
     ap.add_argument('--controls', default='results/paper-analysis/random-control-transfer/frozen_controls.json')
     a = ap.parse_args()
     import torch
@@ -88,6 +89,67 @@ def main():
 
     def vllm_vec(u):
         return np.array([s1b[u]['letter_logprobs'][L] for L in LET])
+
+    def run_s2c(comp, base_s):
+        """Memory-safe S2c: each parameter's grad is folded into the example's stream row by a post-accumulate hook and
+        freed at once (the full gradient set is never held); activations are checkpointed. Train mode only enables
+        checkpointing (no dropout in Qwen3-VL); the forward is checked against the stored eval-mode fp32 contrast."""
+        buf = torch.empty(G.N_MAX, dtype=torch.bfloat16, device='cuda')
+
+        def eps_into(seed):
+            g = torch.Generator(device='cuda'); g.manual_seed(int(seed)); torch.randn(G.N_MAX, out=buf, generator=g); return buf
+        for p in model.parameters():
+            p.requires_grad_(True)
+        model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={'use_reentrant': False}); model.config.use_cache = False
+        model.train()
+        group_of = {v: cd.assign_group(v) for v in mapping}
+        sf = G.StreamingFolder(params, mapping, group_of)
+        loc = set(json.loads((cd.OUT / 'example_manifest.json').read_text())['localization'])
+        setF = {ph: torch.zeros(G.N_MAX, dtype=torch.float32) for ph in ('SEARCH', 'RERANK', 'TEST')}  # CPU during the loop
+        fwd_dev = []
+        for ph in ('RERANK', 'TEST', 'SEARCH'):
+            cands = lists[f'{ph}_candidates']; uids = [r['uid'] for r in rows[ph]]
+            pred = np.zeros((len(uids), len(cands)), np.float32); group_pred = {}
+            for b0 in range(0, len(uids), BLOCK):
+                guard(2.0)
+                blk = rows[ph][b0: b0 + BLOCK]
+                Fb = torch.zeros(len(blk), G.N_MAX, dtype=torch.float32, device='cuda')
+                for i, r in enumerate(blk):
+                    u = r['uid']; y, rB = comp[u]
+                    sf.target = Fb[i]
+                    if u in loc:
+                        sf.eps = eps_into(WIN_SEED); sf.sigma = WIN_SIGMA; sf.partials = {}
+                    else:
+                        sf.eps = None
+                    c = contrast32(hidden(inputs(r)), y, rB); fwd_dev.append(abs(float(c) - base_s[u])); c.backward()
+                    if u in loc:
+                        group_pred[u] = {grp: sf.partials.get(grp, 0.) for grp in cd.GROUPS}
+                sf.target = None; sf.eps = None
+                setF[ph] += Fb.sum(0).cpu()
+                for k, (cid, seed, sigma) in enumerate(cands):
+                    e = eps_into(seed).float()
+                    pred[b0: b0 + len(blk), k] = (sigma * (Fb @ e)).cpu().numpy(); del e
+                np.save(a.out / f'pred_{ph}.npy', pred); del Fb
+                if len(fwd_dev) == len(blk) and float(np.median(fwd_dev)) > 0.05:  # catches a real mode difference, not kernel noise
+                    note('NO_GO_train_mode_forward', max_abs_dev=max(fwd_dev)); raise SystemExit('train-mode forward deviates')
+            (a.out / f'meta_{ph}.json').write_text(json.dumps({'uids': uids, 'candidates': cands, 'comparator': {u: comp[u] for u in uids}}))
+            if group_pred:
+                (a.out / f'group_pred_{ph}.json').write_text(json.dumps(group_pred))
+            note(f'S2c_{ph}', examples=len(uids), candidates=len(cands), fwd_vs_stored_base_max=max(fwd_dev), fwd_vs_stored_base_median=float(np.median(fwd_dev)))
+        sf.remove()
+        guard(2.0)
+        S = torch.stack([setF[ph] for ph in ('SEARCH', 'RERANK', 'TEST')]).cuda(); del setF
+        allc = lists['ALL_candidates']; proj = np.zeros((len(allc), 3), np.float32)
+        for k, (cid, seed, sigma) in enumerate(allc):
+            e = eps_into(seed).float(); proj[k] = (sigma * (S @ e)).cpu().numpy(); del e
+        np.save(a.out / 'set_projection_all5000.npy', proj)
+        names = ('SEARCH', 'RERANK', 'TEST'); nrm = S.norm(dim=1); Gm = (S @ S.T) / (nrm[:, None] * nrm[None, :])
+        cos = {f'{names[i]}|{names[j]}': float(Gm[i, j]) for i in range(3) for j in range(3) if names[i] < names[j]}
+        note('S2c_sets', norms={names[i]: float(nrm[i]) for i in range(3)}, cosines=cos)
+
+    if a.resume_s2c:
+        bc = json.loads((a.out / 'base_contrast_fp32.json').read_text())
+        note('RESUME_S2C'); run_s2c(bc['comparator'], bc['s']); note('DONE'); return
 
     # ---------------- V0 + S2a on BASE (961)
     guard(8)
@@ -170,48 +232,7 @@ def main():
     note('F1_measured_done', restored_sample_equal=bool(restored_ok))
     del base_cpu
 
-    # ---------------- S2c folded gradients of the fp32 contrast
-    for p in model.parameters():
-        p.requires_grad_(True)
-    group_of = {v: cd.assign_group(v) for v in mapping}
-    loc = set(json.loads((cd.OUT / 'example_manifest.json').read_text())['localization'])
-    setF = {ph: torch.zeros(G.N_MAX, dtype=torch.float32, device='cuda') for ph in ('SEARCH', 'RERANK', 'TEST')}
-    for ph in ('SEARCH', 'RERANK', 'TEST'):
-        cands = lists[f'{ph}_candidates']; uids = [r['uid'] for r in rows[ph]]
-        pred = np.zeros((len(uids), len(cands)), np.float32); group_pred = {}
-        for b0 in range(0, len(uids), BLOCK):
-            guard(2.5)
-            blk = rows[ph][b0: b0 + BLOCK]
-            Fb = torch.zeros(len(blk), G.N_MAX, dtype=torch.float32, device='cuda')
-            for i, r in enumerate(blk):
-                y, rB = comp[r['uid']]
-                model.zero_grad(set_to_none=True)
-                contrast32(hidden(inputs(r)), y, rB).backward()
-                grads = {n: p.grad for n, p in params.items() if p.grad is not None}
-                G.fold_into(Fb[i], grads, mapping)
-                if r['uid'] in loc:
-                    e = eps_into(WIN_SEED).float()
-                    for grp in cd.GROUPS:
-                        Fg = torch.zeros(G.N_MAX, dtype=torch.float32, device='cuda')
-                        G.fold_into(Fg, grads, {v: s for v, s in mapping.items() if group_of[v] == grp})
-                        group_pred.setdefault(r['uid'], {})[grp] = float(WIN_SIGMA * (Fg @ e)); del Fg
-                    del e
-            model.zero_grad(set_to_none=True)
-            setF[ph] += Fb.sum(0)
-            for k, (cid, seed, sigma) in enumerate(cands):
-                e = eps_into(seed).float()
-                pred[b0: b0 + len(blk), k] = (sigma * (Fb @ e)).cpu().numpy(); del e
-            np.save(a.out / f'pred_{ph}.npy', pred); del Fb
-        (a.out / f'meta_{ph}.json').write_text(json.dumps({'uids': uids, 'candidates': cands, 'comparator': {u: comp[u] for u in uids}}))
-        if group_pred:
-            (a.out / f'group_pred_{ph}.json').write_text(json.dumps(group_pred))
-        note(f'S2c_{ph}', examples=len(uids), candidates=len(cands))
-    allc = lists['ALL_candidates']; proj = np.zeros((len(allc), 3), np.float32)
-    for k, (cid, seed, sigma) in enumerate(allc):
-        e = eps_into(seed).float(); proj[k] = [float(sigma * (setF[ph] @ e)) for ph in ('SEARCH', 'RERANK', 'TEST')]; del e
-    np.save(a.out / 'set_projection_all5000.npy', proj)
-    cos = {f'{p}|{q}': float((setF[p] @ setF[q]) / (setF[p].norm() * setF[q].norm())) for p in setF for q in setF if p < q}
-    note('S2c_sets', norms={ph: float(setF[ph].norm()) for ph in setF}, cosines=cos)
+    run_s2c(comp, base_s)
     note('DONE')
 
 

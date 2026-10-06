@@ -60,10 +60,42 @@ def fold_into(F, grads_by_hf, mapping):
             g = grads_by_hf.get(h)
             if g is None:
                 continue
-            F[off: off + n] += g.reshape(-1).to(F.dtype)
+            F[off: off + n].add_(g.reshape(-1))  # in-place mixed-dtype add: no full fp32 temporary
     return F
 
 
 def noise_for(eps, shape):
     import math
     return eps[: math.prod(shape)].view(*shape)
+
+
+def hf_slots(mapping):
+    """HF parameter name -> (stream offset, numel, vLLM tensor name) for streaming folds."""
+    return {h: (off, n, v) for v, spec in mapping.items() for h, off, n in spec['parts']}
+
+
+class StreamingFolder:
+    """Folds each parameter's gradient into a target stream buffer as soon as it is accumulated, then frees it.
+    Optional: accumulates per-group dot products sigma*<grad_t, eps[off:off+n]> for one fixed eps (no extra buffers)."""
+
+    def __init__(self, named_params, mapping, group_of_vllm=None):
+        self.slots = hf_slots(mapping); self.target = None; self.eps = None; self.sigma = 0.; self.partials = None
+        self.group_of_vllm = group_of_vllm or {}
+        self.handles = [p.register_post_accumulate_grad_hook(self._hook(n)) for n, p in named_params.items()]
+
+    def _hook(self, name):
+        off, n, v = self.slots[name]
+
+        def hook(p):
+            g = p.grad.reshape(-1)
+            if self.target is not None:
+                self.target[off: off + n].add_(g)
+            if self.eps is not None:
+                grp = self.group_of_vllm[v]
+                self.partials[grp] = self.partials.get(grp, 0.) + float(self.sigma * (g.float() @ self.eps[off: off + n].float()))
+            p.grad = None
+        return hook
+
+    def remove(self):
+        for h in self.handles:
+            h.remove()

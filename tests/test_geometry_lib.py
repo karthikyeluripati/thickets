@@ -90,3 +90,33 @@ def test_hf_parts_for_vllm_names():
     assert G.hf_parts_for_vllm('language_model.model.embed_tokens.weight') == ['model.language_model.embed_tokens.weight']
     with pytest.raises(ValueError):
         G.hf_parts_for_vllm('something.else')
+
+
+def test_streaming_folder_matches_explicit_fold_and_group_dots():
+    v, hf = _toy()
+    m = G.build_mapping(v, hf)
+    torch.manual_seed(2)
+    params = {h: torch.nn.Parameter(torch.randn(*s, dtype=torch.float64)) for h, s in hf.items()}
+    x = torch.randn(3, dtype=torch.float64)
+
+    def f(P):
+        return (torch.tanh(P['model.language_model.layers.0.self_attn.q_proj.weight'] @ x).sum() *
+                torch.tanh(P['model.language_model.layers.1.self_attn.o_proj.weight'] @ x).sum() +
+                (P['model.language_model.layers.0.self_attn.k_proj.weight'] ** 2).sum() + P['model.visual.blocks.0.norm1.weight'].sum())
+    N = max(s['numel'] for s in m.values()); eps = torch.randn(N, dtype=torch.float64)
+    # explicit
+    f(params).backward(); grads = {h: (p.grad.clone() if p.grad is not None else torch.zeros_like(p)) for h, p in params.items()}
+    F_exp = G.fold_into(torch.zeros(N, dtype=torch.float64), grads, m)
+    for p in params.values(): p.grad = None
+    group = {vn: ('vision' if vn.startswith('visual.') else 'lm') for vn in m}
+    exp_parts = {}
+    for vn, spec in m.items():
+        for h, off, n in spec['parts']:
+            exp_parts[group[vn]] = exp_parts.get(group[vn], 0.) + float(0.5 * (grads[h].reshape(-1) @ eps[off: off + n]))
+    # streaming
+    sf = G.StreamingFolder(params, m, group)
+    sf.target = torch.zeros(N, dtype=torch.float64); sf.eps = eps; sf.sigma = 0.5; sf.partials = {}
+    f(params).backward()
+    assert torch.allclose(sf.target, F_exp) and all(p.grad is None for p in params.values())
+    assert sf.partials.keys() == exp_parts.keys() and all(abs(sf.partials[k] - exp_parts[k]) < 1e-6 * abs(exp_parts[k]) for k in exp_parts)
+    sf.remove()

@@ -1,0 +1,29 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 120.05it/s]
+{"hf_tensors": 750, "step": "hf_loaded", "spent_usd": 0.204, "t": "2026-10-06T15:07:58Z"}
+/usr/local/lib/python3.12/dist-packages/PIL/Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+{"V0a_max": 1.52587890625e-05, "V0b_median": 0.06549835205078125, "V0b_p99": 0.21836776733398439, "V0c_median": 0.13559722900390625, "V0c_p90": 0.36206994025269523, "V0c_p99": 0.6465468989685177, "argmax_fp32_agrees_stored_vllm_answer": 941, "prompt_tokens_identical": 961, "n": 961, "step": "V0_S2a", "spent_usd": 0.422, "t": "2026-10-06T15:11:43Z"}
+{"packed_tensors_sha_identical": 642, "of": 642, "answers_agree_stored_vllm": 756, "n": 761, "step": "S2b", "spent_usd": 0.635, "t": "2026-10-06T15:15:22Z"}
+{"step": "F1_cand_9500059", "spent_usd": 0.814, "t": "2026-10-06T15:18:27Z"}
+{"step": "F1_cand_9503167", "spent_usd": 0.989, "t": "2026-10-06T15:21:27Z"}
+{"step": "F1_cand_9500127", "spent_usd": 1.161, "t": "2026-10-06T15:24:26Z"}
+{"step": "F1_cand_9502563", "spent_usd": 1.336, "t": "2026-10-06T15:27:26Z"}
+{"step": "F1_cand_9502995", "spent_usd": 1.514, "t": "2026-10-06T15:30:29Z"}
+{"step": "F1_cand_9503539", "spent_usd": 1.689, "t": "2026-10-06T15:33:29Z"}
+{"step": "F1_cand_9501135", "spent_usd": 1.862, "t": "2026-10-06T15:36:28Z"}
+{"step": "F1_cand_9502423", "spent_usd": 2.037, "t": "2026-10-06T15:39:29Z"}
+{"step": "F1_cand_9500271", "spent_usd": 2.211, "t": "2026-10-06T15:42:29Z"}
+{"step": "F1_cand_9501023", "spent_usd": 2.386, "t": "2026-10-06T15:45:29Z"}
+{"step": "F1_cand_9504179", "spent_usd": 2.561, "t": "2026-10-06T15:48:29Z"}
+{"step": "F1_cand_9504827", "spent_usd": 2.737, "t": "2026-10-06T15:51:30Z"}
+{"restored_sample_equal": true, "step": "F1_measured_done", "spent_usd": 2.737, "t": "2026-10-06T15:51:30Z"}
+Traceback (most recent call last):
+  File "/workspace/repro/scripts/geometry_gpu_a2.py", line 219, in <module>
+    main()
+  File "/workspace/repro/scripts/geometry_gpu_a2.py", line 191, in main
+    G.fold_into(Fb[i], grads, mapping)
+  File "/workspace/repro/scripts/geometry_lib.py", line 63, in fold_into
+    F[off: off + n] += g.reshape(-1).to(F.dtype)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^
+torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.32 GiB. GPU 0 has a total capacity of 79.18 GiB of which 2.25 GiB is free. Including non-PyTorch memory, this process has 76.92 GiB memory in use. Of the allocated memory 59.45 GiB is allocated by PyTorch, and 16.71 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
