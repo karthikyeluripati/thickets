@@ -53,6 +53,7 @@ def main():
     ap.add_argument('--images', type=Path, required=True); ap.add_argument('--upstream', type=Path, required=True)
     ap.add_argument('--out', type=Path, required=True); ap.add_argument('--usd-per-hour', type=float, required=True)
     ap.add_argument('--pod-start-epoch', type=float, required=True); ap.add_argument('--cap-usd', type=float, required=True)
+    ap.add_argument('--nov-only', action='store_true')
     ap.add_argument('--inputs', type=Path, default=Path('results/paper-analysis/r2/frozen_inputs.json'))
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream))
@@ -117,7 +118,7 @@ def main():
         exact = rpc(_stream_exact, p['seed'], p['sigma'])
         if exact != ntensors:
             note('STREAM_MISMATCH', index=i, seed=p['seed'], exact=exact); rpc('reset_to_base_weights'); raise SystemExit('stream mismatch')
-        full, m1 = score()
+        full, m1 = ([], 0) if a.nov_only else score()
         nv, vbad, nonv_same = rpc(_reset_vision)
         nov, m2 = score()
         rpc('reset_to_base_weights'); rb = rpc(_restored_exact)
@@ -127,7 +128,7 @@ def main():
         (a.out / 'measurements.json').write_text(json.dumps(res))
         per = time.time() - t0
         T = lambda xs: sum(x['B'] - b['B'] for x, b in zip(xs, base)) / len(base)
-        note(f'pert_{i}', seed=p['seed'], role=p['role'], T_FULL=round(T(full), 4), T_NOV=round(T(nov), 4), missing=m1 + m2, vision_reset_mismatch=vbad,
+        note(f'pert_{i}', seed=p['seed'], role=p['role'], T_FULL=(round(T(full), 4) if full else None), T_NOV=round(T(nov), 4), missing=m1 + m2, vision_reset_mismatch=vbad,
              restore_mismatch=rb, seconds=round(per, 1))
         if vbad or rb:
             note('STOP_FIDELITY', index=i); raise SystemExit('fidelity')
