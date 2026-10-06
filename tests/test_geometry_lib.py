@@ -120,3 +120,19 @@ def test_streaming_folder_matches_explicit_fold_and_group_dots():
     assert torch.allclose(sf.target, F_exp) and all(p.grad is None for p in params.values())
     assert sf.partials.keys() == exp_parts.keys() and all(abs(sf.partials[k] - exp_parts[k]) < 1e-6 * abs(exp_parts[k]) for k in exp_parts)
     sf.remove()
+
+
+R2CHK = Path('results/paper-analysis/r2/pod/vllm_stream_check.json')
+
+
+@pytest.mark.skipif(not R2CHK.exists(), reason='R2 inventories missing')
+def test_qwen25vl_mapping_exhaustive():
+    c = json.loads(R2CHK.read_text())
+    m = G.build_mapping(list(c['names_shapes']), c['hf_shapes'])
+    assert len(m) == 525 and sum(len(s['parts']) for s in m.values()) == 729
+    import math
+    assert all(s['numel'] == math.prod(c['names_shapes'][v]) for v, s in m.items())
+    gu = m['visual.blocks.0.mlp.gate_up_proj.bias']['parts']
+    assert [p[0] for p in gu] == ['model.visual.blocks.0.mlp.gate_proj.bias', 'model.visual.blocks.0.mlp.up_proj.bias']
+    qb = m['language_model.model.layers.0.self_attn.qkv_proj.bias']['parts']
+    assert [p[0].split('.')[-2] for p in qb] == ['q_proj', 'k_proj', 'v_proj']

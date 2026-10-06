@@ -14,12 +14,17 @@ N_MAX = 151936 * 4096  # numel of embed_tokens / lm_head = 622,329,856
 
 # vLLM packed tensor -> ordered HF parts (row blocks), for language layers
 PACKED = {'self_attn.qkv_proj.weight': ('self_attn.q_proj.weight', 'self_attn.k_proj.weight', 'self_attn.v_proj.weight'),
-          'mlp.gate_up_proj.weight': ('mlp.gate_proj.weight', 'mlp.up_proj.weight')}
+          'self_attn.qkv_proj.bias': ('self_attn.q_proj.bias', 'self_attn.k_proj.bias', 'self_attn.v_proj.bias'),
+          'mlp.gate_up_proj.weight': ('mlp.gate_proj.weight', 'mlp.up_proj.weight'),
+          'mlp.gate_up_proj.bias': ('mlp.gate_proj.bias', 'mlp.up_proj.bias')}
 
 
 def hf_parts_for_vllm(vname):
     """vLLM parameter name -> list of HF parameter names whose row-concatenation (in order) is that vLLM tensor."""
     if vname.startswith('visual.'):
+        for packed, parts in PACKED.items():  # e.g. Qwen2.5-VL vision MLP gate_up_proj (weight and bias)
+            if vname.endswith(packed):
+                return ['model.' + vname[: -len(packed)] + p for p in parts]
         return ['model.' + vname]
     if vname == 'language_model.lm_head.weight':
         return ['lm_head.weight']
