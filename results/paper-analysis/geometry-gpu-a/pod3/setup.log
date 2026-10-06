@@ -1,0 +1,26 @@
+RATE=3.49 START=1791303308 CAP=2.02
++ python -m pip install --no-input transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 torchvision==0.23.0 hf_transfer
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen3-VL-8B-Instruct'\'',revision='\''0c351dd01ed87e9c1b53cbc748cba10e6187ff3b'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
++ mkdir -p /workspace/repro
++ cd /workspace/repro
++ tar xzf /workspace/ga2s2c.tgz --no-same-owner
++ python scripts/geometry_extract_images.py
+IMAGES_VERIFIED 961
++ pip freeze
++ nvidia-smi -L
++ echo SETUP_DONE
+SETUP_DONE
++ O=/workspace/repro/results/paper-analysis/geometry-gpu-a/gpu2
++ mkdir -p /workspace/repro/results/paper-analysis/geometry-gpu-a/gpu2
++ cp results/paper-analysis/geometry-gpu-a/pod2/repro/results/paper-analysis/geometry-gpu-a/gpu2/base_contrast_fp32.json /workspace/repro/results/paper-analysis/geometry-gpu-a/gpu2/
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/geometry_gpu_a2.py --resume-s2c --images /workspace/pt-images --out /workspace/repro/results/paper-analysis/geometry-gpu-a/gpu2 --vllm-check results/paper-analysis/geometry-gpu-a/gpu/vllm_stream_check.json --usd-per-hour 3.49 --pod-start-epoch 1791303308 --cap-usd 2.02
++ h=0
+++ date -u +%FT%TZ
++ echo 'hf=0 2026-10-06T16:41:18Z'

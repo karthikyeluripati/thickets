@@ -1,0 +1,14 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 91.49it/s]
+{"hf_tensors": 750, "step": "hf_loaded", "spent_usd": 0.167, "t": "2026-10-06T16:18:00Z"}
+{"step": "RESUME_S2C", "spent_usd": 0.167, "t": "2026-10-06T16:18:00Z"}
+/workspace/repro/scripts/geometry_gpu_a2.py:124: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:835.)
+  c = contrast32(hidden(inputs(r)), y, rB); fwd_dev.append(abs(float(c) - base_s[u])); c.backward()
+{"examples": 200, "candidates": 543, "fwd_vs_stored_base_max": 6.198883056640625e-06, "fwd_vs_stored_base_median": 1.8328428268432617e-06, "step": "S2c_RERANK", "spent_usd": 0.483, "t": "2026-10-06T16:23:26Z"}
+/usr/local/lib/python3.12/dist-packages/PIL/Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+{"examples": 561, "candidates": 61, "fwd_vs_stored_base_max": 7.62939453125e-06, "fwd_vs_stored_base_median": 1.9073486328125e-06, "step": "S2c_TEST", "spent_usd": 1.039, "t": "2026-10-06T16:32:59Z"}
+{"examples": 200, "candidates": 1000, "fwd_vs_stored_base_max": 7.62939453125e-06, "fwd_vs_stored_base_median": 1.9073486328125e-06, "step": "S2c_SEARCH", "spent_usd": 1.482, "t": "2026-10-06T16:40:37Z"}
+{"norms": {"SEARCH": 66076.109375, "RERANK": 71774.234375, "TEST": 156002.859375}, "cosines": {"SEARCH|TEST": 0.08141888678073883, "RERANK|SEARCH": 0.15914908051490784, "RERANK|TEST": 0.031227370724081993}, "step": "S2c_sets", "spent_usd": 1.522, "t": "2026-10-06T16:41:17Z"}
+{"step": "DONE", "spent_usd": 1.522, "t": "2026-10-06T16:41:17Z"}
