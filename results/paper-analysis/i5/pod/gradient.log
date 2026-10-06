@@ -1,0 +1,18 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 101.19it/s]
+/workspace/repro/scripts/i5_gradient.py:77: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:835.)
+  Bj = (h.float() @ W[IDS].float().T) @ w; base_B.append(float(Bj)); Bj.backward()
+{"block": 0, "minutes": 0.16}
+{"block": 8, "minutes": 0.21}
+{"block": 16, "minutes": 0.26}
+{"block": 24, "minutes": 0.31}
+{"block": 32, "minutes": 0.39}
+{"block": 40, "minutes": 0.45}
+{"block": 48, "minutes": 0.5}
+{"block": 56, "minutes": 0.76}
+{"block": 64, "minutes": 0.81}
+{"block": 72, "minutes": 0.97}
+{"block": 80, "minutes": 1.11}
+{"block": 88, "minutes": 1.21}
+I5_DONE

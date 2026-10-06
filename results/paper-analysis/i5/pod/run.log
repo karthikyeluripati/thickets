@@ -1,0 +1,8 @@
++ cd /workspace/repro
++ tar xzf /workspace/i5.tgz --no-same-owner
++ python scripts/geometry_extract_images.py
+IMAGES_VERIFIED 961
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/i5_gradient.py --images /workspace/pt-images --out /workspace/repro/results/paper-analysis/i5/gpu

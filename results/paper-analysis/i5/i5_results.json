@@ -1,0 +1,17 @@
+{
+ "gate_r_mean_item_pred_vs_stage2_pred": 0.9999908012621944,
+ "gate_pass": true,
+ "I5_1_pooled_r": 0.77063310131364,
+ "I5_1_slope": 0.735673449937612,
+ "n_pairs": 7680,
+ "I5_1_verdict": "ITEM-LEVEL LAW",
+ "I5_2_per_item_r": {
+  "median": 0.8768160610235711,
+  "q25": 0.8429555936967648,
+  "q75": 0.893167453813583,
+  "share_ge_0.6": 0.9895833333333334,
+  "items_constant_measure": 0
+ },
+ "I5_3_spearman_per_item_r_vs_abs_baseB": -0.00737927292457949,
+ "measured_quantization_nats": 0.125
+}
