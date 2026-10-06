@@ -1,0 +1,102 @@
+{
+ "rule": "12 smallest SHA256('selection-vs-shared-control-v1:'+candidate_id) among the 125 sigma=0.002 audit candidates; no outcomes read",
+ "source": "selection_vs_shared_results.json control_proposal (unchanged)",
+ "candidates": [
+  {
+   "candidate_id": "32bb440488a8db4af8fa4d2a61dfe7bfd261bdda4eb535697bb6b415c89cbf91",
+   "seed": 9500059,
+   "sigma": 0.002,
+   "manifest_index": 59,
+   "in_search_top50": false,
+   "expected_state_id": "b40eaa12d0668c4406fda37c420af272a5cc7bbe9fdedaee05bc7aeac9911532"
+  },
+  {
+   "candidate_id": "78939b3e8c00d89b251a9c8bdf678cedf9846c23dd9e6748d1e989492879f6be",
+   "seed": 9503167,
+   "sigma": 0.002,
+   "manifest_index": 3167,
+   "in_search_top50": false,
+   "expected_state_id": "44c2a31d5b83972c354b34b5360d24ee86ad53f32ebe4e50a82c1667104b18ca"
+  },
+  {
+   "candidate_id": "189c51c39f588fbd160b8480724b86ba5a944b4d96867281ff9fc4db3580503a",
+   "seed": 9500127,
+   "sigma": 0.002,
+   "manifest_index": 127,
+   "in_search_top50": false,
+   "expected_state_id": "2073220af58d616ad0c6c83d104c31904458b0dd56e2c75c53ca67a725fa37da"
+  },
+  {
+   "candidate_id": "00220e5e79806ebac37a1d0ec1aede12e32ca2b8b858e9aa18af8e7effcd6e59",
+   "seed": 9502563,
+   "sigma": 0.002,
+   "manifest_index": 2563,
+   "in_search_top50": false,
+   "expected_state_id": "8d95879129ad94395ffcb9c7f28b2888303eb66130ed362f68f2839dff9ef8bd"
+  },
+  {
+   "candidate_id": "60e9285be43c5493273cde4ab4118141ef908d8cbf0bda3298c41b4d18948685",
+   "seed": 9502995,
+   "sigma": 0.002,
+   "manifest_index": 2995,
+   "in_search_top50": false,
+   "expected_state_id": "84e5507a6b318345ecb2ece7311d07e79d5b1d3a72e32920770ee53b02a74115"
+  },
+  {
+   "candidate_id": "e6d66aa7a34d586ccb98376c438a2431c2d6365c0d0b2ac8222af5d980a44800",
+   "seed": 9503539,
+   "sigma": 0.002,
+   "manifest_index": 3539,
+   "in_search_top50": false,
+   "expected_state_id": "0e56b2dd5608e49f7d4eb454267483fe6a5b6f8163973cea9cd20eb7e407cafd"
+  },
+  {
+   "candidate_id": "69a1231af5fc3f55054f1c14b1a7313be0d0b67e0ff876b205be63a03e091d42",
+   "seed": 9501135,
+   "sigma": 0.002,
+   "manifest_index": 1135,
+   "in_search_top50": false,
+   "expected_state_id": "35c9b4402abdeea9a48b444d918b881c11202c5c69662d4cbdc3fd19be7b0b91"
+  },
+  {
+   "candidate_id": "4946ca683e3b87304f8eb7b91da450d6fd9743c7b4f713232c6f82c1e821388b",
+   "seed": 9502423,
+   "sigma": 0.002,
+   "manifest_index": 2423,
+   "in_search_top50": false,
+   "expected_state_id": "24dc52319811a8545bf9391ca4f85fd46cbb50fb0fa6112c8d0244c0223971a6"
+  },
+  {
+   "candidate_id": "ff40caff9436adbf9bd38cd8dd2a07eed72cc198918166d6ec73cd19617b2ff6",
+   "seed": 9500271,
+   "sigma": 0.002,
+   "manifest_index": 271,
+   "in_search_top50": true,
+   "expected_state_id": "4edfc6adea6c524d725dd56a6ad891dc54e06445231c17192d13e120454ddaad"
+  },
+  {
+   "candidate_id": "006b05b9f140fe50bcbb56d7b1b550f30c4ff73608ec2abd2c32b8dc738b3e52",
+   "seed": 9501023,
+   "sigma": 0.002,
+   "manifest_index": 1023,
+   "in_search_top50": false,
+   "expected_state_id": "91b53ed2ebfd26b0881377ff304ef07c235fac1b16cb1cbc3f6ddc25fecc3192"
+  },
+  {
+   "candidate_id": "8b99cc78d3cb5224793576097671ee3e7b24a24fb6d06417ba2121ba86390aaa",
+   "seed": 9504179,
+   "sigma": 0.002,
+   "manifest_index": 4179,
+   "in_search_top50": false,
+   "expected_state_id": "19174406ec18b1aebac7b4b007071ddd2a290b2d7c773c8cb985224d9880ea61"
+  },
+  {
+   "candidate_id": "fc74416b6d2e94ad0bd9ba32e6bdd399df2e9fdc69be0571dc6581f6a4df316a",
+   "seed": 9504827,
+   "sigma": 0.002,
+   "manifest_index": 4827,
+   "in_search_top50": false,
+   "expected_state_id": "f60f915b0f854c73cc9a24498334d29f84a2989be3139dbbecb05d9c2f5138ac"
+  }
+ ]
+}
