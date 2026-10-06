@@ -1,0 +1,240 @@
+{
+ "post_hoc": true,
+ "score_level_bias": {
+  "RERANK|back": {
+   "n_items": 185,
+   "winner_mean_d_bias": -0.7230855979029084,
+   "winner_t": -6.490340918410512,
+   "controls_mean_d_bias": [
+    -0.143,
+    -0.117,
+    0.102,
+    0.296,
+    0.558,
+    0.662,
+    0.783,
+    0.787,
+    0.919,
+    1.072,
+    1.095,
+    1.446
+   ],
+   "controls_abs_t_max": 11.418127806131151,
+   "winner_rank_desc_of_13": 13,
+   "winner_mean_if_gold_has": -0.8174242704651826,
+   "winner_mean_if_gold_lacks": -0.6831730825881,
+   "winner_frac_items_positive": 0.3027027027027027
+  },
+  "RERANK|front": {
+   "n_items": 183,
+   "winner_mean_d_bias": 0.8924180398165454,
+   "winner_t": 5.671611441019431,
+   "controls_mean_d_bias": [
+    -1.299,
+    -1.077,
+    -0.753,
+    -0.703,
+    -0.545,
+    -0.538,
+    -0.534,
+    -0.431,
+    -0.008,
+    0.254,
+    0.398,
+    1.216
+   ],
+   "controls_abs_t_max": 9.154069102540968,
+   "winner_rank_desc_of_13": 2,
+   "winner_mean_if_gold_has": 1.125000021756595,
+   "winner_mean_if_gold_lacks": 0.6572802119211109,
+   "winner_frac_items_positive": 0.6502732240437158
+  },
+  "RERANK|left": {
+   "n_items": 188,
+   "winner_mean_d_bias": -0.056848386286382925,
+   "winner_t": -0.456727451085695,
+   "controls_mean_d_bias": [
+    -0.925,
+    -0.684,
+    -0.31,
+    -0.234,
+    -0.207,
+    -0.192,
+    -0.16,
+    -0.126,
+    0.023,
+    0.244,
+    0.336,
+    0.556
+   ],
+   "controls_abs_t_max": 8.136930961106383,
+   "winner_rank_desc_of_13": 5,
+   "winner_mean_if_gold_has": 0.2627841029268097,
+   "winner_mean_if_gold_lacks": -0.15451386910152515,
+   "winner_frac_items_positive": 0.4787234042553192
+  },
+  "RERANK|right": {
+   "n_items": 187,
+   "winner_mean_d_bias": -0.3126114161133612,
+   "winner_t": -2.3431746586112983,
+   "controls_mean_d_bias": [
+    -0.879,
+    -0.722,
+    -0.692,
+    -0.455,
+    -0.445,
+    -0.36,
+    -0.357,
+    -0.281,
+    -0.139,
+    -0.073,
+    0.133,
+    0.266
+   ],
+   "controls_abs_t_max": 7.2452593924988955,
+   "winner_rank_desc_of_13": 6,
+   "winner_mean_if_gold_has": 0.02789548280512122,
+   "winner_mean_if_gold_lacks": -0.46956381483359916,
+   "winner_frac_items_positive": 0.4385026737967914
+  },
+  "TEST|back": {
+   "n_items": 15,
+   "winner_mean_d_bias": 0.5305556937766395,
+   "winner_t": 0.9629044398215897,
+   "controls_mean_d_bias": [
+    -1.042,
+    -0.358,
+    -0.267,
+    -0.2,
+    -0.028,
+    0.317,
+    0.578,
+    0.622,
+    0.772,
+    1.05,
+    1.633,
+    2.05
+   ],
+   "controls_abs_t_max": 5.001596425170162,
+   "winner_rank_desc_of_13": 7,
+   "winner_mean_if_gold_has": -0.2916666472031768,
+   "winner_mean_if_gold_lacks": 0.8295456359511181,
+   "winner_frac_items_positive": 0.6
+  },
+  "TEST|front": {
+   "n_items": 34,
+   "winner_mean_d_bias": 0.790441156916453,
+   "winner_t": 1.979869389677155,
+   "controls_mean_d_bias": [
+    -0.178,
+    -0.077,
+    -0.074,
+    -0.012,
+    0.106,
+    0.198,
+    0.271,
+    0.322,
+    0.4,
+    0.422,
+    0.455,
+    0.833
+   ],
+   "controls_abs_t_max": 2.9807153016066614,
+   "winner_rank_desc_of_13": 2,
+   "winner_mean_if_gold_has": 0.6145832286857,
+   "winner_mean_if_gold_lacks": 0.9467593153437891,
+   "winner_frac_items_positive": 0.6176470588235294
+  },
+  "TEST|left": {
+   "n_items": 288,
+   "winner_mean_d_bias": 0.8002025262456613,
+   "winner_t": 7.988689614262201,
+   "controls_mean_d_bias": [
+    -0.72,
+    -0.342,
+    -0.316,
+    -0.173,
+    -0.018,
+    0.158,
+    0.302,
+    0.315,
+    0.445,
+    0.556,
+    0.593,
+    0.845
+   ],
+   "controls_abs_t_max": 8.737656146952725,
+   "winner_rank_desc_of_13": 2,
+   "winner_mean_if_gold_has": 0.5964451908677671,
+   "winner_mean_if_gold_lacks": 1.0011494156183434,
+   "winner_frac_items_positive": 0.6527777777777778
+  },
+  "TEST|right": {
+   "n_items": 289,
+   "winner_mean_d_bias": 0.7402681368303798,
+   "winner_t": 6.576500350759123,
+   "controls_mean_d_bias": [
+    -0.721,
+    -0.666,
+    -0.633,
+    -0.462,
+    -0.224,
+    -0.224,
+    -0.183,
+    -0.033,
+    0.0,
+    0.022,
+    0.767,
+    0.929
+   ],
+   "controls_abs_t_max": 10.13227700276519,
+   "winner_rank_desc_of_13": 3,
+   "winner_mean_if_gold_has": 0.5003019285048058,
+   "winner_mean_if_gold_lacks": 0.9595750027173285,
+   "winner_frac_items_positive": 0.7162629757785467
+  }
+ },
+ "reproducibility": {
+  "n_candidates": 543,
+  "SEARCH_vs_RERANK_r_gain": 0.21036512013722228,
+  "SEARCH_vs_RERANK_r_shift_front": 0.6163426609646876,
+  "SEARCH_vs_RERANK_r_shift_back": 0.3818567383916671,
+  "SEARCH_vs_RERANK_r_shift_left": 0.44150596458563357,
+  "SEARCH_vs_RERANK_r_shift_right": 0.3941589747318775,
+  "SEARCH_vs_RERANK_r_shift_explained_gain": 0.5682710924671551,
+  "SEARCH_vs_RERANK_r_residual_gain": 0.10458324813115907,
+  "winner_RERANK_gain": 7.9999999999999964,
+  "winner_RERANK_shift_explained": 4.12002436470014,
+  "winner_RERANK_residual": 3.8799756352998562,
+  "winner_RERANK_residual_percentile": 99.2633517495396,
+  "winner_RERANK_shift_explained_percentile": 99.0791896869245,
+  "winner_SEARCH_gain": 2.500000000000002,
+  "winner_SEARCH_shift_explained": 2.9065272047449358,
+  "winner_SEARCH_residual": -0.40652720474493353,
+  "n_TEST_measured": 61,
+  "RERANK_gain_vs_TEST_gain_r": -0.14987971389717358,
+  "RERANK_shift_front_vs_TEST_gain_r": -0.17176707038515612,
+  "RERANK_shift_right_vs_TEST_gain_r": 0.18369388801415382,
+  "RERANK_shift_left_vs_TEST_gain_r": 0.0830235986679061,
+  "RERANK_abs_front_shift_vs_TEST_gain_r": -0.2752828933799467
+ },
+ "switch_targets": {
+  "winner": {
+   "n_changed": 67,
+   "net_front_gold_front": 20,
+   "net_front_gold_not_front": 13
+  },
+  "pool_n": 1249,
+  "pool_mean": {
+   "n_changed": 34.59087269815853,
+   "net_front_gold_front": -0.5628502802241794,
+   "net_front_gold_not_front": -0.4923939151321057
+  },
+  "winner_percentile": {
+   "n_changed": 95.83666933546837,
+   "net_front_gold_front": 99.67974379503602,
+   "net_front_gold_not_front": 99.51961569255404
+  },
+  "note": "SEARCH+RERANK, sigma=0.002 candidates with any SEARCH or RERANK record. net_front = changes into a front option minus changes out of one. A global readout bias also moves answers into front where front is wrong."
+ }
+}

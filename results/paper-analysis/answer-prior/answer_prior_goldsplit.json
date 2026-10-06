@@ -1,0 +1,38 @@
+{
+ "RERANK|gold_front=False": {
+  "n_items": 108,
+  "winner_repairs": 5,
+  "winner_regressions": 3,
+  "winner_net_pp": 1.8518518518518519,
+  "pool_n": 145,
+  "pool_mean_net_pp": -1.7432950191570882,
+  "winner_percentile": 90.3448275862069
+ },
+ "RERANK|gold_front=True": {
+  "n_items": 92,
+  "winner_repairs": 15,
+  "winner_regressions": 1,
+  "winner_net_pp": 15.217391304347826,
+  "pool_n": 145,
+  "pool_mean_net_pp": 3.793103448275862,
+  "winner_percentile": 98.62068965517241
+ },
+ "SEARCH|gold_front=False": {
+  "n_items": 106,
+  "winner_repairs": 1,
+  "winner_regressions": 3,
+  "winner_net_pp": -1.8867924528301887,
+  "pool_n": 1249,
+  "pool_mean_net_pp": -1.4101847515748447,
+  "winner_percentile": 32.826261008807045
+ },
+ "SEARCH|gold_front=True": {
+  "n_items": 94,
+  "winner_repairs": 9,
+  "winner_regressions": 2,
+  "winner_net_pp": 7.446808510638298,
+  "pool_n": 1249,
+  "pool_mean_net_pp": -2.6395584552748583,
+  "winner_percentile": 99.27942353883107
+ }
+}
