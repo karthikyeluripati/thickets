@@ -1,0 +1,21 @@
+RATE=3.49 START=1791312230 CAP=6.00
++ python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen3-VL-8B-Instruct'\'',revision='\''0c351dd01ed87e9c1b53cbc748cba10e6187ff3b'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ pip freeze
++ nvidia-smi -L
++ touch /workspace/SETUP_DONE
++ echo SETUP_DONE
+SETUP_DONE
++ '[' '!' -e /workspace/run_stage.sh ']'
++ touch /workspace/RUN_STARTED
++ bash /workspace/run_stage.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-06T19:35:41Z'

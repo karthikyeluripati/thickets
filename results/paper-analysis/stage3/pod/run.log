@@ -1,0 +1,19 @@
++ cd /workspace/repro
++ tar xzf /workspace/st3.tgz --no-same-owner
++ python scripts/geometry_extract_images.py
+IMAGES_VERIFIED 961
+++ sed 's/ /\n/g' /workspace/rate.txt
+++ grep -E '^(RATE|START|CAP)='
++ eval RATE=3.49 START=1791312230 CAP=6.00
+++ RATE=3.49
+++ START=1791312230
+++ CAP=6.00
++ O=/workspace/repro/results/paper-analysis/stage3/gpu
++ mkdir -p /workspace/repro/results/paper-analysis/stage3/gpu
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/stage3_gradient.py --images /workspace/pt-images --out /workspace/repro/results/paper-analysis/stage3/gpu
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/stage3_localize.py --images /workspace/pt-images --upstream /workspace/RandOpt --out /workspace/repro/results/paper-analysis/stage3/gpu --usd-per-hour 3.49 --pod-start-epoch 1791312230 --cap-usd 6.00

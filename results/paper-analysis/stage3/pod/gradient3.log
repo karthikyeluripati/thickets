@@ -1,0 +1,6 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 76.67it/s]
+{"set": "P96", "n_items": 96, "gradient_seconds": 61.90217328071594, "projection_seconds": 90.19214987754822}
+{"set": "R", "n_items": 183, "gradient_seconds": 114.14219832420349, "projection_seconds": 90.13301086425781}
+{"set": "S", "n_items": 180, "gradient_seconds": 110.71429491043091, "projection_seconds": 90.1263861656189}
+{"minutes_total": 9.365251604715983}

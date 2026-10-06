@@ -83,9 +83,9 @@ def stage3b(R, idx):
 def main():
     R = {}
     idx = stage3a(R); stage3b(R, idx)
-    (D / 'stage3_results.json').write_text(json.dumps(R, indent=1))
+    (D / 'stage3_results.json').write_text(json.dumps(R, indent=1, default=lambda o: o.item() if hasattr(o, 'item') else str(o)))
     return R
 
 
 if __name__ == '__main__':
-    print(json.dumps(main(), indent=1))
+    print(json.dumps(main(), indent=1, default=lambda o: o.item() if hasattr(o, 'item') else str(o)))
