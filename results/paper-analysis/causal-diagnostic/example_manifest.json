@@ -1,0 +1,6315 @@
+{
+ "seed": 20261009,
+ "rule": "rows: dicts with uid, phase (RERANK/TEST), subtask, gold, base, cand.\n    LOCALIZATION: about half of every changed-answer cell (repair, regression, both_wrong_diff) per phase, stratified by\n    subtask, plus n_unchanged_per_cell examples from each unchanged cell (both_correct, both_wrong_same) per phase.\n    MECHANISM_CHECK: the remaining changed-answer examples plus a disjoint, equally sized unchanged sample.",
+ "cells": {
+  "RERANK|repair": {
+   "total": 20,
+   "localization": 10,
+   "mechanism_check": 10
+  },
+  "RERANK|regression": {
+   "total": 4,
+   "localization": 2,
+   "mechanism_check": 2
+  },
+  "RERANK|both_wrong_diff": {
+   "total": 12,
+   "localization": 6,
+   "mechanism_check": 6
+  },
+  "RERANK|both_correct": {
+   "total": 75,
+   "localization": 6,
+   "mechanism_check": 6
+  },
+  "RERANK|both_wrong_same": {
+   "total": 89,
+   "localization": 6,
+   "mechanism_check": 6
+  },
+  "TEST|repair": {
+   "total": 23,
+   "localization": 12,
+   "mechanism_check": 11
+  },
+  "TEST|regression": {
+   "total": 38,
+   "localization": 19,
+   "mechanism_check": 19
+  },
+  "TEST|both_wrong_diff": {
+   "total": 20,
+   "localization": 10,
+   "mechanism_check": 10
+  },
+  "TEST|both_correct": {
+   "total": 221,
+   "localization": 6,
+   "mechanism_check": 6
+  },
+  "TEST|both_wrong_same": {
+   "total": 259,
+   "localization": 6,
+   "mechanism_check": 6
+  }
+ },
+ "localization": [
+  "train:1029_2",
+  "train:105_0",
+  "train:1073_2",
+  "train:1113_2",
+  "train:329_1",
+  "train:40_0",
+  "train:427_0",
+  "train:589_2",
+  "train:605_2",
+  "train:610_2",
+  "train:1039_1",
+  "train:466_0",
+  "train:1059_1",
+  "train:521_0",
+  "train:628_0",
+  "train:677_2",
+  "train:774_0",
+  "train:91_0",
+  "train:1206_0",
+  "train:442_0",
+  "train:711_1",
+  "train:629_1",
+  "train:823_2",
+  "train:996_1",
+  "train:1097_0",
+  "train:406_0",
+  "train:1102_0",
+  "train:394_1",
+  "train:956_2",
+  "train:298_2",
+  "test:10_0",
+  "test:193_0",
+  "test:207_0",
+  "test:238_0",
+  "test:245_0",
+  "test:304_0",
+  "test:335_0",
+  "test:346_0",
+  "test:379_0",
+  "test:483_0",
+  "test:8_0",
+  "test:92_0",
+  "test:141_0",
+  "test:156_0",
+  "test:159_0",
+  "test:177_0",
+  "test:225_0",
+  "test:31_0",
+  "test:33_0",
+  "test:369_0",
+  "test:371_0",
+  "test:385_0",
+  "test:394_0",
+  "test:399_0",
+  "test:416_0",
+  "test:470_0",
+  "test:504_0",
+  "test:509_0",
+  "test:515_0",
+  "test:56_0",
+  "test:69_0",
+  "test:127_0",
+  "test:223_0",
+  "test:23_0",
+  "test:258_0",
+  "test:338_0",
+  "test:345_0",
+  "test:350_0",
+  "test:418_0",
+  "test:492_0",
+  "test:85_0",
+  "test:3_0",
+  "test:362_0",
+  "test:47_0",
+  "test:36_0",
+  "test:547_0",
+  "test:211_0",
+  "test:39_0",
+  "test:76_0",
+  "test:377_0",
+  "test:376_0",
+  "test:94_0",
+  "test:497_0"
+ ],
+ "mechanism_check": [
+  "train:1020_2",
+  "train:1120_2",
+  "train:1213_2",
+  "train:411_1",
+  "train:717_1",
+  "train:728_0",
+  "train:745_2",
+  "train:802_2",
+  "train:812_2",
+  "train:97_0",
+  "train:1178_0",
+  "train:252_0",
+  "train:237_0",
+  "train:583_1",
+  "train:759_0",
+  "train:785_0",
+  "train:860_1",
+  "train:866_0",
+  "train:1104_0",
+  "train:332_2",
+  "train:1038_1",
+  "train:335_1",
+  "train:727_2",
+  "train:320_2",
+  "train:1027_0",
+  "train:834_0",
+  "train:597_2",
+  "train:1282_0",
+  "train:722_2",
+  "train:223_0",
+  "test:119_0",
+  "test:173_0",
+  "test:204_0",
+  "test:244_0",
+  "test:340_0",
+  "test:373_0",
+  "test:375_0",
+  "test:469_0",
+  "test:479_0",
+  "test:57_0",
+  "test:59_0",
+  "test:124_0",
+  "test:135_0",
+  "test:136_0",
+  "test:148_0",
+  "test:210_0",
+  "test:286_0",
+  "test:290_0",
+  "test:317_0",
+  "test:324_0",
+  "test:341_0",
+  "test:387_0",
+  "test:390_0",
+  "test:391_0",
+  "test:411_0",
+  "test:447_0",
+  "test:482_0",
+  "test:511_0",
+  "test:538_0",
+  "test:546_0",
+  "test:118_0",
+  "test:130_0",
+  "test:165_0",
+  "test:241_0",
+  "test:259_0",
+  "test:275_0",
+  "test:280_0",
+  "test:299_0",
+  "test:347_0",
+  "test:65_0",
+  "test:293_0",
+  "test:264_0",
+  "test:295_0",
+  "test:537_0",
+  "test:549_0",
+  "test:230_0",
+  "test:330_0",
+  "test:292_0",
+  "test:44_0",
+  "test:123_0",
+  "test:428_0",
+  "test:200_0"
+ ],
+ "labels": {
+  "test:0_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:100_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:101_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:102_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:103_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:104_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:105_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:106_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:107_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:108_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:109_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:10_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:110_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:111_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:112_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:113_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:114_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:115_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:116_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:117_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:118_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "test:119_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:11_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:120_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:121_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:122_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:123_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:124_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:125_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:126_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:127_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:128_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:129_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:12_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:130_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:131_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:132_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:133_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:134_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:135_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:136_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:137_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:138_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:139_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:13_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:140_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:141_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:142_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:143_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:144_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:145_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:146_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:147_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:148_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:149_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:14_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:150_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:151_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:152_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:153_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:154_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:155_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:156_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:157_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:158_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:159_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:15_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:160_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:161_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:162_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:163_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:164_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:165_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "A",
+   "transition": "both_wrong_diff"
+  },
+  "test:166_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:167_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:168_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:169_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:16_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:170_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:171_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:172_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:173_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:174_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:175_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:176_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:177_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:178_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:179_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:17_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:180_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:181_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:182_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:183_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:184_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:185_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:186_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:187_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:188_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:189_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:18_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:190_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:191_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:192_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:193_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "C",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "test:194_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:195_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:196_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:197_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:198_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:199_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:19_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:1_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:200_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:201_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:202_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:203_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:204_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:205_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:206_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:207_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:208_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:209_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:20_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:210_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:211_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:212_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:213_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:214_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:215_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:216_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:217_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:218_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:219_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:21_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:220_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:221_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:222_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:223_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:224_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:225_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:226_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:227_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:228_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:229_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:22_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:230_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:231_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:232_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:233_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:234_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:235_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:236_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:237_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:238_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "B",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:239_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:23_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "B",
+   "transition": "both_wrong_diff"
+  },
+  "test:240_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:241_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "C",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "test:242_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:243_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:244_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:245_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "A",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:246_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:247_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:248_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:249_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:24_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:250_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:251_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:252_0": {
+   "phase": "TEST",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:253_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:254_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:255_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:256_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:257_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:258_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "test:259_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:25_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:260_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:261_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:262_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:263_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:264_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:265_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:266_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:267_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:268_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:269_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:26_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:270_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:271_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:272_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:273_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:274_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:275_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:276_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:277_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:278_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:279_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:27_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:280_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:281_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:282_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:283_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:284_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:285_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:286_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:287_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:288_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:289_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:28_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:290_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:291_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:292_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:293_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:294_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:295_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:296_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:297_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:298_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:299_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "A",
+   "transition": "both_wrong_diff"
+  },
+  "test:29_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:2_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:300_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:301_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:302_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:303_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:304_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:305_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:306_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:307_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:308_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:309_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:30_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:310_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:311_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:312_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:313_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:314_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:315_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:316_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:317_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:318_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:319_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:31_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:320_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:321_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:322_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:323_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:324_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:325_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:326_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:327_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:328_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:329_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:32_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:330_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:331_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:332_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:333_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:334_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:335_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:336_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:337_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:338_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "A",
+   "transition": "both_wrong_diff"
+  },
+  "test:339_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:33_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:340_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "B",
+   "transition": "repair"
+  },
+  "test:341_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:342_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:343_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:344_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:345_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "B",
+   "transition": "both_wrong_diff"
+  },
+  "test:346_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:347_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:348_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:349_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:34_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:350_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "B",
+   "transition": "both_wrong_diff"
+  },
+  "test:351_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:352_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:353_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:354_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:355_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:356_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:357_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:358_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:359_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:35_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:360_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:361_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:362_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:363_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:364_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:365_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:366_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:367_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:368_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:369_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:36_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:370_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:371_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:372_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:373_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "B",
+   "transition": "repair"
+  },
+  "test:374_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:375_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:376_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:377_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:378_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:379_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "test:37_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:380_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:381_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:382_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:383_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:384_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:385_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:386_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:387_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:388_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:389_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:38_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:390_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:391_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:392_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:393_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:394_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "D",
+   "transition": "regression"
+  },
+  "test:395_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:396_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:397_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:398_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:399_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:39_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:3_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:400_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:401_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:402_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:403_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:404_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:405_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:406_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:407_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:408_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:409_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:40_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:410_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:411_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:412_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:413_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:414_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:415_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:416_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:417_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:418_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:419_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:41_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:420_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:421_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:422_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:423_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:424_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:425_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:426_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:427_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:428_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:429_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:42_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:430_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:431_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:432_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:433_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:434_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:435_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:436_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:437_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:438_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:439_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:43_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:440_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:441_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:442_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:443_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:444_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:445_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:446_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:447_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:448_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:449_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:44_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:450_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:451_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:452_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:453_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:454_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:455_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:456_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:457_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:458_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:459_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:45_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:460_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:461_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:462_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:463_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:464_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:465_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:466_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:467_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:468_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:469_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:46_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:470_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:471_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:472_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:473_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:474_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:475_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:476_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:477_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:478_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:479_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:47_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:480_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:481_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:482_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:483_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "test:484_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:485_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:486_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:487_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:488_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:489_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:48_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:490_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:491_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:492_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:493_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:494_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:495_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:496_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:497_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:498_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:499_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:49_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:4_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:500_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:501_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:502_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:503_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:504_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:505_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:506_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:507_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:508_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:509_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:50_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:510_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:511_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:512_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:513_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:514_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:515_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:516_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:517_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:518_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:519_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:51_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:520_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:521_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:522_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:523_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:524_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:525_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:526_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:527_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:528_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:529_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:52_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:530_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:531_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:532_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:533_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:534_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:535_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:536_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:537_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:538_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "test:539_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:53_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:540_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:541_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:542_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:543_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:544_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:545_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:546_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "test:547_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:548_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:549_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:54_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:550_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:551_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:552_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:553_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:554_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:555_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:556_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:557_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:558_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:559_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:55_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:560_0": {
+   "phase": "TEST",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:56_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:57_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "test:58_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:59_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "test:5_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:60_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:61_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:62_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:63_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:64_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:65_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:66_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:67_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:68_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:69_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "test:6_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:70_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:71_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:72_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:73_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:74_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:75_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:76_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:77_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:78_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "test:79_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:7_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:80_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:81_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:82_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:83_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:84_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:85_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "test:86_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:87_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:88_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:89_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:8_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "test:90_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "test:91_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "test:92_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "test:93_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "test:94_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:95_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "test:96_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "test:97_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:98_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "test:99_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "test:9_0": {
+   "phase": "TEST",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:1002_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1011_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:1015_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1020_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:1024_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1027_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:1029_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:1036_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:1038_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:1039_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "train:1046_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:104_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1051_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:1055_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1057_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:1059_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "train:105_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "train:1068_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1069_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:106_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1073_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:1075_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1081_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1086_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1089_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1095_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:1097_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:1099_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:1102_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:1104_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:1107_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:1113_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "train:1115_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:1120_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "train:1122_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1126_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:1129_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1130_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1131_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:113_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:1148_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:1152_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:1167_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1176_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:1178_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "A",
+   "transition": "regression"
+  },
+  "train:1188_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1195_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:1206_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:1213_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "train:1228_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:1244_0": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:1254_0": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:1282_0": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:1288_0": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:1291_0": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:1295_0": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:134_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:140_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:158_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:214_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:223_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:237_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "A",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "train:241_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:249_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:252_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "C",
+   "transition": "regression"
+  },
+  "train:256_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:259_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:261_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:268_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:271_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:272_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:276_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:281_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:295_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:298_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:301_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:307_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:317_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:320_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:329_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "B",
+   "transition": "repair"
+  },
+  "train:32_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:332_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:334_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:335_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:383_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:388_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:392_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:394_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:401_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:405_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:406_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:40_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "C",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "train:411_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "train:413_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:414_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:416_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:417_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:421_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:427_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:429_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:430_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:433_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:442_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:444_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:452_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:460_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:464_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:466_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "B",
+   "transition": "regression"
+  },
+  "train:471_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:472_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:494_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:510_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:513_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:516_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:520_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:521_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "A",
+   "transition": "both_wrong_diff"
+  },
+  "train:523_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:525_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:536_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:539_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:541_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:543_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:558_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:575_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:580_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:583_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "B",
+   "transition": "both_wrong_diff"
+  },
+  "train:589_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "B",
+   "transition": "repair"
+  },
+  "train:597_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:601_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:605_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:607_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:608_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:610_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:618_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:628_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "train:629_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:62_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "A",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:652_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:656_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:664_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:668_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:670_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:677_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "train:678_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:688_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:692_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:708_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:711_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:717_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:722_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:727_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:728_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "train:744_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:745_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "C",
+   "transition": "repair"
+  },
+  "train:747_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:759_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "train:769_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:774_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "train:776_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:785_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "A",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "train:791_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:795_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:796_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:797_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:802_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "A",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "train:812_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "A",
+   "transition": "repair"
+  },
+  "train:821_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:823_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:825_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:834_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:837_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:842_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:844_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:846_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:852_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:859_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:860_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "D",
+   "transition": "both_wrong_diff"
+  },
+  "train:865_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:866_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "D",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "train:868_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:878_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "D",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:881_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:891_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_wrong_same"
+  },
+  "train:900_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:902_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:903_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_correct"
+  },
+  "train:909_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:91_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "B",
+   "base": "A",
+   "cand": "C",
+   "transition": "both_wrong_diff"
+  },
+  "train:937_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:946_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:949_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:952_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "A",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_correct"
+  },
+  "train:956_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "D",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_wrong_same"
+  },
+  "train:964_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "C",
+   "base": "D",
+   "cand": "D",
+   "transition": "both_wrong_same"
+  },
+  "train:969_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  },
+  "train:973_0": {
+   "phase": "RERANK",
+   "subtask": "Allocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:97_0": {
+   "phase": "RERANK",
+   "subtask": "Hypothetical",
+   "gold": "D",
+   "base": "B",
+   "cand": "D",
+   "transition": "repair"
+  },
+  "train:986_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "A",
+   "cand": "A",
+   "transition": "both_wrong_same"
+  },
+  "train:996_1": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "B",
+   "base": "B",
+   "cand": "B",
+   "transition": "both_correct"
+  },
+  "train:997_2": {
+   "phase": "RERANK",
+   "subtask": "Egocentric",
+   "gold": "C",
+   "base": "C",
+   "cand": "C",
+   "transition": "both_correct"
+  }
+ }
+}
