@@ -1,0 +1,25 @@
+{
+ "top50": {
+  "n": 50,
+  "split_half_r_100q": 0.215,
+  "reliability_200q": 0.354,
+  "mean_gain": 1.37,
+  "sd_gain": 1.96,
+  "winner_observed": 8.0,
+  "winner_EB_shrunk": 3.72
+ },
+ "audit500": {
+  "n": 500,
+  "split_half_r_100q": 0.178,
+  "reliability_200q": 0.302,
+  "mean_gain": 0.05,
+  "sd_gain": 1.63
+ },
+ "audit_sigma0.002": {
+  "n": 125,
+  "split_half_r_100q": 0.357,
+  "reliability_200q": 0.526,
+  "mean_gain": 0.68,
+  "sd_gain": 2.53
+ }
+}
