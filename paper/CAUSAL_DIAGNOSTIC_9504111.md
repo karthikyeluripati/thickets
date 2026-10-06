@@ -1,14 +1,185 @@
-# Causal diagnostic of candidate 9504111: preparation (CPU) and frozen design
+# Causal diagnostic of candidate 9504111
 
-**Status: preparation complete; no GPU work run yet. Awaiting an authorized
-GPU budget.** If no GPU budget is authorized, the final status is
-`INCONCLUSIVE_OR_BUDGET_LIMITED`; the minimum GPU work needed is given at
-the end.
+**Plain-English answer.**
+
+- *Question.* We tested whether candidate 9504111's answer changes can be
+  traced to one identifiable part of the network.
+- *Result.* Changing any single parameter group to the candidate's values (or
+  back to the base's) moved only 0–36% of its changed answers. That covers
+  vision, embeddings, any quarter of the language layers, and the final
+  norm + head. The best groups were language layers 0–8 for repairs and vision
+  for regressions, each about 0.3 against the pre-registered bar of 0.5.
+- *Mechanism.* The answer-score shifts behind the changes were spread across
+  vision and all four language quarters. They roughly summed across groups,
+  sometimes with opposite signs in different cells.
+- *Reserved examples.* Not tested: the pre-registered rule stopped the
+  follow-up because no group qualified.
+- *Share explained.* No share of the answer changes is accounted for by a
+  specific account; we have a distributed description only.
+- *Open.* We still do not know which function, if any, the perturbation
+  changed, or why its net balance favoured RERANK over TEST.
+
+**Status: `DISTRIBUTED_OR_INTERACTING_EFFECTS`.** This was decided by the
+predeclared rule (§6); no targeted route was run. GPU spend was **$0.88** of
+the authorized $3.50 (session 1 only).
 
 This is a post-hoc investigation of one candidate. Hybrids of BASE and
 CANDIDATE are diagnostic objects on already-inspected evaluation sets. They are
 never promoted as experts, and nothing here explains the whole population or
 committee.
+
+## Results (session 1, 2026-10-06, 1× H100)
+
+### R1. Exact reproduction and controls (`session1/cost_log.json`)
+
+| Check | Result |
+|---|---|
+| BASE state SHA-256 | `2582817f…`, equal to the forensic hash |
+| CANDIDATE state SHA-256 after `apply_perturbation(9504111, 0.002)` | `7d7ef38b…`, equal to the forensic hash |
+| BASE vs stored, 761 RERANK + TEST | raw text 761/761 identical, parsed 761/761 identical |
+| CANDIDATE vs stored, 761 | raw text 761/761 identical, parsed 761/761 identical. Scores reproduce 79/95 and 259/244, with 20/4 and 23/38 transitions. |
+| First generated token is A–D | 1,522/1,522 |
+| All four letters within the top 20 at the answer position | 1,522/1,522, so every contrast below is exact (no missing scores) |
+| Repeated reconstruction vs first snapshot | 0 / 642 tensors differ |
+| No-op control (candidate rebuilt through the copy path) | state 0 mismatches; LOCALIZATION text 83/83 identical |
+| Reset-to-base control (copy path) | state 0 mismatches; LOCALIZATION text 83/83 identical |
+| 14 hybrids: every tensor equals its intended source | 0 mismatches in every hybrid |
+| Final restore to base | 0 mismatches |
+
+Status `INSTRUMENTATION_MISMATCH` was not triggered.
+
+**Measured perturbation by group** (`session1/group_norms.json`):
+
+- the RMS of δ is 0.0020 in every group, i.e. σ, as expected;
+- ‖δ‖ is 48–83 by group size;
+- the relative ‖δ‖/‖W‖ is 0.036 for vision and 0.067–0.094 for language,
+  embedding and head.
+
+### R2. Were changed answers close contests under the base? (all 761, base letter scores)
+
+| Phase | Median base top-2 log-prob gap, changed answers | Median gap, unchanged answers |
+|---|---|---|
+| RERANK | repairs 1.62; regressions 0.88; wrong→wrong 0.63 | both correct 5.25; both wrong 4.25 |
+| TEST | repairs 1.00; regressions 1.25; wrong→wrong 0.38 | both correct 4.75; both wrong 4.00 |
+
+Yes. The questions whose answer changed were ones where the base's top two
+letters were within about 0.4–1.6 nats. Unchanged questions had gaps of
+4–5 nats. This is a measured observation, not an explanation.
+
+**Letter tendency (LOCALIZATION, centered candidate − base log-prob offsets).**
+The offsets are A +0.30, B −0.64, C +0.12, D +0.22, with per-example SD about
+1.5–2.0, much larger than the means. A fixed letter-offset model predicts the
+candidate's answer on only 15 of 59 changed localization examples (25%). That
+is below the predeclared 60% needed for Route A, so no consistent answer-letter
+bias explains the changes.
+
+### R3. Coarse interventions on LOCALIZATION (`session1_analysis.json`, `session1_localization_per_example.csv`, `fig_group_effects`)
+
+**Predeclared summary.**
+
+- R = the share of changed answers that revert to the base answer under
+  REMOVAL;
+- I = the share reproduced under INSERTION;
+- S = (R + I) / 2;
+- changed-answer n: repairs 22, regressions 21, wrong→wrong 16 (both phases
+  pooled);
+- the last column counts unchanged controls (n = 24) whose answer changed.
+
+| Group | Params | Repairs R / I / S | Regressions R / I / S | Wrong→wrong R / I / S | Controls changed (removal / insertion) |
+|---|---:|---|---|---|---|
+| vision | 0.58 B | 0.23 / 0.23 / 0.23 | 0.29 / 0.33 / **0.31** | 0.38 / 0.31 / 0.34 | 1 / 3 |
+| embed | 0.62 B | 0.05 / 0.00 / 0.02 | 0.05 / 0.05 / 0.05 | 0 / 0 / 0 | 1 / 1 |
+| lm_q1 (layers 0–8) | 1.74 B | 0.36 / 0.27 / **0.32** | 0.29 / 0.24 / 0.26 | 0.38 / 0.50 / 0.44 | 1 / 0 |
+| lm_q2 (9–17) | 1.74 B | 0.32 / 0.27 / 0.30 | 0.24 / 0.33 / 0.29 | 0.25 / 0.31 / 0.28 | 0 / 3 |
+| lm_q3 (18–26) | 1.74 B | 0.18 / 0.23 / 0.20 | 0.14 / 0.29 / 0.21 | 0.19 / 0.19 / 0.19 | 1 / 1 |
+| lm_q4 (27–35) | 1.74 B | 0.18 / 0.27 / 0.23 | 0.05 / 0.05 / 0.05 | 0.19 / 0.06 / 0.12 | 2 / 0 |
+| final norm + head | 0.62 B | 0.00 / 0.09 / 0.05 | 0.05 / 0.14 / 0.10 | 0 / 0.06 / 0.03 | 1 / 0 |
+
+**Predeclared rule outcome.** The highest S for repairs is lm_q1 at 0.32, and
+for regressions vision at 0.31. **Neither reaches 0.5, so the rule classifies
+`DISTRIBUTED_OR_INTERACTING_EFFECTS` and runs no targeted route** (A, B or C).
+The MECHANISM-CHECK examples were therefore never evaluated under any
+intervention.
+
+**Score-level picture.** These are descriptive, post hoc and from LOCALIZATION
+only. *m* is the share of the candidate's fixed-contrast shift reproduced by a
+single-group insertion, as a mean per cell.
+
+| Group | RERANK repairs (n = 10) | RERANK regressions (n = 2) | TEST repairs (n = 12) | TEST regressions (n = 19) |
+|---|---:|---:|---:|---:|
+| vision | −0.11 | +0.24 | +0.15 | +0.21 |
+| embed | −0.09 | −0.11 | +0.01 | −0.01 |
+| lm_q1 | +0.19 | +0.43 | +0.79 | +0.21 |
+| lm_q2 | +0.40 | +0.41 | +0.52 | +0.30 |
+| lm_q3 | +0.12 | 0.00 | −0.27 | +0.25 |
+| lm_q4 | +0.35 | −0.34 | +0.16 | −0.03 |
+| norm + head | −0.06 | +0.11 | −0.06 | +0.02 |
+
+- **Additive in score space, thresholded in answer space.** Summed over the
+  seven single-group insertions, the per-example share of the shift has mean
+  1.04 and median 0.92 (IQR 0.67–1.18). The removal reversions sum to a mean
+  of 0.93 and median of 1.00. 63% of changed answers are reproduced by at
+  least one single-group insertion, and 22 of 59 by none.
+- **No single owner.** The changes come from contributions spread over vision
+  and all four language quarters. They add up roughly but flip an answer only
+  when the base contest was close. Embeddings and the final norm + head
+  contribute about nothing.
+- **Partial differences between phases.**
+  - Vision pushes *against* RERANK repairs (−0.11) but *toward* TEST
+    regressions (+0.21).
+  - lm_q4 contributes to RERANK repairs (+0.35) but not TEST regressions
+    (−0.03).
+  - lm_q1 and lm_q2 contribute to everything.
+
+  These are small-n descriptive differences and not a tested claim. They agree
+  in direction with the forensic Phase R mask diagnostic: vision alone gives
+  RERANK +3 and TEST 0.
+- **Group size matters.** Per billion parameters, vision's insertion share
+  (0.21) is similar to lm_q1 (0.22) and lm_q2 (0.23). Nothing marks vision as
+  intrinsically special.
+- **Fragility baseline.** On the 18 changed RERANK localization items, a
+  *random* σ = 0.002 audit candidate gives 9504111's answer 34% of the time
+  (σ = 0.0005: 16%; σ = 0.00025: 11%). Single-group insertions reproduce it
+  0–44% of the time (lm_q1 44%, vision 33%, lm_q2 33%). Partial reproduction
+  by one group is no more specific than an unrelated perturbation of the same
+  size.
+
+### R4. Example traces (`fig_example_traces`; mechanically selected: the LOCALIZATION example with the median base top-2 gap in each changed cell)
+
+| Cell | Example | Base → candidate (gold) | Single-group insertion reproducing the candidate answer |
+|---|---|---|---|
+| RERANK repair | `train:605_2` (Egocentric) | C → A (A) | none: no single group flips it, only the full candidate |
+| RERANK regression | `train:466_0` (Allocentric) | A → B (A) | vision, lm_q2 (lm_q1 gives C) |
+| TEST repair | `test:10_0` (Allocentric) | C → D (D) | none (lm_q1 reaches a tie) |
+| TEST regression | `test:56_0` (Allocentric) | A → B (A) | vision only, with a larger contrast than the full candidate |
+
+### R5. What the evidence supports
+
+- **Repairs versus regressions.** Both draw on overlapping groups, mainly lm_q1
+  and lm_q2. Vision contributes to regressions in both phases and opposes
+  RERANK repairs. That asymmetry is descriptive and was not checked on reserved
+  examples.
+- **Not established:**
+  - any functional mechanism, perceptual or answer-letter;
+  - any reason for the RERANK/TEST balance beyond item closeness and spread
+    contributions;
+  - anything about other candidates.
+
+## Execution and GPU cost log
+
+| Item | Value |
+|---|---|
+| Pod | 1× H100 80GB at $3.49/h (rate from the RunPod API) |
+| Pod start | 2026-10-06 00:30:16 UTC |
+| Model loaded | 00:35:40 ($0.31) |
+| Reproduction complete | 00:40:15 ($0.58) |
+| 14 hybrids + controls | done by 00:44:33 ($0.83) |
+| Results retrieved; pod self-stopped | about 00:45 |
+| **Total** | **≈ $0.88** (cap $1.75; hard guard at $1.65) |
+| Session 2 | not run: predeclared rule (§6) |
+| Remaining authorized | ≈ $2.62, unspent |
+
+# Preparation and frozen design (written before any GPU output)
 
 ## 1. Provenance and identities
 

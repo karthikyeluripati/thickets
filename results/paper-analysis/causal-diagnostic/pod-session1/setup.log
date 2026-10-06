@@ -1,0 +1,26 @@
+RATE=3.49 START=1791246616 CAP=1.75
++ python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen3-VL-8B-Instruct'\'',revision='\''0c351dd01ed87e9c1b53cbc748cba10e6187ff3b'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ mkdir -p /workspace/repro
++ cd /workspace/repro
++ tar xzf /workspace/diag.tgz --no-same-owner
++ python /workspace/extract-q.py
+IMAGES_VERIFIED 761
++ pip freeze
++ nvidia-smi -L
++ echo SETUP_DONE
+SETUP_DONE
++ cd /workspace/repro
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ python -u scripts/causal_diag_9504111.py session1 --images /workspace/pt-images --upstream /workspace/RandOpt --out /workspace/repro/results/paper-analysis/causal-diagnostic/session1 --usd-per-hour 3.49 --pod-start-epoch 1791246616 --cap-usd 1.75
+++ date -u +%FT%TZ
++ echo 'exit=0 2026-10-06T00:44:36Z'
