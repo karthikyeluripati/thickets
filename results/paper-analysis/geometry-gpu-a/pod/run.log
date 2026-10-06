@@ -1,0 +1,8 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 91.56it/s]
+{"hf_tensors": 750, "step": "hf_loaded", "spent_usd": 0.375, "t": "2026-10-06T14:51:51Z"}
+/usr/local/lib/python3.12/dist-packages/PIL/Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+{"SEARCH": {"n": 200, "prompt_tokens_identical": 200, "argmax_agrees_stored_answer": 197, "max_abs_dlogp_median": null, "max_abs_dlogp_p99": null}, "RERANK": {"n": 200, "prompt_tokens_identical": 200, "argmax_agrees_stored_answer": 198, "max_abs_dlogp_median": 0.24908947944641113, "max_abs_dlogp_p99": 0.7507451629638661}, "TEST": {"n": 561, "prompt_tokens_identical": 561, "argmax_agrees_stored_answer": 547, "max_abs_dlogp_median": 0.24520158767700195, "max_abs_dlogp_p99": 0.7489914894104004}, "step": "S2a_fidelity", "spent_usd": 0.602, "t": "2026-10-06T14:55:45Z"}
+{"step": "NO_GO_S2a", "spent_usd": 0.602, "t": "2026-10-06T14:55:45Z"}
+S2a fidelity falsifier
