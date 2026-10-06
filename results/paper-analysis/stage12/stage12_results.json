@@ -1,0 +1,36 @@
+{
+ "n_perturbations": 80,
+ "n_items": 96,
+ "S1a_split_half_r": 0.7822783432322389,
+ "S1a_spearman_brown": 0.8778408223415242,
+ "S1a_pass": true,
+ "S1b_fidelity_all_ok": true,
+ "missing_letter_fraction": 0.0,
+ "missing_flag": false,
+ "sd": {
+  "T_FULL": 0.5899970104404001,
+  "T_NOV": 0.5375007616973139,
+  "pred_NOV": 0.6083778636879592,
+  "pred_V": 0.8833097992156295
+ },
+ "S2_primary_r_predNOV_TNOV": 0.9380830430017861,
+ "S2_primary_slope": 0.8287947018522881,
+ "S2_share_r_TNOV_TFULL": 0.9181284048840275,
+ "S2_share_r2": 0.8429597678548887,
+ "secondary": {
+  "r_predNOV_TFULL": 0.839262120297379,
+  "r_predNOV+predV_TFULL": 0.5252532652288067,
+  "r_predV_TFULL-TNOV": 0.18430120290340685,
+  "slope_predNOV_TFULL": 0.8139055864880993
+ },
+ "S2_primary_verdict": "PASS",
+ "interpretable": true,
+ "stage3_GO": true,
+ "winner": {
+  "T_FULL": 1.156467008787614,
+  "T_NOV": 1.1833767051958666,
+  "pred_NOV": 1.4202903509140015,
+  "pred_V": -0.9122569561004639
+ },
+ "winner_T_FULL_percentile": 97.5
+}
