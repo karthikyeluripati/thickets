@@ -71,7 +71,7 @@ Split-half reliability of RERANK gains at 200 questions (Spearman–Brown from
 | σ = 0.002 audit | 0.53 |
 
 Shrinking 9504111's +8.0 toward the top-50 mean gives **+3.7** (optimism
-≈ 4.3 pp). With σ = 0.002 audit reliability it gives **+4.6** (optimism
+≈ 4.3 pp). With σ = 0.002 audit reliability it gives **+4.5** (optimism
 ≈ 3.4 pp). Among the 500 audit candidates, the cross-fitted optimism of
 whichever candidate is selected averages **+4.7 pp**.
 
