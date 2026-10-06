@@ -1,0 +1,525 @@
+{
+ "post_hoc": true,
+ "analysis_A": {
+  "checks": {
+   "rerank_n": 200,
+   "test_n": 561,
+   "base_rerank": 79,
+   "base_test": 259,
+   "top50_rerank_complete": 50,
+   "top50_test_complete": 50,
+   "audit_rerank_complete": 500,
+   "audit_with_test": 7,
+   "C_size": 27,
+   "D_size": 125
+  },
+  "sets": {
+   "A_winner": {
+    "RERANK": {
+     "n": 1,
+     "mean": 8.0,
+     "median": 8.0,
+     "sd": 0.0,
+     "min": 8.0,
+     "max": 8.0,
+     "above_base": 1,
+     "repairs_total": 20,
+     "regressions_total": 4,
+     "sigma_mix": {
+      "0.002": 1
+     }
+    },
+    "TEST": {
+     "n": 1,
+     "mean": -2.6737967914438503,
+     "median": -2.6737967914438503,
+     "sd": 0.0,
+     "min": -2.6737967914438503,
+     "max": -2.6737967914438503,
+     "above_base": 0,
+     "repairs_total": 23,
+     "regressions_total": 38,
+     "sigma_mix": {
+      "0.002": 1
+     }
+    }
+   },
+   "B_search_top50": {
+    "RERANK": {
+     "n": 50,
+     "mean": 1.37,
+     "median": 1.0,
+     "sd": 1.9556563697988187,
+     "min": -2.5,
+     "max": 8.0,
+     "above_base": 34,
+     "repairs_total": 471,
+     "regressions_total": 334,
+     "sigma_mix": {
+      "0.002": 27,
+      "0.0005": 12,
+      "0.001": 11
+     },
+     "winner_position": {
+      "rank_best_1": 1,
+      "tied_with": 0,
+      "share_strictly_below": 0.98,
+      "n": 50,
+      "winner_is_member": true
+     }
+    },
+    "TEST": {
+     "n": 50,
+     "mean": -0.34937611408199637,
+     "median": -0.35650623885918004,
+     "sd": 0.9615827834952643,
+     "min": -2.6737967914438503,
+     "max": 1.2477718360071302,
+     "above_base": 17,
+     "repairs_total": 921,
+     "regressions_total": 1019,
+     "sigma_mix": {
+      "0.002": 27,
+      "0.0005": 12,
+      "0.001": 11
+     },
+     "winner_position": {
+      "rank_best_1": 50,
+      "tied_with": 0,
+      "share_strictly_below": 0.0,
+      "n": 50,
+      "winner_is_member": true
+     }
+    }
+   },
+   "C_top50_sigma0.002": {
+    "RERANK": {
+     "n": 27,
+     "mean": 1.8888888888888888,
+     "median": 1.5,
+     "sd": 2.215909838025097,
+     "min": -1.5,
+     "max": 8.0,
+     "above_base": 18,
+     "repairs_total": 348,
+     "regressions_total": 246,
+     "sigma_mix": {
+      "0.002": 27
+     },
+     "winner_position": {
+      "rank_best_1": 1,
+      "tied_with": 0,
+      "share_strictly_below": 0.9629629629629629,
+      "n": 27,
+      "winner_is_member": true
+     }
+    },
+    "TEST": {
+     "n": 27,
+     "mean": -0.5743711626064566,
+     "median": -0.8912655971479501,
+     "sd": 1.0801307851449464,
+     "min": -2.6737967914438503,
+     "max": 1.2477718360071302,
+     "above_base": 7,
+     "repairs_total": 661,
+     "regressions_total": 748,
+     "sigma_mix": {
+      "0.002": 27
+     },
+     "winner_position": {
+      "rank_best_1": 27,
+      "tied_with": 0,
+      "share_strictly_below": 0.0,
+      "n": 27,
+      "winner_is_member": true
+     }
+    }
+   },
+   "D_audit_sigma0.002": {
+    "RERANK": {
+     "n": 125,
+     "mean": 0.676,
+     "median": 0.5,
+     "sd": 2.534643831949315,
+     "min": -9.0,
+     "max": 7.5,
+     "above_base": 72,
+     "repairs_total": 1358,
+     "regressions_total": 1189,
+     "sigma_mix": {
+      "0.002": 125
+     },
+     "winner_position": {
+      "rank_best_1": 1,
+      "tied_with": 0,
+      "share_strictly_below": 1.0,
+      "n": 125,
+      "winner_is_member": false
+     }
+    },
+    "TEST": {
+     "status": "partially measured (6/125; not reported as the set)",
+     "measured_ids": 6
+    }
+   },
+   "E_audit_all500": {
+    "RERANK": {
+     "n": 500,
+     "mean": 0.051,
+     "median": 0.0,
+     "sd": 1.6260957458739935,
+     "min": -9.0,
+     "max": 7.5,
+     "above_base": 201,
+     "repairs_total": 2611,
+     "regressions_total": 2560,
+     "sigma_mix": {
+      "0.00025": 125,
+      "0.0005": 125,
+      "0.002": 125,
+      "0.001": 125
+     },
+     "winner_position": {
+      "rank_best_1": 1,
+      "tied_with": 0,
+      "share_strictly_below": 1.0,
+      "n": 500,
+      "winner_is_member": false
+     }
+    },
+    "TEST": {
+     "status": "partially measured (7/500; not reported as the set)",
+     "measured_ids": 7
+    }
+   }
+  },
+  "winner": {
+   "RERANK": {
+    "gain_pp": 8.0,
+    "repairs": 20.0,
+    "regressions": 4.0
+   },
+   "TEST": {
+    "gain_pp": -2.6737967914438503,
+    "repairs": 23.0,
+    "regressions": 38.0
+   }
+  }
+ },
+ "analysis_B": {
+  "B_search_top50|winner_included": {
+   "gap": -10.67379679144385,
+   "group_mean_change": -1.7193761140819965,
+   "winner_advantage_change": -8.954420677361854,
+   "reference_n": 50,
+   "winner_in_mean": true,
+   "mu_R": 1.37,
+   "mu_T": -0.34937611408199637,
+   "identity_error": 0.0
+  },
+  "B_search_top50|leave_winner_out": {
+   "gap": -10.67379679144385,
+   "group_mean_change": -1.5366328349521625,
+   "winner_advantage_change": -9.137163956491687,
+   "reference_n": 49,
+   "winner_in_mean": false,
+   "mu_R": 1.2346938775510203,
+   "mu_T": -0.3019389574011423,
+   "identity_error": 0.0
+  },
+  "B_search_top50|paired_TEST_minus_RERANK": {
+   "n": 50,
+   "mean": -1.7193761140819965,
+   "median": -1.46524064171123,
+   "sd": 2.4004776723834538,
+   "min": -10.67379679144385,
+   "max": 1.7477718360071302,
+   "above_base": 13,
+   "winner": -10.67379679144385,
+   "winner_position_most_negative_1": 1,
+   "corr_RERANK_TEST": -0.2693554997567721
+  },
+  "C_top50_sigma0.002|winner_included": {
+   "gap": -10.67379679144385,
+   "group_mean_change": -2.4632600514953453,
+   "winner_advantage_change": -8.210536739948505,
+   "reference_n": 27,
+   "winner_in_mean": true,
+   "mu_R": 1.8888888888888888,
+   "mu_T": -0.5743711626064566,
+   "identity_error": 0.0
+  },
+  "C_top50_sigma0.002|leave_winner_out": {
+   "gap": -10.67379679144385,
+   "group_mean_change": -2.1474701768819413,
+   "winner_advantage_change": -8.52632661456191,
+   "reference_n": 26,
+   "winner_in_mean": false,
+   "mu_R": 1.6538461538461537,
+   "mu_T": -0.49362402303578773,
+   "identity_error": 0.0
+  },
+  "C_top50_sigma0.002|paired_TEST_minus_RERANK": {
+   "n": 27,
+   "mean": -2.4632600514953458,
+   "median": -2.39126559714795,
+   "sd": 2.8282279254242755,
+   "min": -10.67379679144385,
+   "max": 1.7477718360071302,
+   "above_base": 6,
+   "winner": -10.67379679144385,
+   "winner_position_most_negative_1": 1,
+   "corr_RERANK_TEST": -0.4014949677821956
+  }
+ },
+ "analysis_C": {
+  "cell_counts_subtask_x_letter": {
+   "0": 36,
+   "1": 17,
+   "2": 27,
+   "3": 30,
+   "4": 15,
+   "5": 16,
+   "6": 26,
+   "7": 4,
+   "8": 17,
+   "9": 5,
+   "10": 3,
+   "11": 4
+  },
+  "results": {
+   "B_search_top50": {
+    "n_candidates": 50,
+    "trials": 2000,
+    "selection_gain": {
+     "mean": 8.2865,
+     "median": 8.0,
+     "q025": 4.0,
+     "q975": 13.0
+    },
+    "heldout_gain": {
+     "mean": 5.1875,
+     "median": 6.0,
+     "q025": -2.0,
+     "q975": 11.0
+    },
+    "uniform_member_heldout": {
+     "mean": 1.37379,
+     "median": 1.3800000000000026,
+     "q025": -1.020500000000003,
+     "q975": 3.6404999999999976
+    },
+    "increment_over_uniform": {
+     "mean": 3.81371,
+     "median": 4.719999999999999,
+     "q025": -2.9610000000000007,
+     "q975": 8.240000000000002
+    },
+    "selection_minus_heldout": {
+     "mean": 3.099,
+     "median": 3.0,
+     "q025": -6.0,
+     "q975": 12.0
+    },
+    "share_increment_positive": 0.841,
+    "share_heldout_positive": 0.8815,
+    "share_winner_is_9504111": 0.6545,
+    "distinct_winners": 20,
+    "top_winners": [
+     {
+      "candidate_id": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+      "sigma": 0.002,
+      "wins": 1309
+     },
+     {
+      "candidate_id": "2a688dce9ee3f6910a66c8306e45a673347e6c2da97ca4f612e37eadc34f421f",
+      "sigma": 0.002,
+      "wins": 176
+     },
+     {
+      "candidate_id": "76fd1e2470419b464aa575afb0710800da330763a86d4deb65102df4412cfb61",
+      "sigma": 0.002,
+      "wins": 160
+     },
+     {
+      "candidate_id": "18e38dc4225a11e2a43c1a7abd32ddeea5ac0a0bcf35f6f5854fbf708e98f5ca",
+      "sigma": 0.002,
+      "wins": 103
+     },
+     {
+      "candidate_id": "f6856a3437439e58b35ad8fedba5c2f1cabd89bb5550dc0db11d0fd01247215d",
+      "sigma": 0.002,
+      "wins": 87
+     }
+    ]
+   },
+   "C_top50_sigma0.002": {
+    "n_candidates": 27,
+    "trials": 2000,
+    "selection_gain": {
+     "mean": 8.281,
+     "median": 8.0,
+     "q025": 4.0,
+     "q975": 13.0
+    },
+    "heldout_gain": {
+     "mean": 5.249,
+     "median": 6.0,
+     "q025": -2.0,
+     "q975": 11.0
+    },
+    "uniform_member_heldout": {
+     "mean": 1.8981481481481484,
+     "median": 1.9259259259259238,
+     "q025": -1.2222222222222214,
+     "q975": 4.852777777777775
+    },
+    "increment_over_uniform": {
+     "mean": 3.350851851851852,
+     "median": 4.370370370370374,
+     "q025": -3.297222222222224,
+     "q975": 7.629629629629626
+    },
+    "selection_minus_heldout": {
+     "mean": 3.032,
+     "median": 3.0,
+     "q025": -6.0,
+     "q975": 12.0
+    },
+    "share_increment_positive": 0.794,
+    "share_heldout_positive": 0.8855,
+    "share_winner_is_9504111": 0.66,
+    "distinct_winners": 17,
+    "top_winners": [
+     {
+      "candidate_id": "25a60f0b59f103ebf782a31f94bb569d897a652a0bc1bd95c5cdc5521418b843",
+      "sigma": 0.002,
+      "wins": 1320
+     },
+     {
+      "candidate_id": "2a688dce9ee3f6910a66c8306e45a673347e6c2da97ca4f612e37eadc34f421f",
+      "sigma": 0.002,
+      "wins": 176
+     },
+     {
+      "candidate_id": "76fd1e2470419b464aa575afb0710800da330763a86d4deb65102df4412cfb61",
+      "sigma": 0.002,
+      "wins": 162
+     },
+     {
+      "candidate_id": "18e38dc4225a11e2a43c1a7abd32ddeea5ac0a0bcf35f6f5854fbf708e98f5ca",
+      "sigma": 0.002,
+      "wins": 103
+     },
+     {
+      "candidate_id": "f6856a3437439e58b35ad8fedba5c2f1cabd89bb5550dc0db11d0fd01247215d",
+      "sigma": 0.002,
+      "wins": 88
+     }
+    ]
+   }
+  }
+ },
+ "control_proposal": {
+  "rule": "12 smallest SHA256('selection-vs-shared-control-v1:'+candidate_id) among the 125 sigma=0.002 audit candidates; no outcomes read",
+  "candidates": [
+   {
+    "candidate_id": "32bb440488a8db4af8fa4d2a61dfe7bfd261bdda4eb535697bb6b415c89cbf91",
+    "seed": 9500059,
+    "sigma": 0.002,
+    "manifest_index": 59,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "78939b3e8c00d89b251a9c8bdf678cedf9846c23dd9e6748d1e989492879f6be",
+    "seed": 9503167,
+    "sigma": 0.002,
+    "manifest_index": 3167,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "189c51c39f588fbd160b8480724b86ba5a944b4d96867281ff9fc4db3580503a",
+    "seed": 9500127,
+    "sigma": 0.002,
+    "manifest_index": 127,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "00220e5e79806ebac37a1d0ec1aede12e32ca2b8b858e9aa18af8e7effcd6e59",
+    "seed": 9502563,
+    "sigma": 0.002,
+    "manifest_index": 2563,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "60e9285be43c5493273cde4ab4118141ef908d8cbf0bda3298c41b4d18948685",
+    "seed": 9502995,
+    "sigma": 0.002,
+    "manifest_index": 2995,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "e6d66aa7a34d586ccb98376c438a2431c2d6365c0d0b2ac8222af5d980a44800",
+    "seed": 9503539,
+    "sigma": 0.002,
+    "manifest_index": 3539,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "69a1231af5fc3f55054f1c14b1a7313be0d0b67e0ff876b205be63a03e091d42",
+    "seed": 9501135,
+    "sigma": 0.002,
+    "manifest_index": 1135,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "4946ca683e3b87304f8eb7b91da450d6fd9743c7b4f713232c6f82c1e821388b",
+    "seed": 9502423,
+    "sigma": 0.002,
+    "manifest_index": 2423,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "ff40caff9436adbf9bd38cd8dd2a07eed72cc198918166d6ec73cd19617b2ff6",
+    "seed": 9500271,
+    "sigma": 0.002,
+    "manifest_index": 271,
+    "in_search_top50": true,
+    "test_outputs_exist": true
+   },
+   {
+    "candidate_id": "006b05b9f140fe50bcbb56d7b1b550f30c4ff73608ec2abd2c32b8dc738b3e52",
+    "seed": 9501023,
+    "sigma": 0.002,
+    "manifest_index": 1023,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "8b99cc78d3cb5224793576097671ee3e7b24a24fb6d06417ba2121ba86390aaa",
+    "seed": 9504179,
+    "sigma": 0.002,
+    "manifest_index": 4179,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   },
+   {
+    "candidate_id": "fc74416b6d2e94ad0bd9ba32e6bdd399df2e9fdc69be0571dc6581f6a4df316a",
+    "seed": 9504827,
+    "sigma": 0.002,
+    "manifest_index": 4827,
+    "in_search_top50": false,
+    "test_outputs_exist": false
+   }
+  ]
+ }
+}
