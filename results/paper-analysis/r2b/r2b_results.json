@@ -1,0 +1,34 @@
+{
+ "n_perturbations": 80,
+ "n_items": 363,
+ "S1a_spearman_brown_TNOV": 0.9492078285897894,
+ "S1a_pass": true,
+ "S1b_fidelity_all_ok": true,
+ "missing_letter_fraction": 0.0,
+ "missing_flag": false,
+ "P1_position_var_share_NOV": 0.07304250617271624,
+ "P1_content_ok": true,
+ "R2b_primary_r_predNOV_TNOV": 0.9248100859170628,
+ "R2b_slope": 0.9191174122603367,
+ "reported": {
+  "spearman": 0.9136896390060948,
+  "r_predNOV_content_part": 0.9038878198548732,
+  "sd_T_NOV": 0.09753174325691417,
+  "sd_pred_NOV": 0.09813581883869195,
+  "mid_blocks_share_80": 0.7748433956824713,
+  "group_share_80": {
+   "embed": 0.02759036882139795,
+   "L00-03": 0.03889489976047743,
+   "L04-07": 0.08369155995220566,
+   "L08-11": 0.17916811799272722,
+   "L12-15": 0.337871507232057,
+   "L16-19": 0.17411221050548142,
+   "L20-23": 0.042072310947157895,
+   "L24-27": 0.0710430509313751,
+   "final_norm_head": 0.04555608630945724
+  }
+ },
+ "R2b_verdict": "PASS",
+ "interpretable": true,
+ "replication": "REPLICATED"
+}
