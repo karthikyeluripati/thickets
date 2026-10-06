@@ -1,0 +1,58 @@
+INFO 10-06 03:08:22 [__init__.py:216] Automatically detected platform cuda.
+INFO 10-06 03:08:23 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b] to model_path [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b]
+INFO 10-06 03:08:23 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b] to model_path [/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b]
+INFO 10-06 03:08:23 [utils.py:233] non-default args: {'tokenizer': '/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b', 'dtype': 'bfloat16', 'seed': 0, 'max_model_len': 16384, 'distributed_executor_backend': 'uni', 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.5, 'max_num_batched_tokens': 16384, 'max_num_seqs': 64, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'image': 1, 'video': 0}, 'mm_processor_cache_gb': 0, 'worker_extension_cls': 'utils.worker_extn.WorkerExtension', 'model': '/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b'}
+INFO 10-06 03:08:32 [model.py:547] Resolved architecture: Qwen3VLForConditionalGeneration
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 10-06 03:08:32 [model.py:1510] Using max model len 16384
+INFO 10-06 03:08:32 [scheduler.py:205] Chunked prefill is enabled with max_num_batched_tokens=16384.
+INFO 10-06 03:08:32 [__init__.py:381] Cudagraph is disabled under eager mode
+INFO 10-06 03:08:33 [core.py:77] Initializing a V1 LLM engine (v0.11.0) with config: model='/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b', speculative_config=None, tokenizer='/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=16384, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=/workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b, enable_prefix_caching=False, chunked_prefill_enabled=True, pooler_config=None, compilation_config={"level":0,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":null,"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":0,"use_cudagraph":true,"cudagraph_num_of_warmups":0,"cudagraph_capture_sizes":[],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"use_inductor_graph_partition":false,"pass_config":{},"max_capture_size":0,"local_cache_dir":null}
+INFO 10-06 03:08:33 [worker_base.py:243] Injected <class 'utils.worker_extn.WorkerExtension'> into <class 'vllm.v1.worker.gpu_worker.Worker'> for extended collective_rpc calls ['_set_seed', '_should_perturb', 'apply_averaged_perturbations', 'apply_perturbation', 'broadcast_all_weights', 'cleanup_gpu_memory', 'clear_base_weights', 'dump_noise_for_seed', 'generate_with_logits_callback', 'get_logits_for_prompt', 'get_worker_ip', 'init_inter_engine_group', 'perturb_self_weights', 'print_model_weights_stats', 'reset_to_base_weights', 'restore_self_weights', 'save_self_weights_to_disk', 'store_base_weights', 'update_weights_from_seeds']
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+INFO 10-06 03:08:34 [parallel_state.py:1208] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+WARNING 10-06 03:08:34 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+INFO 10-06 03:08:36 [gpu_model_runner.py:2602] Starting to load model /workspace/hf/hub/models--Qwen--Qwen3-VL-8B-Instruct/snapshots/0c351dd01ed87e9c1b53cbc748cba10e6187ff3b...
+INFO 10-06 03:08:36 [gpu_model_runner.py:2634] Loading model from scratch...
+INFO 10-06 03:08:36 [cuda.py:366] Using Flash Attention backend on V1 engine.
+Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:00<00:01,  1.66it/s]
+Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:01<00:01,  1.52it/s]
+Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:02<00:00,  1.47it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:02<00:00,  1.73it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:02<00:00,  1.65it/s]
+
+INFO 10-06 03:08:38 [default_loader.py:267] Loading weights took 2.46 seconds
+INFO 10-06 03:08:39 [gpu_model_runner.py:2653] Model loading took 16.9678 GiB and 2.566380 seconds
+INFO 10-06 03:08:39 [gpu_model_runner.py:3344] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
+INFO 10-06 03:08:46 [gpu_worker.py:298] Available KV cache memory: 18.72 GiB
+INFO 10-06 03:08:46 [kv_cache_utils.py:1087] GPU KV cache size: 136,288 tokens
+INFO 10-06 03:08:46 [kv_cache_utils.py:1091] Maximum concurrency for 16,384 tokens per request: 8.32x
+WARNING 10-06 03:08:46 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+INFO 10-06 03:08:46 [core.py:210] init engine (profile, create kv cache, warmup model) took 7.20 seconds
+INFO 10-06 03:08:47 [llm.py:306] Supported_tasks: ('generate',)
+/usr/local/lib/python3.12/dist-packages/PIL/Image.py:1136: UserWarning: Palette images with Transparency expressed in bytes should be converted to RGBA images
+  warnings.warn(
+{"step": "model_loaded", "spent_usd": 0.399, "t": "2026-10-06T03:09:12Z"}
+{"ok": true, "fingerprint": "5bc2499cb980429deee42ccabf91358e85a699f25b67ab5f7bdbf196457c8485", "step": "base_fingerprint", "spent_usd": 0.41, "t": "2026-10-06T03:09:23Z"}
+{"text_identical": 200, "scores_identical_to_session1": 200, "n": 200, "missing_scores": 0, "step": "base_fidelity_RERANK", "spent_usd": 0.436, "t": "2026-10-06T03:09:51Z"}
+{"text_identical": 561, "scores_identical_to_session1": 561, "n": 561, "missing_scores": 0, "step": "base_fidelity_TEST", "spent_usd": 0.591, "t": "2026-10-06T03:12:30Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.62, "step": "control_9500059", "spent_usd": 0.801, "t": "2026-10-06T03:16:07Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.65, "step": "control_9503167", "spent_usd": 1.014, "t": "2026-10-06T03:19:46Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.69, "step": "control_9500127", "spent_usd": 1.228, "t": "2026-10-06T03:23:28Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.67, "step": "control_9502563", "spent_usd": 1.442, "t": "2026-10-06T03:27:08Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.67, "step": "control_9502995", "spent_usd": 1.655, "t": "2026-10-06T03:30:48Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.66, "step": "control_9503539", "spent_usd": 1.868, "t": "2026-10-06T03:34:27Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.67, "step": "control_9501135", "spent_usd": 2.081, "t": "2026-10-06T03:38:08Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.67, "step": "control_9502423", "spent_usd": 2.295, "t": "2026-10-06T03:41:48Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": 561, "missing": 0, "restored_mismatches": 0, "minutes": 3.61, "step": "control_9500271", "spent_usd": 2.505, "t": "2026-10-06T03:45:25Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.66, "step": "control_9501023", "spent_usd": 2.718, "t": "2026-10-06T03:49:04Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.73, "step": "control_9504179", "spent_usd": 2.935, "t": "2026-10-06T03:52:48Z"}
+{"fingerprint_ok": true, "rerank_identical": 200, "test_identical": null, "missing": 0, "restored_mismatches": 0, "minutes": 3.65, "step": "control_9504827", "spent_usd": 3.147, "t": "2026-10-06T03:56:27Z"}
+{"step": "DONE", "spent_usd": 3.147, "t": "2026-10-06T03:56:27Z"}
+[rank0]:[W1006 03:56:27.777854433 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
