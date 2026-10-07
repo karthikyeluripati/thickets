@@ -1,0 +1,18 @@
++ mkdir -p /workspace/repo
++ cd /workspace/repo
++ tar xzf /workspace/s1.tgz
+tar: scripts/s1_a_olmo.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: scripts/s1_b_winner.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: scripts/geometry_lib.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: scripts/causal_diag_9504111.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: scripts/m1_prepare_images.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/paper-analysis/s1/frozen_A.json: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/paper-analysis/s1/B_comparators.json: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/paper-analysis/m1/pod/holdout.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/paper-analysis/m1/holdout_candidates.json: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: results/paper-analysis/geometry-gpu-a/gpu/vllm_stream_check.json: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: third_party/omnispatial/system_prompts.py: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/search.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/validation.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: examples/omnispatial-perspective-taking/test.jsonl: Cannot change ownership to uid 197609, gid 197609: Invalid argument
+tar: Exiting with failure status due to previous errors

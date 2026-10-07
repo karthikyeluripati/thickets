@@ -1,0 +1,5 @@
++ grep -q '^rc=0 ' /workspace/jobs/04-smoke.rc
++ cd /workspace/repo
++ python -u scripts/s1_a_olmo.py --out /workspace/out/A
+`torch_dtype` is deprecated! Use `dtype` instead!
+A_DONE {"n_items": 100, "n_cands": 24, "base_acc": 0.47, "restored_exact": true, "n_params": 179, "nmax": 205520896, "minutes": 0.6762381553649902, "smoke": false, "r_sigma_0.001": 0.925152704278491, "r_sigma_0.002": 0.7523545646616346, "r_sigma_0.005": 0.20543541558935746}

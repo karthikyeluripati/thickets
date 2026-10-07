@@ -1,0 +1,4 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-smoke.rc
++ echo SMOKE_FAILED
+SMOKE_FAILED
++ exit 3

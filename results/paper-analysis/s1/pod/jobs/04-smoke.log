@@ -1,0 +1,21 @@
++ mkdir -p /workspace/repo
++ cd /workspace/repo
++ tar --no-same-owner -xzf /workspace/s1.tgz
++ python -c 'import huggingface_hub,transformers,torch;print(huggingface_hub.__version__,transformers.__version__,torch.__version__)'
+0.36.2 4.57.1 2.8.0+cu128
++ HF_HUB_OFFLINE=0
++ python -u scripts/s1_a_olmo.py --smoke --out /workspace/out/smokeA
+`torch_dtype` is deprecated! Use `dtype` instead!
+A_DONE {"n_items": 5, "n_cands": 3, "base_acc": 0.4, "restored_exact": true, "n_params": 179, "nmax": 205520896, "minutes": 0.15377519925435384, "smoke": true, "r_sigma_0.001": 0.8781552359284382, "r_sigma_0.002": 0.8479087071716638, "r_sigma_0.005": 0.560200427552726}
++ HF_HUB_OFFLINE=0
++ python -u scripts/m1_prepare_images.py
+M1_IMAGES 484 items_kept 600 dropped_leak 0
++ HF_HUB_OFFLINE=0
++ python -u scripts/s1_b_winner.py --smoke --images /workspace/m1-images --out /workspace/out/smokeB
+Fetching 14 files:   0%|          | 0/14 [00:00<?, ?it/s]Fetching 14 files:  57%|█████▋    | 8/14 [00:00<00:00, 20.04it/s]Fetching 14 files:  71%|███████▏  | 10/14 [00:20<00:08,  2.00s/it]Fetching 14 files:  79%|███████▊  | 11/14 [00:39<00:10,  3.62s/it]Fetching 14 files:  86%|████████▌ | 12/14 [00:50<00:08,  4.22s/it]Fetching 14 files:  93%|█████████▎| 13/14 [01:04<00:04,  4.93s/it]Fetching 14 files: 100%|██████████| 14/14 [01:05<00:00,  4.70s/it]Fetching 14 files: 100%|██████████| 14/14 [01:05<00:00,  4.70s/it]
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:00<00:00, 99.48it/s]
+/workspace/repo/scripts/s1_b_winner.py:67: UserWarning: Converting a tensor with requires_grad=True to a scalar may lead to unexpected behavior.
+Consider using tensor.detach() first. (Triggered internally at /pytorch/torch/csrc/autograd/generated/python_variable_methods.cpp:835.)
+  h = model.model(**x).last_hidden_state[0, -1].float(); c = h @ (W[IDS[gi]].float() - W[IDS[wi]].float()); cb = float(c); c.backward()
+B_DONE {"n": 4, "minutes": 1.2335974295934042, "smoke": true}
