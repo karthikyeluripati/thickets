@@ -211,6 +211,18 @@ base 0.730 (200 items).
 which RandOpt reproduces the published number and SC@50 is ahead with a CI excluding zero. RandOpt's 5000 × 200
 search generations are not charged to it. Do not generalise beyond GSM8K / 1.5B without further runs.
 
+## R8c. Theory checks (criteria committed before computing, f06f3c6; status: criteria-first EXPLORATORY)
+**Source:** `results/paper-analysis/theory/theory_results.json`, derivations in `paper/THEORY.md`. Data: P0 (96 GQA
+questions × 24 perturbations, Qwen2.5-VL-3B, LM-only, direct one-word contrast).
+
+| Check | Statistic | Rule | Result | Outcome |
+|---|---|---|---|---|
+| T1-a flip probability Φ(−\|c\|/(σ‖g‖)), σ ≤ 0.002 | AUC, 1536 pairs, 46 flips | ≥ 0.80 supports; < 0.65 not | **0.935** | supports |
+| T1-b calibration | predicted / observed flips | within [0.67, 1.5] | 65.0 / 46 = 1.41 | calibrated (over-predicts) |
+| T2 unselected vote returns base, σ ≤ 0.002 | share of questions, 16 perturbations | ≥ 0.95 supports; < 0.85 not | **96/96 = 1.00** | supports |
+| σ = 0.005 (reported) | AUC; ratio; vote = base; mean Δc | – | 0.61; 0.63; 0.979; −0.62 [−1.00, −0.27] | breaks (second-order drift) |
+| T4 (descriptive) | CV of ‖g‖; model-implied Spearman, perturbation vs sampling flip prob | – | 0.29; 0.94 | – |
+
 ## R9. Confirmatory-test ledger (every locked test, with its outcome)
 How to describe the process:
 - Confirmatory tests were specified in plan locks committed **before** their corresponding runs.

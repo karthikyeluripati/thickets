@@ -37,6 +37,13 @@ selected perturbations change?**
   full first-order prediction does not explain which items the winner changes (S1-B r = 0.16; its language part
   alone r = 0.62, exploratory) [R3, R4].
 
+### The theory that ties the claims together (`paper/THEORY.md`, R8c)
+Under the law, each perturbation shifts question j's margin by N(0, σ²‖g_j‖²): flip probability Φ(−|c_j|/(σ‖g_j‖))
+(AUC 0.935, calibrated), unselected votes return the base answer (96/96), σ‖g_j‖ acts as a per-question temperature
+(why perturbations and sampling hit the same questions), and top-K selection is a noisy first-order step along the
+selection-set gradient (why label-aligned tilts transfer and item-specific fits do not; why votes beat members).
+Direct-answer regime only; CoT is outside it.
+
 **Closing message.** Weight search mostly buys an ensemble, and a cheaper ensemble (sampling) does as well or better in
 the setting we could test same-run. What individual perturbations change is a predictable, first-order tilt of answer
 preferences, which selection exploits where labels reward it; beyond that (vision, large σ, CoT, the winner's
@@ -56,7 +63,5 @@ residual gain) the account stops, and we say so.
 1. **Claim 1 rests on one same-run row.** Need a second, independent one at larger scale (GSM8K / Qwen2.5-3B,
    paper 87.1) and the paper's flagship VLM result (GQA / Qwen2.5-VL-3B, paper 69.0), same-run.
 2. **Scale of Claim 2:** text-model evidence is ≤ 1.5B (VLMs to 8B). A 7B text model check.
-3. **Theory:** a short derivation linking Claims 1 and 2: under the first-order law, each perturbation shifts item j's
-   contrast by a Gaussian with s.d. σ‖fold ∇c_j‖, so flip probability depends on margin / (σ‖g_j‖), which would
-   explain why perturbation votes and sampling votes hit the same items and how σ sets an effective temperature.
-   Testable on existing data (I5, P0, S1-A) with a criteria-first lock; CPU only.
+3. ~~Theory~~ **done** (THEORY.md, R8c): T1, T2 supported on P0; T3 derived and linked to existing results; T4
+   descriptive. Remaining theory gap: T3 has no direct test (needs gradient cosines; could be added to the 7B run).
