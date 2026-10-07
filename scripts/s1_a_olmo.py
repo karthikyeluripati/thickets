@@ -24,15 +24,16 @@ BLOCK = 16
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--inputs', default='results/paper-analysis/s1/frozen_A.json'); ap.add_argument('--smoke', action='store_true')
+    ap.add_argument('--model', default=MODEL); ap.add_argument('--rev', default=REV)
     a = ap.parse_args()
     import torch
     from transformers import AutoModelForCausalLM, AutoTokenizer
     a.out.mkdir(parents=True, exist_ok=True); t0 = time.time()
     fin = json.loads(Path(a.inputs).read_text(encoding='utf-8')); items = fin['items']; cands = fin['candidates']
     if a.smoke: items, cands = items[:5], cands[:3]
-    tok = AutoTokenizer.from_pretrained(MODEL, revision=REV)
+    tok = AutoTokenizer.from_pretrained(a.model, revision=a.rev)
     assert [tok.encode(L, add_special_tokens=False) for L in LET] == [[i] for i in IDS]
-    model = AutoModelForCausalLM.from_pretrained(MODEL, revision=REV, torch_dtype=torch.bfloat16).cuda()
+    model = AutoModelForCausalLM.from_pretrained(a.model, revision=a.rev, torch_dtype=torch.bfloat16).cuda()
     params = dict(model.named_parameters()); nmax = max(p.numel() for p in params.values())
     W = model.get_output_embeddings().weight
 
@@ -87,7 +88,7 @@ def main():
         del Fb
     np.save(a.out / 'A_pred.npy', pred); np.save(a.out / 'A_meas.npy', meas)
     info = {'n_items': len(items), 'n_cands': len(cands), 'base_acc': base_acc / len(items), 'restored_exact': bool(restored),
-            'n_params': len(params), 'nmax': nmax, 'minutes': (time.time() - t0) / 60, 'smoke': a.smoke}
+            'model': a.model, 'rev': a.rev, 'n_params': len(params), 'nmax': nmax, 'minutes': (time.time() - t0) / 60, 'smoke': a.smoke}
     sig = np.array([c['sigma'] for c in cands])
     for s in sorted(set(sig)):
         m = sig == s; info[f'r_sigma_{s}'] = float(np.corrcoef(pred[:, m].ravel(), meas[:, m].ravel())[0, 1])
