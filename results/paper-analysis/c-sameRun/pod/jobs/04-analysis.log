@@ -1,0 +1,15 @@
++ cd /workspace/repo
++ python -u scripts/c_analysis.py --upstream /workspace/RandOpt --d /workspace/c/out --out /workspace/c/out/c_results.json
+Traceback (most recent call last):
+  File "/workspace/repo/scripts/c_analysis.py", line 51, in <module>
+    main()
+  File "/workspace/repo/scripts/c_analysis.py", line 26, in main
+    E = json.loads((a.d / 'ensemble_answers.json').read_text()); n = len(gt)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1029, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/pathlib.py", line 1015, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/workspace/c/out/ensemble_answers.json'

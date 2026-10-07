@@ -1,0 +1,39 @@
+{
+ "n_test": 1319,
+ "N_population": 5000,
+ "randopt_base_test_printed": 60.27,
+ "p2sc_greedy": 59.28733889310084,
+ "K50": {
+  "randopt": 77.17968157695225,
+  "randopt_printed_correct": 1018,
+  "reproduces_printed": true,
+  "sc": 79.83320697498104,
+  "sc_p2rule": 79.83320697498104,
+  "D": -2.6535253980288096,
+  "D_ci95": [
+   -4.321455648218348,
+   -0.9855951478392722
+  ],
+  "outcome": "SC AHEAD",
+  "equivalent_2pp": false,
+  "n_randopt_only": 46,
+  "n_sc_only": 81
+ },
+ "K10": {
+  "randopt": 77.17968157695225,
+  "randopt_printed_correct": 1018,
+  "reproduces_printed": true,
+  "sc": 75.2084912812737,
+  "sc_p2rule": 75.2084912812737,
+  "D": 1.9711902956785443,
+  "D_ci95": [
+   0.0,
+   3.8665655799848366
+  ],
+  "outcome": "NO DIFFERENCE DETECTED",
+  "equivalent_2pp": false,
+  "n_randopt_only": 99,
+  "n_sc_only": 73
+ },
+ "C1_valid": true
+}

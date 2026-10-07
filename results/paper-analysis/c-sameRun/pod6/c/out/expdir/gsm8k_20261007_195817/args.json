@@ -1,0 +1,29 @@
+{
+    "dataset": "gsm8k",
+    "train_data_path": null,
+    "test_data_path": null,
+    "train_samples": 200,
+    "test_samples": null,
+    "model_name": "/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306",
+    "precision": "bfloat16",
+    "max_tokens": 1024,
+    "sigma_values": "0.0005,0.001,0.002",
+    "population_size": 5000,
+    "top_k_ratios": "0.01,0.002",
+    "num_engines": 6,
+    "tp": 1,
+    "cuda_devices": "0,1,2,3,4,5",
+    "global_seed": 42,
+    "experiment_dir": "/workspace/c/full",
+    "resume_dir": null,
+    "sigma_list": [
+        0.0005,
+        0.001,
+        0.002
+    ],
+    "top_k_list": [
+        50,
+        10
+    ],
+    "max_top_k": 50
+}

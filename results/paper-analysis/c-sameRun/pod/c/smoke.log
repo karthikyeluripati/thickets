@@ -1,0 +1,98 @@
+1791402081 ============================================================
+1791402081 ES Ensemble - GSM8K 
+1791402081 ============================================================
+1791402081 Model: /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+1791402081 Population: 12 | Top-K: [3] | Engines: 1 | TP: 1
+1791402081 2026-10-07 19:41:21,458	WARNING authentication_token_setup.py:85 -- Token authentication is enabled for this Ray cluster. Set RAY_AUTH_MODE=disabled to opt out. For more information, see https://docs.ray.io/en/latest/ray-security/token-auth.html
+1791402081 2026-10-07 19:41:21,459	INFO authentication_token_setup.py:50 -- Generated new authentication token and saved to /root/.ray/auth_token
+1791402083 2026-10-07 19:41:23,542	WARNING utils.py:473 -- Detecting docker specified CPUs. In previous versions of Ray, CPU detection in containers was incorrect. Please ensure that Ray has enough CPUs allocated. As a temporary workaround to revert to the prior behavior, set `RAY_USE_MULTIPROCESSING_CPU_COUNT=1` as an env var before starting Ray. Set the env var: `RAY_DISABLE_DOCKER_CPU_WARNING=1` to mute this warning.
+1791402083 2026-10-07 19:41:23,542	WARNING utils.py:485 -- Ray currently does not support initializing Ray with fractional cpus. Your num_cpus will be truncated from 23.8 to 23.
+1791402085 2026-10-07 19:41:25,811	INFO worker.py:2033 -- Started a local Ray instance.
+1791402087 Loading gsm8k data...
+1791402087   Train: 200 | Test: 30
+1791402087 Cluster resources: 1 GPUs available, 1 GPUs required
+1791402087 Creating 1 placement groups (TP=1)...
+1791402087 Placement groups ready in 0.0s
+1791402087 Launching batch 1/1 (engines 0-0)...
+1791402092 [36m(RandOptNcclLLM pid=2403)[0m WARNING 10-07 19:41:32 [model.py:371] The global random seed is set to 0. Since VLLM_ENABLE_V1_MULTIPROCESSING is set to False, this may affect the random state of the Python process that launched vLLM.
+1791402101 [36m(RandOptNcclLLM pid=2403)[0m `torch_dtype` is deprecated! Use `dtype` instead!
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791402109 [36m(RayWorkerWrapper pid=2405)[0m WARNING 10-07 19:41:49 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+1791402110 [36m(RayWorkerWrapper pid=2405)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+1791402110 [36m(RayWorkerWrapper pid=2405)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.11it/s]
+1791402110 [36m(RayWorkerWrapper pid=2405)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.11it/s]
+1791402110 [36m(RayWorkerWrapper pid=2405)[0m 
+1791402112 [36m(RayWorkerWrapper pid=2405)[0m WARNING 10-07 19:41:52 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+1791402113   Batch 1 initialized in 25.7s
+1791402113 All 1 engines launched in 25.7s
+1791402113 
+1791402113 ============================================================
+1791402113 BASE MODEL EVALUATION
+1791402113 ============================================================
+1791402124 Train reward: 73.00%
+1791402128 Test accuracy: 56.67% (17/30)
+1791402128 
+1791402128 ============================================================
+1791402128 PERTURBATION SAMPLING
+1791402128 ============================================================
+1791402128 Budget: 12 | Sigmas: [0.0005, 0.001, 0.002]
+1791402138   Batch 1 | 1/12 | ['0.565']
+1791402144   Batch 2 | 2/12 | ['0.725']
+1791402153   Batch 3 | 3/12 | ['0.680']
+1791402163   Batch 4 | 4/12 | ['0.685']
+1791402172   Batch 5 | 5/12 | ['0.655']
+1791402182   Batch 6 | 6/12 | ['0.715']
+1791402191   Batch 7 | 7/12 | ['0.690']
+1791402199   Batch 8 | 8/12 | ['0.705']
+1791402208   Batch 9 | 9/12 | ['0.645']
+1791402215   Batch 10 | 10/12 | ['0.715']
+1791402222   Batch 11 | 11/12 | ['0.740']
+1791402228   Batch 12 | 12/12 | ['0.685']
+1791402228 
+1791402228 Sampling done.
+1791402228 
+1791402228 ============================================================
+1791402228 SAMPLING COMPLETE
+1791402228 ============================================================
+1791402228   σ=0.0005: mean=0.6800, n=2
+1791402228   σ=0.001: mean=0.7025, n=6
+1791402228   σ=0.002: mean=0.6575, n=4
+1791402228 
+1791402228 ★ Best sigma: 0.001
+1791402228 
+1791402228 ============================================================
+1791402228 SELECTION
+1791402228 ============================================================
+1791402228 Selected top-3 from 12 perturbations
+1791402228 
+1791402228 === Top-3 Perturbations ===
+1791402228   1. seed=2095133046, σ=0.001: 0.7400
+1791402228   2. seed=184566854, σ=0.002: 0.7250
+1791402228   3. seed=1843824987, σ=0.001: 0.7150
+1791402228   4. seed=1497586436, σ=0.0005: 0.7150
+1791402228   5. seed=929893134, σ=0.001: 0.7050
+1791402228   6. seed=191664963, σ=0.001: 0.6900
+1791402228   7. seed=1130604997, σ=0.001: 0.6850
+1791402228   8. seed=432652532, σ=0.002: 0.6850
+1791402228   9. seed=1662057950, σ=0.001: 0.6800
+1791402228   10. seed=1405681626, σ=0.002: 0.6550
+1791402228 
+1791402228 ============================================================
+1791402228 ENSEMBLE EVALUATION
+1791402228 ============================================================
+1791402228 K values: [3] | Test samples: 30
+1791402228   Batch 1/3 (1 models)...
+1791402242   Batch 3/3 (1 models)...
+1791402251 
+1791402251 Generation completed.
+1791402251 
+1791402251 Majority voting...
+1791402251   K=3: 50.00% (15/30) [+-6.67%]
+1791402251 
+1791402251 === Saving Results ===
+1791402251 Results saved to /workspace/c/smoke/gsm8k_20261007_194127/

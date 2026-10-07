@@ -1,0 +1,19 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-smoke.rc
++ export HF_HOME=/workspace/hf VLLM_NO_USAGE_STATS=1 VLLM_DISABLE_COMPILE_SAMPLER=1 VLLM_LOGGING_LEVEL=WARNING
++ HF_HOME=/workspace/hf
++ VLLM_NO_USAGE_STATS=1
++ VLLM_DISABLE_COMPILE_SAMPLER=1
++ VLLM_LOGGING_LEVEL=WARNING
++ cd /workspace/RandOpt
+++ cat /workspace/c/model_path.txt
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+++ python -
++ N=0
+++ cat /workspace/c/sec_per_perturbation.txt
++ echo '0 spent_rule s=8.181818181818182'
++ cat /workspace/c/out/N.txt
+0 spent_rule s=8.181818181818182
++ '[' 0 -gt 0 ']'
++ echo N_DOES_NOT_FIT
+N_DOES_NOT_FIT
++ exit 4

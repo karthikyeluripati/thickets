@@ -1,0 +1,101 @@
+1791402994 ============================================================
+1791402994 ES Ensemble - GSM8K 
+1791402994 ============================================================
+1791402994 Model: /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+1791402994 Population: 24 | Top-K: [6] | Engines: 6 | TP: 1
+1791402994 2026-10-07 19:56:34,051	WARNING authentication_token_setup.py:85 -- Token authentication is enabled for this Ray cluster. Set RAY_AUTH_MODE=disabled to opt out. For more information, see https://docs.ray.io/en/latest/ray-security/token-auth.html
+1791402994 2026-10-07 19:56:34,052	INFO authentication_token_setup.py:50 -- Generated new authentication token and saved to /root/.ray/auth_token
+1791402995 2026-10-07 19:56:35,913	WARNING utils.py:473 -- Detecting docker specified CPUs. In previous versions of Ray, CPU detection in containers was incorrect. Please ensure that Ray has enough CPUs allocated. As a temporary workaround to revert to the prior behavior, set `RAY_USE_MULTIPROCESSING_CPU_COUNT=1` as an env var before starting Ray. Set the env var: `RAY_DISABLE_DOCKER_CPU_WARNING=1` to mute this warning.
+1791402995 2026-10-07 19:56:35,914	WARNING utils.py:485 -- Ray currently does not support initializing Ray with fractional cpus. Your num_cpus will be truncated from 132.6 to 132.
+1791402998 2026-10-07 19:56:38,389	INFO worker.py:2033 -- Started a local Ray instance.
+1791403001 Loading gsm8k data...
+1791403001   Train: 200 | Test: 30
+1791403001 Cluster resources: 6 GPUs available, 6 GPUs required
+1791403001 Creating 6 placement groups (TP=1)...
+1791403001 Placement groups ready in 0.0s
+1791403001 Launching batch 1/1 (engines 0-5)...
+1791403006 [36m(RandOptNcclLLM pid=1800)[0m WARNING 10-07 19:56:46 [model.py:371] The global random seed is set to 0. Since VLLM_ENABLE_V1_MULTIPROCESSING is set to False, this may affect the random state of the Python process that launched vLLM.
+1791403015 [36m(RandOptNcclLLM pid=1800)[0m `torch_dtype` is deprecated! Use `dtype` instead!
+1791403022 [36m(RayWorkerWrapper pid=1813)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791403022 [36m(RayWorkerWrapper pid=1813)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791403022 [36m(RayWorkerWrapper pid=1813)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791403022 [36m(RayWorkerWrapper pid=1813)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791403022 [36m(RayWorkerWrapper pid=1813)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791403022 [36m(RayWorkerWrapper pid=1813)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+1791403022 [36m(RandOptNcclLLM pid=1794)[0m WARNING 10-07 19:56:47 [model.py:371] The global random seed is set to 0. Since VLLM_ENABLE_V1_MULTIPROCESSING is set to False, this may affect the random state of the Python process that launched vLLM.[32m [repeated 5x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)[0m
+1791403023 [36m(RayWorkerWrapper pid=1813)[0m WARNING 10-07 19:57:03 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+1791403024 [36m(RayWorkerWrapper pid=1813)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+1791403024 [36m(RandOptNcclLLM pid=1794)[0m `torch_dtype` is deprecated! Use `dtype` instead![32m [repeated 5x across cluster][0m
+1791403024 [36m(RayWorkerWrapper pid=1813)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.13it/s]
+1791403024 [36m(RayWorkerWrapper pid=1813)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.12it/s]
+1791403024 [36m(RayWorkerWrapper pid=1813)[0m 
+1791403025 [36m(RayWorkerWrapper pid=1827)[0m 
+1791403025 [36m(RayWorkerWrapper pid=1839)[0m 
+1791403025 [36m(RayWorkerWrapper pid=1842)[0m 
+1791403026 [36m(RayWorkerWrapper pid=1801)[0m 
+1791403026 [36m(RayWorkerWrapper pid=1790)[0m 
+1791403026 [36m(RayWorkerWrapper pid=1813)[0m WARNING 10-07 19:57:06 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+1791403027 [36m(RayWorkerWrapper pid=1790)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0[32m [repeated 30x across cluster][0m
+1791403028 [36m(RayWorkerWrapper pid=1790)[0m WARNING 10-07 19:57:05 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.[32m [repeated 5x across cluster][0m
+1791403029   Batch 1 initialized in 27.5s
+1791403029 All 6 engines launched in 27.5s
+1791403029 
+1791403029 ============================================================
+1791403029 BASE MODEL EVALUATION
+1791403029 ============================================================
+1791403037 Train reward: 73.00%
+1791403041 Test accuracy: 56.67% (17/30)
+1791403041 
+1791403041 ============================================================
+1791403041 PERTURBATION SAMPLING
+1791403041 ============================================================
+1791403041 Budget: 24 | Sigmas: [0.0005, 0.001, 0.002]
+1791403050   Batch 1 | 6/24 | ['0.525', '0.600', '0.675', '0.685', '0.695', '0.745']
+1791403058   Batch 2 | 12/24 | ['0.675', '0.655', '0.725', '0.635', '0.720', '0.625']
+1791403066   Batch 3 | 18/24 | ['0.620', '0.560', '0.590', '0.750', '0.590', '0.695']
+1791403074   Batch 4 | 24/24 | ['0.690', '0.605', '0.700', '0.650', '0.745', '0.635']
+1791403074 
+1791403074 Sampling done.
+1791403074 
+1791403074 ============================================================
+1791403074 SAMPLING COMPLETE
+1791403074 ============================================================
+1791403074   σ=0.0005: mean=0.6960, n=5
+1791403074   σ=0.001: mean=0.7000, n=8
+1791403074   σ=0.002: mean=0.6100, n=11
+1791403074 
+1791403074 ★ Best sigma: 0.001
+1791403074 
+1791403074 ============================================================
+1791403074 SELECTION
+1791403074 ============================================================
+1791403074 Selected top-6 from 24 perturbations
+1791403074 
+1791403074 === Top-6 Perturbations ===
+1791403074   1. seed=1662057941, σ=0.001: 0.7500
+1791403074   2. seed=929893129, σ=0.001: 0.7450
+1791403074   3. seed=1540770713, σ=0.001: 0.7450
+1791403074   4. seed=1843824977, σ=0.0005: 0.7250
+1791403074   5. seed=202244313, σ=0.0005: 0.7200
+1791403074   6. seed=275121930, σ=0.001: 0.7000
+1791403074   7. seed=1497586427, σ=0.0005: 0.6950
+1791403074   8. seed=1990212659, σ=0.001: 0.6950
+1791403074   9. seed=796282692, σ=0.0005: 0.6900
+1791403074   10. seed=1634535055, σ=0.002: 0.6850
+1791403074 
+1791403074 ============================================================
+1791403074 ENSEMBLE EVALUATION
+1791403074 ============================================================
+1791403074 K values: [6] | Test samples: 30
+1791403074   Batch 1/1 (6 models)...
+1791403081 
+1791403081 Generation completed.
+1791403081 
+1791403081 Majority voting...
+1791403081   K=6: 56.67% (17/30) [+0.00%]
+1791403081 
+1791403081 === Saving Results ===
+1791403081 Results saved to /workspace/c/smoke/gsm8k_20261007_195641/
+1791403081 [36m(RayWorkerWrapper pid=1790)[0m WARNING 10-07 19:57:08 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.[32m [repeated 5x across cluster][0m
+1791403081 [36m(RayWorkerWrapper pid=1790)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s][32m [repeated 5x across cluster][0m
+1791403081 [36m(RayWorkerWrapper pid=1790)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.21it/s][32m [repeated 10x across cluster][0m
