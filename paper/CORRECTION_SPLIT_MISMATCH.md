@@ -1,5 +1,9 @@
 # Correction: selection and test splits are different question formats
 
+> **Note (2026-10-07 cleanup):** earlier study write-ups referenced below were removed from the working tree because
+> they are superseded or outside the paper's story. They remain available at git tag `pre-cleanup`
+> (`git show pre-cleanup:paper/<FILE>.md`). Their raw data, where the paper still uses it, is kept under `results/`.
+
 - **Date:** 2026-10-06. Found post hoc in `WHY_INVESTIGATION_9504111.md`.
 - **This note supersedes** the affected statements in every report listed below. Those reports are not edited, so
   their history is preserved; read them together with this note.

@@ -1,9 +1,0 @@
-{
-  "name": "work1-authored-word-problems-v1",
-  "source": "Eight problems authored for this runtime closure study; not sampled from a benchmark",
-  "purpose": "A small frozen scoring set with two worked examples, natural stopping, and variable generated length",
-  "selection": "All eight records, in file order; fixed before observing vLLM candidate rewards",
-  "generation": {"temperature": 0, "max_tokens": 128, "min_tokens": 0, "ignore_eos": false, "stop": ["\nQuestion:"]},
-  "scorer": "last-signed-integer-exact-match-v1",
-  "limitations": "Search-like lifecycle only. This is not a representative accuracy benchmark or a reproduction of paper quality results."
-}

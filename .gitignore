@@ -12,3 +12,10 @@ runs/
 .env
 *.pem
 *.key
+
+# pod sync scratch
+*.p.tgz
+.pull.tgz
+watch*.log
+third_party/RandOpt/
+__pycache__/

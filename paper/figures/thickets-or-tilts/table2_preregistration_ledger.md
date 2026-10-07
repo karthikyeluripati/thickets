@@ -35,3 +35,9 @@
 | P2 | 01efd9d | same, GSM8K-0.5B / GQA-VL-3B | greedy diff | ±2.0 / ±2.5 | +3.3 / −2.6 | gate **fail**: not comparable |
 | P3 | c60b600 | base gate; SC@50 vs published RandOpt, GSM8K-3B | greedy diff; SC − RandOpt | ±2.0; ≥ −1.0 | 0.5; +1.1 | gate pass; MATCHES (label) |
 | P3 | c60b600 | same, MATH-500-1.5B / 3B | greedy diff | ±2.0 | +6.4 / +5.8 | gate **fail**: not comparable |
+| S1 | 797fa96 | **A-1 law on a non-Qwen model** (OLMo-2-1B, ARC-Challenge) | pooled r, σ ≤ 0.002, 1600 pairs | ≥ 0.5 GO; < 0.3 NO-GO | **0.790** [0.753, 0.824] | **GO** |
+| S1 | 797fa96 | B-1 winner per-item first-order (all parameters) | r over 600 fresh items | ≥ 0.5 GO; < 0.3 NO-GO | 0.162 [0.067, 0.252] | **NO-GO** |
+| S1 | 797fa96 | B-2 sign agreement on changed items | share, n = 52 | ≥ 0.70 supported; < 0.60 not | 0.654 | inconclusive |
+| C | 1437d44 + 6118222 | validity; base gate | recomputed = printed; ±2.0 | exact; required | 1018 = 1018; +1.5 / +0.5 | valid; pass |
+| C | 1437d44 + 6118222 | **C-1 same-run RandOpt (N = 5000, K = 50) − SC@50** | paired item bootstrap | CI > 0 RandOpt ahead; CI < 0 SC ahead | **−2.65 [−4.32, −0.99]** | **SC AHEAD** |
+| C | 1437d44 + 6118222 | K = 10 (secondary) | same | same | +1.97 [0.00, 3.87] | no difference detected |

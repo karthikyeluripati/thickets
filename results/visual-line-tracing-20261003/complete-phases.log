@@ -1,5 +1,0 @@
-{'scale_valid': False, 'sigma': None, 'table': [{'sigma': 0.0005, 'n': 20, 'mean_accuracy': 0.25366666666666665, 'best_accuracy': 0.3333333333333333, 'best_correct_count': 50, 'fraction_beating_base': 0.7, 'catastrophic_fraction': 0.0, 'scale_failed': True}, {'sigma': 0.001, 'n': 20, 'mean_accuracy': 0.24933333333333332, 'best_accuracy': 0.30666666666666664, 'best_correct_count': 46, 'fraction_beating_base': 0.6, 'catastrophic_fraction': 0.0, 'scale_failed': True}, {'sigma': 0.002, 'n': 20, 'mean_accuracy': 0.256, 'best_accuracy': 0.30666666666666664, 'best_correct_count': 46, 'fraction_beating_base': 0.9, 'catastrophic_fraction': 0.0, 'scale_failed': True}]}
-[research/visual-thickets-line-tracing b0b2ee7] Freeze visual sigma decision after fixed calibration
- 1 file changed, 61 insertions(+)
- create mode 100644 results/visual-line-tracing-20261003/locks/sigma.json
-STOP_operational_scale_failure: no search or held-out candidates will run.

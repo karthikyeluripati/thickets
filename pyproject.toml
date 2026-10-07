@@ -3,25 +3,20 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "thicket-runtime-lab"
-version = "0.1.0"
-description = "Correctness-first candidate lifecycle profiling for weight-space search"
+name = "thickets-or-tilts"
+version = "0.2.0"
+description = "Pre-registered re-examination of random weight perturbation (RandOpt / Neural Thickets) as post-training"
 requires-python = ">=3.10"
-dependencies = ["torch>=2.5,<3", "numpy>=1.24"]
+dependencies = ["torch>=2.5,<3", "numpy>=1.24", "pandas", "scipy", "matplotlib"]
 
 [project.optional-dependencies]
 test = ["pytest>=8,<10"]
-hf = ["transformers>=4.51,<5", "safetensors>=0.4"]
-vllm = ["vllm==0.10.2", "ray[default]==2.49.2", "transformers==4.56.2"]
-
-[project.scripts]
-thicket-profile = "thicket_runtime.cli:main"
-thicket-profile-vllm = "thicket_runtime.vllm_profile:main"
+gpu = ["vllm==0.11.0", "transformers==4.57.1", "huggingface-hub==0.36.2", "datasets==3.6.0", "accelerate", "Pillow"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "scripts"]
 addopts = "-ra"

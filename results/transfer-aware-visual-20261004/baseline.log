@@ -1,61 +1,0 @@
-INFO 10-04 12:21:16 [__init__.py:216] Automatically detected platform cuda.
-2026-10-04 12:21:22,082	INFO worker.py:1951 -- Started a local Ray instance.
-[36m(pid=4263)[0m INFO 10-04 12:21:33 [__init__.py:216] Automatically detected platform cuda.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:34 [arg_utils.py:486] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5] to model_path [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5]
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:34 [arg_utils.py:486] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5] to model_path [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5]
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:34 [utils.py:328] non-default args: {'tokenizer': '/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5', 'dtype': 'bfloat16', 'seed': 0, 'max_model_len': 1024, 'distributed_executor_backend': 'ray', 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.5, 'max_num_batched_tokens': 8192, 'max_num_seqs': 32, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'image': 1, 'video': 0}, 'mm_processor_kwargs': {'min_pixels': 200704, 'max_pixels': 200704}, 'disable_mm_preprocessor_cache': True, 'mm_processor_cache_gb': 0, 'worker_extension_cls': 'utils.worker_extn.WorkerExtension', 'model': '/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5'}
-[36m(RandOptNcclLLM pid=4263)[0m WARNING 10-04 12:21:34 [arg_utils.py:939] `--disable-mm-preprocessor-cache` is deprecated and will be removed in v0.13. Please use `--mm-processor-cache-gb 0` instead.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:41 [__init__.py:742] Resolved architecture: Qwen2_5_VLForConditionalGeneration
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:41 [__init__.py:1815] Using max model len 1024
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:41 [arg_utils.py:1208] Using ray runtime env: {'env_vars': {'OMP_NUM_THREADS': '1', 'PERTURB_VISUAL': '1', 'PYTHONPATH': '/workspace/RandOpt-visual:/workspace/thickets-transfer/src', 'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'VLLM_USE_V1': '1'}}
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:41 [scheduler.py:222] Chunked prefill is enabled with max_num_batched_tokens=8192.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:41 [__init__.py:3400] Cudagraph is disabled under eager mode
-[36m(RandOptNcclLLM pid=4263)[0m `torch_dtype` is deprecated! Use `dtype` instead!
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:43 [core.py:76] Initializing a V1 LLM engine (v0.10.2) with config: model='/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5', speculative_config=None, tokenizer='/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=1024, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto, device_config=cuda, decoding_config=DecodingConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_backend=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5, enable_prefix_caching=False, chunked_prefill_enabled=True, use_async_output_proc=True, pooler_config=None, compilation_config={"level":0,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":null,"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":0,"use_cudagraph":true,"cudagraph_num_of_warmups":0,"cudagraph_capture_sizes":[],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"pass_config":{},"max_capture_size":0,"local_cache_dir":null}
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:43 [ray_utils.py:295] Ray is already initialized. Skipping Ray initialization.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:43 [ray_utils.py:324] Using the existing placement group
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:43 [ray_distributed_executor.py:171] use_ray_spmd_worker: True
-[36m(pid=4409)[0m INFO 10-04 12:21:49 [__init__.py:216] Automatically detected platform cuda.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:50 [ray_env.py:63] RAY_NON_CARRY_OVER_ENV_VARS from config: set()
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:50 [ray_env.py:65] Copying the following environment variables to workers: ['VLLM_USE_RAY_SPMD_WORKER', 'LD_LIBRARY_PATH', 'VLLM_USE_RAY_COMPILED_DAG', 'VLLM_ENABLE_V1_MULTIPROCESSING', 'VLLM_USE_V1']
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:21:50 [ray_env.py:68] If certain env vars should NOT be copied, add them to /root/.config/vllm/ray_non_carry_over_env_vars.json file
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:52 [worker_base.py:595] Injected <class 'utils.worker_extn.WorkerExtension'> into <class 'vllm.v1.worker.gpu_worker.Worker'> for extended collective_rpc calls ['_set_seed', '_should_perturb', 'apply_averaged_perturbations', 'apply_perturbation', 'broadcast_all_weights', 'cleanup_gpu_memory', 'clear_base_weights', 'dump_noise_for_seed', 'generate_with_logits_callback', 'get_logits_for_prompt', 'get_worker_ip', 'init_inter_engine_group', 'perturb_self_weights', 'print_model_weights_stats', 'reset_to_base_weights', 'restore_self_weights', 'save_self_weights_to_disk', 'store_base_weights', 'update_weights_from_seeds']
-[36m(RayWorkerWrapper pid=4409)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
-[36m(RayWorkerWrapper pid=4409)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
-[36m(RayWorkerWrapper pid=4409)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
-[36m(RayWorkerWrapper pid=4409)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
-[36m(RayWorkerWrapper pid=4409)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
-[36m(RayWorkerWrapper pid=4409)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:53 [parallel_state.py:1165] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
-[36m(RayWorkerWrapper pid=4409)[0m [W1004 12:21:53.239408991 ProcessGroupNCCL.cpp:981] Warning: TORCH_NCCL_AVOID_RECORD_STREAMS is the default now, this environment variable is thus deprecated. (function operator())
-[36m(RayWorkerWrapper pid=4409)[0m WARNING 10-04 12:21:53 [topk_topp_sampler.py:69] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:55 [gpu_model_runner.py:2338] Starting to load model /workspace/hf/hub/models--Qwen--Qwen2.5-VL-7B-Instruct/snapshots/cc594898137f460bfe9f0759e9844b3ce807cfb5...
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:55 [gpu_model_runner.py:2370] Loading model from scratch...
-[36m(RayWorkerWrapper pid=4409)[0m WARNING 10-04 12:21:55 [cuda.py:217] Current `vllm-flash-attn` has a bug inside vision module, so we use xformers backend instead. You can run `pip install flash-attn` to use flash-attention backend.
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:56 [__init__.py:3400] Cudagraph is disabled under eager mode
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:56 [cuda.py:362] Using Flash Attention backend on V1 engine.
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards:   0% Completed | 0/5 [00:00<?, ?it/s]
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards:  20% Completed | 1/5 [00:00<00:00,  6.35it/s]
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards:  40% Completed | 2/5 [00:00<00:01,  2.58it/s]
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards:  60% Completed | 3/5 [00:01<00:00,  2.09it/s]
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards:  80% Completed | 4/5 [00:01<00:00,  1.96it/s]
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards: 100% Completed | 5/5 [00:02<00:00,  1.91it/s]
-[36m(RayWorkerWrapper pid=4409)[0m Loading safetensors checkpoint shards: 100% Completed | 5/5 [00:02<00:00,  2.08it/s]
-[36m(RayWorkerWrapper pid=4409)[0m 
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:58 [default_loader.py:268] Loading weights took 2.45 seconds
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:59 [gpu_model_runner.py:2392] Model loading took 15.6269 GiB and 2.584297 seconds
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:21:59 [gpu_model_runner.py:3000] Encoder cache will be initialized with a budget of 8192 tokens, and profiled with 32 image items of the maximum feature size.
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:22:02 [gpu_worker.py:298] Available KV cache memory: 22.68 GiB
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:22:02 [kv_cache_utils.py:864] GPU KV cache size: 424,704 tokens
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:22:02 [kv_cache_utils.py:868] Maximum concurrency for 1,024 tokens per request: 414.75x
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:22:02 [core.py:218] init engine (profile, create kv cache, warmup model) took 3.69 seconds
-[36m(RayWorkerWrapper pid=4409)[0m INFO 10-04 12:22:02 [gpu_worker.py:391] Free memory on device (78.57/79.18 GiB) on startup. Desired GPU memory utilization is (0.5, 39.59 GiB). Actual usage is 15.63 GiB for weight, 1.21 GiB for peak activation, 0.07 GiB for non-torch memory, and 0.0 GiB for CUDAGraph memory. Replace gpu_memory_utilization config with `--kv-cache-memory=24197470720` to fit into requested memory, or `--kv-cache-memory=66057280000` to fully utilize gpu memory. Current kv cache memory in use is 24354757120 bytes.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:22:04 [llm.py:295] Supported_tasks: ('generate',)
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:22:04 [__init__.py:36] No IOProcessor plugins requested by the model
-The image processor of type `Qwen2VLImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. Note that this behavior will be extended to all models in a future release.
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:23:14 [ray_distributed_executor.py:552] RAY_CGRAPH_get_timeout is set to 300
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:23:14 [ray_distributed_executor.py:554] VLLM_USE_RAY_COMPILED_DAG_CHANNEL_TYPE = auto
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:23:14 [ray_distributed_executor.py:556] VLLM_USE_RAY_COMPILED_DAG_OVERLAP_COMM = False
-[36m(RandOptNcclLLM pid=4263)[0m INFO 10-04 12:23:14 [ray_distributed_executor.py:621] Using RayPPCommunicator (which wraps vLLM _PP GroupCoordinator) for Ray Compiled Graph communication.
-[36m(RayWorkerWrapper pid=4409)[0m WARNING 10-04 12:23:15 [cudagraph_dispatcher.py:102] cudagraph dispatching keys are not initialized. No cudagraph will be used.
-{"phase": "baseline", "shard": null, "status": "complete", "candidates": 0}

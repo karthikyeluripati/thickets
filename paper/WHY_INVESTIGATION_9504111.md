@@ -1,5 +1,9 @@
 # Why do some random directions win RERANK and fail TEST? Design pass and CPU results
 
+> **Note (2026-10-07 cleanup):** earlier study write-ups referenced below were removed from the working tree because
+> they are superseded or outside the paper's story. They remain available at git tag `pre-cleanup`
+> (`git show pre-cleanup:paper/<FILE>.md`). Their raw data, where the paper still uses it, is kept under `results/`.
+
 - **Status:** post-hoc, CPU-only, existing artifacts. Nothing here is pre-registered. H★ stays falsified, and vision
   nonlinearity is "not the why" (`VISION_NONLINEARITY_9504111.md`).
 - **Code:** `scripts/answer_prior_analysis.py`, `scripts/answer_prior_checks.py`, `scripts/answer_prior_bias_model.py`,

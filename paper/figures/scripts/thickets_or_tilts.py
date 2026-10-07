@@ -5,6 +5,7 @@ Run from the repo root:  python paper/figures/scripts/thickets_or_tilts.py
 from collections import Counter
 import gzip
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -16,7 +17,7 @@ import pandas as pd
 
 PA = Path('results/paper-analysis')
 OUT = Path('paper/figures/thickets-or-tilts'); OUT.mkdir(parents=True, exist_ok=True)
-RANDOPT_SRC = Path('C:/Users/karth/AppData/Local/Temp/claude/c--Users-karth-OneDrive-Desktop-projects-thickets/f30c28bf-5da4-45f4-8bca-2f8edaf9c506/scratchpad/RandOpt')
+RANDOPT_SRC = Path(os.environ.get('RANDOPT_DIR', 'third_party/RandOpt'))  # RandOpt @ 4000d34 (see README)
 
 # Okabe-Ito (colour-blind safe); one colour per method, fixed across all figures
 C = {'base': '#7F7F7F', 'randopt': '#E69F00', 'sc': '#0072B2', 'control': '#BDBDBD', 'ttmv': '#CC79A7',

@@ -1,192 +1,153 @@
-# Thickets — candidate runtime research baseline
+# Thickets or Tilts?
 
-**Status:** measurement infrastructure, not an optimized kernel and not a demonstrated
-speedup. This is a fresh direction; no prior visual/forecasting work is reused.
+**A pre-registered re-examination of random weight perturbation as post-training.**
 
-Research boundary:
+[Neural Thickets](https://arxiv.org/abs/2603.12228) (Gan & Isola, ICML 2026) proposes **RandOpt**: sample thousands
+of Gaussian perturbations of a pretrained model's weights, keep the K best on a small selection set, and
+majority-vote their answers. It reports gains that rival PPO and GRPO, and interprets them as evidence that diverse
+task experts are dense around pretrained weights.
+
+This repository asks two questions about that result:
+
+1. **What does the weight search actually buy?**
+2. **What do the selected perturbations change inside the model?**
+
+Every confirmatory test was specified in a plan lock committed before its run; exploratory analyses are labelled
+separately. All locks, per-item outputs and analysis code are in this repository.
+
+> **Status (2026-10-07):** analysis in progress. Three runs are under way (same-run comparisons on GSM8K with
+> Qwen2.5-3B and on GQA, and the tilt law at 7B). Their plan locks are committed; results will be added when they land.
+
+## Findings so far
+
+### 1. Most of RandOpt's gain comes from the vote, and self-consistency votes better in the setting we could run same-run
+
+At the paper's own settings (N = 5000 perturbations, top K = 50, RandOpt's own code, GSM8K, Qwen2.5-1.5B-Instruct):
+
+| | GSM8K test accuracy (1319 questions) |
+|---|---|
+| Base model | 60.3 (paper: 58.8) |
+| RandOpt, top-50 vote | **77.2** (paper: 76.4, reproduced) |
+| Self-consistency, 50 samples at T = 0.7, no weight search | **79.8** |
+| Difference, RandOpt − SC (paired bootstrap 95% CI) | **−2.65 pp [−4.32, −0.99]** |
+
+The 50 selected models score 64.3% on average when used one at a time. The vote, not the individual perturbations,
+supplies most of the gain. With K = 10 the two methods are not distinguishable (+1.97 pp [0.00, +3.87]). This is one
+model, one task and one RandOpt run; the 3B and GQA replications are running.
+
+### 2. A perturbation's effect on answers is first-order, within clear limits
+
+A prediction built from the base model's gradient and each perturbation's noise, with **no fitted coefficients**,
+tracks how small language-weight perturbations shift answer preferences:
+
+| Setting | r (prediction vs measurement) |
+|---|---|
+| Qwen3-VL-8B, two OmniSpatial tasks (tilts) | 0.938, 0.915 |
+| Qwen2.5-VL-7B (after a reliability-gate failure and a pre-registered remedy) | 0.925 |
+| Qwen2.5-VL-3B, RandOpt's GQA setting, per question | 0.930 |
+| **OLMo-2-1B, ARC-Challenge** (non-Qwen, text-only) | **0.790** |
+
+The effect is localized to the middle language layers (block-level r = 0.978). The account has tested limits: it
+fails for vision weights (r = 0.137), breaks down by σ = 0.005, and does not predict chain-of-thought correctness.
+
+### 3. Selection favours label-aligned answer tilts, and that explains only part of a "winner"
+
+In an N = 5000 search on OmniSpatial (Qwen3-VL-8B), the selected model's +8.0 pp selection gain sat on a question
+format the test set lacked. On fresh, format-matched items it keeps **+2.67 pp [0.17, 4.93]**. Selection favours
+perturbations that tilt answers toward content the selection labels reward. But removing that tilt still leaves
++2.33 of the +2.67 pp. We report this as a limit of the account, not as a solved case.
+
+### Theory linking the three
+
+Under the first-order law, a random perturbation shifts each question's answer margin by a Gaussian with standard
+deviation σ‖∇margin‖. Four consequences follow (`paper/THEORY.md`):
+
+- Flip probabilities are predictable per question (AUC 0.935, calibrated).
+- An unselected vote returns the base model's answer (96/96 questions).
+- σ‖∇‖ acts as a per-question sampling temperature.
+- Top-K selection is a noisy first-order step along the selection set's gradient.
+
+This regime covers direct answers at small σ, not chain-of-thought.
+
+## Repository layout
 
 ```
-search policy -> CandidateSpec -> realize weights -> inference -> score
-                                  \-> reset candidate state
+paper/
+  STORY.md                   the paper's argument: one question, three claims, where each experiment goes
+  RESULTS_MASTER.md          every number the paper may use, with its lock commit and source file
+  THEORY.md                  first-order derivations (T1–T4) and their checks
+  WRITING_PROMPT.md          drafting rules (wording, what not to claim, credit to prior work)
+  CORRECTION_SPLIT_MISMATCH.md, WHY_INVESTIGATION_9504111.md   the OmniSpatial case-study record
+  figures/thickets-or-tilts/ generated figures and tables;  figures/scripts/thickets_or_tilts.py regenerates them
+results/paper-analysis/<study>/
+  plan_lock.md               the pre-registration (committed before the run)
+  *_RESULT.md, *_results.json   outcome against the locked rule
+  pod/                       raw per-item outputs pulled from the GPU runs
+results/perspective-taking-n5000-20261004/   raw scores of the original N = 5000 OmniSpatial search
+scripts/                     runners (GPU) and locked analyses (CPU), named by study: stage12_, stage3_, r1_, r2_,
+                             i5_, m1_, c1_, p0_–p3_, s1_, c_, g1_, g2_, theory_check, geometry_*
+src/thicket_runtime/         a small library for fast, verified weight-state handling (used by the runners)
+tests/                       unit tests for the perturbation-folding and grouping code
+examples/                    the frozen OmniSpatial item splits used by the case study
 ```
 
-The initial question is whether candidate state manipulation consumes enough of
-real search wall time to justify a kernel intervention. We preserve candidate
-semantics before claiming any reduction in execution cost.
+Study index (lock → result), in the order the paper uses them:
 
-The [October 3 H100 real-LLM pilot](docs/LLM_PILOT_2026-10-03.md) is complete:
-Qwen2.5-0.5B BF16 with HF eager generation spends 0.57–2.24% of snapshot-path
-wall time in apply/restore across the tested 32/128-token, batch-1/4 cases.
-Snapshot passes the measured exactness gates; add/subtract fails and can change
-generated outputs and scores. These bounded arithmetic microbenchmarks do not
-establish research-task quality or optimized-engine performance.
+| Study | What it tests | Where |
+|---|---|---|
+| Stage 1+2, Stage 3, R1, R2/R2b, I5, P0, S1-A, S1-7B | the first-order law, localization, generalisation | `stage12/`, `stage3/`, `r1/`, `r2/`, `r2b/`, `i5/`, `p0/`, `s1/`, `s1-7b/` |
+| GPU-A | whole-model and vision boundary | `geometry-gpu-a/` |
+| M1, C1, τ-check, S1-B | the OmniSpatial winner on fresh data; calibration | `m1/`, `c1/`, `tau-check/`, `s1/` |
+| P1, P2, P3 | chain-of-thought regime; SC vs published RandOpt | `p1/`, `p2/`, `p3/` |
+| C, C3B, G2 | same-run RandOpt vs SC (GSM8K 1.5B, GSM8K 3B, GQA) | `c-sameRun/`, `c3b-sameRun/`, `g2-sameRun/` |
+| Theory | T1/T2 checks | `theory/` |
 
-The [Work 1 upstream closure study](docs/WORK1_CLOSURE_2026-10-03.md) now validates
-the original RandOpt worker and actual single-engine vLLM/Ray flow. The original
-worker reproduces the HF correctness failures. Native vLLM/Ray state overhead is
-11.4–14.5% at 32 fixed tokens, 2.8–4.6% at 128 tokens, and 6.8–8.8% on a small
-natural-stopping workload. Inference dominates, but the HF numerical range does
-not generalize. Packed native tensors change the perturbation associated with a
-seed, so cross-backend candidate identities are explicitly distinguished.
+The full ledger of every locked test and its outcome, including falsified and inconclusive ones, is in
+`paper/RESULTS_MASTER.md` §R9.
 
-The [shared-base speculative feasibility study](docs/SHARED_SPECULATIVE_FEASIBILITY_2026-10-03.md)
-is also complete on `research/shared-speculative-feasibility`: 300 independently
-generated, snapshot-anchored candidates across three sigmas and 40 frozen prompts.
-Short word problems share substantial prefixes, but the GSM8K subset supports only
-1.1–8.1% ideal round reduction at block size 16 before real costs. The frozen gate
-failed; no speculative verifier, optimized kernel or measured speedup is claimed.
+## Reproducing
 
-The [adaptive-evaluation feasibility study](docs/ADAPTIVE_EVALUATION_FEASIBILITY_2026-10-03.md)
-is complete on `research/adaptive-evaluation-feasibility`: 504 snapshot-anchored
-candidates, 200 frozen selection prompts and 40 disjoint ensemble-test prompts.
-The locked simple race removes about 60% of selection pairs on average with about
-93% top-10 recall, but meets the joint cost/quality gate on only 40% and 38% of
-held-out prompt orders (90% required). More conservative existing racing removes
-about 34-35% with strong retention. The frozen gate fails; novel-method development
-stops. These are offline budget reductions, not measured wall-clock speedups.
-
-The [complementarity-selection feasibility study](docs/COMPLEMENTARITY_SELECTION_2026-10-03.md)
-is complete on `research/complementarity-selection-feasibility`: greedy committees
-were frozen using the existing 200 selection prompts, then only their required
-232-expert union was evaluated on 300 fresh GSM8K questions. K=10 selection gains
-of 5.5/6.5 points became held-out losses of 2.0/3.0 points on validation A/B.
-Greedy 10 trails standard 20 by 4.0/4.67 points; neither frozen quality nor
-efficiency gate passes. All state and repeat controls passed. The result is
-NO-GO, and complementarity-aware selection is closed.
-
-The [visual line-tracing study](docs/VISUAL_THICKETS_LINE_TRACING_2026-10-03.md)
-reached its predefined **operational scale-failure stop** on
-`research/visual-thickets-line-tracing`. Qwen2.5-VL-3B-Instruct scored 23.33% on
-150 selection images and 26.60% on 500 held-out images. All three fixed calibration
-scales had near-chance mean accuracy (24.93–25.60%); state and output controls
-passed. No sigma qualified, so the 300-candidate search and candidate held-out
-evaluation were not run. This does not establish a scientific GO or NO-GO.
-
-[Visual Line Tracing v2](docs/VISUAL_LINE_TRACING_V2.md) is prepared and validated
-with easier geometry: 1 / 2–3 / 4–5 swaps across easy/medium/hard. Its 650 images
-are frozen separately; prompts, rendering style and inference/scoring settings
-are unchanged. Dataset preparation ran no model evaluation. The documentation includes the
-positional shortcuts introduced by the one-swap easy bucket.
-
-The [v2.1 baseline experiment](docs/VISUAL_THICKETS_LINE_TRACING_V2_RESULT_2026-10-03.md)
-uses Medium+Hard as its primary endpoint and keeps Easy diagnostic only. Base
-held-out accuracy is 27.03% (90/333), below the required 30%; Medium and Hard
-individually score 29.34% and 24.70%. The frozen capability gate stopped the run
-before any nonzero RandOpt candidates. This is a NO-GO to proceeding on this
-benchmark; it does not test the weight-space search hypothesis. All baseline
-controls passed and the frozen v2 dataset is unchanged.
-
-The [final v1 tail-search experiment](docs/VISUAL_THICKETS_FINAL_LINE_TRACING_2026-10-03.md)
-completed all 300 new candidates at sigma 0.0005 and evaluated the frozen top 10
-on held-out images, with no early scientific gates. Rank-1 scored 26.60%, equal
-to base; none of the top 10 gained at least 3 pp, and their mean gain was 0.44 pp.
-All runtime controls passed. The predefined result is
-`NO_GO_VISUAL_THICKET_LINE_TRACING`, closing this bounded model/task direction.
-
-## What is implemented
-
-- Versioned candidate recipes bound to a hash of actual base parameters/buffers.
-- Two **existing** single-device state strategies: native-dtype add/regenerate/
-  subtract, and snapshot copy/apply/reset. Neither is a novel method.
-- Separate apply, inference, restore and scoring wall timings, optional CUDA-event
-  intervals, CUDA allocated/reserved memory, fixed candidate traces, warmup and repeats.
-- Separate sequential-drift and snapshot-reference output/reward audits.
-- Optional Chrome/Perfetto PyTorch traces with noise, scale, add and reset labels.
-- Synthetic CPU/GPU smoke workload and optional Hugging Face causal-LM generation.
-- Opt-in hash-pinned adapter to the original RandOpt worker weight operations.
-- Actual pinned RandOpt launcher/worker profiling through single-engine vLLM/Ray,
-  including natural stopping, independent process runs, and native-state audits.
-
-**Not implemented:** a custom CUDA/Triton kernel, full-paper RandOpt replication,
-TP-invariant noise, multi-GPU scheduling, BO/ES integrations, or a production runtime.
-The original-worker adapter profiles original weight operations against a PyTorch
-model. The separate `thicket-profile-vllm` path uses the actual vLLM/Ray stack.
-
-## CPU smoke test
-
-From this repository root, with PyTorch installed:
+**CPU analyses and figures** (Python ≥ 3.10):
 
 ```bash
 pip install -e '.[test]'
+git clone https://github.com/sunrainyg/RandOpt third_party/RandOpt && git -C third_party/RandOpt checkout 4000d34
+(cd third_party/RandOpt && python ../../scripts/c_prep_gsm8k.py)   # GSM8K in RandOpt's format (needs `datasets`)
+python paper/figures/scripts/thickets_or_tilts.py          # figures and tables
+python scripts/theory_check.py                              # theory checks (T1, T2, T4)
+python scripts/s1_analysis.py --a-dir results/paper-analysis/s1/pod/out/A \
+       --b-pred results/paper-analysis/s1/pod/out/B/B_pred.json
+python scripts/c_analysis.py --upstream third_party/RandOpt --d results/paper-analysis/c-sameRun/pod6/c/out \
+       --sc-dir results/paper-analysis/c-sameRun/pod/c/out --out /tmp/c_results.json
 pytest -q
-thicket-profile --device cpu --candidates 4 --repeats 2 --out runs/cpu-smoke
 ```
 
-The synthetic workload is a small MLP. Its score is a checksum-like scalar, not
-accuracy. CPU timings are **not evidence** about GPU or LLM throughput.
+**GPU runs** used single- and multi-H100 pods with a pinned stack: vLLM 0.11.0, transformers 4.57.1,
+torch 2.8.0, huggingface-hub 0.36.2, datasets 3.6.0. `scripts/pod_jobqueue.sh <cap_usd> <model> <revision>` sets up
+the pod, pins packages, clones RandOpt @ 4000d34, enforces a hard spending cap and an idle stop, and runs queued
+job scripts. Each study's `plan_lock.md` gives its exact commands, models and revisions.
 
-## First CUDA smoke
+Models (pinned revisions in each lock): Qwen3-VL-8B-Instruct, Qwen2.5-VL-7B/3B-Instruct, Qwen2.5-1.5B/3B-Instruct,
+OLMo-2-0425-1B-Instruct, OLMo-2-1124-7B-Instruct. Data: OmniSpatial, GQA (testdev-balanced), GSM8K,
+ARC-Challenge, MATH-500.
 
-Use a CUDA-enabled PyTorch environment. Do not replace its wheel with a CPU wheel.
+**A note on GQA:** RandOpt's released `randopt.py` (4000d34) builds text-only prompts and does not pass images to
+vLLM, so it cannot run GQA with images. Our GQA run (`g2-sameRun/`) re-implements its loop on RandOpt's own
+perturbation, scoring and voting components.
 
-```bash
-bash scripts/run_gpu_pilot.sh runs/gpu-pilot
-```
+## History
 
-This runs CPU/CUDA tests and **synthetic** lifecycle measurements. A real LLM run
-requires the optional dependencies, a model/revision and representative inputs:
+This repository began as a broader exploration: runtime profiling, adaptive evaluation, complementarity selection,
+visual line-tracing and an "expert mirage" framing of the OmniSpatial winner. Those directions were removed from the
+working tree on 2026-10-07 because they are superseded or outside the paper's story. Everything is preserved at git
+tag [`pre-cleanup`](../../tree/pre-cleanup).
 
-```bash
-pip install -e '.[hf,test]'
-thicket-profile --workload hf --device cuda:0 --dtype bfloat16 \
-  --model YOUR_MODEL_ID --revision FULL_40_CHARACTER_MODEL_COMMIT \
-  --data examples/arithmetic_smoke.jsonl --max-new-tokens 32 \
-  --candidates 8 --repeats 3 --out runs/llm-short
-```
+## Credit
 
-The four included arithmetic prompts only validate plumbing. They do not constitute
-a research benchmark or establish expert quality. Use a representative, frozen
-scoring set before drawing end-to-end conclusions. Remote models require an
-immutable revision; local model directories are also accepted and weights hashed.
+This work builds on and re-examines Neural Thickets and RandOpt (Gan & Isola; code at
+[sunrainyg/RandOpt](https://github.com/sunrainyg/RandOpt)). Related observations we credit:
+- the original paper's own analysis of format effects;
+- selection bias toward the selection set (arXiv 2608.10867);
+- the blog posts *A Thicket by Any Other Name* and *When does RandOpt work?*.
 
-To reproduce the bounded Qwen pilot (four candidates, three repeats per strategy,
-32/128 fixed tokens, batch 1/4, plus a wall-only control):
-
-```bash
-bash scripts/run_llm_pilot.sh runs/llm-pilot
-python scripts/summarize_llm_pilot.py runs/llm-pilot
-```
-
-Raw reports from the completed session are preserved in
-[`results/llm-bounded-20261003`](results/llm-bounded-20261003/).
-
-## Original RandOpt weight-operation baseline
-
-No upstream source is copied into this project. On a machine with network access:
-
-```bash
-git clone https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
-git -C /workspace/RandOpt checkout 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
-thicket-profile --upstream-root /workspace/RandOpt \
-  --strategy legacy-add-subtract --device cuda:0 --dtype bfloat16 \
-  --width 2048 --depth 8 --batch 8 --candidates 8 --repeats 3 \
-  --out runs/upstream-weight-ops
-```
-
-The worker file must match Git blob `3b672d6636364845474be02e01cce764b6e18af3`
-before it is imported. Combine this option with `--workload hf` for real LLM
-inference with the pinned weight operations. The backend remains Hugging Face,
-not vLLM. The adapter is opt-in and was subsequently validated on the H100.
-For actual vLLM/Ray execution and the isolated dependency setup, use the
-[Work 1 reproduction instructions](docs/WORK1_CLOSURE_2026-10-03.md#reproduction).
-
-## Outputs
-
-Each run creates a new directory; overwriting an existing run is refused:
-
-```
-manifest.json               configuration, versions, workload hash, status
-candidates.json             full candidate recipes and IDs
-legacy-add-subtract.json    raw phase timings, memory, drift and output audit
-snapshot-copy.json          same for the existing copy baseline
-summary.json                within-run descriptive statistics
-*.trace.json                optional diagnostic profiles
-```
-
-A completed report does not imply exact equivalence. Inspect `exact_semantics_gate`.
-The legacy path can fail that gate due to finite-precision add/subtract drift.
-CUDA-event intervals and host wall time must not be added together. Diagnostic
-`--trace` runs must not be used as headline throughput measurements.
-
-See [the research protocol](docs/PROTOCOL.md), [RunPod runbook](docs/RUNPOD.md),
-[upstream notes](docs/UPSTREAM.md), and [validation status](docs/VALIDATION.md).
+Self-consistency follows Wang et al. (2023).
