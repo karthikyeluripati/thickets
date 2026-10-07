@@ -14,7 +14,8 @@ import numpy as np
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('--upstream', type=Path, required=True); ap.add_argument('--d', type=Path, required=True)
-    ap.add_argument('--out', type=Path, required=True); a = ap.parse_args()
+    ap.add_argument('--out', type=Path, required=True); ap.add_argument('--sc-dir', type=Path, default=None); ap.add_argument('--sc-tag', default='c15')
+    a = ap.parse_args(); a.sc_dir = a.sc_dir or a.d
     sys.path.insert(0, str(a.upstream))
     from data_handlers.gsm8k import GSM8KHandler
     h = GSM8KHandler(); test = h.load_data(str(a.upstream / 'data/gsm8k/test.parquet'), split='test'); gt = [t['ground_truth'] for t in test]
@@ -26,8 +27,8 @@ def main():
     E = json.loads((a.d / 'ensemble_answers.json').read_text()); n = len(gt)
     log = (a.d / 'randopt.log').read_text(errors='replace')
     printed = {int(k): int(c) for k, c in re.findall(r'K=(\d+): [\d.]+% \((\d+)/\d+\)', log)}
-    sc = json.loads(gzip.decompress((a.d / 'gsm8k_c15_T0.7.json.gz').read_bytes()))['res']; ids = [str(i) for i in range(n)]
-    gr = json.loads(gzip.decompress((a.d / 'gsm8k_c15_greedy.json.gz').read_bytes()))['res']
+    sc = json.loads(gzip.decompress((a.sc_dir / f'gsm8k_{a.sc_tag}_T0.7.json.gz').read_bytes()))['res']; ids = [str(i) for i in range(n)]
+    gr = json.loads(gzip.decompress((a.sc_dir / f'gsm8k_{a.sc_tag}_greedy.json.gz').read_bytes()))['res']
     base_printed = re.findall(r'Test accuracy: ([\d.]+)%', log)
     res = {'n_test': n, 'N_population': int(open(a.d / 'N.txt').read().split()[0]),
            'randopt_base_test_printed': float(base_printed[0]) if base_printed else None,
