@@ -1,0 +1,79 @@
++ cd /workspace/repro
++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
+++ python -c 'from huggingface_hub import snapshot_download;print(snapshot_download("Qwen/Qwen2.5-VL-3B-Instruct",revision="66285546d2b821cf421d4f5eb2576359d3770cd3",local_files_only=True))'
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
+++ sed 's/ /\n/g' /workspace/rate.txt
+++ grep -E '^(RATE|START|CAP)='
++ eval RATE=3.49 START=1791336440 CAP=10.00
+++ RATE=3.49
+++ START=1791336440
+++ CAP=10.00
++ python -u scripts/g1_eval.py --worker p0 --images /workspace/gqa-images --upstream /workspace/RandOpt --out results/paper-analysis/p0/gpu/eval --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --usd-per-hour 3.49 --pod-start-epoch 1791336440 --cap-usd 10.00 --items results/paper-analysis/p0/items.json --cands results/paper-analysis/p0/candidates.json
+INFO 10-07 01:37:05 [__init__.py:216] Automatically detected platform cuda.
+INFO 10-07 01:37:06 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3] to model_path [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3]
+INFO 10-07 01:37:06 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3] to model_path [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3]
+INFO 10-07 01:37:06 [utils.py:233] non-default args: {'tokenizer': '/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3', 'dtype': 'bfloat16', 'seed': 0, 'max_model_len': 8192, 'distributed_executor_backend': 'uni', 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.85, 'max_num_batched_tokens': 16384, 'max_num_seqs': 256, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'image': 1, 'video': 0}, 'mm_processor_cache_gb': 0, 'worker_extension_cls': 'utils.worker_extn.WorkerExtension', 'model': '/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3'}
+INFO 10-07 01:37:06 [model.py:547] Resolved architecture: Qwen2_5_VLForConditionalGeneration
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 10-07 01:37:06 [model.py:1510] Using max model len 8192
+INFO 10-07 01:37:08 [scheduler.py:205] Chunked prefill is enabled with max_num_batched_tokens=16384.
+INFO 10-07 01:37:08 [__init__.py:381] Cudagraph is disabled under eager mode
+INFO 10-07 01:37:10 [core.py:77] Initializing a V1 LLM engine (v0.11.0) with config: model='/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3', speculative_config=None, tokenizer='/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=8192, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3, enable_prefix_caching=False, chunked_prefill_enabled=True, pooler_config=None, compilation_config={"level":0,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":null,"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":0,"use_cudagraph":true,"cudagraph_num_of_warmups":0,"cudagraph_capture_sizes":[],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"use_inductor_graph_partition":false,"pass_config":{},"max_capture_size":0,"local_cache_dir":null}
+INFO 10-07 01:37:10 [worker_base.py:243] Injected <class 'utils.worker_extn.WorkerExtension'> into <class 'vllm.v1.worker.gpu_worker.Worker'> for extended collective_rpc calls ['_set_seed', '_should_perturb', 'apply_averaged_perturbations', 'apply_perturbation', 'broadcast_all_weights', 'cleanup_gpu_memory', 'clear_base_weights', 'dump_noise_for_seed', 'generate_with_logits_callback', 'get_logits_for_prompt', 'get_worker_ip', 'init_inter_engine_group', 'perturb_self_weights', 'print_model_weights_stats', 'reset_to_base_weights', 'restore_self_weights', 'save_self_weights_to_disk', 'store_base_weights', 'update_weights_from_seeds']
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+INFO 10-07 01:37:10 [parallel_state.py:1208] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+WARNING 10-07 01:37:11 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+INFO 10-07 01:37:12 [gpu_model_runner.py:2602] Starting to load model /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3...
+INFO 10-07 01:37:12 [gpu_model_runner.py:2634] Loading model from scratch...
+INFO 10-07 01:37:12 [__init__.py:381] Cudagraph is disabled under eager mode
+INFO 10-07 01:37:12 [cuda.py:366] Using Flash Attention backend on V1 engine.
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:00<00:00,  2.61it/s]
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:00<00:00,  2.33it/s]
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:00<00:00,  2.37it/s]
+
+INFO 10-07 01:37:13 [default_loader.py:267] Loading weights took 0.94 seconds
+INFO 10-07 01:37:14 [gpu_model_runner.py:2653] Model loading took 7.1555 GiB and 1.047360 seconds
+INFO 10-07 01:37:14 [gpu_model_runner.py:3344] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
+INFO 10-07 01:37:17 [gpu_worker.py:298] Available KV cache memory: 56.68 GiB
+INFO 10-07 01:37:17 [kv_cache_utils.py:1087] GPU KV cache size: 1,650,976 tokens
+INFO 10-07 01:37:17 [kv_cache_utils.py:1091] Maximum concurrency for 8,192 tokens per request: 201.54x
+WARNING 10-07 01:37:17 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+INFO 10-07 01:37:17 [core.py:210] init engine (profile, create kv cache, warmup model) took 3.44 seconds
+INFO 10-07 01:37:18 [llm.py:306] Supported_tasks: ('generate',)
+The image processor of type `Qwen2VLImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. Note that this behavior will be extended to all models in a future release.
+{"n_items": 96, "n_yesno": 34, "step": "loaded", "worker": "p0", "spent_usd": 0.581, "t": "2026-10-07T01:37:19Z"}
+{"correct_sel": 0, "correct_ho": 54, "seconds": 9.7, "step": "base_scored", "worker": "p0", "spent_usd": 0.59, "t": "2026-10-07T01:37:28Z"}
+{"index": 0, "sigma": 0.001, "correct_sel": 0, "correct_ho": 55, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.5, "step": "cand", "worker": "p0", "spent_usd": 0.596, "t": "2026-10-07T01:37:35Z"}
+{"index": 1, "sigma": 0.002, "correct_sel": 0, "correct_ho": 49, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.603, "t": "2026-10-07T01:37:41Z"}
+{"index": 2, "sigma": 0.005, "correct_sel": 0, "correct_ho": 0, "vision_changed": 0, "restore_mismatch": 0, "seconds": 2.8, "step": "cand", "worker": "p0", "spent_usd": 0.605, "t": "2026-10-07T01:37:44Z"}
+{"index": 3, "sigma": 0.001, "correct_sel": 0, "correct_ho": 52, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.7, "step": "cand", "worker": "p0", "spent_usd": 0.612, "t": "2026-10-07T01:37:51Z"}
+{"index": 4, "sigma": 0.002, "correct_sel": 0, "correct_ho": 54, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.618, "t": "2026-10-07T01:37:57Z"}
+{"index": 5, "sigma": 0.005, "correct_sel": 0, "correct_ho": 48, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.3, "step": "cand", "worker": "p0", "spent_usd": 0.624, "t": "2026-10-07T01:38:03Z"}
+{"index": 6, "sigma": 0.001, "correct_sel": 0, "correct_ho": 43, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.5, "step": "cand", "worker": "p0", "spent_usd": 0.63, "t": "2026-10-07T01:38:10Z"}
+{"index": 7, "sigma": 0.002, "correct_sel": 0, "correct_ho": 54, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.5, "step": "cand", "worker": "p0", "spent_usd": 0.637, "t": "2026-10-07T01:38:16Z"}
+{"index": 8, "sigma": 0.005, "correct_sel": 0, "correct_ho": 38, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.3, "step": "cand", "worker": "p0", "spent_usd": 0.643, "t": "2026-10-07T01:38:23Z"}
+{"index": 9, "sigma": 0.001, "correct_sel": 0, "correct_ho": 62, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.649, "t": "2026-10-07T01:38:29Z"}
+{"index": 10, "sigma": 0.002, "correct_sel": 0, "correct_ho": 57, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.2, "step": "cand", "worker": "p0", "spent_usd": 0.655, "t": "2026-10-07T01:38:35Z"}
+{"index": 11, "sigma": 0.005, "correct_sel": 0, "correct_ho": 42, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.661, "t": "2026-10-07T01:38:42Z"}
+{"index": 12, "sigma": 0.001, "correct_sel": 0, "correct_ho": 54, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.668, "t": "2026-10-07T01:38:48Z"}
+{"index": 13, "sigma": 0.002, "correct_sel": 0, "correct_ho": 54, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.674, "t": "2026-10-07T01:38:54Z"}
+{"index": 14, "sigma": 0.005, "correct_sel": 0, "correct_ho": 27, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.68, "t": "2026-10-07T01:39:01Z"}
+{"index": 15, "sigma": 0.001, "correct_sel": 0, "correct_ho": 52, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.686, "t": "2026-10-07T01:39:07Z"}
+{"index": 16, "sigma": 0.002, "correct_sel": 0, "correct_ho": 56, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.692, "t": "2026-10-07T01:39:14Z"}
+{"index": 17, "sigma": 0.005, "correct_sel": 0, "correct_ho": 39, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.699, "t": "2026-10-07T01:39:20Z"}
+{"index": 18, "sigma": 0.001, "correct_sel": 0, "correct_ho": 57, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.5, "step": "cand", "worker": "p0", "spent_usd": 0.705, "t": "2026-10-07T01:39:27Z"}
+{"index": 19, "sigma": 0.002, "correct_sel": 0, "correct_ho": 44, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.5, "step": "cand", "worker": "p0", "spent_usd": 0.711, "t": "2026-10-07T01:39:33Z"}
+{"index": 20, "sigma": 0.005, "correct_sel": 0, "correct_ho": 1, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.0, "step": "cand", "worker": "p0", "spent_usd": 0.717, "t": "2026-10-07T01:39:39Z"}
+{"index": 21, "sigma": 0.001, "correct_sel": 0, "correct_ho": 54, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.5, "step": "cand", "worker": "p0", "spent_usd": 0.723, "t": "2026-10-07T01:39:46Z"}
+{"index": 22, "sigma": 0.002, "correct_sel": 0, "correct_ho": 61, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.3, "step": "cand", "worker": "p0", "spent_usd": 0.729, "t": "2026-10-07T01:39:52Z"}
+{"index": 23, "sigma": 0.005, "correct_sel": 0, "correct_ho": 34, "vision_changed": 0, "restore_mismatch": 0, "seconds": 6.4, "step": "cand", "worker": "p0", "spent_usd": 0.736, "t": "2026-10-07T01:39:58Z"}
+{"step": "DONE", "worker": "p0", "spent_usd": 0.736, "t": "2026-10-07T01:39:58Z"}
+[rank0]:[W1007 01:39:59.565905103 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

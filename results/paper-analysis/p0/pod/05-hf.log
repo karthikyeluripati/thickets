@@ -1,0 +1,39 @@
+++ cut '-d ' -f1 /workspace/jobs/04-check.rc
++ '[' rc=0 = rc=0 ']'
++ cd /workspace/repro
++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1 PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+++ python -c 'from huggingface_hub import snapshot_download;print(snapshot_download("Qwen/Qwen2.5-VL-3B-Instruct",revision="66285546d2b821cf421d4f5eb2576359d3770cd3",local_files_only=True))'
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
++ python -u scripts/p0_hf.py --images /workspace/gqa-images --out results/paper-analysis/p0/gpu --check results/paper-analysis/p0/gpu/vllm_stream_check.json --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards: 100%|██████████| 2/2 [00:00<00:00, 51.93it/s]
+The image processor of type `Qwen2VLImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. Note that this behavior will be extended to all models in a future release.
+{"n_stream": 311164928, "tied": true, "mapping_gate": {"identical": 580, "of": 580}}
+{"cand": 0, "sigma": 0.001, "mean_abs_dc": 0.40249624848365784}
+{"cand": 1, "sigma": 0.002, "mean_abs_dc": 0.6797040104866028}
+{"cand": 2, "sigma": 0.005, "mean_abs_dc": 3.098355293273926}
+{"cand": 3, "sigma": 0.001, "mean_abs_dc": 0.38595888018608093}
+{"cand": 4, "sigma": 0.002, "mean_abs_dc": 0.6787460446357727}
+{"cand": 5, "sigma": 0.005, "mean_abs_dc": 2.041203260421753}
+{"cand": 6, "sigma": 0.001, "mean_abs_dc": 0.38277482986450195}
+{"cand": 7, "sigma": 0.002, "mean_abs_dc": 0.7360982298851013}
+{"cand": 8, "sigma": 0.005, "mean_abs_dc": 1.677980899810791}
+{"cand": 9, "sigma": 0.001, "mean_abs_dc": 0.30654004216194153}
+{"cand": 10, "sigma": 0.002, "mean_abs_dc": 0.6690621376037598}
+{"cand": 11, "sigma": 0.005, "mean_abs_dc": 1.7828482389450073}
+{"cand": 12, "sigma": 0.001, "mean_abs_dc": 0.3465139865875244}
+{"cand": 13, "sigma": 0.002, "mean_abs_dc": 0.592343270778656}
+{"cand": 14, "sigma": 0.005, "mean_abs_dc": 2.224076271057129}
+{"cand": 15, "sigma": 0.001, "mean_abs_dc": 0.3379339277744293}
+{"cand": 16, "sigma": 0.002, "mean_abs_dc": 0.6481173634529114}
+{"cand": 17, "sigma": 0.005, "mean_abs_dc": 1.9095191955566406}
+{"cand": 18, "sigma": 0.001, "mean_abs_dc": 0.431936651468277}
+{"cand": 19, "sigma": 0.002, "mean_abs_dc": 0.6642256379127502}
+{"cand": 20, "sigma": 0.005, "mean_abs_dc": 3.4249019622802734}
+{"cand": 21, "sigma": 0.001, "mean_abs_dc": 0.44392895698547363}
+{"cand": 22, "sigma": 0.002, "mean_abs_dc": 0.5924840569496155}
+{"cand": 23, "sigma": 0.005, "mean_abs_dc": 1.9377943277359009}
+P0_DONE {"n_stream": 311164928, "tied": true, "mapping_gate": {"identical": 580, "of": 580}, "base_recompute_maxdiff": 6.198883056640625e-06, "restored_sample_equal": true, "minutes": 3.581666576862335}
