@@ -102,6 +102,7 @@ most of the winner's transferable gain.
 | R2b (1cb3252) | Qwen2.5-VL-7B | Perspective / "front" | 80 new × 363 | **0.925** | reliability 0.949; position share 0.07 |
 | I5 per item (a1c2a7a) | Qwen3-VL-8B | Perspective / "front" | 7680 item × perturbation pairs | **0.771** pooled | per-item median r 0.88; 95/96 items ≥ 0.6 |
 | P0 (d5152f7) | Qwen2.5-VL-3B, LM-only (RandOpt GQA setting) | GQA per-question answer contrast | 96 × 16 at σ ≤ 0.002 | **0.930** | σ = 0.001: 0.977; 0.002: 0.915; **σ = 0.005: 0.31 (breaks)** |
+| S1-A (797fa96) | **OLMo-2-0425-1B-Instruct** (non-Qwen, text-only) | **ARC-Challenge** per-question answer contrast | 100 × 16 at σ ≤ 0.002 | **0.790** [0.753, 0.824] | σ = 0.001: 0.925; 0.002: 0.752; **σ = 0.005: 0.21 (breaks)**; slope 0.76; base acc 0.47 |
 
 **Boundary (vision is nonlinear).**
 - First-order prediction of whole-model, per-example gold-vs-wrong contrasts with vision perturbed was **falsified**
@@ -109,6 +110,11 @@ most of the winner's transferable gain.
 - Per-group: vision r = 0.05 (first-order sd 7.1 vs measured 1.5 nats); language groups r = 0.71–0.96, slopes
   0.82–1.03.
 - Adding vision's first-order term lowers the full-perturbation fit from 0.84 to 0.53 (Stage 2).
+- **The selected winner, per item (S1-B, lock 797fa96; 600 fresh matched items, all parameters):** r(pred, Δc) =
+  **0.162** [0.067, 0.252] → **NO-GO**; sign agreement on the 52 items whose correctness changed 0.654
+  (inconclusive). EXPLORATORY decomposition (pre-declared as descriptive, no rule): the vision part carries 93% of
+  the prediction's variance with r = −0.008; the language part alone gives r = 0.621. Source:
+  `results/paper-analysis/s1/S1_RESULT.md`.
 
 ## R5. Localization (pre-registered Stage 3B, lock ce60c5d)
 - **Block-level law (Qwen3-VL-8B):** 20 perturbations × 8 language blocks, exact single-block insertions. Pooled
@@ -180,6 +186,31 @@ At T = 0.3, SC@50 on GSM8K-1.5B is 73.3, close to the paper's TT-MV of 69.1. The
 - **GQA is an unresolved comparison, not an established counterexample.** The base gate fails there, so the row
   cannot establish a residual RandOpt advantage, but it also prevents any universal conclusion about SC.
 
+## R8b. Same-run RandOpt vs self-consistency at the paper's own settings (lock 1437d44 + amendment 6118222)
+**Source:** `results/paper-analysis/c-sameRun/C_RESULT.md`, `c_results.json`.
+
+**Setup.** GSM8K test (1319), Qwen2.5-1.5B-Instruct @ 989aa79. RandOpt arm: RandOpt's own `randopt.py` @ 4000d34
+(one logging line added), **N = 5000**, σ ∈ {0.0005, 0.001, 0.002}, 200 selection items, greedy, K = 50 vote (the
+paper's settings), 6× H100. SC arm: 50 samples at T = 0.7, same prompt, same vote rule and scorer (RandOpt's).
+Validity: recomputed K = 50 vote = randopt.py's printed 1018/1319 exactly.
+
+| | Accuracy |
+|---|---|
+| Base (randopt.py / greedy) | 60.27 / 59.29 (paper 58.8; gate pass) |
+| **RandOpt, N = 5000, K = 50** | **77.18** (paper 76.4; reproduced) |
+| **SC@50, T = 0.7** | **79.83** |
+| **D = RandOpt − SC (paired, 10,000 bootstrap)** | **−2.65 pp [−4.32, −0.99] → SC AHEAD** (81 SC-only vs 46 RandOpt-only items) |
+| Secondary, K = 10 | RandOpt 77.18 vs SC@10 75.21: +1.97 [0.00, +3.87] → no difference detected |
+
+**EXPLORATORY decomposition:** the 50 selected models individually average 64.3% (range 59.4–68.9; base 60.3); their
+vote gives 77.2. SC single samples average 57.3; their vote gives 79.8. Vote curves K = 1/5/10/20/50: RandOpt
+68.2/74.6/77.2/77.5/77.2; SC 57.5/69.9/75.2/78.7/79.8. Selection: top-50 train reward 0.780 vs population 0.676 and
+base 0.730 (200 items).
+
+**How to state R8b:** a single same-run comparison (one model, one task, one RandOpt run; the paper averages 3) in
+which RandOpt reproduces the published number and SC@50 is ahead with a CI excluding zero. RandOpt's 5000 × 200
+search generations are not charged to it. Do not generalise beyond GSM8K / 1.5B without further runs.
+
 ## R9. Confirmatory-test ledger (every locked test, with its outcome)
 How to describe the process:
 - Confirmatory tests were specified in plan locks committed **before** their corresponding runs.
@@ -223,8 +254,15 @@ How to describe the process:
 | P2 | 01efd9d | same, GSM8K-0.5B / GQA-VL-3B | greedy diff | ±2.0 / ±2.5 | +3.3 / −2.6 | gate **fail**: not comparable |
 | P3 | c60b600 | base gate; SC@50 vs published RandOpt, GSM8K-3B | greedy diff; SC − RandOpt | ±2.0; ≥ −1.0 | 0.5; +1.1 | gate pass; MATCHES (label) |
 | P3 | c60b600 | same, MATH-500-1.5B / 3B | greedy diff | ±2.0 | +6.4 / +5.8 | gate **fail**: not comparable |
+| S1 | 797fa96 | **A-1 law on a non-Qwen model** (OLMo-2-1B, ARC-Challenge) | pooled r, σ ≤ 0.002, 1600 pairs | ≥ 0.5 GO; < 0.3 NO-GO | **0.790** [0.753, 0.824] | **GO** |
+| S1 | 797fa96 | B-1 winner per-item first-order (all parameters) | r over 600 fresh items | ≥ 0.5 GO; < 0.3 NO-GO | 0.162 [0.067, 0.252] | **NO-GO** |
+| S1 | 797fa96 | B-2 sign agreement on changed items | share, n = 52 | ≥ 0.70 supported; < 0.60 not | 0.654 | inconclusive |
+| C | 1437d44 + 6118222 | validity; base gate | recomputed = printed; ±2.0 | exact; required | 1018 = 1018; +1.5 / +0.5 | valid; pass |
+| C | 1437d44 + 6118222 | **C-1 same-run RandOpt (N = 5000, K = 50) − SC@50** | paired item bootstrap | CI > 0 RandOpt ahead; CI < 0 SC ahead | **−2.65 [−4.32, −0.99]** | **SC AHEAD** |
+| C | 1437d44 + 6118222 | K = 10 (secondary) | same | same | +1.97 [0.00, 3.87] | no difference detected |
 
-**Engineering failures that produced no data:** P0 attempt 1 (offline-mode bug); P2 attempt 1 (package conflict).
+**Engineering failures that produced no data:** P0 attempt 1 (offline-mode bug); P2 attempt 1 (package conflict);
+S1 smoke attempt 1 (tar ownership); C on 1× H100 (RandOpt arm skipped by the locked budget rule, `N_DOES_NOT_FIT`).
 The earlier OmniSpatial studies (random-control transfer, selection-vs-specificity, margin-additivity, causal
 diagnostic) have their own locks. Their TEST-based conclusions are superseded by `paper/CORRECTION_SPLIT_MISMATCH.md`.
 

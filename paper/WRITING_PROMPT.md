@@ -1,4 +1,8 @@
-# Prompt for drafting the paper (give this whole file plus `paper/RESULTS_MASTER.md` to the writer)
+# Prompt for drafting the paper (give this whole file plus `paper/RESULTS_MASTER.md` and `paper/STORY.md` to the writer)
+
+> **2026-10-07:** `paper/STORY.md` is now the canonical story (three claims; Claim 1 led by the same-run result R8b).
+> Where this file's spine, contributions or abstract differ from STORY.md, STORY.md wins. Hard rules below still apply,
+> as updated in rules 5–7. A full rewrite of this prompt follows once the remaining GPU runs are in.
 
 ---
 
@@ -48,14 +52,17 @@ Say exactly how far each result goes and no further.
    - This is **not** a same-run comparison and **not** an equivalence test. "MATCHES" is our pre-registered decision
      label and must be presented as such.
    - Against the paper's TT-MV on gated rows: 5.7–10.7 pp.
+   - **Same-run (R8b):** at N = 5000, K = 50, RandOpt reproduces 77.18 (paper 76.4) and SC@50 is ahead by 2.65 pp
+     [−4.32, −0.99]. Say "in the one setting we ran same-run"; at K = 10 no difference was detected.
 6. **GQA** is an **unresolved comparison**, not a counterexample and not a confirmation. Our base-reproduction gate
    fails there, so it neither establishes a residual RandOpt advantage nor supports a universal SC conclusion.
 7. **Do not claim:**
    - that RandOpt "is" self-consistency;
    - that neural thickets do not exist;
-   - anything about non-Qwen models or about models above 8B;
+   - anything about non-Qwen models beyond the OLMo-2-1B / ARC tilt-law test (S1-A), or about models above 8B;
    - that the first-order account governs chain-of-thought accuracy (P0: r ≈ 0 with CoT correctness changes);
-   - that we explain the winner's improvement (we do not; C1-1).
+   - that we explain the winner's improvement (we do not; C1-1, S1-B);
+   - that SC beats RandOpt in general (one same-run row; GQA unresolved).
 8. **Credit prior work** (R10):
    - "format thickets" (the original paper);
    - selection bias toward the selection set (arXiv 2608.10867);
