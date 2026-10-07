@@ -1,0 +1,89 @@
+{
+ "n_perturbed": 64,
+ "temps": [
+  0.3,
+  0.5,
+  0.7,
+  1.0
+ ],
+ "flip_rate_perturbations": 0.491015625,
+ "flip_rate_by_T": {
+  "0.3": 0.460859375,
+  "0.5": 0.523984375,
+  "0.7": 0.582890625,
+  "1.0": 0.696796875
+ },
+ "T_star": 0.3,
+ "acc_by_T": {
+  "0.3": 53.28125,
+  "0.5": 52.9140625,
+  "0.7": 50.1015625,
+  "1.0": 41.59375
+ },
+ "P1_A": {
+  "spearman": 0.9456496680116281,
+  "verdict": "SUPPORTS",
+  "spearman_by_T": {
+   "0.3": 0.9456496680116281,
+   "0.5": 0.9526489571063084,
+   "0.7": 0.9329795889986994,
+   "1.0": 0.8910633971254494
+  }
+ },
+ "base_acc": {
+  "S": 53.5,
+  "H": 56.00000000000001
+ },
+ "P1_B": {
+  "r_sel_ho": 0.7426891174642741,
+  "ci95": [
+   0.6078456948038279,
+   0.8358985116320016
+  ],
+  "n": 64,
+  "pseudo_model_r_at_Tstar": 0.10409965983201729,
+  "verdict": "PERSISTENT",
+  "gain_sd_sel": 4.119995780868593,
+  "gain_sd_ho": 3.956674542782107,
+  "mean_ho_gain": -0.9687500000000066
+ },
+ "P1_C": {
+  "K8": {
+   "randopt_topK_vote": 62.0,
+   "sc_vote_Tstar": 59.5,
+   "sc_vote_T0.7": 63.0,
+   "random_K_perturbation_vote": 60.075,
+   "diff_randopt_minus_sc_Tstar": 2.500000000000002,
+   "diff_ci95": [
+    -3.4999999999999925,
+    8.499999999999996
+   ],
+   "verdict": "NO ADVANTAGE"
+  },
+  "K16": {
+   "randopt_topK_vote": 62.0,
+   "sc_vote_Tstar": 61.0,
+   "sc_vote_T0.7": 63.0,
+   "random_K_perturbation_vote": 61.5475,
+   "diff_randopt_minus_sc_Tstar": 1.0000000000000009,
+   "diff_ci95": [
+    -4.0000000000000036,
+    6.000000000000005
+   ],
+   "verdict": "NO ADVANTAGE"
+  },
+  "K32": {
+   "randopt_topK_vote": 61.5,
+   "sc_vote_Tstar": 60.5,
+   "sc_vote_T0.7": 63.5,
+   "random_K_perturbation_vote": 62.11000000000001,
+   "diff_randopt_minus_sc_Tstar": 1.0000000000000009,
+   "diff_ci95": [
+    -3.0000000000000027,
+    5.000000000000004
+   ],
+   "verdict": "NO ADVANTAGE"
+  }
+ },
+ "overall": "NOT SUPPORTED: perturbations carry something beyond re-sampling"
+}

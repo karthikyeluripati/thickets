@@ -27,7 +27,7 @@ def main():
     for c in cands:
         f = SRC / f"eval/cands/cand_{c['index']}.json.gz"
         if f.exists(): P[c['index']] = ld(f)['res']
-    Ts = sorted(float(p.stem.split('_T')[1]) for p in SRC.glob('samples_T*.json.gz'))
+    Ts = sorted(float(p.name[len('samples_T'):-len('.json.gz')]) for p in SRC.glob('samples_T*.json.gz'))
     SM = {T: ld(SRC / f'samples_T{T}.json.gz') for T in Ts}
     R = {'n_perturbed': len(P), 'temps': Ts}
     fP = np.array([np.mean([norm(P[k][r['id']]['pred']) != bans[r['id']] for k in P]) for r in ALL])

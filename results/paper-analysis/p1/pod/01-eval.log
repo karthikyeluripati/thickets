@@ -1,0 +1,125 @@
++ mkdir -p /workspace/repro
++ cd /workspace/repro
++ tar xzf /workspace/p1.tgz --no-same-owner
++ export HF_HOME=/workspace/hf
++ HF_HOME=/workspace/hf
+++ python -c 'from huggingface_hub import snapshot_download;print(snapshot_download("Qwen/Qwen2.5-VL-3B-Instruct",revision="66285546d2b821cf421d4f5eb2576359d3770cd3",local_files_only=True))'
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
++ HF_HUB_OFFLINE=0
++ python scripts/g1_images.py /workspace/gqa-images
+G1_IMAGES 302 needed 302 missing 0 columns ['id', 'image']
++ export HF_HUB_OFFLINE=1
++ HF_HUB_OFFLINE=1
+++ sed 's/ /\n/g' /workspace/rate.txt
+++ grep -E '^(RATE|START|CAP)='
++ eval RATE=3.49 START=1791338478 CAP=10.00
+++ RATE=3.49
+++ START=1791338478
+++ CAP=10.00
++ python -u scripts/g1_eval.py --worker p1 --images /workspace/gqa-images --upstream /workspace/RandOpt --out results/paper-analysis/p1/gpu/eval --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --usd-per-hour 3.49 --pod-start-epoch 1791338478 --cap-usd 10.00 --items results/paper-analysis/p1/items.json --cands results/paper-analysis/p1/candidates.json
+INFO 10-07 02:04:15 [__init__.py:216] Automatically detected platform cuda.
+INFO 10-07 02:04:17 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3] to model_path [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3]
+INFO 10-07 02:04:17 [arg_utils.py:504] HF_HUB_OFFLINE is True, replace model_id [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3] to model_path [/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3]
+INFO 10-07 02:04:17 [utils.py:233] non-default args: {'tokenizer': '/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3', 'dtype': 'bfloat16', 'seed': 0, 'max_model_len': 8192, 'distributed_executor_backend': 'uni', 'enable_prefix_caching': False, 'gpu_memory_utilization': 0.85, 'max_num_batched_tokens': 16384, 'max_num_seqs': 256, 'disable_log_stats': True, 'enforce_eager': True, 'limit_mm_per_prompt': {'image': 1, 'video': 0}, 'mm_processor_cache_gb': 0, 'worker_extension_cls': 'utils.worker_extn.WorkerExtension', 'model': '/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3'}
+INFO 10-07 02:04:25 [model.py:547] Resolved architecture: Qwen2_5_VLForConditionalGeneration
+`torch_dtype` is deprecated! Use `dtype` instead!
+INFO 10-07 02:04:25 [model.py:1510] Using max model len 8192
+INFO 10-07 02:04:25 [scheduler.py:205] Chunked prefill is enabled with max_num_batched_tokens=16384.
+INFO 10-07 02:04:25 [__init__.py:381] Cudagraph is disabled under eager mode
+INFO 10-07 02:04:26 [core.py:77] Initializing a V1 LLM engine (v0.11.0) with config: model='/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3', speculative_config=None, tokenizer='/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3', skip_tokenizer_init=False, tokenizer_mode=auto, revision=None, tokenizer_revision=None, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=8192, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, disable_custom_all_reduce=False, quantization=None, enforce_eager=True, kv_cache_dtype=auto, device_config=cuda, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_fallback=False, disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser=''), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None), seed=0, served_model_name=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3, enable_prefix_caching=False, chunked_prefill_enabled=True, pooler_config=None, compilation_config={"level":0,"debug_dump_path":"","cache_dir":"","backend":"","custom_ops":[],"splitting_ops":null,"use_inductor":true,"compile_sizes":[],"inductor_compile_config":{"enable_auto_functionalized_v2":false},"inductor_passes":{},"cudagraph_mode":0,"use_cudagraph":true,"cudagraph_num_of_warmups":0,"cudagraph_capture_sizes":[],"cudagraph_copy_inputs":false,"full_cuda_graph":false,"use_inductor_graph_partition":false,"pass_config":{},"max_capture_size":0,"local_cache_dir":null}
+INFO 10-07 02:04:26 [worker_base.py:243] Injected <class 'utils.worker_extn.WorkerExtension'> into <class 'vllm.v1.worker.gpu_worker.Worker'> for extended collective_rpc calls ['_set_seed', '_should_perturb', 'apply_averaged_perturbations', 'apply_perturbation', 'broadcast_all_weights', 'cleanup_gpu_memory', 'clear_base_weights', 'dump_noise_for_seed', 'generate_with_logits_callback', 'get_logits_for_prompt', 'get_worker_ip', 'init_inter_engine_group', 'perturb_self_weights', 'print_model_weights_stats', 'reset_to_base_weights', 'restore_self_weights', 'save_self_weights_to_disk', 'store_base_weights', 'update_weights_from_seeds']
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+INFO 10-07 02:04:27 [parallel_state.py:1208] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, TP rank 0, EP rank 0
+WARNING 10-07 02:04:27 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+INFO 10-07 02:04:28 [gpu_model_runner.py:2602] Starting to load model /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3...
+INFO 10-07 02:04:29 [gpu_model_runner.py:2634] Loading model from scratch...
+INFO 10-07 02:04:29 [__init__.py:381] Cudagraph is disabled under eager mode
+INFO 10-07 02:04:29 [cuda.py:366] Using Flash Attention backend on V1 engine.
+Loading safetensors checkpoint shards:   0% Completed | 0/2 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  50% Completed | 1/2 [00:00<00:00,  1.55it/s]
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:01<00:00,  1.60it/s]
+Loading safetensors checkpoint shards: 100% Completed | 2/2 [00:01<00:00,  1.59it/s]
+
+INFO 10-07 02:04:30 [default_loader.py:267] Loading weights took 1.30 seconds
+INFO 10-07 02:04:30 [gpu_model_runner.py:2653] Model loading took 7.1555 GiB and 1.441239 seconds
+INFO 10-07 02:04:31 [gpu_model_runner.py:3344] Encoder cache will be initialized with a budget of 16384 tokens, and profiled with 1 image items of the maximum feature size.
+INFO 10-07 02:04:34 [gpu_worker.py:298] Available KV cache memory: 56.67 GiB
+INFO 10-07 02:04:34 [kv_cache_utils.py:1087] GPU KV cache size: 1,650,720 tokens
+INFO 10-07 02:04:34 [kv_cache_utils.py:1091] Maximum concurrency for 8,192 tokens per request: 201.50x
+WARNING 10-07 02:04:34 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+INFO 10-07 02:04:34 [core.py:210] init engine (profile, create kv cache, warmup model) took 3.76 seconds
+INFO 10-07 02:04:35 [llm.py:306] Supported_tasks: ('generate',)
+The image processor of type `Qwen2VLImageProcessor` is now loaded as a fast processor by default, even if the model checkpoint was saved with a slow processor. This is a breaking change and may produce slightly different outputs. To continue using the slow processor, instantiate this class with `use_fast=False`. Note that this behavior will be extended to all models in a future release.
+{"n_items": 400, "n_yesno": 152, "step": "loaded", "worker": "p1", "spent_usd": 0.193, "t": "2026-10-07T02:04:36Z"}
+{"correct_sel": 107, "correct_ho": 112, "seconds": 20.2, "step": "base_scored", "worker": "p1", "spent_usd": 0.212, "t": "2026-10-07T02:04:57Z"}
+{"index": 0, "sigma": 0.001, "correct_sel": 103, "correct_ho": 107, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.7, "step": "cand", "worker": "p1", "spent_usd": 0.228, "t": "2026-10-07T02:05:12Z"}
+{"index": 1, "sigma": 0.002, "correct_sel": 101, "correct_ho": 121, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.9, "step": "cand", "worker": "p1", "spent_usd": 0.242, "t": "2026-10-07T02:05:27Z"}
+{"index": 2, "sigma": 0.001, "correct_sel": 91, "correct_ho": 115, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.3, "step": "cand", "worker": "p1", "spent_usd": 0.257, "t": "2026-10-07T02:05:43Z"}
+{"index": 3, "sigma": 0.002, "correct_sel": 96, "correct_ho": 109, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.1, "step": "cand", "worker": "p1", "spent_usd": 0.272, "t": "2026-10-07T02:05:58Z"}
+{"index": 4, "sigma": 0.001, "correct_sel": 95, "correct_ho": 100, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.287, "t": "2026-10-07T02:06:13Z"}
+{"index": 5, "sigma": 0.002, "correct_sel": 85, "correct_ho": 107, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.302, "t": "2026-10-07T02:06:29Z"}
+{"index": 6, "sigma": 0.001, "correct_sel": 104, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 0.316, "t": "2026-10-07T02:06:43Z"}
+{"index": 7, "sigma": 0.002, "correct_sel": 92, "correct_ho": 104, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.9, "step": "cand", "worker": "p1", "spent_usd": 0.33, "t": "2026-10-07T02:06:58Z"}
+{"index": 8, "sigma": 0.001, "correct_sel": 103, "correct_ho": 109, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.3, "step": "cand", "worker": "p1", "spent_usd": 0.345, "t": "2026-10-07T02:07:14Z"}
+{"index": 9, "sigma": 0.002, "correct_sel": 96, "correct_ho": 109, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.3, "step": "cand", "worker": "p1", "spent_usd": 0.36, "t": "2026-10-07T02:07:29Z"}
+{"index": 10, "sigma": 0.001, "correct_sel": 109, "correct_ho": 122, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.375, "t": "2026-10-07T02:07:45Z"}
+{"index": 11, "sigma": 0.002, "correct_sel": 98, "correct_ho": 108, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.6, "step": "cand", "worker": "p1", "spent_usd": 0.39, "t": "2026-10-07T02:08:00Z"}
+{"index": 12, "sigma": 0.001, "correct_sel": 106, "correct_ho": 109, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.405, "t": "2026-10-07T02:08:16Z"}
+{"index": 13, "sigma": 0.002, "correct_sel": 110, "correct_ho": 117, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.5, "step": "cand", "worker": "p1", "spent_usd": 0.419, "t": "2026-10-07T02:08:30Z"}
+{"index": 14, "sigma": 0.001, "correct_sel": 96, "correct_ho": 106, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.1, "step": "cand", "worker": "p1", "spent_usd": 0.434, "t": "2026-10-07T02:08:45Z"}
+{"index": 15, "sigma": 0.002, "correct_sel": 113, "correct_ho": 126, "vision_changed": 0, "restore_mismatch": 0, "seconds": 13.4, "step": "cand", "worker": "p1", "spent_usd": 0.447, "t": "2026-10-07T02:08:59Z"}
+{"index": 16, "sigma": 0.001, "correct_sel": 94, "correct_ho": 110, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.462, "t": "2026-10-07T02:09:14Z"}
+{"index": 17, "sigma": 0.002, "correct_sel": 114, "correct_ho": 118, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.477, "t": "2026-10-07T02:09:30Z"}
+{"index": 18, "sigma": 0.001, "correct_sel": 104, "correct_ho": 111, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.492, "t": "2026-10-07T02:09:45Z"}
+{"index": 19, "sigma": 0.002, "correct_sel": 112, "correct_ho": 119, "vision_changed": 0, "restore_mismatch": 0, "seconds": 13.7, "step": "cand", "worker": "p1", "spent_usd": 0.505, "t": "2026-10-07T02:09:59Z"}
+{"index": 20, "sigma": 0.001, "correct_sel": 99, "correct_ho": 106, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.52, "t": "2026-10-07T02:10:14Z"}
+{"index": 21, "sigma": 0.002, "correct_sel": 101, "correct_ho": 110, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 0.535, "t": "2026-10-07T02:10:29Z"}
+{"index": 22, "sigma": 0.001, "correct_sel": 106, "correct_ho": 119, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.55, "t": "2026-10-07T02:10:45Z"}
+{"index": 23, "sigma": 0.002, "correct_sel": 61, "correct_ho": 76, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.7, "step": "cand", "worker": "p1", "spent_usd": 0.565, "t": "2026-10-07T02:11:00Z"}
+{"index": 24, "sigma": 0.001, "correct_sel": 109, "correct_ho": 115, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.2, "step": "cand", "worker": "p1", "spent_usd": 0.58, "t": "2026-10-07T02:11:16Z"}
+{"index": 25, "sigma": 0.002, "correct_sel": 99, "correct_ho": 101, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.3, "step": "cand", "worker": "p1", "spent_usd": 0.595, "t": "2026-10-07T02:11:31Z"}
+{"index": 26, "sigma": 0.001, "correct_sel": 103, "correct_ho": 101, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.61, "t": "2026-10-07T02:11:46Z"}
+{"index": 27, "sigma": 0.002, "correct_sel": 89, "correct_ho": 101, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 0.624, "t": "2026-10-07T02:12:01Z"}
+{"index": 28, "sigma": 0.001, "correct_sel": 110, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.639, "t": "2026-10-07T02:12:17Z"}
+{"index": 29, "sigma": 0.002, "correct_sel": 100, "correct_ho": 109, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.2, "step": "cand", "worker": "p1", "spent_usd": 0.654, "t": "2026-10-07T02:12:32Z"}
+{"index": 30, "sigma": 0.001, "correct_sel": 109, "correct_ho": 113, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.1, "step": "cand", "worker": "p1", "spent_usd": 0.669, "t": "2026-10-07T02:12:47Z"}
+{"index": 31, "sigma": 0.002, "correct_sel": 103, "correct_ho": 104, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.9, "step": "cand", "worker": "p1", "spent_usd": 0.683, "t": "2026-10-07T02:13:02Z"}
+{"index": 32, "sigma": 0.001, "correct_sel": 93, "correct_ho": 99, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.6, "step": "cand", "worker": "p1", "spent_usd": 0.698, "t": "2026-10-07T02:13:18Z"}
+{"index": 33, "sigma": 0.002, "correct_sel": 103, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.1, "step": "cand", "worker": "p1", "spent_usd": 0.713, "t": "2026-10-07T02:13:33Z"}
+{"index": 34, "sigma": 0.001, "correct_sel": 104, "correct_ho": 117, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.3, "step": "cand", "worker": "p1", "spent_usd": 0.728, "t": "2026-10-07T02:13:48Z"}
+{"index": 35, "sigma": 0.002, "correct_sel": 95, "correct_ho": 115, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.3, "step": "cand", "worker": "p1", "spent_usd": 0.742, "t": "2026-10-07T02:14:03Z"}
+{"index": 36, "sigma": 0.001, "correct_sel": 103, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.8, "step": "cand", "worker": "p1", "spent_usd": 0.757, "t": "2026-10-07T02:14:18Z"}
+{"index": 37, "sigma": 0.002, "correct_sel": 101, "correct_ho": 106, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 0.772, "t": "2026-10-07T02:14:34Z"}
+{"index": 38, "sigma": 0.001, "correct_sel": 104, "correct_ho": 115, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.2, "step": "cand", "worker": "p1", "spent_usd": 0.786, "t": "2026-10-07T02:14:49Z"}
+{"index": 39, "sigma": 0.002, "correct_sel": 103, "correct_ho": 109, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.7, "step": "cand", "worker": "p1", "spent_usd": 0.802, "t": "2026-10-07T02:15:04Z"}
+{"index": 40, "sigma": 0.001, "correct_sel": 98, "correct_ho": 108, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 0.816, "t": "2026-10-07T02:15:19Z"}
+{"index": 41, "sigma": 0.002, "correct_sel": 96, "correct_ho": 103, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.831, "t": "2026-10-07T02:15:35Z"}
+{"index": 42, "sigma": 0.001, "correct_sel": 106, "correct_ho": 116, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.6, "step": "cand", "worker": "p1", "spent_usd": 0.846, "t": "2026-10-07T02:15:50Z"}
+{"index": 43, "sigma": 0.002, "correct_sel": 109, "correct_ho": 125, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.2, "step": "cand", "worker": "p1", "spent_usd": 0.86, "t": "2026-10-07T02:16:05Z"}
+{"index": 44, "sigma": 0.001, "correct_sel": 103, "correct_ho": 114, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 0.875, "t": "2026-10-07T02:16:20Z"}
+{"index": 45, "sigma": 0.002, "correct_sel": 109, "correct_ho": 119, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.6, "step": "cand", "worker": "p1", "spent_usd": 0.889, "t": "2026-10-07T02:16:34Z"}
+{"index": 46, "sigma": 0.001, "correct_sel": 93, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.2, "step": "cand", "worker": "p1", "spent_usd": 0.903, "t": "2026-10-07T02:16:49Z"}
+{"index": 47, "sigma": 0.002, "correct_sel": 95, "correct_ho": 110, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.8, "step": "cand", "worker": "p1", "spent_usd": 0.919, "t": "2026-10-07T02:17:05Z"}
+{"index": 48, "sigma": 0.001, "correct_sel": 103, "correct_ho": 103, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.934, "t": "2026-10-07T02:17:21Z"}
+{"index": 49, "sigma": 0.002, "correct_sel": 92, "correct_ho": 114, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 0.948, "t": "2026-10-07T02:17:36Z"}
+{"index": 50, "sigma": 0.001, "correct_sel": 103, "correct_ho": 115, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.1, "step": "cand", "worker": "p1", "spent_usd": 0.963, "t": "2026-10-07T02:17:51Z"}
+{"index": 51, "sigma": 0.002, "correct_sel": 103, "correct_ho": 117, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.7, "step": "cand", "worker": "p1", "spent_usd": 0.978, "t": "2026-10-07T02:18:06Z"}
+{"index": 52, "sigma": 0.001, "correct_sel": 102, "correct_ho": 108, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 0.993, "t": "2026-10-07T02:18:22Z"}
+{"index": 53, "sigma": 0.002, "correct_sel": 91, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.1, "step": "cand", "worker": "p1", "spent_usd": 1.007, "t": "2026-10-07T02:18:36Z"}
+{"index": 54, "sigma": 0.001, "correct_sel": 107, "correct_ho": 112, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.2, "step": "cand", "worker": "p1", "spent_usd": 1.021, "t": "2026-10-07T02:18:51Z"}
+{"index": 55, "sigma": 0.002, "correct_sel": 91, "correct_ho": 99, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.8, "step": "cand", "worker": "p1", "spent_usd": 1.037, "t": "2026-10-07T02:19:07Z"}
+{"index": 56, "sigma": 0.001, "correct_sel": 102, "correct_ho": 120, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.1, "step": "cand", "worker": "p1", "spent_usd": 1.051, "t": "2026-10-07T02:19:22Z"}
+{"index": 57, "sigma": 0.002, "correct_sel": 89, "correct_ho": 98, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 1.066, "t": "2026-10-07T02:19:37Z"}
+{"index": 58, "sigma": 0.001, "correct_sel": 106, "correct_ho": 113, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.2, "step": "cand", "worker": "p1", "spent_usd": 1.081, "t": "2026-10-07T02:19:53Z"}
+{"index": 59, "sigma": 0.002, "correct_sel": 87, "correct_ho": 96, "vision_changed": 0, "restore_mismatch": 0, "seconds": 14.5, "step": "cand", "worker": "p1", "spent_usd": 1.095, "t": "2026-10-07T02:20:07Z"}
+{"index": 60, "sigma": 0.001, "correct_sel": 102, "correct_ho": 115, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 1.11, "t": "2026-10-07T02:20:22Z"}
+{"index": 61, "sigma": 0.002, "correct_sel": 95, "correct_ho": 104, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.0, "step": "cand", "worker": "p1", "spent_usd": 1.124, "t": "2026-10-07T02:20:37Z"}
+{"index": 62, "sigma": 0.001, "correct_sel": 95, "correct_ho": 116, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.4, "step": "cand", "worker": "p1", "spent_usd": 1.139, "t": "2026-10-07T02:20:52Z"}
+{"index": 63, "sigma": 0.002, "correct_sel": 100, "correct_ho": 104, "vision_changed": 0, "restore_mismatch": 0, "seconds": 15.5, "step": "cand", "worker": "p1", "spent_usd": 1.154, "t": "2026-10-07T02:21:08Z"}
+{"step": "DONE", "worker": "p1", "spent_usd": 1.154, "t": "2026-10-07T02:21:08Z"}
+[rank0]:[W1007 02:21:09.595308034 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
