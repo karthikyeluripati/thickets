@@ -1,0 +1,51 @@
+{
+ "n_items": 600,
+ "n_images": 484,
+ "base_accuracy": 34.66666666666667,
+ "n_candidates_measured": 59,
+ "parse_failures_base": 0,
+ "M1_1_winner_gain": 2.666666666666667,
+ "M1_1_ci95": [
+  0.1709183673469382,
+  4.932393605906523
+ ],
+ "M1_1_verdict": "TRANSFERS",
+ "winner_repairs_regressions": [
+  34,
+  18
+ ],
+ "M1_2_front_minus_nonfront": 1.9468613528019485,
+ "M1_2_ci95": [
+  -2.5700235556792896,
+  6.468878734264543
+ ],
+ "M1_2_gain_front": 3.63036303630363,
+ "M1_2_gain_nonfront": 1.6835016835016814,
+ "M1_2_supports_prior_shift": false,
+ "winner_rank_among_measured": 1,
+ "M1_3": {
+  "n": 59,
+  "r_RERANKgain_H": 0.5634997302852637,
+  "ci_RERANKgain_H": [
+   0.3592552196498761,
+   0.7162309235121818
+  ],
+  "r_tau_H": 0.6084226807294455,
+  "ci_tau_H": [
+   0.41736515549797415,
+   0.7479691308266053
+  ],
+  "tau_supports": true
+ },
+ "M1_4": {
+  "top50_mean_gain": 0.2836879432624102,
+  "controls_mean_gain": -0.8750000000000017,
+  "difference": 1.1586879432624118,
+  "ci95": [
+   0.31455378250591154,
+   2.0334884751773044
+  ],
+  "n_top": 47,
+  "n_controls": 12
+ }
+}

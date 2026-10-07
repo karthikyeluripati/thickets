@@ -34,7 +34,7 @@ def main():
     half = np.array([int(hashlib.sha256(('c1-half-v1:' + h).encode()).hexdigest()[0], 16) % 2 == 0 for h in img])
     X = np.array([[[float(feats(o)[f]) for f in FE] for o in r['options']] for r in rows])  # items x 4 options x 4 feats
     Xc = X - X.mean(1, keepdims=True)
-    base = ld(M1 / 'pod/base.json.gz')['HOLDOUT']; zb = np.array([zvec(x) for x in base]); zbc = zb - zb.mean(1, keepdims=True)
+    base = ld(M1 / 'pod/base.json.gz'); base = base['HOLDOUT'] if isinstance(base, dict) else base; zb = np.array([zvec(x) for x in base]); zbc = zb - zb.mean(1, keepdims=True)
     cb = zb.argmax(1) == gold
     cands = json.loads((M1 / 'frozen_candidates.json').read_text())['candidates']
     res, keep = {}, {}

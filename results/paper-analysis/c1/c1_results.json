@@ -1,0 +1,35 @@
+{
+ "n_items": 600,
+ "n_candidates": 59,
+ "base_argmax_acc": 34.66666666666667,
+ "base_argmax_parsed_agreement": 1.0,
+ "C1_1": {
+  "raw_g": 2.666666666666667,
+  "g_cal": 2.3333333333333317,
+  "g_minus_gcal_ci95": [
+   -0.5139451696191604,
+   1.3201865641109556
+  ],
+  "verdict": "NOT EXPLAINED",
+  "shift_r2": 0.08910775838449342
+ },
+ "C1_2": {
+  "n_positive": 34,
+  "surviving_share": -1.5669676264657668e-15,
+  "ci95": [
+   -0.4156757086148081,
+   0.31729502688171884
+  ],
+  "supports_mostly_prior_shift": true
+ },
+ "C1_3": {
+  "r_g_gcal": 0.6557720662862018,
+  "top50_mean_g": 0.2836879432624102,
+  "top50_mean_gcal": -0.32624113475177424,
+  "controls_mean_g": -0.8750000000000017,
+  "controls_mean_gcal": -0.9583333333333351
+ },
+ "C1_4": {
+  "median_shift_r2": 0.08195977848915359
+ }
+}

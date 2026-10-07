@@ -31,7 +31,7 @@ def main():
     rows = [json.loads(l) for l in (SRC / 'holdout.jsonl').read_text(encoding='utf-8').splitlines() if l.strip()]
     gold = np.array([LET[r['answer']] for r in rows]); img = np.array([r['image_sha256'] for r in rows])
     front = np.array([feats(r['options'][r['answer']])['front'] for r in rows])
-    base = ld(SRC / 'base.json.gz')['HOLDOUT']; cb = np.array([x['parsed'] for x in base]) == gold
+    base = ld(SRC / 'base.json.gz'); base = base['HOLDOUT'] if isinstance(base, dict) else base; cb = np.array([x['parsed'] for x in base]) == gold
     cands = json.loads((D / 'frozen_candidates.json').read_text())['candidates']
     C = {}
     for c in cands:
