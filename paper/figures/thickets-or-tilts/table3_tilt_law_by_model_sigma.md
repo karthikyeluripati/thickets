@@ -1,0 +1,9 @@
+| Test | Model | Content word | σ | r(pred, measured) |
+|---|---|---|---|---|
+| Stage 2 | Qwen3-VL-8B | front | 0.002 | 0.938 |
+| R1 | Qwen3-VL-8B | left | 0.002 | 0.915 |
+| R2b | Qwen2.5-VL-7B | front | 0.002 | 0.925 |
+| I5 (per item, pooled) | Qwen3-VL-8B | front | 0.002 | 0.771 |
+| P0 | Qwen2.5-VL-3B (LM-only) | per-question answer contrast | 0.001 | 0.977 |
+| P0 | Qwen2.5-VL-3B (LM-only) | per-question answer contrast | 0.002 | 0.915 |
+| P0 | Qwen2.5-VL-3B (LM-only) | per-question answer contrast | 0.005 | 0.306 |

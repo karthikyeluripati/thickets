@@ -1,0 +1,12 @@
+\begin{tabular}{llcccccc}
+\toprule
+Task & Model & Base (ours / paper) & Gate & SC@50 & TT-MV$^\dagger$ & RandOpt$^\dagger$ & Verdict \\
+\midrule
+GSM8K & Qwen2.5-1.5B & 59.3 / 58.8 & pass & 79.8 [77.6, 82.0] & 69.1 & 76.4 & matches \\
+GSM8K & Qwen2.5-3B & 80.3 / 79.8 & pass & 88.2 [86.5, 90.1] & 82.5 & 87.1 & matches \\
+GSM8K & Qwen2.5-0.5B & 43.2 / 39.9 & fail & 56.0 [53.1, 58.6] & 41.0 & 54.1 & not comparable \\
+MATH-500 & Qwen2.5-1.5B & 49.6 / 43.2 & fail & 62.4 [58.2, 66.6] & 50.0 & 59.7 & not comparable \\
+MATH-500 & Qwen2.5-3B & 64.4 / 58.6 & fail & 73.8 [70.0, 77.6] & 60.8 & 68.7 & not comparable \\
+GQA (2000) & Qwen2.5-VL-3B & 54.0 / 56.6 & fail & 59.2 [57.1, 61.4] & -- & 69.0 & not comparable \\
+\bottomrule
+\end{tabular}
