@@ -20,7 +20,7 @@ GQA_COT = "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument('--task', required=True, choices=['gsm8k', 'gqa']); ap.add_argument('--model', required=True)
+    ap.add_argument('--task', required=True, choices=['gsm8k', 'gqa', 'math500']); ap.add_argument('--model', required=True)
     ap.add_argument('--revision', default='main'); ap.add_argument('--tag', required=True)
     ap.add_argument('--upstream', type=Path, required=True); ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--temps', default='0.7,0.3'); ap.add_argument('--n', type=int, default=50)
@@ -42,6 +42,19 @@ def main():
         tok = AutoTokenizer.from_pretrained(path)
         req = [tok.apply_chat_template([{'role': 'user', 'content': it['q'] + ' ' + GSM_INSTR}], add_generation_prompt=True, tokenize=False) for it in items]
         max_tokens = 1024
+        score = lambda t, it: h.compute_reward(t, it['gt']) > 0
+        llm = LLM(model=path, tokenizer=path, dtype='bfloat16', seed=0, gpu_memory_utilization=.88, max_model_len=4096, max_num_seqs=512,
+                  enable_prefix_caching=True, disable_log_stats=True)
+    elif a.task == 'math500':
+        import datasets
+        from data_handlers.math500 import INSTRUCTION, MATH500Handler
+        h = MATH500Handler(); ds = datasets.load_dataset('HuggingFaceH4/MATH-500', split='test')
+        meta['dataset_fingerprint'] = ds._fingerprint
+        items = [{'id': str(r['unique_id']), 'q': r['problem'], 'gt': str(r['answer'])} for r in ds]
+        from transformers import AutoTokenizer
+        tok = AutoTokenizer.from_pretrained(path)
+        req = [tok.apply_chat_template([{'role': 'user', 'content': it['q'] + chr(10) * 2 + INSTRUCTION}], add_generation_prompt=True, tokenize=False) for it in items]
+        max_tokens = 2048
         score = lambda t, it: h.compute_reward(t, it['gt']) > 0
         llm = LLM(model=path, tokenizer=path, dtype='bfloat16', seed=0, gpu_memory_utilization=.88, max_model_len=4096, max_num_seqs=512,
                   enable_prefix_caching=True, disable_log_stats=True)
