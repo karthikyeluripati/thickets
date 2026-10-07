@@ -1,0 +1,38 @@
+{
+ "n_all": 59,
+ "r_all": 0.6084226807294455,
+ "C1_within_top50": {
+  "n": 47,
+  "r": 0.5899731366299282,
+  "ci": [
+   0.42,
+   0.74
+  ],
+  "pass": true
+ },
+ "C2_partial_tau_gH_given_gR_gS": {
+  "r": 0.30984859795145936,
+  "ci": [
+   0.13,
+   0.48
+  ],
+  "pass": true
+ },
+ "C3_within_controls": {
+  "n": 12,
+  "r": 0.5705063082619123,
+  "pass": true
+ },
+ "reported": {
+  "r_tau_tiltH": 0.89444862400555,
+  "r_tiltH_gH": 0.6867307802022425,
+  "partial_tau_gH_given_tiltH": -0.01791310386525234,
+  "partial_tiltH_gH_given_tau": 0.4016222974387235,
+  "r_gR_gH_within_top50": 0.576386165179446,
+  "mean_tau_top_vs_ctl": [
+   0.5858816518745524,
+   0.0637527381380399
+  ]
+ },
+ "tau_holds": true
+}
