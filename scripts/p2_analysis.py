@@ -49,9 +49,9 @@ def main():
             row['sc50_minus_randopt'] = float(sc - ro)
             if P['ttmv'] is not None: row['sc50_minus_paper_ttmv'] = float(sc - P['ttmv'])
         R[f'{task}_{tag}'] = row
-    (D / 'p2_results.json').write_text(json.dumps(R, indent=1))
+    (D / 'p2_results.json').write_text(json.dumps(R, indent=1, default=lambda o: o.item() if hasattr(o, 'item') else str(o)))
     return R
 
 
 if __name__ == '__main__':
-    print(json.dumps(main(), indent=1))
+    print(json.dumps(main(), indent=1, default=lambda o: o.item() if hasattr(o, 'item') else str(o)))

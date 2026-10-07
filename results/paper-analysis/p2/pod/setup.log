@@ -1,0 +1,423 @@
+RATE=3.49 START=1791341105 CAP=10.00
++ touch /workspace/JOB_RUNNING
++ python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer accelerate pandas pyarrow
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen2.5-VL-3B-Instruct'\'',revision='\''66285546d2b821cf421d4f5eb2576359d3770cd3'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
++ echo 'MODEL_SHA 66285546d2b821cf421d4f5eb2576359d3770cd3'
++ tee /workspace/model_sha.txt
+MODEL_SHA 66285546d2b821cf421d4f5eb2576359d3770cd3
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ pip freeze
++ nvidia-smi -L
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY /workspace/SETUP_DONE
++ echo SETUP_DONE
+SETUP_DONE
++ true
+++ ls '/workspace/jobs/*.sh'
+++ sort
++ sleep 10
++ true
+++ ls '/workspace/jobs/*.sh'
+++ sort
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/01-gsm15.sh
+++ date -u +%FT%TZ
++ echo 'rc=1 2026-10-07T02:47:49Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/02-gsm05.sh
+++ date -u +%FT%TZ
++ echo 'rc=1 2026-10-07T02:47:52Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/03-gqa.sh
+++ date -u +%FT%TZ
++ echo 'rc=1 2026-10-07T02:47:56Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/04-gsm15.sh
+++ date -u +%FT%TZ
++ echo 'rc=1 2026-10-07T02:48:20Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/05-gsm05.sh
+++ date -u +%FT%TZ
++ echo 'rc=1 2026-10-07T02:48:23Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/06-gqa.sh
+++ date -u +%FT%TZ
++ echo 'rc=1 2026-10-07T02:48:26Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/07-gsm15.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-07T03:12:58Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/08-gsm05.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-07T03:36:49Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/09-gqa.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-07T04:07:20Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-gsm15.sh /workspace/jobs/02-gsm05.sh /workspace/jobs/03-gqa.sh /workspace/jobs/04-gsm15.sh /workspace/jobs/05-gsm05.sh /workspace/jobs/06-gqa.sh /workspace/jobs/07-gsm15.sh /workspace/jobs/08-gsm05.sh /workspace/jobs/09-gqa.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/05-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/06-gqa.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/07-gsm15.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/08-gsm05.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/09-gqa.rc ']'
++ continue
++ sleep 10
