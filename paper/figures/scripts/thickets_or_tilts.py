@@ -187,12 +187,12 @@ def fig5():
     ax.axhline(0, color='#888888', lw=0.8); ax.set_xticks(range(3)); ax.set_xticklabels([v[0] for v in vals], fontsize=6.5); ax.set_ylim(-4, 9.5)
     ax.set_ylabel('winner gain (pp)'); ax.set_title('selected winner 9504111', fontsize=8); label(ax, 'b')
     ax = axes[2]
-    ens = [('winner', 2.7, 0.3, 4.9), ('top-10\nvote', 2.8, 1.0, 4.7), ('top-50\nvote', 0.2, -1.0, 1.3), ('controls\nvote', -0.3, -2.2, 1.5)]
+    ens = [('winner', 2.7, 0.3, 4.9), ('top-10\nvote', 2.8, 1.0, 4.7), ('47-model\nvote', 0.2, -1.0, 1.3), ('controls\nvote', -0.3, -2.2, 1.5)]
     cols = [C['green'], C['sc'], C['randopt'], C['control']]
     for i, (n, v, lo, hi) in enumerate(ens):
         ax.bar(i, v, color=cols[i], width=0.6); ax.errorbar(i, v, yerr=[[v - lo], [hi - v]], fmt='none', ecolor=C['ink'], capsize=2, elinewidth=0.9)
     ax.axhline(0, color='#888888', lw=0.8); ax.set_xticks(range(4)); ax.set_xticklabels([e[0] for e in ens], fontsize=6.5)
-    ax.set_ylabel('gain on fresh matched items (pp)'); ax.set_title('the 50-model vote returns the base\n(post hoc)', fontsize=8); label(ax, 'c')
+    ax.set_ylabel('gain on fresh matched items (pp)'); ax.set_title('little ensemble gain at K≈50\n(exploratory)', fontsize=8); label(ax, 'c')
     ax = axes[3]
     S = pd.read_csv(PA / 'answer-prior/candidate_phase_answer_prior.csv'); S = S[S.phase == 'SEARCH']
     hb = ax.hexbin(S.shift_front, S.gain, gridsize=22, cmap='Blues', mincnt=1, linewidths=0.2)
@@ -202,7 +202,7 @@ def fig5():
     r = np.corrcoef(S.shift_front, S.gain)[0, 1]
     ax.text(0.04, 0.95, f'5000 candidates\nr = {r:.2f}', transform=ax.transAxes, va='top', fontsize=7, bbox=dict(boxstyle='round,pad=0.25', fc='white', ec='#DDDDDD'))
     ax.set_xlabel('shift in "front" answers (pp)'); ax.set_ylabel('SEARCH accuracy gain (pp)')
-    ax.set_title('gains track a label-prior tilt\n(post hoc)', fontsize=8); label(ax, 'd')
+    ax.set_title('gains co-vary with a label-prior tilt\n(exploratory)', fontsize=8); label(ax, 'd')
     fig.tight_layout(); save(fig, 'fig5_selection_transfer')
 
 
@@ -222,6 +222,7 @@ def fig6():
     ax.scatter(fT, fP, s=8, color=C['pert'], alpha=0.55, edgecolor='none')
     ax.plot([0, 1], [0, 1], color='#AAAAAA', lw=0.8, ls='--'); ax.set_xlim(-0.02, 1.02); ax.set_ylim(-0.02, 1.02)
     ax.set_xlabel('per-question flip rate, temperature sampling (T=0.3)'); ax.set_ylabel('per-question flip rate,\n64 weight perturbations')
+    ax.set_title('similarly susceptible questions', fontsize=8)
     ax.text(0.04, 0.95, f'400 GQA questions\nSpearman ρ = {rho:.2f}', transform=ax.transAxes, va='top', fontsize=7, bbox=dict(boxstyle='round,pad=0.25', fc='white', ec='#DDDDDD'))
     label(ax, 'a')
     k8 = R['P1_C']['K8']; bars = [('base\ngreedy', R['base_acc']['H'], C['base']), ('top-8\nselected', k8['randopt_topK_vote'], C['randopt']),
@@ -230,7 +231,7 @@ def fig6():
     for i, (n, v, c) in enumerate(bars):
         ax2.bar(i, v, color=c, width=0.62); ax2.text(i, v + 0.4, f'{v:.1f}', ha='center', fontsize=7)
     ax2.set_xticks(range(len(bars))); ax2.set_xticklabels([b[0] for b in bars], fontsize=6.5); ax2.set_ylim(50, 66)
-    ax2.set_ylabel('held-out accuracy (%)'); ax2.set_title('vote of perturbed models vs vote of samples\n(200 held-out questions)', fontsize=8); label(ax2, 'b')
+    ax2.set_ylabel('held-out accuracy (%)'); ax2.set_title('vote of perturbed models vs vote of samples\n(200 held-out questions; underpowered)', fontsize=8); label(ax2, 'b')
     fig.tight_layout(); save(fig, 'fig6_cot_regime')
     return rho
 
@@ -272,8 +273,10 @@ def tables():
         ('P2: GSM8K-1.5B SC vs RandOpt', '01efd9d', 'SC@50 − RandOpt', 'match ≥ −1.0', '+3.4', 'matches'),
         ('P3: GSM8K-3B SC vs RandOpt', 'c60b600', 'SC@50 − RandOpt', 'match ≥ −1.0', '+1.1', 'matches'),
         ('P2/P3: other 4 rows', '01efd9d / c60b600', 'base-reproduction gate', '±2.0 pp (GQA ±2.5)', 'failed', 'not comparable')]
-    md2 = ['| Test | Lock | Statistic | Rule | Result | Outcome |', '|---|---|---|---|---|---|'] + [f'| {a} | `{b}` | {c} | {d} | {e} | {f} |' for a, b, c, d, e, f in ledger]
-    (OUT / 'table2_preregistration_ledger.md').write_text('\n'.join(md2) + '\n', encoding='utf-8')
+    master = Path('paper/RESULTS_MASTER.md').read_text(encoding='utf-8')
+    sec = master.split('## R9.')[1].split('## R10.')[0]
+    rows9 = [l for l in sec.splitlines() if l.startswith('|')]
+    (OUT / 'table2_preregistration_ledger.md').write_text('\n'.join(rows9) + '\n', encoding='utf-8')
     md3 = ['| Test | Model | Content word | σ | r(pred, measured) |', '|---|---|---|---|---|',
            '| Stage 2 | Qwen3-VL-8B | front | 0.002 | 0.938 |', '| R1 | Qwen3-VL-8B | left | 0.002 | 0.915 |',
            '| R2b | Qwen2.5-VL-7B | front | 0.002 | 0.925 |', '| I5 (per item, pooled) | Qwen3-VL-8B | front | 0.002 | 0.771 |',
