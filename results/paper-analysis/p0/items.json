@@ -1,0 +1,870 @@
+{
+"rule": "first 96 items of the frozen G1 held-out set (G1 hash order)",
+"selection": [],
+"heldout": [
+{
+"id": "201061171",
+"imageId": "n25275",
+"question": "Who is kicking the soccer ball?",
+"answer": "boy",
+"fullAnswer": "The boy is kicking the soccer ball.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202012396",
+"imageId": "n326988",
+"question": "On which side is the doll?",
+"answer": "right",
+"fullAnswer": "The doll is on the right of the image.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201307444",
+"imageId": "n161313",
+"question": "Are the snow pants green?",
+"answer": "no",
+"fullAnswer": "No, the snow pants are brown.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "201935447",
+"imageId": "n556604",
+"question": "How hard is the skate park the man is skating on?",
+"answer": "hard",
+"fullAnswer": "The skatepark is hard.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201480360",
+"imageId": "n39114",
+"question": "Who wears the glove?",
+"answer": "boy",
+"fullAnswer": "The boy wears a glove.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201462517",
+"imageId": "n508641",
+"question": "The kneeling person wears what?",
+"answer": "glove",
+"fullAnswer": "The catcher wears a glove.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201638808",
+"imageId": "n271392",
+"question": "Which kind of vehicle is to the right of the men?",
+"answer": "car",
+"fullAnswer": "The vehicle is a car.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202053469",
+"imageId": "n334278",
+"question": "Where is the player that is to the left of the umpire standing on?",
+"answer": "field",
+"fullAnswer": "The player is standing on the field.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202081902",
+"imageId": "n433692",
+"question": "What animal is lying beside the computer mouse?",
+"answer": "cat",
+"fullAnswer": "The cat is lying next to the computer mouse.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20827598",
+"imageId": "n283587",
+"question": "Are both the coffee table and the side table made of wood?",
+"answer": "yes",
+"fullAnswer": "Yes, both the coffee table and the side table are made of wood.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "20306513",
+"imageId": "n554880",
+"question": "The person near the gift is holding what?",
+"answer": "cell phone",
+"fullAnswer": "The man is holding the cell phone.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20618756",
+"imageId": "n126087",
+"question": "Who are the rackets in front of?",
+"answer": "people",
+"fullAnswer": "The rackets are in front of the people.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20226381",
+"imageId": "n68769",
+"question": "What type of furniture is made of the same material as the white ceiling?",
+"answer": "chair",
+"fullAnswer": "The chair is made of the same material as the ceiling.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20468726",
+"imageId": "n171169",
+"question": "Is the animal in front of the trees brown and large?",
+"answer": "yes",
+"fullAnswer": "Yes, the horse is brown and large.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "20953118",
+"imageId": "n413319",
+"question": "Does the polo shirt look white and short sleeved?",
+"answer": "no",
+"fullAnswer": "No, the polo shirt is short sleeved but blue.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "202060228",
+"imageId": "n14087",
+"question": "Which color are the small decorations?",
+"answer": "white",
+"fullAnswer": "The decorations are white.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20609412",
+"imageId": "n437064",
+"question": "Does the plate look white?",
+"answer": "yes",
+"fullAnswer": "Yes, the plate is white.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "2059604",
+"imageId": "n130638",
+"question": "Who is in front of the person that is crouching?",
+"answer": "batter",
+"fullAnswer": "The batter is in front of the catcher.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202073379",
+"imageId": "n219840",
+"question": "Does the wide sky look cloudy?",
+"answer": "yes",
+"fullAnswer": "Yes, the sky is cloudy.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "201621666",
+"imageId": "n275148",
+"question": "Are there couches near the storage box?",
+"answer": "yes",
+"fullAnswer": "Yes, there is a couch near the storage box.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20461886",
+"imageId": "n571179",
+"question": "Which color are the trousers?",
+"answer": "gray",
+"fullAnswer": "The trousers are gray.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20306337",
+"imageId": "n554880",
+"question": "Is the woman to the right or to the left of the laptop computer?",
+"answer": "left",
+"fullAnswer": "The woman is to the left of the laptop computer.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "202060210",
+"imageId": "n14087",
+"question": "What are the ornaments made of glass hanging from?",
+"answer": "tree",
+"fullAnswer": "The ornaments are hanging from the tree.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201207500",
+"imageId": "n222915",
+"question": "Which kind of food is not leafy?",
+"answer": "apples",
+"fullAnswer": "The food is apples.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201153202",
+"imageId": "n160664",
+"question": "In which part of the image is the old woman, the bottom or the top?",
+"answer": "bottom",
+"fullAnswer": "The woman is in the bottom of the image.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "201492498",
+"imageId": "n9856",
+"question": "Is the hat made of cloth?",
+"answer": "yes",
+"fullAnswer": "Yes, the hat is made of cloth.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20896228",
+"imageId": "n548534",
+"question": "What is the towel hanging from?",
+"answer": "cabinets",
+"fullAnswer": "The towel is hanging from the cabinets.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202133612",
+"imageId": "n412144",
+"question": "What type of clothing is long?",
+"answer": "jeans",
+"fullAnswer": "The clothing is jeans.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201972831",
+"imageId": "n541482",
+"question": "Who is holding the kite?",
+"answer": "woman",
+"fullAnswer": "The woman is holding the kite.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202262430",
+"imageId": "n28572",
+"question": "Is the mug in front of a cup?",
+"answer": "yes",
+"fullAnswer": "Yes, the mug is in front of a cup.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20205073",
+"imageId": "n532191",
+"question": "Is the black bag on the left or on the right?",
+"answer": "right",
+"fullAnswer": "The backpack is on the right of the image.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "202147892",
+"imageId": "n194179",
+"question": "Does the adult person appear to be playing?",
+"answer": "yes",
+"fullAnswer": "Yes, the athlete is playing.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "201889314",
+"imageId": "n88366",
+"question": "Who is standing?",
+"answer": "skier",
+"fullAnswer": "The skier is standing.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20655417",
+"imageId": "n199097",
+"question": "What color do the trousers have?",
+"answer": "gray",
+"fullAnswer": "The trousers have gray color.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202231967",
+"imageId": "n232810",
+"question": "What is the lamp made of?",
+"answer": "metal",
+"fullAnswer": "The lamp is made of metal.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201623404",
+"imageId": "n501609",
+"question": "Is the microwave silver and rectangular?",
+"answer": "yes",
+"fullAnswer": "Yes, the microwave is silver and rectangular.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "201322685",
+"imageId": "n311910",
+"question": "What is the sidewalk made of?",
+"answer": "concrete",
+"fullAnswer": "The sidewalk is made of concrete.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20285113",
+"imageId": "n192021",
+"question": "Does the dark chair on the carpet look round?",
+"answer": "no",
+"fullAnswer": "No, the chair is rectangular.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "201067732",
+"imageId": "n367944",
+"question": "Are there any tables or plates that are square?",
+"answer": "yes",
+"fullAnswer": "Yes, the table is square.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "201068297",
+"imageId": "n159802",
+"question": "What is the girl doing?",
+"answer": "looking down",
+"fullAnswer": "The girl is looking down.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201756496",
+"imageId": "n567860",
+"question": "What is the name of the animal that has the same color as the door?",
+"answer": "kitten",
+"fullAnswer": "The animal is a kitten.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202053224",
+"imageId": "n334278",
+"question": "What is the color of the belt made of leather?",
+"answer": "black",
+"fullAnswer": "The belt is black.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20482492",
+"imageId": "n195249",
+"question": "Does this woman wear a wetsuit?",
+"answer": "no",
+"fullAnswer": "No, the woman wears a necklace.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202228087",
+"imageId": "n77818",
+"question": "What is the device that is to the right of the cat behind the wall?",
+"answer": "dvd player",
+"fullAnswer": "The device is a DVD player.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20752362",
+"imageId": "n209843",
+"question": "Is the cabinet that is to the right of the toilet metallic and hard?",
+"answer": "no",
+"fullAnswer": "No, the cabinet is hard but wooden.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "20385794",
+"imageId": "n90294",
+"question": "Is the white bag made of cloth or leather?",
+"answer": "cloth",
+"fullAnswer": "The bag is made of cloth.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "201887127",
+"imageId": "n429961",
+"question": "Is the cabbage to the right of the other cabbage purple or maybe green?",
+"answer": "green",
+"fullAnswer": "The cabbage is green.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "20435022",
+"imageId": "n431447",
+"question": "What is the container in front of the container filled with?",
+"answer": "pizza",
+"fullAnswer": "The pizza box is filled with pizza.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20385467",
+"imageId": "n90294",
+"question": "How thick is the book to the left of the remote?",
+"answer": "thick",
+"fullAnswer": "The book is thick.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20381630",
+"imageId": "n398257",
+"question": "Is the plant pot full or empty?",
+"answer": "full",
+"fullAnswer": "The plant pot is full.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "201621310",
+"imageId": "n275148",
+"question": "Are both the mirror and the TV stand made of the same material?",
+"answer": "no",
+"fullAnswer": "No, the mirror is made of glass and the TV stand is made of wood.",
+"structural": "compare",
+"yesno": true
+},
+{
+"id": "202284977",
+"imageId": "n100991",
+"question": "What is the food that is not thin called?",
+"answer": "sausage",
+"fullAnswer": "The food is a sausage.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "2093918",
+"imageId": "n450919",
+"question": "Is there an elephant in the mud?",
+"answer": "no",
+"fullAnswer": "No, there is a giraffe in the mud.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "201859575",
+"imageId": "n546884",
+"question": "What is the cup on?",
+"answer": "table",
+"fullAnswer": "The cup is on the table.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20515865",
+"imageId": "n70461",
+"question": "Is there a yellow traffic light or fire hydrant?",
+"answer": "no",
+"fullAnswer": "No, there is a traffic light but it is red.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "201030367",
+"imageId": "n54424",
+"question": "Which color is the shuttle?",
+"answer": "blue",
+"fullAnswer": "The shuttle is blue.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20741181",
+"imageId": "n23762",
+"question": "What color do you think is the high ceiling?",
+"answer": "brown",
+"fullAnswer": "The ceiling is brown.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20136623",
+"imageId": "n446242",
+"question": "What is under the picture?",
+"answer": "towels",
+"fullAnswer": "The towels are under the picture.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202257370",
+"imageId": "n92308",
+"question": "The clouds are what color?",
+"answer": "white",
+"fullAnswer": "The clouds are white.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20652566",
+"imageId": "n400036",
+"question": "Is there a soccer ball in the picture that is blue?",
+"answer": "no",
+"fullAnswer": "No, there is a soccer ball but it is white.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202060003",
+"imageId": "n14087",
+"question": "What is the dog in front of?",
+"answer": "couch",
+"fullAnswer": "The dog is in front of the couch.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20511409",
+"imageId": "n229548",
+"question": "Which kind of aircraft is large?",
+"answer": "helicopter",
+"fullAnswer": "The aircraft is a helicopter.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201207116",
+"imageId": "n222915",
+"question": "Is there broccoli near the round food?",
+"answer": "yes",
+"fullAnswer": "Yes, there is broccoli near the sandwich.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20136592",
+"imageId": "n446242",
+"question": "What color are the pants?",
+"answer": "red",
+"fullAnswer": "The pants are red.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202241111",
+"imageId": "n460385",
+"question": "Is the pizza on a plate?",
+"answer": "no",
+"fullAnswer": "No, the pizza is on the table.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20468774",
+"imageId": "n171169",
+"question": "Is there either a snowboard or a helmet in the image?",
+"answer": "yes",
+"fullAnswer": "Yes, there is a helmet.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "20303007",
+"imageId": "n318684",
+"question": "What color is the umbrella on the left?",
+"answer": "pink",
+"fullAnswer": "The umbrella is pink.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201430876",
+"imageId": "n206785",
+"question": "Is the bag that is not empty sitting on top of a bed?",
+"answer": "no",
+"fullAnswer": "No, the bag is sitting on top of the cabinet.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "2076728",
+"imageId": "n214497",
+"question": "Which kind of vehicle is the sign taller than?",
+"answer": "cars",
+"fullAnswer": "The sign is taller than the cars.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201535825",
+"imageId": "n272098",
+"question": "Does she wear a dress?",
+"answer": "no",
+"fullAnswer": "No, the woman wears a hat.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20300607",
+"imageId": "n208302",
+"question": "Does the road near the sidewalk look brown?",
+"answer": "no",
+"fullAnswer": "No, the road is white.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "201795290",
+"imageId": "n119944",
+"question": "Is the chicken standing?",
+"answer": "yes",
+"fullAnswer": "Yes, the chicken is standing.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202082114",
+"imageId": "n433692",
+"question": "Are there any laptops near the lamp?",
+"answer": "yes",
+"fullAnswer": "Yes, there is a laptop near the lamp.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202284939",
+"imageId": "n100991",
+"question": "Is there a carrot to the right of the vegetables that are to the right of the banana?",
+"answer": "no",
+"fullAnswer": "No, there is a fork to the right of the beans.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202285337",
+"imageId": "n100991",
+"question": "What vegetables are it?",
+"answer": "beans",
+"fullAnswer": "The vegetables are beans.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201987314",
+"imageId": "n501951",
+"question": "What item of furniture is on top of the sidewalk?",
+"answer": "table",
+"fullAnswer": "The piece of furniture is a table.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201576474",
+"imageId": "n187961",
+"question": "Which place is it?",
+"answer": "street",
+"fullAnswer": "It is a street.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20308930",
+"imageId": "n278312",
+"question": "On which side is the rug?",
+"answer": "left",
+"fullAnswer": "The rug is on the left of the image.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "2093826",
+"imageId": "n450919",
+"question": "Is the fur colorful and smooth?",
+"answer": "yes",
+"fullAnswer": "Yes, the fur is colorful and smooth.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "20588944",
+"imageId": "n258500",
+"question": "Who is wearing a hair band?",
+"answer": "skater",
+"fullAnswer": "The skater is wearing a hair band.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201951903",
+"imageId": "n256120",
+"question": "Does the jacket that looks beige look comfortable?",
+"answer": "yes",
+"fullAnswer": "Yes, the jacket is comfortable.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "20456576",
+"imageId": "n65885",
+"question": "What is the animal that is lying on the carpet?",
+"answer": "dog",
+"fullAnswer": "The animal is a dog.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201430771",
+"imageId": "n206785",
+"question": "What's the person getting on?",
+"answer": "tie",
+"fullAnswer": "The person is getting on the necktie.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20644759",
+"imageId": "n250821",
+"question": "What is he doing?",
+"answer": "staring",
+"fullAnswer": "The man is staring.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20899611",
+"imageId": "n186491",
+"question": "Is the tea to the right of the sandwich dry or wet?",
+"answer": "wet",
+"fullAnswer": "The tea is wet.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "201030681",
+"imageId": "n54424",
+"question": "Which side is the small pillow on?",
+"answer": "right",
+"fullAnswer": "The pillow is on the right of the image.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20511516",
+"imageId": "n229548",
+"question": "Are there any benches or towel dispensers?",
+"answer": "no",
+"fullAnswer": "No, there are no towel dispensers or benches.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "201227992",
+"imageId": "n154856",
+"question": "Is the silver car in front or behind the van made of metal?",
+"answer": "behind",
+"fullAnswer": "The car is behind the van.",
+"structural": "choose",
+"yesno": false
+},
+{
+"id": "20588934",
+"imageId": "n258500",
+"question": "Who rides on the skateboard?",
+"answer": "skater",
+"fullAnswer": "The skater rides on a skateboard.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "202000835",
+"imageId": "n299528",
+"question": "Is the fence both brown and tall?",
+"answer": "yes",
+"fullAnswer": "Yes, the fence is brown and tall.",
+"structural": "logical",
+"yesno": true
+},
+{
+"id": "20609381",
+"imageId": "n437064",
+"question": "Is the utensil in front of the spoon made of wood?",
+"answer": "no",
+"fullAnswer": "No, the utensil is made of metal.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202262166",
+"imageId": "n28572",
+"question": "Does the napkin look red?",
+"answer": "yes",
+"fullAnswer": "Yes, the napkin is red.",
+"structural": "verify",
+"yesno": true
+},
+{
+"id": "202000939",
+"imageId": "n299528",
+"question": "What is the bush in front of?",
+"answer": "fence",
+"fullAnswer": "The bush is in front of the fence.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20482414",
+"imageId": "n195249",
+"question": "What color is the field?",
+"answer": "blue",
+"fullAnswer": "The field is blue.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "201404242",
+"imageId": "n331357",
+"question": "What is the animal that is drinking from the mom that is not small?",
+"answer": "calf",
+"fullAnswer": "The animal is a calf.",
+"structural": "query",
+"yesno": false
+},
+{
+"id": "20899955",
+"imageId": "n186491",
+"question": "What are the vegetables that the bowl contains?",
+"answer": "tomatoes",
+"fullAnswer": "The vegetables are tomatoes.",
+"structural": "query",
+"yesno": false
+}
+]
+}
