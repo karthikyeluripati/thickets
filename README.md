@@ -15,7 +15,9 @@ This repository asks two questions about that result:
 Every confirmatory test was specified in a plan lock committed before its run; exploratory analyses are labelled
 separately. All locks, per-item outputs and analysis code are in this repository.
 
-> **Status (2026-10-08):** all planned experiments are complete; the paper is being written.
+> **Status (2026-10-08):** the core experiments are complete, including the GQA replication (G2R) and the
+> direct-answer prompt control (G4). Optional follow-ups (Countdown; a non-Qwen same-run row) are under consideration.
+> The paper is being written.
 
 ## Findings
 
@@ -81,31 +83,23 @@ paper/
   STORY.md                   the paper's argument: one question, three claims, where each experiment goes
   RESULTS_MASTER.md          every number the paper may use, with its lock commit and source file
   THEORY.md                  first-order derivations (T1–T4) and their checks
-  WRITING_PROMPT.md          drafting rules (wording, what not to claim, credit to prior work)
+  WRITING_PROMPT.md          drafting rules (wording, what not to claim, credit to prior work); to be rewritten for G2R–G4
   CORRECTION_SPLIT_MISMATCH.md, WHY_INVESTIGATION_9504111.md   the OmniSpatial case-study record
   figures/thickets-or-tilts/ generated figures and tables;  figures/scripts/thickets_or_tilts.py regenerates them
+results/README.md            index: every study's question, lock commit, result, verdict and role in the paper
 results/paper-analysis/<study>/
   plan_lock.md               the pre-registration (committed before the run)
   *_RESULT.md, *_results.json   outcome against the locked rule
   pod/                       raw per-item outputs pulled from the GPU runs
 results/perspective-taking-n5000-20261004/   raw scores of the original N = 5000 OmniSpatial search
-scripts/                     runners (GPU) and locked analyses (CPU), named by study: stage12_, stage3_, r1_, r2_,
-                             i5_, m1_, c1_, p0_–p3_, s1_, c_, g1_, g2_, theory_check, geometry_*
+scripts/                     runners (GPU) and locked analyses (CPU), named by study; scripts/README.md maps
+                             each study to its scripts (kept flat because plan locks cite these paths)
 src/thicket_runtime/         a small library for fast, verified weight-state handling (used by the runners)
 tests/                       unit tests for the perturbation-folding and grouping code
 examples/                    the frozen OmniSpatial item splits used by the case study
 ```
 
-Study index (lock → result), in the order the paper uses them:
-
-| Study | What it tests | Where |
-|---|---|---|
-| Stage 1+2, Stage 3, R1, R2/R2b, I5, P0, S1-A, S1-7B | the first-order law, localization, generalisation | `stage12/`, `stage3/`, `r1/`, `r2/`, `r2b/`, `i5/`, `p0/`, `s1/`, `s1-7b/` |
-| GPU-A | whole-model and vision boundary | `geometry-gpu-a/` |
-| M1, C1, τ-check, S1-B | the OmniSpatial winner on fresh data; calibration | `m1/`, `c1/`, `tau-check/`, `s1/` |
-| P1, P2, P3 | chain-of-thought regime; SC vs published RandOpt | `p1/`, `p2/`, `p3/` |
-| C, C3B, G2 | same-run RandOpt vs SC (GSM8K 1.5B, GSM8K 3B, GQA) | `c-sameRun/`, `c3b-sameRun/`, `g2-sameRun/` |
-| Theory | T1/T2 checks | `theory/` |
+**Study index:** `results/README.md` lists every study (question → lock → result → verdict → role in the paper).
 
 The full ledger of every locked test and its outcome, including falsified and inconclusive ones, is in
 `paper/RESULTS_MASTER.md` §R9.
@@ -137,8 +131,8 @@ OLMo-2-0425-1B-Instruct, OLMo-2-1124-7B-Instruct. Data: OmniSpatial, GQA (testde
 ARC-Challenge, MATH-500.
 
 **A note on GQA:** RandOpt's released `randopt.py` (4000d34) builds text-only prompts and does not pass images to
-vLLM, so it cannot run GQA with images. Our GQA run (`g2-sameRun/`) re-implements its loop on RandOpt's own
-perturbation, scoring and voting components.
+vLLM, so it cannot run GQA with images. Our GQA runs (`g2-sameRun/`, `g2r-seed/`) re-implement its loop on RandOpt's own
+perturbation, scoring and voting components; `g3-termination/` and `g4-direct-prompt/` reuse those outputs.
 
 ## History
 
