@@ -226,6 +226,11 @@ often ends without a usable answer (heuristic non-answer rate: base 10.7%, SC sa
 on those 133 questions members are correct 43.4% (base 0%), elsewhere members gain +1.3 pp. Selected perturbations
 repair answer termination/format, which sampling the base model cannot (cf. the original paper's format analysis).
 
+**G3 (lock dc19fd4, confirmatory follow-up of the G2 exploratory reading):** with a 4× token budget (1024), RandOpt's
+GQA advantage shrinks by 0.97 pp [0.32, 1.70] but persists: D_1024 = +2.67 [+0.73, +4.52] → **PARTIAL**. Termination
+explains about a quarter of the advantage. Selected models answer in ~66 tokens vs 147 for base. The base model rarely
+hits the limit; its failures are mostly missing final boxes. The G2 "termination repair" reading is superseded by G3.
+
 **How to state R8b:** three same-run comparisons at the paper's settings, with RandOpt's published numbers reproduced
 on GSM8K. On GSM8K (1.5B, 3B) SC@50 is ahead (CIs exclude 0) and selected members are only 0–4 pp above base, so the
 gain is the vote. On GQA RandOpt is ahead (+3.47), and its members are +5 pp above base, mostly by fixing a format /
@@ -298,6 +303,8 @@ How to describe the process:
 | G2 | d2b3d68 + 5be1720 | environment gate | base vs P2 greedy, same items | ≤ 1.0 pp | 0.16 | valid |
 | G2 | d2b3d68 + 5be1720 | **G2-1 same-run RandOpt − SC@50, GQA** | paired item bootstrap | as C-1 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** |
 | G2 | d2b3d68 + 5be1720 | K = 10 | same | same | +4.36 [+2.26, +6.54] | RandOpt ahead |
+| G3 | dc19fd4 | **G3-1 does a 1024-token budget remove the GQA advantage?** | Δ = D256 − D1024; D1024 | supported if Δ CI > 0 and D1024 CI ∋ 0 | Δ +0.97 [0.32, 1.70]; D1024 +2.67 [0.73, 4.52] | **PARTIAL** |
+| G3 | dc19fd4 | G3-2 base vs members non-termination at 256 | difference, CI | supported if CI > 0 | +1.90 [0.31, 3.48] | supported (small) |
 | S1-7B | d64a1ad | **7B-1 law at 7B** (OLMo-2-7B, ARC) | pooled r, σ ≤ 0.002 | ≥ 0.5 GO; < 0.3 NO-GO | **0.787** [0.758, 0.820] | **GO** |
 
 **Engineering failures that produced no data:** P0 attempt 1 (offline-mode bug); P2 attempt 1 (package conflict);

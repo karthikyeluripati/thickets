@@ -58,7 +58,7 @@ def main():
     res['validity'] = {'base256_vs_g2': res['b256']['base_acc'] - g2['base_g2'], 'randopt256_vs_g2': res['b256']['randopt_K50'] - g2['K50']['randopt']}
     res['valid'] = abs(res['validity']['base256_vs_g2']) <= 0.5 and abs(res['validity']['randopt256_vs_g2']) <= 1.0
     if not res['valid']: res['G3_1']['outcome'] = 'INVALID-ENV (' + res['G3_1']['outcome'] + ')'
-    a.out.write_text(json.dumps(res, indent=1)); print(json.dumps(res, indent=1))
+    txt = json.dumps(res, indent=1, default=lambda o: o.item()); a.out.write_text(txt); print(txt)
 
 
 if __name__ == '__main__':

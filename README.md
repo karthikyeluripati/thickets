@@ -34,8 +34,9 @@ with the same number of test-time generations (50 samples at T = 0.7, no weight 
 
 On GSM8K, the selected models are individually only 0–4 pp better than the base model, so the gain is the vote, and
 sampling the unperturbed model votes better. On GQA, the selected models are about 5 pp better individually. An
-exploratory analysis shows why: the base model often ends without a usable answer, and selected perturbations
-roughly halve that failure rate. Sampling the base model cannot fix it.
+pre-registered follow-up shows they answer in about half as many tokens, and that fixing answers that never finish
+explains only about a quarter of RandOpt's GQA lead: with a 4× token budget it shrinks from +3.6 to +2.7 pp but
+persists.
 
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 
