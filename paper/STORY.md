@@ -9,17 +9,20 @@ selected perturbations change?**
 
 ## The answer in three claims
 
-### Claim 1: Weight search pays only when selection finds a shared shift; otherwise the gain is the vote, and self-consistency votes better (practical headline)
+### Claim 1: RandOpt's headline gains are matched by baselines it does not compare against: self-consistency on GSM8K, a one-line direct-answer prompt on GQA (practical headline)
 Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
 - **GSM8K / Qwen2.5-1.5B and 3B** (RandOpt's own code; published numbers reproduced, 77.18 vs 76.4 and 86.66 vs 87.1):
   SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
   and +0.2 pp above base; the gain is the vote, and sampling the base model votes better.
 - **GQA / Qwen2.5-VL-3B** (faithful re-implementation; released code cannot pass images): RandOpt is ahead,
   **+3.47 [+1.62, +5.41]**, replicated with a disjoint population of 5000 perturbations (+3.63 [+1.78, +5.49];
-  two-seed mean +3.55). Here selected models are +5.0 pp above base individually, and answer in about half as
-  many tokens (66 vs 147). A pre-registered follow-up (G3) shows termination/format repair explains only about a
-  quarter of the advantage (shrink 0.97 pp with a 4× budget; RandOpt still +2.67 [+0.73, +4.52]). The rest is a
-  shared shift in answer form/content that sampling the base model does not supply; its exact nature is open.
+  two-seed mean +3.55). But the advantage exists only under RandOpt's chain-of-thought prompt, which costs this
+  model 11 points: the selected perturbations mostly switch reasoning off (median 10 tokens vs 146; shorter members
+  are more accurate, r = −0.89; exploratory). **Asked to answer directly, the base model with one greedy generation
+  scores 64.7, vs RandOpt's 63.5** (G4, pre-registered: RandOpt − SC@50 with the direct prompt −1.21 [−2.83, +0.40],
+  no difference detected; same with a second prompt and the second seed). Search adds nothing on top of the prompt
+  (selected members under the direct prompt vs SC: −0.08 [−0.97, +0.81]). Termination repair explained only a
+  quarter of the CoT-prompt advantage (G3).
 - Supporting, cross-paper: SC@50 point estimates above published RandOpt on both gated GSM8K rows, 5.7–10.7 pp above
   the paper's TT-MV baseline [R8].
 - CoT regime: perturbations and sampling flip similarly susceptible questions (ρ = 0.946), but perturbed models carry
@@ -51,8 +54,8 @@ Direct-answer regime only; CoT is outside it.
 
 **Closing message.** Read through the first-order picture, RandOpt is two things: a vote, which removes perturbation noise
 and which sampling the base model does as well or better (GSM8K), and a selection step that moves the model along
-whatever *shared* direction the selection set rewards, which pays when such a direction exists (GQA's shorter,
-differently-formed answers, only partly a termination repair; OmniSpatial's label-aligned tilt). That is where "thickets" are real and useful: shared,
+whatever *shared* direction the selection set rewards, which pays when such a direction exists (GQA: switching off
+chain-of-thought reasoning that a direct prompt also switches off; OmniSpatial's label-aligned tilt). That is where "thickets" are real and useful: shared,
 transferable shifts, often of answer form rather than reasoning. Beyond that (vision weights, large σ, CoT correctness,
 the winner's residual gain) the account stops, and we say so.
 

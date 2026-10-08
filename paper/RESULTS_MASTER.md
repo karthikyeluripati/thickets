@@ -219,6 +219,8 @@ base 0.730 (200 items).
 
 K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead; G2R +4.68 [2.50, 6.95].
 GQA two-seed mean D (K = 50) = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29].
+**G4 (2ad4e46): with a direct-answer prompt, BASE greedy (1 generation) = 64.70 and SC@50 = 64.70 on the same questions;
+RandOpt (CoT) − SC@50 (direct) = −1.21 [−2.83, +0.40], no difference detected. The GQA advantage is a prompt effect.**
 † The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
 G2 uses a faithful re-implementation of randopt.py (released code cannot pass images); its environment gate
 (base 53.39 vs P2 53.55 on the same questions) passed. One test worker OOM'd and was re-run with identical settings.
@@ -306,6 +308,8 @@ How to describe the process:
 | G2 | d2b3d68 + 5be1720 | **G2-1 same-run RandOpt − SC@50, GQA** | paired item bootstrap | as C-1 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** |
 | G2 | d2b3d68 + 5be1720 | K = 10 | same | same | +4.36 [+2.26, +6.54] | RandOpt ahead |
 | G2R | 9e84c4f + 0754376 | **G2R-1 GQA advantage with a disjoint population (seed 43)** | paired item bootstrap | REPLICATED if CI > 0 | **+3.63 [+1.78, +5.49]**; D₂ − D₁ +0.16 [−0.97, +1.29] | **REPLICATED** |
+| G4 | 2ad4e46 | **G4-1 RandOpt (CoT) − SC@50 with a direct-answer prompt, GQA** | paired item bootstrap | as C-1, + equivalence ±2 | **−1.21 [−2.83, +0.40]** | **NO DIFFERENCE DETECTED** (not equivalent) |
+| G4 | 2ad4e46 | direct-prompt BASE − CoT BASE; search on top of prompt | paired bootstrap | reported | +11.31 [8.48, 14.14]; −0.08 [−0.97, +0.81] | prompt effect; search adds nothing |
 | G3 | dc19fd4 | **G3-1 does a 1024-token budget remove the GQA advantage?** | Δ = D256 − D1024; D1024 | supported if Δ CI > 0 and D1024 CI ∋ 0 | Δ +0.97 [0.32, 1.70]; D1024 +2.67 [0.73, 4.52] | **PARTIAL** |
 | G3 | dc19fd4 | G3-2 base vs members non-termination at 256 | difference, CI | supported if CI > 0 | +1.90 [0.31, 3.48] | supported (small) |
 | S1-7B | d64a1ad | **7B-1 law at 7B** (OLMo-2-7B, ARC) | pooled r, σ ≤ 0.002 | ≥ 0.5 GO; < 0.3 NO-GO | **0.787** [0.758, 0.820] | **GO** |

@@ -19,7 +19,7 @@ separately. All locks, per-item outputs and analysis code are in this repository
 
 ## Findings
 
-### 1. Weight search pays only when selection finds a shared shift; otherwise self-consistency votes better
+### 1. RandOpt's headline gains are matched by simple baselines: self-consistency on GSM8K, a direct-answer prompt on GQA
 
 Three same-run comparisons at the paper's settings (N = 5000 perturbations, top K = 50), against self-consistency
 with the same number of test-time generations (50 samples at T = 0.7, no weight search):
@@ -30,14 +30,15 @@ with the same number of test-time generations (50 samples at T = 0.7, no weight 
 | GSM8K / Qwen2.5-3B | 80.7 | 86.7 (87.1) | 88.2 | **−1.59 [−2.65, −0.53]** |
 | GQA / Qwen2.5-VL-3B (1238 questions) | 53.4 | 63.5 (69.0*) | 60.0 | **+3.47 [+1.62, +5.41]** |
 | GQA, second RandOpt run (new perturbations) | 53.4 | 63.7 | 60.0 | **+3.63 [+1.78, +5.49]** |
+| GQA, base model told to answer directly | **64.7** (one answer) | 63.5 | 64.7 | **−1.21 [−2.83, +0.40]** |
 
 <sub>*The paper evaluates GQA on all of testdev with train-split selection; we use image-disjoint testdev splits.</sub>
 
 On GSM8K, the selected models are individually only 0–4 pp better than the base model, so the gain is the vote, and
-sampling the unperturbed model votes better. On GQA, the selected models are about 5 pp better individually. An
-pre-registered follow-up shows they answer in about half as many tokens, and that fixing answers that never finish
-explains only about a quarter of RandOpt's GQA lead: with a 4× token budget it shrinks from +3.6 to +2.7 pp but
-persists.
+sampling the unperturbed model votes better. On GQA, RandOpt's lead exists only under its own step-by-step prompt,
+which costs this model 11 points. The selected perturbations mostly switch that reasoning off and answer in a few
+words. Simply telling the base model to answer directly gives 64.7% from **one** generation with no search, at least as
+good as RandOpt's 5000-model search plus 50-model vote, and search adds nothing on top of that prompt.
 
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 
