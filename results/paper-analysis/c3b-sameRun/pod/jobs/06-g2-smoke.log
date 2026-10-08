@@ -1,0 +1,32 @@
++ grep -q '^rc=0 ' /workspace/jobs/05-g2-prep.rc
++ L=/workspace/g2_launch.sh
++ cfg_ok 12 0 0.36 fast
++ W=12
++ E=0
++ M=0.36
++ tag=fast
++ rm -rf /workspace/g2/out_smoke
+++ bash /workspace/g2_launch.sh select 12 0 0.36 /workspace/g2/smoke_sel_fast --n 24 --out out_smoke
++ n=12
++ '[' 12 = 12 ']'
+++ bash /workspace/g2_launch.sh test 12 0 0.36 /workspace/g2/smoke_test_fast --n 24 --k 6 --limit-test 30 --out out_smoke
++ n=12
++ '[' 12 = 12 ']'
++ return 0
++ echo 'W=12 EAGER=0 MEM=0.36 CFG=fast'
++ cat /workspace/g2/config.env
+W=12 EAGER=0 MEM=0.36 CFG=fast
++ nvidia-smi --query-gpu=index,memory.used --format=csv,noheader
+0, 0 MiB
+1, 0 MiB
+2, 0 MiB
+3, 0 MiB
+4, 0 MiB
+5, 0 MiB
++ df -h /workspace
++ tail -1
+overlay         200G   18G  183G   9% /
++ python -
+CFG {'W': '12', 'EAGER': '0', 'MEM': '0.36', 'CFG': 'fast'} SEC_PER_PERT_PER_WORKER 7.25 spent_g2 1.91 PROJ_G2 23.36
++ cat /workspace/g2/projection.txt
+fast W=12 7.25 1.91 23.36 GO

@@ -1,0 +1,15 @@
++ grep -q '^rc=0 ' /workspace/jobs/06-g2-smoke.rc
++ grep -q ' GO$' /workspace/g2/projection.txt
++ . /workspace/g2/config.env
+++ W=12
+++ EAGER=0
+++ MEM=0.36
+++ CFG=fast
+++ bash /workspace/g2_launch.sh select 12 0 0.36 /workspace/g2/sel --n 5000
++ n=12
++ echo 'finished workers: 12 of 12'
+finished workers: 12 of 12
++ test 12 = 12
++ wc -l
++ cat /workspace/g2/out/select_0.jsonl /workspace/g2/out/select_1.jsonl /workspace/g2/out/select_10.jsonl /workspace/g2/out/select_11.jsonl /workspace/g2/out/select_2.jsonl /workspace/g2/out/select_3.jsonl /workspace/g2/out/select_4.jsonl /workspace/g2/out/select_5.jsonl /workspace/g2/out/select_6.jsonl /workspace/g2/out/select_7.jsonl /workspace/g2/out/select_8.jsonl /workspace/g2/out/select_9.jsonl
+5000

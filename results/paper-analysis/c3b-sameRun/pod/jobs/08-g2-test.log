@@ -1,0 +1,11 @@
++ grep -q '^rc=0 ' /workspace/jobs/07-g2-select.rc
++ . /workspace/g2/config.env
+++ W=12
+++ EAGER=0
+++ MEM=0.36
+++ CFG=fast
+++ bash /workspace/g2_launch.sh test 12 0 0.36 /workspace/g2/test --n 5000 --k 50
++ n=11
++ echo 'finished workers: 11 of 12'
+finished workers: 11 of 12
++ test 11 = 12
