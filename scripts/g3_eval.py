@@ -10,7 +10,10 @@ from pathlib import Path
 import sys
 import time
 
-PROMPT = "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}."
+PROMPTS = {  # 'cot' = RandOpt's GQA prompt (G2/G3); 'direct' and 'short' = G4's no-reasoning controls
+    'cot': "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}.",
+    'direct': "Look at the image and answer the question.\n\nQuestion: {q}\n\nAnswer directly without explanation, and put your final answer within \\boxed{{}}.",
+    'short': "Look at the image and answer the question.\n\nQuestion: {q}\n\nAnswer the question using a single word or phrase, and put your final answer within \\boxed{{}}."}
 
 
 def main():
@@ -21,7 +24,7 @@ def main():
     ap.add_argument('--topk', default='results/paper-analysis/g2-sameRun/pod/g2/out/topk.json')
     ap.add_argument('--images', type=Path, default=Path('/workspace/g2/images'))
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--out', type=Path, required=True)
-    ap.add_argument('--model-path', required=True)
+    ap.add_argument('--model-path', required=True); ap.add_argument('--prompt', choices=list(PROMPTS), default='cot')
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream))
     os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '0', 'OMP_NUM_THREADS': '4'})
@@ -38,7 +41,7 @@ def main():
               limit_mm_per_prompt={'image': 1, 'video': 0}, mm_processor_cache_gb=0, seed=0, disable_log_stats=True)
     rpc = lambda f, *args: llm.collective_rpc(f, args=args)[0]
     rpc('store_base_weights'); proc = AutoProcessor.from_pretrained(a.model_path)
-    R = [{'prompt': proc.apply_chat_template([{'role': 'user', 'content': [{'type': 'image'}, {'type': 'text', 'text': PROMPT.format(q=r['question'])}]}],
+    R = [{'prompt': proc.apply_chat_template([{'role': 'user', 'content': [{'type': 'image'}, {'type': 'text', 'text': PROMPTS[a.prompt].format(q=r['question'])}]}],
                                              tokenize=False, add_generation_prompt=True),
           'multi_modal_data': {'image': Image.open(a.images / f"{r['imageId']}.jpg").convert('RGB')}} for r in rows]
     gt = [{'answer': r['answer'], 'full_answer': r['fullAnswer']} for r in rows]
