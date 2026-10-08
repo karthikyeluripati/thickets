@@ -38,6 +38,7 @@ def main():
     ap.add_argument('--workers', type=int, default=6); ap.add_argument('--n', type=int, default=5000); ap.add_argument('--k', type=int, default=50)
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--root', type=Path, default=Path('/workspace/g2'))
     ap.add_argument('--out', default='out'); ap.add_argument('--model-path', required=True); ap.add_argument('--limit-test', type=int, default=0)
+    ap.add_argument('--eager', type=int, default=1); ap.add_argument('--gpu-mem', type=float, default=.85)
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream))
     os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '0', 'OMP_NUM_THREADS': '2'})
@@ -47,8 +48,8 @@ def main():
     from data_handlers.gqa import GQAHandler
     h = GQAHandler(); items = json.loads((a.root / 'items.json').read_text()); out = a.root / a.out; out.mkdir(parents=True, exist_ok=True)
     llm = LLM(model=a.model_path, tokenizer=a.model_path, dtype='bfloat16', tensor_parallel_size=1, distributed_executor_backend='uni',
-              worker_extension_cls='utils.worker_extn.WorkerExtension', enforce_eager=True, enable_prefix_caching=False,
-              gpu_memory_utilization=.85, max_model_len=8192, max_num_seqs=256, max_num_batched_tokens=16384,
+              worker_extension_cls='utils.worker_extn.WorkerExtension', enforce_eager=bool(a.eager), enable_prefix_caching=False,
+              gpu_memory_utilization=a.gpu_mem, max_model_len=8192, max_num_seqs=256, max_num_batched_tokens=16384,
               limit_mm_per_prompt={'image': 1, 'video': 0}, mm_processor_cache_gb=0, seed=0, disable_log_stats=True)
     rpc = lambda f, *args: llm.collective_rpc(f, args=args)[0]
     rpc('store_base_weights'); proc = AutoProcessor.from_pretrained(a.model_path)
