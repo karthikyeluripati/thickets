@@ -15,25 +15,27 @@ This repository asks two questions about that result:
 Every confirmatory test was specified in a plan lock committed before its run; exploratory analyses are labelled
 separately. All locks, per-item outputs and analysis code are in this repository.
 
-> **Status (2026-10-07):** analysis in progress. Three runs are under way (same-run comparisons on GSM8K with
-> Qwen2.5-3B and on GQA, and the tilt law at 7B). Their plan locks are committed; results will be added when they land.
+> **Status (2026-10-08):** all planned experiments are complete; the paper is being written.
 
-## Findings so far
+## Findings
 
-### 1. Most of RandOpt's gain comes from the vote, and self-consistency votes better in the setting we could run same-run
+### 1. Weight search pays only when selection finds a shared shift; otherwise self-consistency votes better
 
-At the paper's own settings (N = 5000 perturbations, top K = 50, RandOpt's own code, GSM8K, Qwen2.5-1.5B-Instruct):
+Three same-run comparisons at the paper's settings (N = 5000 perturbations, top K = 50), against self-consistency
+with the same number of test-time generations (50 samples at T = 0.7, no weight search):
 
-| | GSM8K test accuracy (1319 questions) |
-|---|---|
-| Base model | 60.3 (paper: 58.8) |
-| RandOpt, top-50 vote | **77.2** (paper: 76.4, reproduced) |
-| Self-consistency, 50 samples at T = 0.7, no weight search | **79.8** |
-| Difference, RandOpt − SC (paired bootstrap 95% CI) | **−2.65 pp [−4.32, −0.99]** |
+| Task / model | Base | RandOpt (paper) | Self-consistency | RandOpt − SC [95% CI] |
+|---|---|---|---|---|
+| GSM8K / Qwen2.5-1.5B | 60.3 | 77.2 (76.4) | 79.8 | **−2.65 [−4.32, −0.99]** |
+| GSM8K / Qwen2.5-3B | 80.7 | 86.7 (87.1) | 88.2 | **−1.59 [−2.65, −0.53]** |
+| GQA / Qwen2.5-VL-3B (1238 questions) | 53.4 | 63.5 (69.0*) | 60.0 | **+3.47 [+1.62, +5.41]** |
 
-The 50 selected models score 64.3% on average when used one at a time. The vote, not the individual perturbations,
-supplies most of the gain. With K = 10 the two methods are not distinguishable (+1.97 pp [0.00, +3.87]). This is one
-model, one task and one RandOpt run; the 3B and GQA replications are running.
+<sub>*The paper evaluates GQA on all of testdev with train-split selection; we use image-disjoint testdev splits.</sub>
+
+On GSM8K, the selected models are individually only 0–4 pp better than the base model, so the gain is the vote, and
+sampling the unperturbed model votes better. On GQA, the selected models are about 5 pp better individually. An
+exploratory analysis shows why: the base model often ends without a usable answer, and selected perturbations
+roughly halve that failure rate. Sampling the base model cannot fix it.
 
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 
@@ -45,7 +47,7 @@ tracks how small language-weight perturbations shift answer preferences:
 | Qwen3-VL-8B, two OmniSpatial tasks (tilts) | 0.938, 0.915 |
 | Qwen2.5-VL-7B (after a reliability-gate failure and a pre-registered remedy) | 0.925 |
 | Qwen2.5-VL-3B, RandOpt's GQA setting, per question | 0.930 |
-| **OLMo-2-1B, ARC-Challenge** (non-Qwen, text-only) | **0.790** |
+| **OLMo-2-1B / 7B, ARC-Challenge** (non-Qwen, text-only) | **0.790 / 0.787** |
 
 The effect is localized to the middle language layers (block-level r = 0.978). The account has tested limits: it
 fails for vision weights (r = 0.137), breaks down by σ = 0.005, and does not predict chain-of-thought correctness.

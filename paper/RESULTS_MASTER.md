@@ -103,6 +103,7 @@ most of the winner's transferable gain.
 | I5 per item (a1c2a7a) | Qwen3-VL-8B | Perspective / "front" | 7680 item × perturbation pairs | **0.771** pooled | per-item median r 0.88; 95/96 items ≥ 0.6 |
 | P0 (d5152f7) | Qwen2.5-VL-3B, LM-only (RandOpt GQA setting) | GQA per-question answer contrast | 96 × 16 at σ ≤ 0.002 | **0.930** | σ = 0.001: 0.977; 0.002: 0.915; **σ = 0.005: 0.31 (breaks)** |
 | S1-A (797fa96) | **OLMo-2-0425-1B-Instruct** (non-Qwen, text-only) | **ARC-Challenge** per-question answer contrast | 100 × 16 at σ ≤ 0.002 | **0.790** [0.753, 0.824] | σ = 0.001: 0.925; 0.002: 0.752; **σ = 0.005: 0.21 (breaks)**; slope 0.76; base acc 0.47 |
+| S1-7B (d64a1ad) | **OLMo-2-1124-7B-Instruct** | ARC-Challenge per-question answer contrast | 100 × 16 at σ ≤ 0.002 | **0.787** [0.758, 0.820] | σ = 0.001: 0.914; 0.002: 0.755; **σ = 0.005: 0.25 (breaks)**; slope 0.77; base acc 0.68 |
 
 **Boundary (vision is nonlinear).**
 - First-order prediction of whole-model, per-example gold-vs-wrong contrasts with vision perturbed was **falsified**
@@ -207,9 +208,28 @@ vote gives 77.2. SC single samples average 57.3; their vote gives 79.8. Vote cur
 68.2/74.6/77.2/77.5/77.2; SC 57.5/69.9/75.2/78.7/79.8. Selection: top-50 train reward 0.780 vs population 0.676 and
 base 0.730 (200 items).
 
-**How to state R8b:** a single same-run comparison (one model, one task, one RandOpt run; the paper averages 3) in
-which RandOpt reproduces the published number and SC@50 is ahead with a CI excluding zero. RandOpt's 5000 × 200
-search generations are not charged to it. Do not generalise beyond GSM8K / 1.5B without further runs.
+**Further same-run rows (same protocol):**
+
+| Row (lock) | Base | RandOpt K = 50 (paper) | SC@50 | **D = RandOpt − SC** [paired 95% CI] | Outcome | Members (mean, single model) |
+|---|---|---|---|---|---|---|
+| GSM8K / Qwen2.5-1.5B (C, 1437d44+6118222) | 60.3 | 77.18 (76.4) | 79.83 | **−2.65 [−4.32, −0.99]** | SC AHEAD | 64.3 |
+| GSM8K / Qwen2.5-3B (C3B, e78cfd0) | 80.7 | 86.66 (87.1) | 88.25 | **−1.59 [−2.65, −0.53]** | SC AHEAD | 80.9 |
+| GQA / Qwen2.5-VL-3B, 1238 q (G2, d2b3d68+5be1720) | 53.4 | 63.49 (69.0†) | 60.02 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** | 58.4 |
+
+K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead.
+† The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
+G2 uses a faithful re-implementation of randopt.py (released code cannot pass images); its environment gate
+(base 53.39 vs P2 53.55 on the same questions) passed. One test worker OOM'd and was re-run with identical settings.
+
+**EXPLORATORY (G2):** the GQA advantage is on open questions (vote 56.2 vs 51.3; yes/no 76.5 vs 75.6). The base model
+often ends without a usable answer (heuristic non-answer rate: base 10.7%, SC samples 10.8%, selected members 5.5%);
+on those 133 questions members are correct 43.4% (base 0%), elsewhere members gain +1.3 pp. Selected perturbations
+repair answer termination/format, which sampling the base model cannot (cf. the original paper's format analysis).
+
+**How to state R8b:** three same-run comparisons at the paper's settings, with RandOpt's published numbers reproduced
+on GSM8K. On GSM8K (1.5B, 3B) SC@50 is ahead (CIs exclude 0) and selected members are only 0–4 pp above base, so the
+gain is the vote. On GQA RandOpt is ahead (+3.47), and its members are +5 pp above base, mostly by fixing a format /
+termination failure (exploratory). RandOpt's 5000 × 200 search generations are not charged to it; one run per row.
 
 ## R8c. Theory checks (criteria committed before computing, f06f3c6; status: criteria-first EXPLORATORY)
 **Source:** `results/paper-analysis/theory/theory_results.json`, derivations in `paper/THEORY.md`. Data: P0 (96 GQA
@@ -272,6 +292,13 @@ How to describe the process:
 | C | 1437d44 + 6118222 | validity; base gate | recomputed = printed; ±2.0 | exact; required | 1018 = 1018; +1.5 / +0.5 | valid; pass |
 | C | 1437d44 + 6118222 | **C-1 same-run RandOpt (N = 5000, K = 50) − SC@50** | paired item bootstrap | CI > 0 RandOpt ahead; CI < 0 SC ahead | **−2.65 [−4.32, −0.99]** | **SC AHEAD** |
 | C | 1437d44 + 6118222 | K = 10 (secondary) | same | same | +1.97 [0.00, 3.87] | no difference detected |
+| C3B | e78cfd0 | validity; base gate | recomputed = printed; ±2.0 | required | 1143 = 1143; +0.9 / +0.5 | valid; pass |
+| C3B | e78cfd0 | **C3B-1 same-run RandOpt − SC@50, GSM8K-3B** | paired item bootstrap | as C-1 | **−1.59 [−2.65, −0.53]** | **SC AHEAD** |
+| C3B | e78cfd0 | K = 10 | same | same | −1.06 [−2.35, 0.15] | no difference detected |
+| G2 | d2b3d68 + 5be1720 | environment gate | base vs P2 greedy, same items | ≤ 1.0 pp | 0.16 | valid |
+| G2 | d2b3d68 + 5be1720 | **G2-1 same-run RandOpt − SC@50, GQA** | paired item bootstrap | as C-1 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** |
+| G2 | d2b3d68 + 5be1720 | K = 10 | same | same | +4.36 [+2.26, +6.54] | RandOpt ahead |
+| S1-7B | d64a1ad | **7B-1 law at 7B** (OLMo-2-7B, ARC) | pooled r, σ ≤ 0.002 | ≥ 0.5 GO; < 0.3 NO-GO | **0.787** [0.758, 0.820] | **GO** |
 
 **Engineering failures that produced no data:** P0 attempt 1 (offline-mode bug); P2 attempt 1 (package conflict);
 S1 smoke attempt 1 (tar ownership); C on 1× H100 (RandOpt arm skipped by the locked budget rule, `N_DOES_NOT_FIT`).
