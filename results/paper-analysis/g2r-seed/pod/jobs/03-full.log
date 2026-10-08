@@ -1,0 +1,5 @@
++ grep -q '^rc=0 ' /workspace/jobs/02-smoke.rc
++ grep -q ' GO$' /workspace/g2r/projection.txt
++ echo PROJECTION_OVER_CAP
+PROJECTION_OVER_CAP
++ exit 4

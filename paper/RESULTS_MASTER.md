@@ -215,8 +215,10 @@ base 0.730 (200 items).
 | GSM8K / Qwen2.5-1.5B (C, 1437d44+6118222) | 60.3 | 77.18 (76.4) | 79.83 | **−2.65 [−4.32, −0.99]** | SC AHEAD | 64.3 |
 | GSM8K / Qwen2.5-3B (C3B, e78cfd0) | 80.7 | 86.66 (87.1) | 88.25 | **−1.59 [−2.65, −0.53]** | SC AHEAD | 80.9 |
 | GQA / Qwen2.5-VL-3B, 1238 q (G2, d2b3d68+5be1720) | 53.4 | 63.49 (69.0†) | 60.02 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** | 58.4 |
+| GQA, second population seed (G2R, 9e84c4f+0754376) | 53.4 | 63.65 | 60.02 | **+3.63 [+1.78, +5.49]** | **RANDOPT AHEAD (replicated)** | 57.8 |
 
-K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead.
+K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead; G2R +4.68 [2.50, 6.95].
+GQA two-seed mean D (K = 50) = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29].
 † The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
 G2 uses a faithful re-implementation of randopt.py (released code cannot pass images); its environment gate
 (base 53.39 vs P2 53.55 on the same questions) passed. One test worker OOM'd and was re-run with identical settings.
@@ -303,6 +305,7 @@ How to describe the process:
 | G2 | d2b3d68 + 5be1720 | environment gate | base vs P2 greedy, same items | ≤ 1.0 pp | 0.16 | valid |
 | G2 | d2b3d68 + 5be1720 | **G2-1 same-run RandOpt − SC@50, GQA** | paired item bootstrap | as C-1 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** |
 | G2 | d2b3d68 + 5be1720 | K = 10 | same | same | +4.36 [+2.26, +6.54] | RandOpt ahead |
+| G2R | 9e84c4f + 0754376 | **G2R-1 GQA advantage with a disjoint population (seed 43)** | paired item bootstrap | REPLICATED if CI > 0 | **+3.63 [+1.78, +5.49]**; D₂ − D₁ +0.16 [−0.97, +1.29] | **REPLICATED** |
 | G3 | dc19fd4 | **G3-1 does a 1024-token budget remove the GQA advantage?** | Δ = D256 − D1024; D1024 | supported if Δ CI > 0 and D1024 CI ∋ 0 | Δ +0.97 [0.32, 1.70]; D1024 +2.67 [0.73, 4.52] | **PARTIAL** |
 | G3 | dc19fd4 | G3-2 base vs members non-termination at 256 | difference, CI | supported if CI > 0 | +1.90 [0.31, 3.48] | supported (small) |
 | S1-7B | d64a1ad | **7B-1 law at 7B** (OLMo-2-7B, ARC) | pooled r, σ ≤ 0.002 | ≥ 0.5 GO; < 0.3 NO-GO | **0.787** [0.758, 0.820] | **GO** |

@@ -29,6 +29,7 @@ with the same number of test-time generations (50 samples at T = 0.7, no weight 
 | GSM8K / Qwen2.5-1.5B | 60.3 | 77.2 (76.4) | 79.8 | **−2.65 [−4.32, −0.99]** |
 | GSM8K / Qwen2.5-3B | 80.7 | 86.7 (87.1) | 88.2 | **−1.59 [−2.65, −0.53]** |
 | GQA / Qwen2.5-VL-3B (1238 questions) | 53.4 | 63.5 (69.0*) | 60.0 | **+3.47 [+1.62, +5.41]** |
+| GQA, second RandOpt run (new perturbations) | 53.4 | 63.7 | 60.0 | **+3.63 [+1.78, +5.49]** |
 
 <sub>*The paper evaluates GQA on all of testdev with train-split selection; we use image-disjoint testdev splits.</sub>
 

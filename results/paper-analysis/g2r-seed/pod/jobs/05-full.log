@@ -1,0 +1,203 @@
++ grep -q '^rc=0 ' /workspace/jobs/02-smoke.rc
++ . /workspace/stage/common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_OFFLINE=1
+++ VLLM_LOGGING_LEVEL=WARNING
+++ cd /workspace/repo
++++ cat /workspace/model_path.txt
+++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
++ run_wave select out
++ ph=select
++ o=out
++ shift 2
++ pids=()
++ for w in 0 1 2 3
++ '[' 0 -eq 2 ']'
++ pids[$w]=5019
++ for w in 0 1 2 3
++ '[' 1 -eq 2 ']'
++ pids[$w]=5020
++ for w in 0 1 2 3
++ '[' 2 -eq 2 ']'
++ sleep 90
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 0 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 1 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ pids[$w]=5461
++ for w in 0 1 2 3
++ '[' 3 -eq 2 ']'
++ pids[$w]=5462
++ bad=
++ for w in 0 1 2 3
++ wait 5019
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 2 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 3 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ for w in 0 1 2 3
++ wait 5020
++ bad=' 1'
++ for w in 0 1 2 3
++ wait 5461
++ for w in 0 1 2 3
++ wait 5462
++ for w in $bad
++ echo 'RERUN select worker 1'
+RERUN select worker 1
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 1 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
+++ cat /workspace/g2r/out/select_0.jsonl /workspace/g2r/out/select_1.jsonl /workspace/g2r/out/select_2.jsonl /workspace/g2r/out/select_3.jsonl
+++ wc -l
++ echo 'SELECT_ALL_DONE 5000'
+SELECT_ALL_DONE 5000
++ run_wave test out
++ ph=test
++ o=out
++ shift 2
++ pids=()
++ for w in 0 1 2 3
++ '[' 0 -eq 2 ']'
++ pids[$w]=15594
++ for w in 0 1 2 3
++ '[' 1 -eq 2 ']'
++ pids[$w]=15595
++ for w in 0 1 2 3
++ '[' 2 -eq 2 ']'
++ sleep 90
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase test --worker 1 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase test --worker 0 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ pids[$w]=16015
++ for w in 0 1 2 3
++ '[' 3 -eq 2 ']'
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase test --worker 2 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ pids[$w]=16016
++ bad=
++ for w in 0 1 2 3
++ wait 15594
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase test --worker 3 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ for w in 0 1 2 3
++ wait 15595
++ for w in 0 1 2 3
++ wait 16015
++ for w in 0 1 2 3
++ wait 16016
++ bad=' 3'
++ for w in $bad
++ echo 'RERUN test worker 3'
+RERUN test worker 3
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase test --worker 3 --workers 4 --root /workspace/g2r --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.36 --pop-seed 43
++ python -u scripts/g2r_analysis.py --upstream /workspace/RandOpt --d1 /workspace/g2s1 --d2 /workspace/g2r --out /workspace/g2r/g2r_results.json
+{
+ "n_test": 1238,
+ "s1": {
+  "base": 53.392568659127626,
+  "members_mean": 58.39095315024233,
+  "members_range": [
+   52.50403877221325,
+   63.08562197092083
+  ],
+  "sigma_top": {
+   "0.002": 46,
+   "0.001": 3,
+   "0.0005": 1
+  },
+  "top_reward": [
+   0.635,
+   0.58
+  ],
+  "base_select_reward": 0.535,
+  "K50": {
+   "randopt": 63.48949919224556,
+   "sc": 60.01615508885298,
+   "D": 3.4733441033925687,
+   "D_ci95": [
+    1.615508885298869,
+    5.4119547657512115
+   ],
+   "outcome": "RANDOPT AHEAD"
+  },
+  "K10": {
+   "randopt": 63.32794830371567,
+   "sc": 58.966074313408726,
+   "D": 4.361873990306947,
+   "D_ci95": [
+    2.2617124394184165,
+    6.462035541195476
+   ],
+   "outcome": "RANDOPT AHEAD"
+  }
+ },
+ "s2": {
+  "base": 53.392568659127626,
+  "members_mean": 57.815831987075924,
+  "members_range": [
+   52.58481421647819,
+   63.40872374798061
+  ],
+  "sigma_top": {
+   "0.002": 44,
+   "0.001": 5,
+   "0.0005": 1
+  },
+  "top_reward": [
+   0.65,
+   0.57
+  ],
+  "base_select_reward": 0.535,
+  "K50": {
+   "randopt": 63.65105008077544,
+   "sc": 60.01615508885298,
+   "D": 3.634894991922456,
+   "D_ci95": [
+    1.7770597738287561,
+    5.492730210016155
+   ],
+   "outcome": "RANDOPT AHEAD"
+  },
+  "K10": {
+   "randopt": 63.65105008077544,
+   "sc": 58.966074313408726,
+   "D": 4.68497576736672,
+   "D_ci95": [
+    2.504038772213247,
+    6.946688206785137
+   ],
+   "outcome": "RANDOPT AHEAD"
+  }
+ },
+ "compare_K50": {
+  "D_s2_minus_D_s1": 0.16155088852988692,
+  "ci95": [
+   -0.9693053311793215,
+   1.2924071082390953
+  ],
+  "D_two_seed_mean": 3.5541195476575123,
+  "D_two_seed_mean_ci95": [
+   1.7770597738287561,
+   5.3715670436187395
+  ]
+ },
+ "compare_K10": {
+  "D_s2_minus_D_s1": 0.32310177705977383,
+  "ci95": [
+   -0.9693053311793215,
+   1.6962843295638126
+  ],
+  "D_two_seed_mean": 4.523424878836833,
+  "D_two_seed_mean_ci95": [
+   2.504038772213247,
+   6.583198707592892
+  ]
+ },
+ "G2R_1": "REPLICATED",
+ "validity_base_equal": true,
+ "seed_overlap_top50": 0
+}
++ touch /workspace/g2r/G2R_DONE

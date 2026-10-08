@@ -15,7 +15,8 @@ Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
   SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
   and +0.2 pp above base; the gain is the vote, and sampling the base model votes better.
 - **GQA / Qwen2.5-VL-3B** (faithful re-implementation; released code cannot pass images): RandOpt is ahead,
-  **+3.47 [+1.62, +5.41]**. Here selected models are +5.0 pp above base individually, and answer in about half as
+  **+3.47 [+1.62, +5.41]**, replicated with a disjoint population of 5000 perturbations (+3.63 [+1.78, +5.49];
+  two-seed mean +3.55). Here selected models are +5.0 pp above base individually, and answer in about half as
   many tokens (66 vs 147). A pre-registered follow-up (G3) shows termination/format repair explains only about a
   quarter of the advantage (shrink 0.97 pp with a 4× budget; RandOpt still +2.67 [+0.73, +4.52]). The rest is a
   shared shift in answer form/content that sampling the base model does not supply; its exact nature is open.
