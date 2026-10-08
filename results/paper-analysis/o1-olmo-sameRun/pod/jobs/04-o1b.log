@@ -1,0 +1,26 @@
++ grep -q '^rc=0 ' /workspace/jobs/03-sc.rc
++ . /workspace/stage/common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1 VLLM_NO_USAGE_STATS=1 VLLM_DISABLE_COMPILE_SAMPLER=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_OFFLINE=1
+++ VLLM_NO_USAGE_STATS=1
+++ VLLM_DISABLE_COMPILE_SAMPLER=1
+++ VLLM_LOGGING_LEVEL=WARNING
++++ cat /workspace/o1/model_path.txt
+++ MP=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ read b nb
+++ bsec /workspace/o1/out/randopt.log
+++ python3 - /workspace/o1/out/randopt.log
+++ spent
+++ python3 -c 'import time;r=dict(x.split('\''='\'') for x in open('\''/workspace/rate.txt'\'').read().split());print((time.time()-int(r['\''START'\'']))/3600*float(r['\''RATE'\'']))'
++ s=46.226793844556816
++ python3 -c '
+b=6.501628664495114; s=46.226793844556816; r=dict(x.split('\''='\'') for x in open('\''/workspace/rate.txt'\'').read().split()); rate=float(r['\''RATE'\''])
+p = s + 625*b*1.05/3600*rate + 3
+open('\''/workspace/o1/o1b_decision.txt'\'','\''w'\'').write(f'\''BATCH_SEC {b:.2f} spent {s:.2f} PROJECTED {p:.2f} '\'' + ('\''RUN'\'' if p <= 58.5 else '\''SKIP'\'') + '\''\n'\'')'
++ cat /workspace/o1/o1b_decision.txt
+BATCH_SEC 6.50 spent 46.23 PROJECTED 87.06 SKIP
++ grep -q ' RUN$' /workspace/o1/o1b_decision.txt
++ echo O1B_SKIPPED_BY_RULE
+O1B_SKIPPED_BY_RULE
++ exit 0

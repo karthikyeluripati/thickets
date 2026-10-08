@@ -9,7 +9,7 @@ selected perturbations change?**
 
 ## The answer in three claims
 
-### Claim 1: RandOpt's headline gains are matched by baselines it does not compare against: self-consistency on GSM8K, a one-line direct-answer prompt on GQA (practical headline)
+### Claim 1: RandOpt's gain is a vote plus, where one exists, a shared shift; on Qwen GSM8K sampling votes better, on GQA a one-line prompt gives the shift (practical headline)
 Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
 - **GSM8K / Qwen2.5-1.5B and 3B** (RandOpt's own code; published numbers reproduced, 77.18 vs 76.4 and 86.66 vs 87.1):
   SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
@@ -23,6 +23,10 @@ Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
   no difference detected; same with a second prompt and the second seed). Search adds nothing on top of the prompt
   (selected members under the direct prompt vs SC: −0.08 [−0.97, +0.81]). Termination repair explained only a
   quarter of the CoT-prompt advantage (G3).
+- **GSM8K / OLMo-2-1B (non-Qwen, O1, pre-registered): RandOpt ahead, +8.72 [+6.75, +10.77].** Base scores only 35% under
+  RandOpt's prompt; the selected models are +5.1 pp better individually (a shared shift, as on GQA). So on GSM8K the
+  outcome is model-dependent. Whether OLMo's shift is also a prompt effect (as G4 showed for GQA) is **untested**:
+  only extracted answers were saved, not texts.
 - Supporting, cross-paper: SC@50 point estimates above published RandOpt on both gated GSM8K rows, 5.7–10.7 pp above
   the paper's TT-MV baseline [R8].
 - CoT regime: perturbations and sampling flip similarly susceptible questions (ρ = 0.946), but perturbed models carry

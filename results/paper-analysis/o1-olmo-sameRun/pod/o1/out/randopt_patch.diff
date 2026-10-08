@@ -1,0 +1,12 @@
+diff --git a/randopt.py b/randopt.py
+index 134c627..8cf61b6 100644
+--- a/randopt.py
++++ b/randopt.py
+@@ -282,6 +282,7 @@ def run_ensemble_evaluation(args, engines, handler, test_prompts, test_datas, to
+         print(f"  K={k_value}: {acc:.2f}% ({correct}/{num_samples}) [+{acc - base_test*100:.2f}%]")
+     
+     # Clean up all_answers after evaluation
++    json.dump(all_answers, open(os.environ["C_DUMP"], "w"))  # Session C: logging only
+     del all_answers
+     gc.collect()
+     

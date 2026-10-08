@@ -1,0 +1,506 @@
++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1
++ HF_HOME=/workspace/hf
++ HF_HUB_DISABLE_XET=1
++ mkdir -p /workspace/o1/out
++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''allenai/OLMo-2-0425-1B-Instruct'\'',revision='\''48d788eca847d4d7548f375ad03d3c9312f6139e'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
++ tail -1
+Fetching 8 files:   0%|          | 0/8 [00:00<?, ?it/s]Fetching 8 files: 100%|██████████| 8/8 [00:00<00:00, 1645.15it/s]
++ cd /workspace/RandOpt
++ python -u /workspace/repo/scripts/c_prep_gsm8k.py
++ tee /workspace/o1/out/data_hashes.txt
+Generating train split:   0%|          | 0/7473 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 7473/7473 [00:00<00:00, 337635.28 examples/s]
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 169152.05 examples/s]
+train 7473 c6f812ae33c9159d
+test 1319 59ec1b7f9357c7a2
++ grep -q 'train 7473 c6f812ae33c9159d' /workspace/o1/out/data_hashes.txt
++ grep -q 'test 1319 59ec1b7f9357c7a2' /workspace/o1/out/data_hashes.txt
++ python -
+patched
++ git -C /workspace/RandOpt diff
++ tee /workspace/o1/out/randopt_patch.diff
+diff --git a/randopt.py b/randopt.py
+index 134c627..8cf61b6 100644
+--- a/randopt.py
++++ b/randopt.py
+@@ -282,6 +282,7 @@ def run_ensemble_evaluation(args, engines, handler, test_prompts, test_datas, to
+         print(f"  K={k_value}: {acc:.2f}% ({correct}/{num_samples}) [+{acc - base_test*100:.2f}%]")
+     
+     # Clean up all_answers after evaluation
++    json.dump(all_answers, open(os.environ["C_DUMP"], "w"))  # Session C: logging only
+     del all_answers
+     gc.collect()
+     
++ grep -q '^import json' /workspace/RandOpt/randopt.py
++ grep -q '^import os' /workspace/RandOpt/randopt.py
++ . /workspace/stage/common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1 VLLM_NO_USAGE_STATS=1 VLLM_DISABLE_COMPILE_SAMPLER=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_OFFLINE=1
+++ VLLM_NO_USAGE_STATS=1
+++ VLLM_DISABLE_COMPILE_SAMPLER=1
+++ VLLM_LOGGING_LEVEL=WARNING
++++ cat /workspace/o1/model_path.txt
+++ MP=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ C_DUMP=/workspace/o1/smoke_answers.json
++ ro /workspace/o1/smoke /workspace/o1/smoke.log --test_samples 30 --global_seed 42 --population_size 24 --top_k_ratios 0.25 --experiment_dir /workspace/o1/smoke
++ out=/workspace/o1/smoke
++ log=/workspace/o1/smoke.log
++ shift 2
++ mkdir -p /workspace/o1/smoke
++ cd /workspace/RandOpt
++ python -u randopt.py --dataset gsm8k --model_name /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --num_engines 8 --tp 1 --cuda_devices 0,1,2,3,4,5,6,7 --train_samples 200 --precision bfloat16 --max_tokens 1024 --sigma_values 0.0005,0.001,0.002 --test_samples 30 --global_seed 42 --population_size 24 --top_k_ratios 0.25 --experiment_dir /workspace/o1/smoke
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 ES Ensemble - GSM8K '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 Model: /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 Population: 24 | Top-K: [6] | Engines: 8 | TP: 1'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 2026-10-08 21:53:45,779	WARNING authentication_token_setup.py:85 -- Token authentication is enabled for this Ray cluster. Set RAY_AUTH_MODE=disabled to opt out. For more information, see https://docs.ray.io/en/latest/ray-security/token-auth.html'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496425 2026-10-08 21:53:45,779	INFO authentication_token_setup.py:50 -- Generated new authentication token and saved to /root/.ray/auth_token'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496428 2026-10-08 21:53:48,020	WARNING utils.py:473 -- Detecting docker specified CPUs. In previous versions of Ray, CPU detection in containers was incorrect. Please ensure that Ray has enough CPUs allocated. As a temporary workaround to revert to the prior behavior, set `RAY_USE_MULTIPROCESSING_CPU_COUNT=1` as an env var before starting Ray. Set the env var: `RAY_DISABLE_DOCKER_CPU_WARNING=1` to mute this warning.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496428 2026-10-08 21:53:48,020	WARNING utils.py:485 -- Ray currently does not support initializing Ray with fractional cpus. Your num_cpus will be truncated from 176.8 to 176.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496430 2026-10-08 21:53:50,572	INFO worker.py:2033 -- Started a local Ray instance.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496434 Loading gsm8k data...'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496434   Train: 200 | Test: 30'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496434 Cluster resources: 8 GPUs available, 8 GPUs required'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496434 Creating 8 placement groups (TP=1)...'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496434 Placement groups ready in 0.0s'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496434 Launching batch 1/1 (engines 0-7)...'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496440 [36m(RandOptNcclLLM pid=2260)[0m WARNING 10-08 21:54:00 [model.py:371] The global random seed is set to 0. Since VLLM_ENABLE_V1_MULTIPROCESSING is set to False, this may affect the random state of the Python process that launched vLLM.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496450 [36m(RandOptNcclLLM pid=2260)[0m `torch_dtype` is deprecated! Use `dtype` instead!'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RandOptNcclLLM pid=2201)[0m WARNING 10-08 21:54:01 [model.py:371] The global random seed is set to 0. Since VLLM_ENABLE_V1_MULTIPROCESSING is set to False, this may affect the random state of the Python process that launched vLLM.[32m [repeated 7x across cluster] (Ray deduplicates logs by default. Set RAY_DEDUP_LOGS=0 to disable log deduplication, or see https://docs.ray.io/en/master/ray-observability/user-guides/configure-logging.html#log-deduplication for more options.)[0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496459 [36m(RayWorkerWrapper pid=2192)[0m WARNING 10-08 21:54:19 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496460 [36m(RayWorkerWrapper pid=2192)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496460 [36m(RandOptNcclLLM pid=2197)[0m `torch_dtype` is deprecated! Use `dtype` instead![32m [repeated 7x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496461 [36m(RayWorkerWrapper pid=2192)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.45it/s]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496461 [36m(RayWorkerWrapper pid=2192)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.44it/s]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496461 [36m(RayWorkerWrapper pid=2192)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496463 [36m(RayWorkerWrapper pid=2192)[0m WARNING 10-08 21:54:23 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496465 [36m(RayWorkerWrapper pid=2232)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0[32m [repeated 12x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496465 [36m(RayWorkerWrapper pid=2226)[0m WARNING 10-08 21:54:23 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496466 [36m(RayWorkerWrapper pid=2226)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496466 [36m(RayWorkerWrapper pid=2226)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496466 [36m(RayWorkerWrapper pid=2226)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.02it/s][32m [repeated 2x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496466 [36m(RayWorkerWrapper pid=2232)[0m WARNING 10-08 21:54:26 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496466 [36m(RayWorkerWrapper pid=2316)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496467 [36m(RayWorkerWrapper pid=2232)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496467 [36m(RayWorkerWrapper pid=2316)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496467 [36m(RayWorkerWrapper pid=2200)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496467 [36m(RayWorkerWrapper pid=2264)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496467 [36m(RayWorkerWrapper pid=2193)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496467 [36m(RayWorkerWrapper pid=2196)[0m '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496469 [36m(RayWorkerWrapper pid=2316)[0m WARNING 10-08 21:54:29 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.[32m [repeated 2x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496470   Batch 1 initialized in 36.4s'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496470 All 8 engines launched in 36.4s'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496470 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496470 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496470 BASE MODEL EVALUATION'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496470 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496477 Train reward: 41.50%'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496479 Test accuracy: 23.33% (7/30)'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496479 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496479 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496479 PERTURBATION SAMPLING'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496479 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496479 Budget: 24 | Sigmas: [0.0005, 0.001, 0.002]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496487   Batch 1 | 8/24 | ['\''0.295'\'', '\''0.265'\'', '\''0.480'\'', '\''0.390'\'', '\''0.425'\'', '\''0.400'\'', '\''0.320'\'', '\''0.430'\'']'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496494   Batch 2 | 16/24 | ['\''0.450'\'', '\''0.530'\'', '\''0.350'\'', '\''0.490'\'', '\''0.315'\'', '\''0.360'\'', '\''0.460'\'', '\''0.430'\'']'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   Batch 3 | 24/24 | ['\''0.220'\'', '\''0.365'\'', '\''0.365'\'', '\''0.400'\'', '\''0.355'\'', '\''0.485'\'', '\''0.300'\'', '\''0.315'\'']'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 Sampling done.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 SAMPLING COMPLETE'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   σ=0.0005: mean=0.4150, n=5'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   σ=0.001: mean=0.3912, n=8'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   σ=0.002: mean=0.3627, n=11'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ★ Best sigma: 0.0005'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 SELECTION'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 Selected top-6 from 24 perturbations'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 === Top-6 Perturbations ==='
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   1. seed=1405681618, σ=0.001: 0.5300'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   2. seed=967196434, σ=0.002: 0.4900'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   3. seed=432652530, σ=0.0005: 0.4850'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   4. seed=2095133034, σ=0.002: 0.4800'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   5. seed=1074497554, σ=0.002: 0.4600'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   6. seed=1843824977, σ=0.0005: 0.4500'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   7. seed=1688060235, σ=0.001: 0.4300'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   8. seed=1662057941, σ=0.001: 0.4300'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   9. seed=1497586427, σ=0.0005: 0.4250'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   10. seed=929893129, σ=0.001: 0.4000'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ENSEMBLE EVALUATION'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 ============================================================'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501 K values: [6] | Test samples: 30'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496501   Batch 1/1 (6 models)...'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 Generation completed.'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 Majority voting...'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508   K=6: 36.67% (11/30) [+13.33%]'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 '
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 === Saving Results ==='
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 Results saved to /workspace/o1/smoke/gsm8k_20261008_215354/'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 [36m(RayWorkerWrapper pid=2196)[0m [Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0[32m [repeated 30x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 [36m(RayWorkerWrapper pid=2196)[0m WARNING 10-08 21:54:26 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.[32m [repeated 5x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 [36m(RayWorkerWrapper pid=2196)[0m WARNING 10-08 21:54:30 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.[32m [repeated 5x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 [36m(RayWorkerWrapper pid=2196)[0m Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  1.90it/s][32m [repeated 12x across cluster][0m'
++ IFS=
++ read -r l
+++ date +%s
++ echo '1791496508 [36m(RayWorkerWrapper pid=2196)[0m Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s][32m [repeated 5x across cluster][0m'
++ IFS=
++ read -r l
++ return 0
++ grep -E 'Test accuracy|K=' /workspace/o1/smoke.log
++ tail -3
+1791496479 Test accuracy: 23.33% (7/30)
+1791496508   K=6: 36.67% (11/30) [+13.33%]
++ read b nb
+++ bsec /workspace/o1/smoke.log
+++ python3 - /workspace/o1/smoke.log
+++ spent
+++ python3 -c 'import time;r=dict(x.split('\''='\'') for x in open('\''/workspace/rate.txt'\'').read().split());print((time.time()-int(r['\''START'\'']))/3600*float(r['\''RATE'\'']))'
++ s=4.091150083446503
++ python3 -c '
+b=7.0; s=4.091150083446503; r=dict(x.split('\''='\'') for x in open('\''/workspace/rate.txt'\'').read().split()); rate=float(r['\''RATE'\''])
+p = s + 625*b*1.05/3600*rate + 4 + 2
+open('\''/workspace/o1/out/projection.txt'\'','\''w'\'').write(f'\''BATCH_SEC {b:.2f} n_batches 3 spent {s:.2f} PROJECTED_TOTAL {p:.2f} '\'' + ('\''GO'\'' if p <= 57 else '\''OVER'\'') + '\''\n'\'')'
++ cat /workspace/o1/out/projection.txt
+BATCH_SEC 7.00 n_batches 3 spent 4.09 PROJECTED_TOTAL 50.82 GO
