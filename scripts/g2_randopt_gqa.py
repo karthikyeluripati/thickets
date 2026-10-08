@@ -14,8 +14,8 @@ import numpy as np
 PROMPT = "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}."
 
 
-def population(n):
-    rng = np.random.default_rng(42)
+def population(n, pop_seed=42):
+    rng = np.random.default_rng(pop_seed)
     seeds = rng.choice(2 ** 31, size=n, replace=False).tolist()
     sig = rng.choice([0.0005, 0.001, 0.002], size=n).tolist()
     return seeds, sig
@@ -39,6 +39,7 @@ def main():
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--root', type=Path, default=Path('/workspace/g2'))
     ap.add_argument('--out', default='out'); ap.add_argument('--model-path', required=True); ap.add_argument('--limit-test', type=int, default=0)
     ap.add_argument('--eager', type=int, default=1); ap.add_argument('--gpu-mem', type=float, default=.85)
+    ap.add_argument('--pop-seed', type=int, default=42)  # randopt.py's generator seed; G2R uses a second value
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream))
     os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '0', 'OMP_NUM_THREADS': '2'})
@@ -62,7 +63,7 @@ def main():
 
     def gt(r):
         return {'answer': r['answer'], 'full_answer': r['fullAnswer']}
-    seeds, sig = population(a.n)
+    seeds, sig = population(a.n, a.pop_seed)
     if a.phase == 'select':
         rows = items['selection']; R = reqs(rows); f = out / f'select_{a.worker}.jsonl'
         done = {json.loads(l)['k'] for l in f.read_text().splitlines() if l.strip()} if f.exists() else set()
