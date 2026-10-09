@@ -1,0 +1,106 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1 VLLM_LOGGING_LEVEL=WARNING
++ HF_HOME=/workspace/hf
++ HF_HUB_OFFLINE=1
++ VLLM_LOGGING_LEVEL=WARNING
++ cd /workspace/repo
+++ cat /workspace/model_path.txt
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
++ for w in 8 9 10 11
++ run 8 out
++ for w in 8 9 10 11
++ run 9 out
++ for w in 8 9 10 11
++ run 10 out
++ for w in 8 9 10 11
++ run 11 out
+++ grep -c '^test_rank.*json$'
+++ ls /workspace/gd/out
++ n=50
++ echo 'RANKS 50'
+RANKS 50
++ '[' 50 -eq 50 ']'
++ python -u scripts/gd_analysis.py --upstream /workspace/RandOpt --d /workspace/gd --g2 results/paper-analysis/g2-sameRun/pod/g2 --sc results/paper-analysis/g4-direct-prompt/pod/g4/out/direct/b256_sc.json --base results/paper-analysis/g4-direct-prompt/pod/g4/out/direct/b256_base.json --out /workspace/gd/gd_results.json
+{
+ "n": 1238,
+ "base_direct_this_run": 64.70113085621972,
+ "base_direct_g4": 64.70113085621972,
+ "valid_env": true,
+ "members_mean": 64.09693053311794,
+ "members_range": [
+  62.68174474959613,
+  65.02423263327948
+ ],
+ "sigma_top": {
+  "0.002": 4,
+  "0.0005": 20,
+  "0.001": 26
+ },
+ "top_reward": [
+  0.695,
+  0.68
+ ],
+ "top50_overlap_with_cot_search": 0,
+ "vote_gain_members_to_vote": 0.28109854604200235,
+ "sc_single_mean": 60.42649434571891,
+ "K50": {
+  "randopt_direct": 64.37802907915994,
+  "sc_direct": 64.70113085621972,
+  "D": -0.32310177705977383,
+  "ci": [
+   -1.2924071082390953,
+   0.6462035541195477
+  ],
+  "outcome": "NO DIFFERENCE DETECTED",
+  "equivalent_2pp": true,
+  "n_randopt_only": 18,
+  "n_sc_only": 22
+ },
+ "K10": {
+  "randopt_direct": 64.70113085621972,
+  "sc_direct": 63.89337641357028,
+  "D": 0.8077544426494345,
+  "ci": [
+   -0.48465266558966075,
+   2.10016155088853
+  ],
+  "outcome": "NO DIFFERENCE DETECTED",
+  "equivalent_2pp": false,
+  "n_randopt_only": 40,
+  "n_sc_only": 30
+ },
+ "randopt_direct_minus_randopt_cot": {
+  "randopt_cot": 63.48949919224556,
+  "D": 0.8885298869143781,
+  "ci": [
+   -0.6462035541195477,
+   2.4232633279483036
+  ]
+ },
+ "randopt_direct_minus_one_direct_generation": {
+  "D": -0.32310177705977383,
+  "ci": [
+   -1.050080775444265,
+   0.32310177705977383
+  ]
+ },
+ "members_minus_direct_base": {
+  "D": -0.6042003231017773,
+  "ci": [
+   -1.2730210016155092,
+   0.050080775444264806
+  ]
+ },
+ "GD_1": "NO DIFFERENCE DETECTED (EQUIVALENT within 2 pp)"
+}
++ mkdir -p /workspace/gd/out_check
++ cp /workspace/gd/out/select_0.jsonl /workspace/gd/out/select_1.jsonl /workspace/gd/out/select_10.jsonl /workspace/gd/out/select_11.jsonl /workspace/gd/out/select_2.jsonl /workspace/gd/out/select_3.jsonl /workspace/gd/out/select_4.jsonl /workspace/gd/out/select_5.jsonl /workspace/gd/out/select_6.jsonl /workspace/gd/out/select_7.jsonl /workspace/gd/out/select_8.jsonl /workspace/gd/out/select_9.jsonl /workspace/gd/out_check/
++ run 0 out_check
++ python -
++ tee /workspace/gd/crosspod_check.txt
+test_base.json answers identical 1238/1238 acc 64.70 vs 64.70
+test_rank0.json answers identical 1238/1238 acc 62.68 vs 62.68
+test_rank12.json answers identical 1238/1238 acc 63.41 vs 63.41
+test_rank24.json answers identical 1238/1238 acc 64.05 vs 64.05
+test_rank36.json answers identical 1238/1238 acc 63.89 vs 63.89
++ touch /workspace/gd/GD_DONE

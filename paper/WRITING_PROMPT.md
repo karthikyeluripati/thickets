@@ -35,8 +35,9 @@ exactly how far each result goes and no further.
    - "Damage" claims: the locked measure (plain/direct vs RandOpt's prompt) supports the prediction in 4/4 rows; the
      post-hoc measure against the selection-chosen prompt does not separate the rows (Qwen-1.5B: +10.2, RandOpt still
      lost). Never write "RandOpt wins exactly where its prompt damages the model".
-   - "Search adds nothing on top of the prompt" is shown on GQA only (G4: −0.08 [−0.97, +0.81]). The OLMo version is
-     not valid (fidelity gate failed); do not cite it as evidence.
+   - "With the prompt held fixed, weight search adds nothing" is shown on GQA only, by GD (RandOpt searched under the
+     direct prompt: −0.32 [−1.29, +0.65], equivalent). Cite GD, not G4's re-used members. Do not generalise it to
+     GSM8K (not run); the OLMo members check is not valid (fidelity gate failed).
    - Compute: the comparison is at matched **test-time** budget (50 generations). RandOpt's 1,000,000 selection
      generations vs prompt selection's 600 are stated separately, not folded into accuracy.
    - GQA runs use a faithful re-implementation (the released code cannot pass images); say so where GQA appears.
@@ -57,8 +58,7 @@ exactly how far each result goes and no further.
 8. **Scope statements that must appear.** The first-order theory covers direct answers; the Claim 1 rows use
    step-by-step prompts, so Claim 1 rests on its own experiments, not on the theory. Theory checks T1/T2 are
    criteria-first exploratory. The three prompt candidates were fixed before PS but chosen after earlier results.
-   "Search adds nothing on top of the prompt" (GQA) re-uses perturbations selected under the CoT prompt; no search was
-   run under the chosen prompt. Vote efficiency: sampling's vote adds more than RandOpt's in three rows, less on OLMo
+   RandOpt's search under the chosen prompt was run on GQA only (GD). Vote efficiency: sampling's vote adds more than RandOpt's in three rows, less on OLMo
    (exploratory); never write "sampling supplies the vote at least as well". "Nearby better models are common" only
    with the 10.7–44.7% numbers and the below-base population mean.
 9. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); selection bias toward the
@@ -76,7 +76,8 @@ exactly how far each result goes and no further.
    that accuracy (on GQA visibly, by switching off step-by-step reasoning; G4, O2),
    and a prompt fix does better (R8b.2–R8b.4).
 3. **A practical baseline:** choosing the prompt on RandOpt's own selection data (0.06% of its selection compute)
-   then sampling matches or beats RandOpt in all four rows (R8b.5).
+   then sampling matches or beats RandOpt in all four rows (R8b.5); on GQA, RandOpt's search run under that prompt
+   is equivalent to sampling (GD).
 4. **A first-order account** of perturbation-induced answer-preference changes, validated across five models in two
    families, localized to middle language layers, with demonstrated limits (R4, R5, R7), and a theory linking it to
    selection (R8c).

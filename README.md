@@ -50,7 +50,8 @@ Why, row by row, under RandOpt's own prompts:
   part of that accuracy:
   - On **GQA**, the step-by-step prompt costs the model 11.3 points. The selected models mostly stop reasoning and
     answer in a few words. Told to answer directly, the base model scores 64.7% with **one** generation (RandOpt:
-    63.5%, no difference detected), and search adds nothing measurable on top of that prompt.
+    63.5%, no difference detected). Running RandOpt's whole search under the direct prompt gives 64.4% vs 64.7% for
+    self-consistency: equivalent within 2 points. With the prompt held fixed, weight search adds nothing.
   - On **OLMo**, the "output the final answer after ####" instruction halves the model's accuracy (33.7% vs 65.3%
     when simply asked the question).
 - Damage is not the whole story: against the boxed prompt selection chose, Qwen-1.5B is damaged by 10 points too, yet

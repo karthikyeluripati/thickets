@@ -22,6 +22,7 @@ Paper role: **main** = main text; **appx** = appendix; **sup** = superseded (kep
 | `ps-prompt-selection` | prompt chosen on RandOpt's own selection set vs RandOpt, all four rows | a1caf88 | `PS_RESULT.md` | **no row RandOpt ahead** (2 SC ahead, 2 n.d., one equivalent) | main [R8b] |
 | `q2-qwen-prompt` | same prompt control on the Qwen GSM8K rows | 2a55ccc | `Q2_RESULT.md` | plain prompt worse for Qwen (RandOpt beats plain SC +2.58, +7.05); damage prediction supported 4/4 | main [R8b] |
 | `o2-olmo-prompt` | is O1's RandOpt win a prompt effect? (plain and boxed prompts) | 6ecafcf | `O2_RESULT.md` | **prompt effect**: plain-prompt SC@50 74.7 vs RandOpt 52.5, −22.21 [−24.87, −19.56]; member fidelity gate failed | main [R8b] |
+| `gd-gqa-direct-search` | RandOpt's search under the direct prompt on GQA (prompt held fixed) | 0bb89eb | `GD_RESULT.md` | **equivalent**: −0.32 [−1.29, +0.65]; members no better than base | main [R8b] |
 | `p2` | SC@50 vs published RandOpt, GSM8K-0.5B/1.5B, GQA | 01efd9d | `P2_RESULT.md` | GSM8K-1.5B matches; others fail the base gate | main (gated rows), appx |
 | `p3` | same, GSM8K-3B, MATH-500 | c60b600 | `P3_RESULT.md` | GSM8K-3B matches; MATH-500 not comparable | main (gated row), appx |
 | `p1` | do perturbations behave like sampling (CoT regime)? | 464aed0 | `P1_RESULT.md` | same items flip; persistent models | main (A/B), appx (C) [R7] |

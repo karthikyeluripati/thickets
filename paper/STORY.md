@@ -40,8 +40,11 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
 - **What that shift is [R8b.2, R8b.3].**
   - GQA: RandOpt's chain-of-thought prompt costs the base model 11.3 points. The selected models mostly stop
     reasoning and answer directly (median 10 tokens vs 146; shorter members are more accurate, r = −0.89;
-    exploratory). One direct-prompt generation scores 64.7 vs RandOpt's 63.5 (G4), and search adds nothing on top of
-    that prompt (−0.08 [−0.97, +0.81]). Termination repair explains only a quarter of the advantage (G3).
+    exploratory). One direct-prompt generation scores 64.7 vs RandOpt's 63.5 (G4). **Running RandOpt's search itself
+    under the direct prompt (GD, same 5000 perturbations) gives 64.38 vs SC@50 64.70: −0.32 [−1.29, +0.65],
+    equivalent within ±2 pp**; its selected models are no better than base (−0.60 [−1.27, +0.05]), and none of
+    them overlaps the CoT search's top 50. With the prompt held fixed, weight search adds nothing measurable.
+    Termination repair explained only a quarter of the CoT-prompt advantage (G3).
   - OLMo: RandOpt's "####" instruction halves the model's accuracy (33.7 vs 65.3 with just the question). The search
     partly repairs it (52.5); a prompt change repairs more (SC@50 74.7; one plain generation 65.3).
 - **Damage is part of the story, not all of it [R8b.4].** On the locked measure (plain/direct − RandOpt's prompt)
@@ -83,8 +86,8 @@ correctness, the OmniSpatial winner's residual gain) our account stops, and we s
 ## Scope and limits (say these in the paper)
 Two tasks for the same-run comparisons (GSM8K, GQA); models ≤ 8B; one RandOpt search per GSM8K row (two on GQA);
 three prompt candidates per task, fixed before the PS run but chosen after earlier results ("direct" after the GQA
-shift analysis; "boxed" is the standard math prompt), stated as such; no RandOpt search under the chosen prompt
-(GQA's "search on top of the prompt" re-uses perturbations selected under the CoT prompt); RandOpt's search cost not charged in the accuracy comparisons;
+shift analysis; "boxed" is the standard math prompt), stated as such; RandOpt's search under the chosen prompt was run on GQA only (GD), not
+on the GSM8K rows; RandOpt's search cost not charged in the accuracy comparisons;
 OLMo "search on top of the prompt" not valid (fidelity gate failed); GQA uses a re-implementation (released code
 cannot pass images); exploratory analyses are labelled as such.
 

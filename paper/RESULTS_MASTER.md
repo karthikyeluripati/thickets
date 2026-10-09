@@ -239,7 +239,14 @@ RandOpt's 5000 × 200 = 1,000,000 selection generations are not charged to it. O
   (+11.31 [+8.48, +14.14]); SC@50 (direct) 64.70. **RandOpt (CoT) − SC@50 (direct) = −1.21 [−2.83, +0.40]**, no
   difference detected (not equivalent). Short prompt −0.57 [−2.34, +1.29]; seed-43 RandOpt −1.05 [−2.75, +0.65].
   Selected members re-run with the direct prompt: vote 64.62 vs SC 64.70, **−0.08 [−0.97, +0.81]** (search adds
-  nothing measurable on top of the prompt); members individually 62.80, below the direct base.
+  nothing measurable on top of the prompt); members individually 62.80, below the direct base. (These members were
+  selected under the CoT prompt; GD below re-runs the search under the direct prompt.)
+- **GD (0bb89eb), RandOpt's search under the direct prompt (same 5000 perturbations as G2):** RandOpt 64.38 vs SC@50
+  (direct) 64.70: **D = −0.32 [−1.29, +0.65], no difference, EQUIVALENT within ±2 pp**; K = 10 +0.81 [−0.48, +2.10].
+  Selected members 64.10 (62.68–65.02) vs direct base 64.70 (−0.60 [−1.27, +0.05]); vote adds +0.28. Top-50 overlap
+  with the CoT search 0; selection reward 0.680–0.695 vs base 0.660, not transferring. Valid (base 64.70 = G4);
+  finished on a second pod after the first stopped (account balance); cross-pod answers identical (5 files ×
+  1238). **With the prompt held fixed, weight search adds nothing measurable on GQA.**
 
 ### R8b.3 OLMo: the same pattern (O2, 6ecafcf)
 - RandOpt's GSM8K instruction ("…output the final answer after ####") halves OLMo-2-1B's accuracy: BASE greedy
@@ -288,7 +295,7 @@ RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6
 **How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
 RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
 two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,
-never "beats". RandOpt's wins under its own prompts occur where that prompt damages the base model heavily, and on
+never "beats". On GQA, GD shows that with the prompt held fixed RandOpt's search itself is equivalent to sampling. RandOpt's wins under its own prompts occur where that prompt damages the base model heavily, and on
 GQA the shift selection finds (switching off step-by-step reasoning) is one a prompt also gives; damage alone does
 not decide the outcome (Qwen-1.5B). Scope: two tasks, models ≤ 8B, one search per GSM8K row, three prompt candidates.
 
