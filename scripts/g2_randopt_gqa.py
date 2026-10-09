@@ -11,7 +11,9 @@ import time
 
 import numpy as np
 
-PROMPT = "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}."
+PROMPTS = {  # cot = RandOpt's GQA prompt (G2/G2R); direct = G4's direct-answer prompt (GD)
+    'cot': "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}.",
+    'direct': "Look at the image and answer the question.\n\nQuestion: {q}\n\nAnswer directly without explanation, and put your final answer within \\boxed{{}}."}
 
 
 def population(n, pop_seed=42):
@@ -39,7 +41,8 @@ def main():
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--root', type=Path, default=Path('/workspace/g2'))
     ap.add_argument('--out', default='out'); ap.add_argument('--model-path', required=True); ap.add_argument('--limit-test', type=int, default=0)
     ap.add_argument('--eager', type=int, default=1); ap.add_argument('--gpu-mem', type=float, default=.85)
-    ap.add_argument('--pop-seed', type=int, default=42)  # randopt.py's generator seed; G2R uses a second value
+    ap.add_argument('--pop-seed', type=int, default=42); ap.add_argument('--prompt', choices=['cot', 'direct'], default='cot')
+    ap.add_argument('--mm-cache-gb', type=float, default=0)  # multimodal preprocessing cache (image -> pixels); weight-independent  # randopt.py's generator seed; G2R uses a second value
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream))
     os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '0', 'OMP_NUM_THREADS': '2'})
@@ -51,13 +54,13 @@ def main():
     llm = LLM(model=a.model_path, tokenizer=a.model_path, dtype='bfloat16', tensor_parallel_size=1, distributed_executor_backend='uni',
               worker_extension_cls='utils.worker_extn.WorkerExtension', enforce_eager=bool(a.eager), enable_prefix_caching=False,
               gpu_memory_utilization=a.gpu_mem, max_model_len=8192, max_num_seqs=256, max_num_batched_tokens=16384,
-              limit_mm_per_prompt={'image': 1, 'video': 0}, mm_processor_cache_gb=0, seed=0, disable_log_stats=True)
+              limit_mm_per_prompt={'image': 1, 'video': 0}, mm_processor_cache_gb=a.mm_cache_gb, seed=0, disable_log_stats=True)
     rpc = lambda f, *args: llm.collective_rpc(f, args=args)[0]
     rpc('store_base_weights'); proc = AutoProcessor.from_pretrained(a.model_path)
     sp = SamplingParams(temperature=0.0, seed=42, max_tokens=256)
 
     def reqs(rows):
-        return [{'prompt': proc.apply_chat_template([{'role': 'user', 'content': [{'type': 'image'}, {'type': 'text', 'text': PROMPT.format(q=r['question'])}]}],
+        return [{'prompt': proc.apply_chat_template([{'role': 'user', 'content': [{'type': 'image'}, {'type': 'text', 'text': PROMPTS[a.prompt].format(q=r['question'])}]}],
                                                     tokenize=False, add_generation_prompt=True),
                  'multi_modal_data': {'image': Image.open(a.root / 'images' / f"{r['imageId']}.jpg").convert('RGB')}} for r in rows]
 
