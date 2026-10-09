@@ -1,0 +1,12 @@
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{RandOpt's prompt} & \multicolumn{2}{c}{Prompt chosen on selection set} & \multicolumn{2}{c}{Search under chosen prompt} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Row & RandOpt & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & RandOpt & RandOpt $-$ SC \\
+\midrule
+GSM8K / Qwen2.5-1.5B (boxed) & 77.2 & $-2.65$ {\scriptsize[$-4.32$, $-0.99$]} & 80.1 & $-2.96$ {\scriptsize[$-4.62$, $-1.29$]} & -- & -- \\
+GSM8K / Qwen2.5-3B (boxed) & 86.7 & $-1.59$ {\scriptsize[$-2.65$, $-0.53$]} & 87.0 & $-0.38$ {\scriptsize[$-1.67$, $+0.91$]} & -- & -- \\
+GQA / Qwen2.5-VL-3B (direct) & 63.5 & $+3.47$ {\scriptsize[$+1.62$, $+5.41$]} & 64.7 & $-1.21$ {\scriptsize[$-2.83$, $+0.40$]} & 64.4 & $-0.32$ {\scriptsize[$-1.29$, $+0.65$]} \\
+GSM8K / OLMo-2-1B (boxed) & 52.5 & $+8.72$ {\scriptsize[$+6.75$, $+10.77$]} & 76.1 & $-23.65$ {\scriptsize[$-26.23$, $-21.08$]} & 74.0 & $-2.12$ {\scriptsize[$-3.49$, $-0.83$]} \\
+\bottomrule
+\end{tabular}

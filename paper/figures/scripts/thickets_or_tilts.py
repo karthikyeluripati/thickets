@@ -101,7 +101,7 @@ def fig2():
 
 # ---------------------------------------------------------------- Figure 3: the first-order tilt law
 def fig3():
-    fig, axes = plt.subplots(1, 4, figsize=(9.4, 2.6))
+    fig, axes = plt.subplots(2, 3, figsize=(7.2, 5.0)); axes = axes.ravel()
     s12 = json.loads((PA / 'stage12/stage12_per_perturbation.json').read_text())
     r1 = json.loads((PA / 'r1/r1_per_perturbation.json').read_text())
     r2b = json.loads((PA / 'r2b/r2b_per_perturbation.json').read_text())
@@ -122,15 +122,28 @@ def fig3():
     ins = axes[0].inset_axes([0.66, 0.17, 0.31, 0.2]); ins.hist(per, bins=np.linspace(0.4, 1, 13), color=C['sky'], edgecolor='white')
     ins.set_xlabel(f'per-item r (median {np.median(per):.2f})', fontsize=5, labelpad=1); ins.set_yticks([]); ins.tick_params(labelsize=5); ins.grid(False)
     # P0: GQA per-question contrast, coloured by sigma
-    ax = axes[3]; pred = np.load(PA / 'p0/pod/pred.npy'); mm = np.load(PA / 'p0/pod/meas.npy')
-    sig = np.array([c['sigma'] for c in json.loads((PA / 'p0/candidates.json').read_text())['candidates']])
+    # P0 (GQA) and the non-Qwen OLMo panels (S1-A, S1-7B): per-question contrast, coloured by sigma
     cols = {0.001: C['green'], 0.002: C['sc'], 0.005: C['control']}
-    for s in (0.005, 0.002, 0.001):
-        k = sig == s; r = np.corrcoef(pred[:, k].ravel(), mm[:, k].ravel())[0, 1]
-        ax.scatter(pred[:, k].ravel(), mm[:, k].ravel(), s=3, alpha=0.35 if s != 0.005 else 0.25, color=cols[s], label=f'σ={s}: r={r:.2f}', zorder=3 if s != 0.005 else 2)
-    lim = 6; ax.plot([-lim, lim], [-lim, lim], color='#AAAAAA', lw=0.8, ls='--'); ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
-    ax.set_title('Qwen2.5-VL-3B, LM-only, GQA\nper-question answer contrast (P0)', fontsize=8); ax.set_xlabel('predicted Δ (nats)')
-    ax.legend(loc='upper left', frameon=False, fontsize=6, markerscale=3); label(ax, 'd')
+    s1sig = np.array([c['sigma'] for c in json.loads((PA / 's1/frozen_A.json').read_text())['candidates']])
+    panels = [(axes[3], np.load(PA / 'p0/pod/pred.npy'), np.load(PA / 'p0/pod/meas.npy'),
+               np.array([c['sigma'] for c in json.loads((PA / 'p0/candidates.json').read_text())['candidates']]),
+               'Qwen2.5-VL-3B, GQA (P0)\nLM-only, answer contrast', 'd', 6.0),
+              (axes[4], np.load(PA / 's1/pod/out/A/A_pred.npy'), np.load(PA / 's1/pod/out/A/A_meas.npy'), s1sig,
+               'OLMo-2-1B, ARC (S1-A)\nnon-Qwen, text-only', 'e', None),
+              (axes[5], np.load(PA / 's1-7b/pod/s17b/A/A_pred.npy'), np.load(PA / 's1-7b/pod/s17b/A/A_meas.npy'), s1sig,
+               'OLMo-2-7B, ARC (S1-7B)\nnon-Qwen, text-only', 'f', None)]
+    for ax, pred, mm, sig, title, lab, lim in panels:
+        sig = sig[: pred.shape[1]]
+        for s in (0.005, 0.002, 0.001):
+            k = sig == s; r = np.corrcoef(pred[:, k].ravel(), mm[:, k].ravel())[0, 1]
+            ax.scatter(pred[:, k].ravel(), mm[:, k].ravel(), s=3, alpha=0.35 if s != 0.005 else 0.25, color=cols[s],
+                       label=f'σ={s}: r={r:.2f}', zorder=3 if s != 0.005 else 2)
+        if lim is None:  # axes from the sigma <= 0.002 bulk; sigma = 0.005 points beyond it are clipped
+            v = np.abs(np.concatenate([pred[:, sig <= 0.002].ravel(), mm[:, sig <= 0.002].ravel()])); lim = float(np.percentile(v, 99.5)) * 1.6
+        ax.plot([-lim, lim], [-lim, lim], color='#AAAAAA', lw=0.8, ls='--'); ax.set_xlim(-lim, lim); ax.set_ylim(-lim, lim)
+        ax.set_title(title, fontsize=8); ax.set_xlabel('predicted Δ (nats)')
+        ax.legend(loc='upper left', frameon=False, fontsize=6, markerscale=3); label(ax, lab)
+    axes[3].set_ylabel('measured Δ (nats)')
     fig.tight_layout(); save(fig, 'fig3_tilt_law')
     return per
 
@@ -302,23 +315,72 @@ def same_run_rows():
         ('GSM8K\nQwen2.5-3B', C3['K50'], PS['q3'], Q2['q3']['randopt_prompt_base'], Q2['q3']['plain_base']),
         ('GQA\nQwen2.5-VL-3B', G2['K50'], PS['gqa'], G4['reference_cot']['base'], G4['direct']['base']),
         ('GSM8K\nOLMo-2-1B', O1['s42']['K50'], PS['olmo'], O2['randopt_prompt_base'], O2['plain']['base'])]
+    held = {'GQA\nQwen2.5-VL-3B': j('gd-gqa-direct-search/pod2/gd/gd_results.json')['K50'],
+            'GSM8K\nOLMo-2-1B': j('gb-gsm8k-boxed-search/pod/gb/olmo/gb_results.json')['K50']}  # RandOpt searched under the chosen prompt
     return [dict(name=n, d0=k['D'], ci0=k['D_ci95'], d1=p['D']['D'], ci1=p['D']['ci'], chosen=p['chosen'], randopt=p['randopt_K50'],
-                 sc_chosen=p['sc50_chosen'], base_ro=b0, dmg_plain=bp - b0, dmg_chosen=p['base_chosen'] - b0) for n, k, p, b0, bp in rows]
+                 sc_chosen=p['sc50_chosen'], base_ro=b0, dmg_plain=bp - b0, dmg_chosen=p['base_chosen'] - b0,
+                 d2=held[n]['D'] if n in held else None, ci2=held[n]['ci'] if n in held else None,
+                 randopt_held=(held[n].get('randopt_direct', held[n].get('randopt_boxed')) if n in held else None))
+            for n, k, p, b0, bp in rows]
 
 
 def fig7():
-    R = same_run_rows(); fig, ax = plt.subplots(figsize=(5.4, 2.9)); y = np.arange(len(R))[::-1]
+    R = same_run_rows(); fig, ax = plt.subplots(figsize=(5.4, 3.3)); y = np.arange(len(R))[::-1]
     for k, r in enumerate(R):
-        for d, ci, col, mk, off in ((r['d0'], r['ci0'], C['sc'], 'o', 0.13), (r['d1'], r['ci1'], C['green'], 's', -0.13)):
+        marks = [(r['d0'], r['ci0'], C['sc'], 'o', 0.22), (r['d1'], r['ci1'], C['green'], 's', 0.0)]
+        if r['d2'] is not None: marks.append((r['d2'], r['ci2'], C['pert'], '^', -0.22))
+        for d, ci, col, mk, off in marks:
             ax.errorbar(d, y[k] + off, xerr=[[d - ci[0]], [ci[1] - d]], fmt=mk, ms=6, color=col, mec='white', mew=0.8, elinewidth=1.4, capsize=0)
             ax.text(ci[1] + 0.6, y[k] + off, f'{d:+.1f}', va='center', fontsize=7, color=C['ink'])
     ax.axvline(0, color=C['muted'], lw=0.9)
     ax.set_yticks(y); ax.set_yticklabels([r['name'] + f"\n(chosen: {r['chosen']})" for r in R], fontsize=7.5)
     ax.set_xlabel('RandOpt K=50 − self-consistency@50 (pp, 95% CI)\n← self-consistency better      RandOpt better →')
-    ax.errorbar([], [], xerr=[], fmt='o', color=C['sc'], label="SC under RandOpt's prompt")
-    ax.errorbar([], [], xerr=[], fmt='s', color=C['green'], label='SC under the prompt chosen on the selection set')
-    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.01), frameon=False, ncol=2, fontsize=7); ax.grid(axis='y', visible=False)
+    ax.errorbar([], [], xerr=[], fmt='o', color=C['sc'], label="RandOpt vs SC, both under RandOpt's prompt")
+    ax.errorbar([], [], xerr=[], fmt='s', color=C['green'], label="RandOpt (its prompt) vs SC under the prompt chosen on the selection set")
+    ax.errorbar([], [], xerr=[], fmt='^', color=C['pert'], label='RandOpt searched under the chosen prompt vs SC under it')
+    ax.legend(loc='lower center', bbox_to_anchor=(0.45, 1.01), frameon=False, ncol=1, fontsize=7); ax.grid(axis='y', visible=False)
     ax.set_xlim(-27, 14); save(fig, 'fig7_same_run_prompt_selection')
+
+
+def fig10():
+    """Selection-set gain vs test gain of the selected models, seven N = 5000 searches (exploratory)."""
+    T = json.loads((PA / 'transfer/transfer_results.json').read_text())
+    held = {'GQA Qwen2.5-VL-3B (GD)', 'GSM8K OLMo-2-1B (GB)'}
+    short = {'GSM8K Qwen2.5-1.5B (C)': 'Qwen-1.5B', 'GSM8K Qwen2.5-3B (C3B)': 'Qwen-3B', 'GSM8K OLMo-2-1B (O1)': 'OLMo-1B',
+             'GQA Qwen2.5-VL-3B (G2)': 'GQA (seed 42)', 'GQA Qwen2.5-VL-3B (G2R)': 'GQA (seed 43)', 'GQA Qwen2.5-VL-3B (GD)': 'GQA, direct',
+             'GSM8K OLMo-2-1B (GB)': 'OLMo-1B, boxed'}
+    off = {'GQA (seed 42)': (8, 6), 'GQA (seed 43)': (-70, 10), 'Qwen-1.5B': (16, -14), 'Qwen-3B': (6, 4), 'OLMo-1B': (-36, -16),
+           'GQA, direct': (6, 4), 'OLMo-1B, boxed': (6, -10)}
+    fig, ax = plt.subplots(figsize=(3.6, 2.9))
+    lim = [-2, 14]; ax.plot(lim, lim, color='#BBBBBB', lw=0.8, ls='--', zorder=1); ax.axhline(0, color=C['muted'], lw=0.8)
+    ax.text(2.75, 2.2, 'full transfer\n(y = x)', fontsize=6.5, color=C['muted'])
+    for r in T:
+        h = r['search'] in held; x, yv = r['selection_gain'], r['test_gain']
+        ax.scatter(x, yv, s=36, marker='^' if h else 'o', color=C['pert'] if h else C['randopt'], ec='white', lw=0.6, zorder=3)
+        nm = short[r['search']]
+        ax.annotate(nm, (x, yv), xytext=off[nm], textcoords='offset points', fontsize=6.5, color=C['ink'],
+                    arrowprops=dict(arrowstyle='-', color='#999999', lw=0.5, shrinkA=0, shrinkB=3))
+    ax.scatter([], [], marker='o', color=C['randopt'], label="searched under RandOpt's prompt")
+    ax.scatter([], [], marker='^', color=C['pert'], label='searched under the chosen prompt')
+    ax.legend(loc='upper right', frameon=False, fontsize=6.5)
+    ax.set_xlim(0, 14); ax.set_ylim(-2, 7)
+    ax.set_xlabel('selection gain: top-50 mean − base\non the 200 selection questions (pp)'); ax.set_ylabel('test gain: selected models\n(mean) − base (pp)')
+    save(fig, 'fig10_transfer')
+
+
+def table_same_run_tex():
+    R = same_run_rows()
+    fmt = lambda d, ci: rf"${d:+.2f}$ {{\scriptsize[${ci[0]:+.2f}$, ${ci[1]:+.2f}$]}}"
+    L = [r'\begin{tabular}{lcccccc}', r'\toprule',
+         r" & \multicolumn{2}{c}{RandOpt's prompt} & \multicolumn{2}{c}{Prompt chosen on selection set} & \multicolumn{2}{c}{Search under chosen prompt} \\",
+         r'\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}',
+         r'Row & RandOpt & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & RandOpt & RandOpt $-$ SC \\', r'\midrule']
+    for r in R:
+        nm = r['name'].replace('\n', ' / ') + f" ({r['chosen']})"
+        held = (f"{r['randopt_held']:.1f} & " + fmt(r['d2'], r['ci2'])) if r['d2'] is not None else r'-- & --'
+        L.append(f"{nm} & {r['randopt']:.1f} & {fmt(r['d0'], r['ci0'])} & {r['sc_chosen']:.1f} & {fmt(r['d1'], r['ci1'])} & {held} \\\\")
+    L += [r'\bottomrule', r'\end{tabular}']
+    (OUT / 'table1_same_run.tex').write_text('\n'.join(L) + '\n', encoding='utf-8')
 
 
 def fig8():
@@ -393,11 +455,14 @@ def fig9():
     fig.tight_layout(); save(fig, 'fig9_prompt_specific_experts')
 
 
+if __name__ == '__main__' and sys.argv[1:] == ['law']:
+    fig3(); sys.exit()
+
 if __name__ == '__main__' and sys.argv[1:] == ['experts']:
     fig9(); sys.exit()
 
 if __name__ == '__main__' and sys.argv[1:] == ['same-run']:
-    fig7(); fig8(); table4(); print(sorted(p.name for p in OUT.iterdir() if p.stem.startswith(('fig7', 'fig8', 'table4')))); sys.exit()
+    fig7(); fig8(); table4(); fig10(); table_same_run_tex(); print(sorted(p.name for p in OUT.iterdir() if p.stem.startswith(('fig7', 'fig8', 'table4')))); sys.exit()
 
 if __name__ == '__main__':
     fig1(); fig2(); per = fig3(); fig4(); fig5(); rho = fig6(); tables(); fig7(); fig8(); table4()
