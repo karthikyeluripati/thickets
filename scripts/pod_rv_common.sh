@@ -20,7 +20,7 @@ spent() { python3 -c "import time;r=dict(x.split('=') for x in open('/workspace/
 launch() {
   local ph=$1 root=$2 o=$3 wpg=$4 mp=$5; shift 5
   local W=$((wpg * G)); local -a pids=(); mkdir -p "$root"
-  local mem; mem=$(python3 -c "print(round(0.85/$wpg, 2))")
+  local mem; mem=$(python3 -c "print(round(0.80/$wpg, 2))")  # 0.85 left the 3rd Qwen-3B worker 0.1 GB short (RV-2a)
   for layer in $(seq 0 $((wpg - 1))); do
     for g in $(seq 0 $((G - 1))); do
       local w=$((layer * G + g))
