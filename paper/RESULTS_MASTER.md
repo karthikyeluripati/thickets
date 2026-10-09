@@ -292,6 +292,19 @@ RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6
 - K = 10: −0.38 [−2.20, +1.52], −0.53 [−1.97, +0.91], −24.56 [−27.37, −21.83], −0.57 [−2.18, +1.05]: RandOpt ahead
   in no row; Qwen-1.5B's "SC ahead" is K = 50 only.
 
+### R8b.7 Does selection gain transfer? (EXPLORATORY; `transfer/transfer_table.md`, `scripts/transfer_analysis.py`)
+| Search | Selection gain (top-50 − base, pp) | Test gain (members − base, pp) | Transfer ratio | Prompt damage vs the PS-chosen prompt |
+|---|---|---|---|---|
+| Qwen-1.5B, RandOpt's prompt (C) | +5.0 | +4.0 | 0.81 | +10.2 |
+| Qwen-3B, RandOpt's prompt (C3B) | +5.5 | +0.2 | 0.04 | +2.2 |
+| OLMo-1B, RandOpt's prompt (O1) | +13.0 | +5.1 | 0.39 | +34.2 |
+| GQA, CoT (G2 / G2R) | +6.4 / +5.2 | +5.0 / +4.4 | 0.78 / 0.84 | +11.3 |
+| GQA, direct (GD) | +2.6 | −0.6 | −0.23 | 0 (prompt already chosen) |
+Every search's top 50 beat base on the 200 selection questions, while the population mean is below base in all six.
+The selected models are better on test (+4 to +5) where the prompt leaves ≥ 10 pp of accuracy on the table, and not
+(+0.2, −0.6) where it leaves little or none. Five settings; descriptive only. It explains transfer, not the vote
+comparison (Qwen-1.5B transfers, yet SC still wins).
+
 **How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
 RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
 two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,
