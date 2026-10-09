@@ -21,7 +21,7 @@ separately. All locks, per-item outputs and analysis code are in this repository
 
 ## Findings
 
-### 1. Where RandOpt beats self-consistency, fixing its prompt beats the search
+### 1. RandOpt beats self-consistency exactly where its own prompt damages the model
 
 Three same-run comparisons at the paper's settings (N = 5000 perturbations, top K = 50), against self-consistency
 with the same number of test-time generations (50 samples at T = 0.7, no weight search):
@@ -47,7 +47,9 @@ On a non-Qwen model (OLMo-2-1B), RandOpt beats self-consistency on GSM8K by 8.7 
 models are individually better than base. But RandOpt's GSM8K instruction ("output the final answer after ####")
 halves this model's accuracy: asked just the question, one generation scores 65.3% and self-consistency 74.7%, far
 above RandOpt's 52.5%. In both settings where RandOpt beats self-consistency, the search is repairing damage done by
-its own prompt, and repairing the prompt does better.
+its own prompt, and repairing the prompt does better. On the Qwen rows RandOpt's prompt does not hurt (−7 to +5 points),
+and there RandOpt loses to plain self-consistency. The plain prompt is not a universal fix (it is worse for Qwen), but
+in all four rows a baseline without weight search matches or beats RandOpt.
 
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 

@@ -1,0 +1,20 @@
++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1
++ HF_HOME=/workspace/hf
++ HF_HUB_DISABLE_XET=1
++ mkdir -p /workspace/q2
++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''Qwen/Qwen2.5-1.5B-Instruct'\'',revision='\''989aa7980e4cf806f80c7fef2b1adb7bc71aa306'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
++ tail -1
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 2578.39it/s]
++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''Qwen/Qwen2.5-3B-Instruct'\'',revision='\''aa8e72537993ba99e69dfaafa59ed015b17504d1'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
++ tail -1
+Fetching 9 files:   0%|          | 0/9 [00:00<?, ?it/s]Error while downloading from https://huggingface.co/Qwen/Qwen2.5-3B-Instruct/resolve/aa8e72537993ba99e69dfaafa59ed015b17504d1/model-00001-of-00002.safetensors: HTTPSConnectionPool(host='us.aws.cdn.hf.co', port=443): Read timed out.
+Trying to resume download...
+Fetching 9 files:  78%|███████▊  | 7/9 [00:20<00:05,  2.86s/it]Fetching 9 files:  89%|████████▉ | 8/9 [05:53<00:44, 44.19s/it]Fetching 9 files: 100%|██████████| 9/9 [10:17<00:00, 68.60s/it]Fetching 9 files: 100%|██████████| 9/9 [10:17<00:00, 68.60s/it]
++ cd /workspace/RandOpt
++ python -u /workspace/repo/scripts/c_prep_gsm8k.py
++ tee /workspace/q2/data_hashes.txt
+Generating train split:   0%|          | 0/7473 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 7473/7473 [00:00<00:00, 343748.66 examples/s]
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 217926.69 examples/s]
+train 7473 c6f812ae33c9159d
+test 1319 59ec1b7f9357c7a2
++ grep -q 'test 1319 59ec1b7f9357c7a2' /workspace/q2/data_hashes.txt
