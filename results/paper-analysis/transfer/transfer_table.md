@@ -6,5 +6,6 @@
 | GQA Qwen2.5-VL-3B (G2) | CoT | +6.4 | +5.0 | 0.78 | 11.8% | -3.4 |
 | GQA Qwen2.5-VL-3B (G2R) | CoT | +5.2 | +4.4 | 0.84 | 11.1% | -3.5 |
 | GQA Qwen2.5-VL-3B (GD) | direct | +2.6 | -0.6 | -0.23 | 22.2% | -1.4 |
+| GSM8K OLMo-2-1B (GB) | boxed | +4.9 | -0.8 | -0.17 | 41.8% | -0.6 |
 
 EXPLORATORY. Selection: 200 questions; test: 1319 (GSM8K) / 1238 (GQA).

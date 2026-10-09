@@ -1,0 +1,22 @@
++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1
++ HF_HOME=/workspace/hf
++ HF_HUB_DISABLE_XET=1
++ dl allenai/OLMo-2-0425-1B-Instruct 48d788eca847d4d7548f375ad03d3c9312f6139e olmo
++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''allenai/OLMo-2-0425-1B-Instruct'\'',revision='\''48d788eca847d4d7548f375ad03d3c9312f6139e'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
++ tail -1
+Fetching 8 files:   0%|          | 0/8 [00:00<?, ?it/s]Fetching 8 files: 100%|██████████| 8/8 [00:00<00:00, 2534.32it/s]
++ dl Qwen/Qwen2.5-1.5B-Instruct 989aa7980e4cf806f80c7fef2b1adb7bc71aa306 q15
++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''Qwen/Qwen2.5-1.5B-Instruct'\'',revision='\''989aa7980e4cf806f80c7fef2b1adb7bc71aa306'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
++ tail -1
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files:  14%|█▍        | 1/7 [00:00<00:01,  4.17it/s]Fetching 7 files: 100%|██████████| 7/7 [00:14<00:00,  2.02s/it]Fetching 7 files: 100%|██████████| 7/7 [00:14<00:00,  2.02s/it]
++ cd /workspace/RandOpt
++ python -u /workspace/repo/scripts/c_prep_gsm8k.py
++ tee /workspace/data_hashes.txt
+Generating train split:   0%|          | 0/7473 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 7473/7473 [00:00<00:00, 338492.14 examples/s]
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 193986.01 examples/s]
+train 7473 c6f812ae33c9159d
+test 1319 59ec1b7f9357c7a2
++ grep -q 'train 7473 c6f812ae33c9159d' /workspace/data_hashes.txt
++ grep -q 'test 1319 59ec1b7f9357c7a2' /workspace/data_hashes.txt
++ python -c 'import datasets; datasets.load_dataset('\''openai/gsm8k'\'','\''main'\'',split='\''train'\''); print('\''GSM8K cached'\'')'
+GSM8K cached

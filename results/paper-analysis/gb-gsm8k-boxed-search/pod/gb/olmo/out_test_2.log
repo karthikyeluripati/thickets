@@ -1,0 +1,17 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+WARNING 10-09 06:45:43 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+Loading safetensors checkpoint shards:   0% Completed | 0/1 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.22it/s]
+Loading safetensors checkpoint shards: 100% Completed | 1/1 [00:00<00:00,  2.22it/s]
+
+Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):   0%|          | 0/67 [00:00<?, ?it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  12%|█▏        | 8/67 [00:00<00:00, 69.27it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  22%|██▏       | 15/67 [00:00<00:00, 66.63it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  33%|███▎      | 22/67 [00:00<00:00, 66.76it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  43%|████▎     | 29/67 [00:00<00:00, 66.15it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  54%|█████▎    | 36/67 [00:00<00:00, 65.28it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  64%|██████▍   | 43/67 [00:00<00:00, 61.57it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  75%|███████▍  | 50/67 [00:00<00:00, 58.96it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  84%|████████▎ | 56/67 [00:00<00:00, 57.27it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE):  93%|█████████▎| 62/67 [00:01<00:00, 57.09it/s]Capturing CUDA graphs (mixed prefill-decode, PIECEWISE): 100%|██████████| 67/67 [00:01<00:00, 60.87it/s]
+Capturing CUDA graphs (decode, FULL):   0%|          | 0/67 [00:00<?, ?it/s]Capturing CUDA graphs (decode, FULL):  12%|█▏        | 8/67 [00:00<00:00, 74.15it/s]Capturing CUDA graphs (decode, FULL):  25%|██▌       | 17/67 [00:00<00:00, 79.61it/s]Capturing CUDA graphs (decode, FULL):  39%|███▉      | 26/67 [00:00<00:00, 83.43it/s]Capturing CUDA graphs (decode, FULL):  54%|█████▎    | 36/67 [00:00<00:00, 86.41it/s]Capturing CUDA graphs (decode, FULL):  69%|██████▊   | 46/67 [00:00<00:00, 89.07it/s]Capturing CUDA graphs (decode, FULL):  84%|████████▎ | 56/67 [00:00<00:00, 90.85it/s]Capturing CUDA graphs (decode, FULL): 100%|██████████| 67/67 [00:00<00:00, 94.10it/s]Capturing CUDA graphs (decode, FULL): 100%|██████████| 67/67 [00:00<00:00, 89.34it/s]
+ENGINE_READY 2
+TEST_DONE 2
+[rank0]:[W1009 06:48:20.090252946 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())

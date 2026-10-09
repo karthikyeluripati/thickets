@@ -1,0 +1,681 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ . /workspace/stage/common.sh
+++ export HF_HOME=/workspace/hf VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ VLLM_LOGGING_LEVEL=WARNING
+++ cd /workspace/repo
+++ G=4
++ A=results/paper-analysis
++ R=/workspace/gb/olmo
+++ cat /workspace/mp_olmo.txt
++ MP=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ gates olmo /workspace/gb/olmo 41.5 79.5 results/paper-analysis/o1-olmo-sameRun/pod/o1/out/randopt.log /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ row=olmo
++ root=/workspace/gb/olmo
++ robase=41.5
++ bxbase=79.5
++ lg=results/paper-analysis/o1-olmo-sameRun/pod/o1/out/randopt.log
++ mp=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ launch select /workspace/gb/olmo out_fid 1 /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --prompt randopt --first 24
++ ph=select
++ root=/workspace/gb/olmo
++ o=out_fid
++ wpg=1
++ mp=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ shift 5
++ W=4
++ pids=()
++ mkdir -p /workspace/gb/olmo
+++ seq 0 0
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ pids[$w]=1479
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ pids[$w]=1480
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ pids[$w]=1482
++ for g in $(seq 0 $((G - 1)))
++ w=3
++ pids[$w]=1484
+++ python3 -c 'print(round(0.85/1, 2))'
+++ python3 -c 'print(round(0.85/1, 2))'
+++ seq 0 3
+++ python3 -c 'print(round(0.85/1, 2))'
+++ python3 -c 'print(round(0.85/1, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 4 --root /workspace/gb/olmo --out out_fid --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt randopt --first 24
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 4 --root /workspace/gb/olmo --out out_fid --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt randopt --first 24
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 4 --root /workspace/gb/olmo --out out_fid --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt randopt --first 24
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 4 --root /workspace/gb/olmo --out out_fid --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt randopt --first 24
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ kill -0 1479
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ w=3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_fid_select_3.log
++ bad=
+++ seq 0 3
++ for w in $(seq 0 $((W - 1)))
++ wait 1479
++ for w in $(seq 0 $((W - 1)))
++ wait 1480
++ for w in $(seq 0 $((W - 1)))
++ wait 1482
++ for w in $(seq 0 $((W - 1)))
++ wait 1484
++ '[' -n '' ']'
++ launch select /workspace/gb/olmo out 3 /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --prompt boxed --first 180
++ ph=select
++ root=/workspace/gb/olmo
++ o=out
++ wpg=3
++ mp=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ shift 5
++ W=12
++ pids=()
++ mkdir -p /workspace/gb/olmo
+++ seq 0 2
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ pids[$w]=3954
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ pids[$w]=3955
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ pids[$w]=3957
++ for g in $(seq 0 $((G - 1)))
++ w=3
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ pids[$w]=3959
+++ seq 0 3
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ kill -0 3954
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ w=3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_3.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=4
++ pids[$w]=4928
++ for g in $(seq 0 $((G - 1)))
++ w=5
++ pids[$w]=4929
++ for g in $(seq 0 $((G - 1)))
++ w=6
++ pids[$w]=4932
++ for g in $(seq 0 $((G - 1)))
++ w=7
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ pids[$w]=4933
+++ seq 0 3
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=4
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 4 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 5 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 7 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 6 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ kill -0 4928
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ for g in $(seq 0 $((G - 1)))
++ w=5
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_5.log
++ for g in $(seq 0 $((G - 1)))
++ w=6
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_6.log
++ for g in $(seq 0 $((G - 1)))
++ w=7
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_7.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=8
++ pids[$w]=5850
++ for g in $(seq 0 $((G - 1)))
++ w=9
++ pids[$w]=5851
++ for g in $(seq 0 $((G - 1)))
++ w=10
++ pids[$w]=5852
++ for g in $(seq 0 $((G - 1)))
++ w=11
++ pids[$w]=5853
+++ python3 -c 'print(round(0.85/3, 2))'
+++ seq 0 3
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=8
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 8 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 10 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 11 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 9 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed --first 180
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ kill -0 5850
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ for g in $(seq 0 $((G - 1)))
++ w=9
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_9.log
++ for g in $(seq 0 $((G - 1)))
++ w=10
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_10.log
++ kill -0 5852
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_10.log
++ for g in $(seq 0 $((G - 1)))
++ w=11
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_11.log
++ bad=
+++ seq 0 11
++ for w in $(seq 0 $((W - 1)))
++ wait 3954
++ for w in $(seq 0 $((W - 1)))
++ wait 3955
++ for w in $(seq 0 $((W - 1)))
++ wait 3957
++ for w in $(seq 0 $((W - 1)))
++ wait 3959
++ for w in $(seq 0 $((W - 1)))
++ wait 4928
++ for w in $(seq 0 $((W - 1)))
++ wait 4929
++ for w in $(seq 0 $((W - 1)))
++ wait 4932
++ for w in $(seq 0 $((W - 1)))
++ wait 4933
++ for w in $(seq 0 $((W - 1)))
++ wait 5850
++ for w in $(seq 0 $((W - 1)))
++ wait 5851
++ for w in $(seq 0 $((W - 1)))
++ wait 5852
++ for w in $(seq 0 $((W - 1)))
++ wait 5853
++ '[' -n '' ']'
++ tee /workspace/gb/olmo/gates.txt
+++ spent
+++ python3 -c 'import time;r=dict(x.split('\''='\'') for x in open('\''/workspace/rate.txt'\'').read().split());print((time.time()-int(r['\''START'\'']))/3600*float(r['\''RATE'\'']))'
++ python3 - /workspace/gb/olmo 41.5 79.5 results/paper-analysis/o1-olmo-sameRun/pod/o1/out/randopt.log 2.1433091754913334
+FIDELITY n=24 mean_abs_diff=0.0135 CONSISTENT
+ENV randopt_base_sel=41.50 (ref 41.5) boxed_base_sel=79.50 (ref 79.5) PASS
+PROJECTION W=12 slow_mean=5.44 spent=2.14 proj=16.62
++ grep -q 'ENV .* PASS$' /workspace/gb/olmo/gates.txt
+++ grep -o 'proj=[0-9.]*' /workspace/gb/olmo/gates.txt
+++ cut -d= -f2
++ proj=16.62
++ python3 -c 'import sys; sys.exit(0 if 16.62 <= 48 else 1)'
++ launch select /workspace/gb/olmo out 3 /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --prompt boxed
++ ph=select
++ root=/workspace/gb/olmo
++ o=out
++ wpg=3
++ mp=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ shift 5
++ W=12
++ pids=()
++ mkdir -p /workspace/gb/olmo
+++ seq 0 2
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ pids[$w]=6983
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ pids[$w]=6984
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ pids[$w]=6985
++ for g in $(seq 0 $((G - 1)))
++ w=3
++ pids[$w]=6986
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
+++ seq 0 3
+++ python3 -c 'print(round(0.85/3, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ w=3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_3.log
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=4
++ pids[$w]=6997
++ for g in $(seq 0 $((G - 1)))
++ w=5
++ pids[$w]=6998
++ for g in $(seq 0 $((G - 1)))
++ w=6
++ pids[$w]=6999
++ for g in $(seq 0 $((G - 1)))
++ w=7
+++ python3 -c 'print(round(0.85/3, 2))'
++ pids[$w]=7002
+++ python3 -c 'print(round(0.85/3, 2))'
+++ seq 0 3
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=4
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_4.log
++ for g in $(seq 0 $((G - 1)))
++ w=5
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_5.log
++ for g in $(seq 0 $((G - 1)))
++ w=6
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_6.log
++ for g in $(seq 0 $((G - 1)))
++ w=7
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_7.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 4 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ for g in $(seq 0 $((G - 1)))
++ w=8
++ pids[$w]=7011
++ for g in $(seq 0 $((G - 1)))
++ w=9
++ pids[$w]=7012
++ for g in $(seq 0 $((G - 1)))
++ w=10
+++ python3 -c 'print(round(0.85/3, 2))'
++ pids[$w]=7014
++ for g in $(seq 0 $((G - 1)))
++ w=11
++ pids[$w]=7016
+++ python3 -c 'print(round(0.85/3, 2))'
+++ python3 -c 'print(round(0.85/3, 2))'
++ CUDA_VISIBLE_DEVICES=1
+++ seq 0 3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 5 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 7 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
+++ python3 -c 'print(round(0.85/3, 2))'
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 6 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ for g in $(seq 0 $((G - 1)))
++ w=8
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_8.log
++ for g in $(seq 0 $((G - 1)))
++ w=9
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_9.log
++ for g in $(seq 0 $((G - 1)))
++ w=10
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_10.log
++ for g in $(seq 0 $((G - 1)))
++ w=11
++ grep -q ENGINE_READY /workspace/gb/olmo/out_select_11.log
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 8 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ bad=
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 9 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
+++ seq 0 11
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 10 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ for w in $(seq 0 $((W - 1)))
++ wait 6983
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 11 --workers 12 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.28 --prompt boxed
++ for w in $(seq 0 $((W - 1)))
++ wait 6984
++ for w in $(seq 0 $((W - 1)))
++ wait 6985
++ for w in $(seq 0 $((W - 1)))
++ wait 6986
++ for w in $(seq 0 $((W - 1)))
++ wait 6997
++ for w in $(seq 0 $((W - 1)))
++ wait 6998
++ for w in $(seq 0 $((W - 1)))
++ wait 6999
++ for w in $(seq 0 $((W - 1)))
++ wait 7002
++ for w in $(seq 0 $((W - 1)))
++ wait 7011
++ for w in $(seq 0 $((W - 1)))
++ wait 7012
++ for w in $(seq 0 $((W - 1)))
++ wait 7014
++ for w in $(seq 0 $((W - 1)))
++ wait 7016
++ '[' -n '' ']'
+++ wc -l
+++ cat /workspace/gb/olmo/out/select_0.jsonl /workspace/gb/olmo/out/select_1.jsonl /workspace/gb/olmo/out/select_10.jsonl /workspace/gb/olmo/out/select_11.jsonl /workspace/gb/olmo/out/select_2.jsonl /workspace/gb/olmo/out/select_3.jsonl /workspace/gb/olmo/out/select_4.jsonl /workspace/gb/olmo/out/select_5.jsonl /workspace/gb/olmo/out/select_6.jsonl /workspace/gb/olmo/out/select_7.jsonl /workspace/gb/olmo/out/select_8.jsonl /workspace/gb/olmo/out/select_9.jsonl
++ echo 'SELECT_ALL_DONE 5000'
+SELECT_ALL_DONE 5000
++ launch test /workspace/gb/olmo out 1 /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --prompt boxed
++ ph=test
++ root=/workspace/gb/olmo
++ o=out
++ wpg=1
++ mp=/workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ shift 5
++ W=4
++ pids=()
++ mkdir -p /workspace/gb/olmo
+++ seq 0 0
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ pids[$w]=12983
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ pids[$w]=12985
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ pids[$w]=12987
+++ python3 -c 'print(round(0.85/1, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=3
+++ python3 -c 'print(round(0.85/1, 2))'
++ pids[$w]=12988
+++ seq 0 3
+++ python3 -c 'print(round(0.85/1, 2))'
+++ python3 -c 'print(round(0.85/1, 2))'
++ for g in $(seq 0 $((G - 1)))
++ w=0
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 1 --workers 4 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt boxed
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 0 --workers 4 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt boxed
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 3 --workers 4 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt boxed
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 2 --workers 4 --root /workspace/gb/olmo --out out --model-path /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e --gpu-mem 0.85 --prompt boxed
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ kill -0 12983
++ sleep 3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_0.log
++ for g in $(seq 0 $((G - 1)))
++ w=1
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_1.log
++ for g in $(seq 0 $((G - 1)))
++ w=2
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_2.log
++ for g in $(seq 0 $((G - 1)))
++ w=3
++ grep -q ENGINE_READY /workspace/gb/olmo/out_test_3.log
++ bad=
+++ seq 0 3
++ for w in $(seq 0 $((W - 1)))
++ wait 12983
++ for w in $(seq 0 $((W - 1)))
++ wait 12985
++ for w in $(seq 0 $((W - 1)))
++ wait 12987
++ for w in $(seq 0 $((W - 1)))
++ wait 12988
++ '[' -n '' ']'
++ python -u scripts/gb_analysis.py --upstream /workspace/RandOpt --d /workspace/gb/olmo --sc results/paper-analysis/o2-olmo-prompt/pod/o2/out/boxed_sc.json --base results/paper-analysis/o2-olmo-prompt/pod/o2/out/boxed_base.json --ro-ens results/paper-analysis/o1-olmo-sameRun/pod/o1/out/ensemble_answers.json --ro-seeds results/paper-analysis/o2-olmo-prompt/top50_reconstructed.json --sel-base-ref 79.5 --out /workspace/gb/olmo/gb_results.json
+{
+ "n": 1319,
+ "base_boxed_this_run": 67.85443517816528,
+ "base_boxed_ref": 67.85443517816528,
+ "selection_base_this_run": 79.5,
+ "selection_base_ref_PS": 79.5,
+ "valid_env": true,
+ "members_mean": 67.04776345716452,
+ "members_range": [
+  64.74601971190296,
+  68.84003032600455
+ ],
+ "members_minus_boxed_base": {
+  "D": -0.8066717210007583,
+  "ci": [
+   -2.1941243366186507,
+   0.5747156937073532
+  ]
+ },
+ "selection_top_reward": [
+  86.0,
+  84.0
+ ],
+ "sigma_top": {
+  "0.001": 42,
+  "0.0005": 8
+ },
+ "top50_overlap_with_randopt_prompt_search": 0,
+ "vote_gain_over_members": 6.947687642153144,
+ "K50": {
+  "randopt_boxed": 73.99545109931766,
+  "sc_boxed": 76.11827141774071,
+  "D": -2.122820318423048,
+  "ci": [
+   -3.4874905231235784,
+   -0.8339651250947688
+  ],
+  "outcome": "SC AHEAD",
+  "equivalent_2pp": false,
+  "n_randopt_only": 25,
+  "n_sc_only": 53
+ },
+ "K10": {
+  "randopt_boxed": 72.63078089461713,
+  "sc_boxed": 74.67778620166793,
+  "D": -2.047005307050796,
+  "ci": [
+   -3.639120545868082,
+   -0.45489006823351025
+  ],
+  "outcome": "SC AHEAD",
+  "equivalent_2pp": false,
+  "n_randopt_only": 44,
+  "n_sc_only": 71
+ },
+ "randopt_boxed_minus_randopt_own_prompt": {
+  "randopt_own_prompt": 52.463987869598185,
+  "D": 21.531463229719485,
+  "ci": [
+   18.877937831690677,
+   24.184988627748293
+  ]
+ },
+ "randopt_boxed_minus_one_boxed_generation": {
+  "D": 6.1410159211523885,
+  "ci": [
+   4.397270659590599,
+   7.810841546626204
+  ]
+ },
+ "GB_1": "SC AHEAD"
+}
++ touch /workspace/gb/olmo/DONE

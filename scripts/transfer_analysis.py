@@ -46,7 +46,10 @@ def main():
         ('GQA Qwen2.5-VL-3B (G2R)', 'CoT', jsonl_rewards(A / 'g2r-seed/pod/g2r/out'), json.loads((A / 'g2r-seed/pod/g2r/out/base_select.json').read_text())['reward'],
          members_test(d=A / 'g2r-seed/pod/g2r/out'), 53.39),
         ('GQA Qwen2.5-VL-3B (GD)', 'direct', jsonl_rewards(gd_out), json.loads((gd_out / 'base_select.json').read_text())['reward'],
-         members_test(d=A / 'gd-gqa-direct-search/pod2/gd/out') if (A / 'gd-gqa-direct-search/pod2/gd/out/test_rank49.json').exists() else None, 64.70)]
+         members_test(d=A / 'gd-gqa-direct-search/pod2/gd/out') if (A / 'gd-gqa-direct-search/pod2/gd/out/test_rank49.json').exists() else None, 64.70),
+        ('GSM8K OLMo-2-1B (GB)', 'boxed', jsonl_rewards(A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out'),
+         json.loads((A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out/base_select.json').read_text())['reward'],
+         members_test(d=A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out'), 67.85)]
     res = []
     for name, prompt, rew, b, mt, bt in rows:
         rew = np.array(rew); top = np.sort(rew)[-50:]

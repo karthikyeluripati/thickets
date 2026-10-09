@@ -82,5 +82,19 @@
   "base_test": 64.7,
   "test_gain": -0.6030694668820615,
   "transfer_ratio": -0.2310610984222447
+ },
+ {
+  "search": "GSM8K OLMo-2-1B (GB)",
+  "prompt": "boxed",
+  "n": 5000,
+  "base_selection": 79.5,
+  "population_mean_selection": 78.89950000000002,
+  "share_above_base": 41.839999999999996,
+  "top50_selection_mean": 84.35999999999999,
+  "selection_gain": 4.859999999999987,
+  "members_test": 67.04776345716452,
+  "base_test": 67.85,
+  "test_gain": -0.8022365428354732,
+  "transfer_ratio": -0.16506924749701138
  }
 ]

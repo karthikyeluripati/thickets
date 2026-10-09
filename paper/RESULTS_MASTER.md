@@ -254,6 +254,12 @@ RandOpt's 5000 × 200 = 1,000,000 selection generations are not charged to it. O
   RandOpt's prompt the model writes "####" in 97.0% of answers.
 - **RandOpt − SC@50 (plain) = −22.21 [−24.87, −19.56]** → prompt-SC ahead; boxed −23.65 [−26.23, −21.08]; RandOpt −
   one plain generation −12.81 [−15.69, −9.86].
+- **GB (77332dd), RandOpt's search under the boxed prompt (same 5000 perturbations as O1; fast re-implementation,
+  gates passed: base selection 41.50 = randopt.py, boxed 79.50 = PS, fidelity mean |Δ| 0.0135):** RandOpt 74.00 vs
+  SC@50 (boxed) 76.12: **D = −2.12 [−3.49, −0.83], SC ahead**; K = 10 −2.05 [−3.64, −0.45]. Members 67.05 vs boxed
+  base 67.85 (−0.81 [−2.19, +0.57]); vote +6.95 over members; selection reward 84.0–86.0 vs 79.5, not transferring;
+  top-50 overlap with O1 0. RandOpt (boxed) − RandOpt (own prompt) +21.53 [+18.88, +24.18]. **Qwen-1.5B (GB-2): INVALID-ENV,
+  not run** (base selection under RandOpt's prompt 68.00 vs randopt.py's printed 73.00; PS measured 68.5; fidelity consistent).
 - The member fidelity gate **failed** (rebuilt members agree with O1's answers on 70.2% of items; accuracy within
   0.63 pp; likely bf16 subtract-to-restore drift in randopt.py), so the "search on top of the prompt" secondary
   (−0.91 [−2.27, +0.53]) is **not valid**.
@@ -300,7 +306,8 @@ RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6
 | OLMo-1B, RandOpt's prompt (O1) | +13.0 | +5.1 | 0.39 | +34.2 |
 | GQA, CoT (G2 / G2R) | +6.4 / +5.2 | +5.0 / +4.4 | 0.78 / 0.84 | +11.3 |
 | GQA, direct (GD) | +2.6 | −0.6 | −0.23 | 0 (prompt already chosen) |
-Every search's top 50 beat base on the 200 selection questions, while the population mean is below base in all six.
+| OLMo-1B, boxed (GB) | +4.9 | −0.8 | −0.17 | 0 (prompt already chosen) |
+Every search's top 50 beat base on the 200 selection questions, while the population mean is below base in all seven.
 The selected models are better on test (+4 to +5) where the prompt leaves ≥ 10 pp of accuracy on the table, and not
 (+0.2, −0.6) where it leaves little or none. Five settings; descriptive only. It explains transfer, not the vote
 comparison (Qwen-1.5B transfers, yet SC still wins).
@@ -308,7 +315,9 @@ comparison (Qwen-1.5B transfers, yet SC still wins).
 **How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
 RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
 two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,
-never "beats". On GQA, GD shows that with the prompt held fixed RandOpt's search itself is equivalent to sampling. RandOpt's wins under its own prompts occur where that prompt damages the base model heavily, and on
+never "beats". With the prompt held fixed, RandOpt's search itself is equivalent to sampling on GQA (GD) and behind it
+on OLMo (GB, −2.12 [−3.49, −0.83]); in both, the selected models are no better than base on test. Not run for the Qwen rows
+(GB-2 gated out). RandOpt's wins under its own prompts occur where that prompt damages the base model heavily, and on
 GQA the shift selection finds (switching off step-by-step reasoning) is one a prompt also gives; damage alone does
 not decide the outcome (Qwen-1.5B). Scope: two tasks, models ≤ 8B, one search per GSM8K row, three prompt candidates.
 

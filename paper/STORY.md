@@ -46,7 +46,9 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
     them overlaps the CoT search's top 50. With the prompt held fixed, weight search adds nothing measurable.
     Termination repair explained only a quarter of the CoT-prompt advantage (G3).
   - OLMo: RandOpt's "####" instruction halves the model's accuracy (33.7 vs 65.3 with just the question). The search
-    partly repairs it (52.5); a prompt change repairs more (SC@50 74.7; one plain generation 65.3).
+    partly repairs it (52.5); a prompt change repairs more (SC@50 74.7; one plain generation 65.3). **Running RandOpt's
+    search under the boxed prompt (GB, same 5000 perturbations) gives 74.00 vs SC@50 76.12: −2.12 [−3.49, −0.83],
+    SC ahead**; the selected models are no better than base (−0.81 [−2.19, +0.57]). (Qwen-1.5B's version was gated out.)
 - **Damage is part of the story, not all of it [R8b.4].** On the locked measure (plain/direct − RandOpt's prompt)
   damage is +11.3 and +31.6 where RandOpt wins and +4.7 and −7.2 where it loses (prediction supported 4/4). But
   against the selection-chosen prompt, Qwen-1.5B is damaged by 10.2 points and RandOpt still lost (post-hoc).
@@ -86,8 +88,8 @@ correctness, the OmniSpatial winner's residual gain) our account stops, and we s
 ## Scope and limits (say these in the paper)
 Two tasks for the same-run comparisons (GSM8K, GQA); models ≤ 8B; one RandOpt search per GSM8K row (two on GQA);
 three prompt candidates per task, fixed before the PS run but chosen after earlier results ("direct" after the GQA
-shift analysis; "boxed" is the standard math prompt), stated as such; RandOpt's search under the chosen prompt was run on GQA only (GD), not
-on the GSM8K rows; RandOpt's search cost not charged in the accuracy comparisons;
+shift analysis; "boxed" is the standard math prompt), stated as such; RandOpt's search under the chosen prompt was run on GQA (GD) and OLMo (GB),
+not on the Qwen GSM8K rows (Qwen-1.5B gated out by its environment check, Qwen-3B not attempted); RandOpt's search cost not charged in the accuracy comparisons;
 OLMo "search on top of the prompt" not valid (fidelity gate failed); GQA uses a re-implementation (released code
 cannot pass images); exploratory analyses are labelled as such.
 
