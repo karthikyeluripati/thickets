@@ -184,65 +184,96 @@ At T = 0.3, SC@50 on GSM8K-1.5B is 73.3, close to the paper's TT-MV of 69.1. The
   estimates are **higher** than the published RandOpt numbers (+3.4 and +1.1 pp). This is **not** a same-run
   comparison and **not** a statistical equivalence or superiority test.
 - **SC vs the paper's TT-MV on the gated rows:** +10.7 and +5.7 pp (**5.7–10.7 pp**).
-- **GQA is an unresolved comparison, not an established counterexample.** The base gate fails there, so the row
-  cannot establish a residual RandOpt advantage, but it also prevents any universal conclusion about SC.
+- **The cross-paper GQA row is not comparable** (base gate fails). The same-run GQA comparison (R8b) supersedes it.
 
-## R8b. Same-run RandOpt vs self-consistency at the paper's own settings (lock 1437d44 + amendment 6118222)
-**Source:** `results/paper-analysis/c-sameRun/C_RESULT.md`, `c_results.json`.
+## R8b. Same-run RandOpt vs self-consistency, and what a prompt does (C, C3B, G2, G2R, G3, G4, O1, O2, Q2, PS)
+**Sources:** `results/paper-analysis/{c-sameRun, c3b-sameRun, g2-sameRun, g2r-seed, g3-termination, g4-direct-prompt,
+o1-olmo-sameRun, o2-olmo-prompt, q2-qwen-prompt, ps-prompt-selection, gqa-shift}/`. Index: `results/README.md`.
 
-**Setup.** GSM8K test (1319), Qwen2.5-1.5B-Instruct @ 989aa79. RandOpt arm: RandOpt's own `randopt.py` @ 4000d34
-(one logging line added), **N = 5000**, σ ∈ {0.0005, 0.001, 0.002}, 200 selection items, greedy, K = 50 vote (the
-paper's settings), 6× H100. SC arm: 50 samples at T = 0.7, same prompt, same vote rule and scorer (RandOpt's).
-Validity: recomputed K = 50 vote = randopt.py's printed 1018/1319 exactly.
+**Protocol (all rows).** RandOpt at the paper's settings: N = 5000 perturbations, σ ∈ {0.0005, 0.001, 0.002}, 200
+selection questions, greedy decoding, K = 50 vote (K = 10 secondary), RandOpt's prompts, scorers and vote rule.
+GSM8K rows run RandOpt's own `randopt.py` @ 4000d34 (one logging line added; validity: the recomputed K = 50 vote
+equals randopt.py's printed count). GQA runs a faithful re-implementation (released code cannot pass images) on
+RandOpt's perturbation, scoring and voting components. SC@K: K samples of the unperturbed model at T = 0.7, same
+scorer and vote rule. D = RandOpt − SC, paired item bootstrap (10,000, seed 0); "ahead" means the 95% CI excludes 0.
+RandOpt's 5000 × 200 = 1,000,000 selection generations are not charged to it. One RandOpt search per row except GQA (2).
 
-| | Accuracy |
-|---|---|
-| Base (randopt.py / greedy) | 60.27 / 59.29 (paper 58.8; gate pass) |
-| **RandOpt, N = 5000, K = 50** | **77.18** (paper 76.4; reproduced) |
-| **SC@50, T = 0.7** | **79.83** |
-| **D = RandOpt − SC (paired, 10,000 bootstrap)** | **−2.65 pp [−4.32, −0.99] → SC AHEAD** (81 SC-only vs 46 RandOpt-only items) |
-| Secondary, K = 10 | RandOpt 77.18 vs SC@10 75.21: +1.97 [0.00, +3.87] → no difference detected |
-
-**EXPLORATORY decomposition:** the 50 selected models individually average 64.3% (range 59.4–68.9; base 60.3); their
-vote gives 77.2. SC single samples average 57.3; their vote gives 79.8. Vote curves K = 1/5/10/20/50: RandOpt
-68.2/74.6/77.2/77.5/77.2; SC 57.5/69.9/75.2/78.7/79.8. Selection: top-50 train reward 0.780 vs population 0.676 and
-base 0.730 (200 items).
-
-**Further same-run rows (same protocol):**
-
-| Row (lock) | Base | RandOpt K = 50 (paper) | SC@50 | **D = RandOpt − SC** [paired 95% CI] | Outcome | Members (mean, single model) |
+### R8b.1 Under RandOpt's own prompts
+| Row (lock) | Base | Members (single model, mean) | RandOpt K = 50 (paper) | SC@50 | **D [95% CI]** | Outcome |
 |---|---|---|---|---|---|---|
-| GSM8K / Qwen2.5-1.5B (C, 1437d44+6118222) | 60.3 | 77.18 (76.4) | 79.83 | **−2.65 [−4.32, −0.99]** | SC AHEAD | 64.3 |
-| GSM8K / Qwen2.5-3B (C3B, e78cfd0) | 80.7 | 86.66 (87.1) | 88.25 | **−1.59 [−2.65, −0.53]** | SC AHEAD | 80.9 |
-| GQA / Qwen2.5-VL-3B, 1238 q (G2, d2b3d68+5be1720) | 53.4 | 63.49 (69.0†) | 60.02 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** | 58.4 |
-| GQA, second population seed (G2R, 9e84c4f+0754376) | 53.4 | 63.65 | 60.02 | **+3.63 [+1.78, +5.49]** | **RANDOPT AHEAD (replicated)** | 57.8 |
+| GSM8K / Qwen2.5-1.5B (C, 1437d44+6118222) | 60.3 | 64.3 | 77.18 (76.4) | 79.83 | **−2.65 [−4.32, −0.99]** | SC ahead |
+| GSM8K / Qwen2.5-3B (C3B, e78cfd0) | 80.7 | 80.9 | 86.66 (87.1) | 88.25 | **−1.59 [−2.65, −0.53]** | SC ahead |
+| GQA / Qwen2.5-VL-3B, 1238 q (G2, d2b3d68+5be1720) | 53.4 | 58.4 | 63.49 (69.0†) | 60.02 | **+3.47 [+1.62, +5.41]** | RandOpt ahead |
+| GQA, second population seed (G2R, 9e84c4f+0754376) | 53.4 | 57.8 | 63.65 | 60.02 | **+3.63 [+1.78, +5.49]** | RandOpt ahead (replicated) |
+| GSM8K / OLMo-2-1B (O1, e2e2400) | 35.25 | 40.3 | 52.46 (–) | 43.75 | **+8.72 [+6.75, +10.77]** | RandOpt ahead |
 
-K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead; G2R +4.68 [2.50, 6.95].
-GQA two-seed mean D (K = 50) = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29].
-**O1 (e2e2400): GSM8K / OLMo-2-1B: base 35.25, members 40.3 (+5.1), RandOpt K = 50 52.46, SC@50 43.75: RandOpt ahead +8.72 [+6.75, +10.77].**
-**PS (a1caf88): prompt chosen on the selection set (boxed for all GSM8K models, direct for GQA); SC@50 under it: 80.14 / 87.04 / 76.12 / 64.70 vs RandOpt 77.18 / 86.66 / 52.46 / 63.49. No row RandOpt ahead.**
-**Q2 (2a55ccc): Qwen plain prompt: base 64.75 / 72.93 (RandOpt prompt 60.05 / 80.14), SC@50 74.60 / 79.61 (RandOpt prompt 79.83 / 88.25); RandOpt beats plain-prompt SC on Qwen; damage prediction supported on all four rows.**
-**O2 (6ecafcf): OLMo-2-1B asked just the question: BASE greedy 65.28, SC@50 74.68 (RandOpt's prompt: 33.66 / 43.75); RandOpt − SC@50 (plain) −22.21 [−24.87, −19.56].**
-**G4 (2ad4e46): with a direct-answer prompt, BASE greedy (1 generation) = 64.70 and SC@50 = 64.70 on the same questions;
-RandOpt (CoT) − SC@50 (direct) = −1.21 [−2.83, +0.40], no difference detected. The GQA advantage is a prompt effect.**
-† The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
-G2 uses a faithful re-implementation of randopt.py (released code cannot pass images); its environment gate
-(base 53.39 vs P2 53.55 on the same questions) passed. One test worker OOM'd and was re-run with identical settings.
+- K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54]; G2R +4.68 [2.50, 6.95];
+  O1 +7.58 [+5.31, +9.93].
+- GQA two-seed mean D = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29]. O1's second seed was
+  skipped by its pre-registered budget rule.
+- Vote curves K = 1/5/10/20/50, C: RandOpt 68.2/74.6/77.2/77.5/77.2, SC 57.5/69.9/75.2/78.7/79.8; O1: RandOpt
+  40.2/49.0/50.1/53.0/52.5.
+- C selection: top-50 train reward 0.780 vs population 0.676 and base 0.730.
+- † The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
+  G2's environment gate passed (base 53.39 vs P2 53.55 on the same questions).
+- **How to state R8b.1:** under RandOpt's prompts, RandOpt beats SC in two rows (GQA, OLMo) and loses in two (Qwen
+  GSM8K). Where it loses, the selected models are 0–4 pp above base individually, so its gain is the vote, and
+  sampling votes better. Where it wins, the selected models are about 5 pp above base individually: a shift shared
+  across questions.
 
-**EXPLORATORY (G2):** the GQA advantage is on open questions (vote 56.2 vs 51.3; yes/no 76.5 vs 75.6). The base model
-often ends without a usable answer (heuristic non-answer rate: base 10.7%, SC samples 10.8%, selected members 5.5%);
-on those 133 questions members are correct 43.4% (base 0%), elsewhere members gain +1.3 pp. Selected perturbations
-repair answer termination/format, which sampling the base model cannot (cf. the original paper's format analysis).
+### R8b.2 What the shared shift is on GQA (G3, exploratory shift analysis, G4)
+- **G3 (dc19fd4), 1024 vs 256 tokens:** the GQA advantage shrinks by 0.97 [0.32, 1.70] but persists (D_1024 = +2.67
+  [+0.73, +4.52]) → PARTIAL; termination explains about a quarter. G3 at 256 tokens reproduces G2 exactly.
+- **EXPLORATORY (gqa-shift, on G3 texts):** selected members mostly answer directly (median 10 tokens vs 146 for base;
+  ≤ 32 tokens in 55.8% vs 3.0%; step-by-step text in 43.7% vs 97.0%). Across the 50 members, accuracy and mean
+  length correlate r = −0.89; within a question, shorter member generations are correct +7.1 pp [5.1, 9.2] more
+  often. The member gain is all on open questions (+7.7 pp). On the 92 questions only RandOpt gets right, the
+  correct answer appears among SC's 50 samples in 95.7% (median share 14% vs SC's winner 28%; among members 51%).
+- **G4 (2ad4e46), direct-answer prompt:** BASE greedy (1 generation) 64.70 vs 53.39 with RandOpt's CoT prompt
+  (+11.31 [+8.48, +14.14]); SC@50 (direct) 64.70. **RandOpt (CoT) − SC@50 (direct) = −1.21 [−2.83, +0.40]**, no
+  difference detected (not equivalent). Short prompt −0.57 [−2.34, +1.29]; seed-43 RandOpt −1.05 [−2.75, +0.65].
+  Selected members re-run with the direct prompt: vote 64.62 vs SC 64.70, **−0.08 [−0.97, +0.81]** (search adds
+  nothing measurable on top of the prompt); members individually 62.80, below the direct base.
 
-**G3 (lock dc19fd4, confirmatory follow-up of the G2 exploratory reading):** with a 4× token budget (1024), RandOpt's
-GQA advantage shrinks by 0.97 pp [0.32, 1.70] but persists: D_1024 = +2.67 [+0.73, +4.52] → **PARTIAL**. Termination
-explains about a quarter of the advantage. Selected models answer in ~66 tokens vs 147 for base. The base model rarely
-hits the limit; its failures are mostly missing final boxes. The G2 "termination repair" reading is superseded by G3.
+### R8b.3 OLMo: the same pattern (O2, 6ecafcf)
+- RandOpt's GSM8K instruction ("…output the final answer after ####") halves OLMo-2-1B's accuracy: BASE greedy
+  33.66 (RandOpt's prompt) vs **65.28** (question only) vs 67.85 (boxed); SC@50 43.75 vs **74.68** vs 76.12. Under
+  RandOpt's prompt the model writes "####" in 97.0% of answers.
+- **RandOpt − SC@50 (plain) = −22.21 [−24.87, −19.56]** → prompt-SC ahead; boxed −23.65 [−26.23, −21.08]; RandOpt −
+  one plain generation −12.81 [−15.69, −9.86].
+- The member fidelity gate **failed** (rebuilt members agree with O1's answers on 70.2% of items; accuracy within
+  0.63 pp; likely bf16 subtract-to-restore drift in randopt.py), so the "search on top of the prompt" secondary
+  (−0.91 [−2.27, +0.53]) is **not valid**.
 
-**How to state R8b:** three same-run comparisons at the paper's settings, with RandOpt's published numbers reproduced
-on GSM8K. On GSM8K (1.5B, 3B) SC@50 is ahead (CIs exclude 0) and selected members are only 0–4 pp above base, so the
-gain is the vote. On GQA RandOpt is ahead (+3.47), and its members are +5 pp above base, mostly by fixing a format /
-termination failure (exploratory). RandOpt's 5000 × 200 search generations are not charged to it; one run per row.
+### R8b.4 Qwen GSM8K: the same control (Q2, 2a55ccc)
+- Plain prompt: BASE 64.75 / 72.93 (1.5B / 3B) vs 60.05 / 80.14 with RandOpt's prompt; boxed BASE 70.20 / 82.34.
+  SC@50 plain 74.60 / 79.61 vs 79.83 / 88.25 with RandOpt's prompt: for Qwen the plain prompt is **worse** for SC.
+- RandOpt − SC@50 (plain): +2.58 [+0.53, +4.62] / +7.05 [+5.23, +8.95] → RandOpt ahead of plain-prompt SC.
+- **Damage prediction (locked; plain − RandOpt-prompt base):** GQA +11.3, OLMo +31.6, Qwen +4.70 [+1.97, +7.43] and
+  −7.20 [−9.55, −4.78] → supported (RandOpt beats SC on the two heavily damaged rows). **POST-HOC caveat:** against
+  the prompt chosen by PS (boxed), Qwen-1.5B's damage is +10.2 and RandOpt still lost: damage alone does not decide.
+
+### R8b.5 Prompt selection on RandOpt's own selection set (PS, a1caf88): the headline
+Rule: per row, choose the prompt with the highest greedy BASE accuracy on RandOpt's 200 selection questions (GSM8K:
+randopt / plain / boxed; GQA: cot / direct / short), 600 generations in total; then SC@50 under it on test.
+Selection compute: 600 greedy generations vs RandOpt's 1,000,000 (600 / 1,000,000 = 0.06%).
+
+| Row | Selection accuracy (default / alt 1 / alt 2) | Chosen | RandOpt K = 50 | SC@50, chosen | **D [95% CI]** | Outcome |
+|---|---|---|---|---|---|---|
+| GSM8K / Qwen2.5-1.5B | 68.5 / 73.0 / 80.5 | boxed | 77.18 | 80.14 | **−2.96 [−4.62, −1.29]** | prompt-selected SC ahead |
+| GSM8K / Qwen2.5-3B | 84.0 / 85.0 / 90.0 | boxed | 86.66 | 87.04 | **−0.38 [−1.67, +0.91]** | n.d.; equivalent (±2 pp) |
+| GSM8K / OLMo-2-1B | 41.5 / 77.0 / 79.5 | boxed | 52.46 | 76.12 | **−23.65 [−26.23, −21.08]** | prompt-selected SC ahead |
+| GQA / Qwen2.5-VL-3B | 53.5 / 66.0 / 62.0 | direct | 63.49 | 64.70 | **−1.21 [−2.83, +0.40]** | n.d. |
+
+RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6.07], −15.39 [−18.20, −12.43], −1.21
+[−2.83, +0.48] (same row order).
+
+**How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
+RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
+two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,
+never "beats". RandOpt's wins under its own prompts occur where that prompt damages the base model heavily, and on
+GQA the shift selection finds (switching off step-by-step reasoning) is one a prompt also gives; damage alone does
+not decide the outcome (Qwen-1.5B). Scope: two tasks, models ≤ 8B, one search per GSM8K row, three prompt candidates.
 
 ## R8c. Theory checks (criteria committed before computing, f06f3c6; status: criteria-first EXPLORATORY)
 **Source:** `results/paper-analysis/theory/theory_results.json`, derivations in `paper/THEORY.md`. Data: P0 (96 GQA

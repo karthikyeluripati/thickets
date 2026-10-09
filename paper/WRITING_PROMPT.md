@@ -1,218 +1,143 @@
-# Prompt for drafting the paper (give this whole file plus `paper/RESULTS_MASTER.md` and `paper/STORY.md` to the writer)
+# Prompt for drafting the paper
 
-> **2026-10-07:** `paper/STORY.md` is now the canonical story (three claims; Claim 1 led by the same-run result R8b).
-> Where this file's spine, contributions or abstract differ from STORY.md, STORY.md wins. Hard rules below still apply,
-> as updated in rules 5–7. A full rewrite of this prompt follows once the remaining GPU runs are in.
+Give the writer this file plus `paper/STORY.md` (the argument) and `paper/RESULTS_MASTER.md` (the only allowed
+numbers). Where they disagree, RESULTS_MASTER wins on numbers and STORY wins on emphasis.
 
 ---
 
 You are writing a research paper for a top machine-learning venue (target: ICML 2027 main track; fallback: TMLR).
 It re-examines *Neural Thickets: Diverse Task Experts Are Dense Around Pretrained Weights* (Gan & Isola, ICML 2026
-Spotlight, arXiv 2603.12228) and its algorithm **RandOpt**:
-1. Sample N Gaussian weight perturbations of a pretrained model.
-2. Keep the top K on a small selection set.
-3. Majority-vote their answers.
+Spotlight, arXiv 2603.12228) and its algorithm **RandOpt**: sample N Gaussian weight perturbations of a pretrained
+model, keep the top K on a small selection set, majority-vote their answers.
 
-**The paper's centre** is a validated first-order (linear-response) account of how small weight perturbations change
-a model's answer preferences, **together with the experimentally demonstrated limits of that account**.
-- A self-consistency baseline is a secondary, practical finding.
-- The investigation of one selected "expert" is a case study.
+**The paper's centre** is a decomposition of what RandOpt's weight search buys: a vote, which sampling supplies at
+least as well, plus shifts in answer form shared across questions, which in our settings a prompt chosen on the same
+selection data also supplies. A first-order account explains what perturbations do to answers and why selection finds
+shared shifts, with experimentally demonstrated limits.
 
-Write with the precision of a careful empirical paper, not the tone of a takedown. Be fair to the original authors.
-Say exactly how far each result goes and no further.
+Write with the precision of a careful empirical paper, not the tone of a takedown. RandOpt reproduces, its selected
+models are real improvements under its own prompts, and the original paper itself discusses format effects. Say
+exactly how far each result goes and no further.
 
 ## Hard rules
-1. **Numbers.**
-   - Use only numbers from `RESULTS_MASTER.md`; never invent one.
-   - Report n and CIs where given.
-   - Do not round in a way that strengthens a claim (e.g. write "5.7–10.7 pp", never "6–11").
+1. **Numbers.** Only numbers from `RESULTS_MASTER.md`; never invent one. Report n and 95% CIs where given. Never round
+   in a way that strengthens a claim ("5.7–10.7 pp", not "6–11"; "31.6", not "32").
 2. **Process language.** Write exactly: "Confirmatory tests were specified in plan locks committed before their
-   corresponding runs; exploratory analyses are identified separately."
-   - Never write "every decision was pre-registered".
-   - Label exploratory results in the text and in figure captions.
-3. **Report every locked test with its outcome** (the R9 ledger), including falsified, inconclusive and failed-gate
-   results. Do not describe a set of tests as "validated" if any of them was inconclusive.
-4. **Mechanism language: say only what was tested.**
-   - **Prediction.** It needs the model-and-task gradient at the base model plus the perturbation's noise, with no
-     fitted coefficients. It is a first-order approximation that is highly correlated with measurements (r =
-     0.915–0.938 for tilts; slopes 0.83–0.95; pooled per-item r = 0.77). Never call it "exact", and never say
-     "from the noise alone".
-   - **Selection** *favours* answer-preference tilts. These tilts are an **incomplete** explanation: removing the
-     4-parameter content shift leaves +2.33 of the winner's +2.67 pp fresh gain (C1-1, not explained). This
-     failed intervention is part of the main story.
-   - **The 47-model vote** shows little measured ensemble gain (+0.2 pp [−1.0, +1.3]). Do **not** claim it "cancels"
-     tilts. Report descriptively: the transferable gain sits in a few top candidates (top-10 votes +2.0 to +2.8 pp;
-     the winner +2.67), while the other members average near zero.
-   - **Chain-of-thought.** Perturbations and temperature sampling affect *similarly susceptible questions* (ρ =
-     0.946). That does **not** establish equivalent mechanisms, and P1-B (persistent candidate effects, r = 0.74)
-     **rejects** pure re-sampling. Never write "perturbations act as re-sampling".
-5. **Self-consistency language.**
-   - SC@50 achieves **higher point estimates** than the published RandOpt results on the two base-reproduction-gated
-     GSM8K settings (79.8 vs 76.4; 88.2 vs 87.1).
-   - This is **not** a same-run comparison and **not** an equivalence test. "MATCHES" is our pre-registered decision
-     label and must be presented as such.
-   - Against the paper's TT-MV on gated rows: 5.7–10.7 pp.
-   - **Same-run (R8b):** at N = 5000, K = 50, RandOpt reproduces 77.18 (paper 76.4) and SC@50 is ahead by 2.65 pp
-     [−4.32, −0.99]. Say "in the one setting we ran same-run"; at K = 10 no difference was detected.
-6. **GQA** is an **unresolved comparison**, not a counterexample and not a confirmation. Our base-reproduction gate
-   fails there, so it neither establishes a residual RandOpt advantage nor supports a universal SC conclusion.
-7. **Do not claim:**
-   - that RandOpt "is" self-consistency;
-   - that neural thickets do not exist;
-   - anything about non-Qwen models beyond the OLMo-2-1B / ARC tilt-law test (S1-A), or about models above 8B;
-   - that the first-order account governs chain-of-thought accuracy (P0: r ≈ 0 with CoT correctness changes);
-   - that we explain the winner's improvement (we do not; C1-1, S1-B);
-   - that SC beats RandOpt in general (one same-run row; GQA unresolved).
-8. **Credit prior work** (R10):
-   - "format thickets" (the original paper);
-   - selection bias toward the selection set (arXiv 2608.10867);
-   - the informal geometric intuition ("A Thicket by Any Other Name");
-   - sequence-length dependence ("When does RandOpt work?").
+   corresponding runs; exploratory analyses are identified separately." Never write "every decision was
+   pre-registered". Label exploratory and post-hoc results in text and captions.
+3. **Report every locked test with its outcome** (R9 ledger, appendix), including falsified, inconclusive,
+   failed-gate and skipped ones (O2 fidelity gate failed; O1 second seed skipped by its budget rule).
+4. **Claim 1 language.**
+   - Headline (PS): prompt selection plus SC@50 "matches or beats" RandOpt in all four rows: ahead in two
+     (Qwen-1.5B, OLMo), no difference detected in two (Qwen-3B, equivalent within ±2 pp; GQA, not equivalent). Never
+     write "beats in all rows".
+   - Under RandOpt's own prompts RandOpt is **ahead** on GQA and OLMo. Say so plainly; it is half the explanation.
+   - "Damage" claims: the locked measure (plain/direct vs RandOpt's prompt) supports the prediction in 4/4 rows; the
+     post-hoc measure against the selection-chosen prompt does not separate the rows (Qwen-1.5B: +10.2, RandOpt still
+     lost). Never write "RandOpt wins exactly where its prompt damages the model".
+   - "Search adds nothing on top of the prompt" is shown on GQA only (G4: −0.08 [−0.97, +0.81]). The OLMo version is
+     not valid (fidelity gate failed); do not cite it as evidence.
+   - Compute: the comparison is at matched **test-time** budget (50 generations). RandOpt's 1,000,000 selection
+     generations vs prompt selection's 600 are stated separately, not folded into accuracy.
+   - GQA runs use a faithful re-implementation (the released code cannot pass images); say so where GQA appears.
+5. **Mechanism language.** The prediction needs the base-model gradient plus the perturbation's noise, with no fitted
+   coefficients; it is a first-order approximation (r = 0.915–0.938 for tilts; slopes 0.83–0.95; per-item r = 0.771).
+   Never "exact", never "from the noise alone". Selection *favours* answer-preference tilts; that is an
+   **incomplete** explanation of the OmniSpatial winner (C1-1 not explained). T3 (selection as a gradient step) is
+   derived, not directly tested.
+6. **Chain-of-thought.** Perturbations and sampling affect similarly susceptible questions (ρ = 0.946); this is not an
+   equivalent mechanism, and P1-B (persistence, r = 0.74) rejects pure re-sampling. Never "perturbations act as
+   re-sampling".
+7. **Do not claim:** that RandOpt "is" self-consistency or "is" prompt tuning; that neural thickets do not exist;
+   that prompt selection beats RandOpt on every task or model (two tasks, ≤ 8B, three prompt candidates); anything
+   about models above 8B; that the first-order account governs CoT accuracy; that we explain the OmniSpatial winner;
+   that prompt choice explains the OmniSpatial case (no prompt control there).
+8. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); selection bias toward the
+   selection set (arXiv 2608.10867); "A Thicket by Any Other Name" (geometric intuition); "When does RandOpt work?"
+   (sequence-length dependence); self-consistency (Wang et al. 2023).
 
 ## Title
-*Thickets or Tilts? A Pre-Registered Re-Examination of Random Weight Perturbation as Post-Training*
+*What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt*
 
-## The spine (what the paper argues)
-1. **A linear-response account of answer preferences, with tested limits.**
-   - In direct-answer settings, a small perturbation of the language weights changes answer preferences in a way a
-     first-order prediction tracks closely, with no fitted coefficients.
-   - It was tested in six locked settings across three Qwen models. Five were confirmed (r = 0.915–0.938 for tilts;
-     0.930 for per-question contrasts in RandOpt's own GQA setting), and one was inconclusive on a failed
-     reliability gate, then replicated with a remedy fixed in advance.
-   - The response is localized block by block to the middle language layers (r = 0.978).
-2. **Where it stops.**
-   - **Vision weights:** a whole-model first-order account fails (r = 0.137).
-   - **σ ≥ 0.005:** r drops to 0.31.
-   - **Chain-of-thought accuracy:** it is unrelated to the first-order signal.
-   - **The selected winner:** its transferable gain is mostly not a content-prior shift.
-3. **What this explains about selection** (case study: one OmniSpatial search).
-   - Selection favours tilts toward answer content that the selection labels reward. This explains part of the
-     apparent specialization and why its value depends on the evaluation distribution.
-   - A train/test format mismatch made the selected model look like a pure "mirage". On fresh matched items it
-     keeps +2.67 pp of a +8.5 pp selection-set gain.
-   - Calibration shows the tilt does not account for most of that.
-4. **A practical baseline.** Self-consistency at matched K has higher point estimates than published RandOpt on the
-   two gated GSM8K settings. Perturbations and sampling affect similarly susceptible questions, but perturbed models
-   carry persistent effects. GQA remains unresolved.
-
-**Closing message:** we understand a reproducible mechanism behind answer-preference changes and its limits. We do
-**not** have a complete causal explanation of the winning candidate's improvement, and the failed calibration test
-is the clearest evidence of that boundary.
-
-## Contributions (as a numbered list in the introduction)
-1. **A first-order account of perturbation-induced answer-preference changes.**
-   - A "folded gradient" handles RandOpt's shared Gaussian stream. Predictions use the base-model gradient and the
-     noise, with no fitted coefficients.
-   - Locked tests: three models, two tasks, per item, per layer block (R4, R5).
-2. **Experimentally demonstrated limits of that account:**
-   - vision nonlinearity (R4);
-   - σ breakdown (R4);
-   - no link to chain-of-thought correctness (R7);
-   - failure to explain the selected winner's gain (R3, C1-1).
-3. **A case study of what selection favours.** Answer-preference tilts aligned with the selection labels, an
-   incomplete explanation (R3, R6). Selection inflation and a split-format artifact, corrected with matched splits
-   (R1, R2).
-4. **A practical baseline result.** Self-consistency vs published RandOpt, with base-reproduction gates and an
-   unresolved GQA comparison (R8).
+## Contributions (numbered list in the introduction)
+1. **Same-run comparisons at RandOpt's own settings** in four rows (two model families, two tasks), reproducing its
+   published numbers, against self-consistency at matched test-time budget (R8b.1).
+2. **A decomposition of the gain:** where RandOpt loses, the selected models barely beat base and the gain is the
+   vote; where it wins, they share a shift; RandOpt's own prompt damages the base model there, the shift recovers part of
+   that accuracy (on GQA visibly, by switching off step-by-step reasoning; G4, O2),
+   and a prompt fix does better (R8b.2–R8b.4).
+3. **A practical baseline:** choosing the prompt on RandOpt's own selection data (0.06% of its selection compute)
+   then sampling matches or beats RandOpt in all four rows (R8b.5).
+4. **A first-order account** of perturbation-induced answer-preference changes, validated across five models in two
+   families, localized to middle language layers, with demonstrated limits (R4, R5, R7), and a theory linking it to
+   selection (R8c).
 
 ## Sections
-1. **Introduction:**
-   - motivation;
-   - the question (what do selected perturbations change, and how much of the gain needs weight search?);
-   - contributions;
-   - Figure 1.
-2. **Background and setup.**
-   - RandOpt; its shared-stream noise (each tensor's noise is a prefix of one Gaussian stream); byte-exact
-     verification.
-   - Models, tasks, RandOpt's own prompts and scorers.
-   - The plan-lock protocol, gates and decision rules (Rule 2 wording).
-3. **A first-order account of answer-preference changes** (R4, R5).
-   - Folded-gradient derivation (one paragraph plus an appendix).
-   - Figure 3, the content vs letter-position control, the per-item test (I5), Figure 4.
-   - Present the six locked tests with their outcomes, including R2.
-4. **Limits of the account:**
-   - vision nonlinearity (GPU-A F1/S2d falsified);
-   - the σ = 0.005 breakdown;
-   - chain-of-thought (P0: 22% of answers flip at σ ≤ 0.002, unrelated to the first-order signal);
-   - the winner's gain (C1-1).
-
-   This section is as important as Section 3.
-5. **Case study: what selection favoured on OmniSpatial** (R1–R3, R6, Figure 5).
-   - The "front" tilt and its gold-front concentration (exploratory).
-   - The noise-plus-gradient predictor works through label priors (τ-check).
-   - Matched-split transfer (+2.67).
-   - The ensemble result (47-model vote +0.2; top-10 +2.0 to +2.8), reported descriptively.
-   - Calibration (not explained).
-6. **Self-consistency as a baseline** (R7, R8; Table 1; Figures 2 and 6).
-   - Gated rows, non-comparable rows, GQA unresolved.
-   - Similarly susceptible questions; persistence rejecting pure re-sampling; the TT-MV temperature observation,
-     stated neutrally.
-7. **Evaluation recommendations:**
-   - matched held-out splits;
-   - SC baselines at a stated, tuned temperature;
-   - base-reproduction checks;
-   - K-matched compute reporting.
-8. **Limitations:**
-   - Qwen only, ≤ 8B;
-   - cross-paper comparisons;
-   - 4 of 6 baseline rows fail the gate;
-   - one case-study search (σ ≤ 0.002);
-   - GQA unresolved;
-   - no causal account of the winner's gain;
-   - exploratory analyses not confirmatory.
-9. **Related work:**
-   - RandOpt / Neural Thickets;
-   - ES for LLMs;
-   - self-consistency (Wang et al. 2023);
-   - test-time scaling;
-   - 2608.10867;
-   - model soups and weight averaging;
-   - linear-response / NTK-style analyses;
-   - evaluation reliability and selection bias.
-10. **Appendix:**
-    - the full R9 ledger;
-    - the fold-operator derivation and byte-exact checks;
-    - per-σ and per-block tables;
-    - SC@K curves;
-    - prompts and scorers;
-    - compute ledger (≈ $60 of H100 time for the confirmatory runs).
+1. **Introduction.** The question; the one-paragraph answer (STORY); contributions; Figure 1 (schematic: vote +
+   shared shift; still to be drawn) and Figure 7.
+2. **Background and setup.** RandOpt; its shared-stream noise; models, tasks, RandOpt's own prompts and scorers; the
+   plan-lock protocol, gates and decision rules (Rule 2 wording); the GQA re-implementation.
+3. **What weight search buys (R8b).** 3.1 same-run rows under RandOpt's prompts (Table 4, left half); 3.2 the
+   member-vs-vote decomposition; 3.3 the shared shift: GQA (G3, shift analysis [exploratory], G4) and OLMo (O2);
+   3.4 the Qwen control (Q2) and Figure 8 with the damage caveat; 3.5 prompt selection (PS, Figure 7, Table 4).
+4. **A first-order account of answer-preference changes (R4, R5).** Folded-gradient derivation (one paragraph plus
+   appendix); Figure 3; the content vs letter-position control; per-item test (I5); Figure 4.
+5. **Limits of the account.** Vision weights (GPU-A F1/S2d falsified); σ = 0.005; chain-of-thought (P0); the
+   OmniSpatial winner (C1-1). As important as Section 4.
+6. **Why selection finds shared shifts (R8c, case study).** T1, T2, T4 checks; T3 as derivation; the OmniSpatial
+   search: split mismatch, matched transfer (+2.67), front tilt, calibration (not explained); Figure 5.
+7. **Recommendations for evaluating weight-space search.** Same-run baselines at matched test-time budget; SC and a
+   prompt chosen on the selection set as default baselines; base-reproduction checks; report member vs vote
+   accuracy; report selection compute.
+8. **Limitations.** Scope list from STORY ("Scope and limits").
+9. **Related work.** RandOpt / Neural Thickets; ES for LLMs; self-consistency and test-time scaling; prompt
+   sensitivity and prompt selection; 2608.10867; model soups and weight averaging; linear-response / NTK-style
+   analyses; evaluation reliability and selection bias.
+10. **Appendix.** R9 ledger; fold-operator derivation and byte-exact checks; per-σ and per-block tables; SC@K and
+    vote curves; prompts and scorers (all three candidates per task, verbatim); G3; O2 fidelity analysis; cross-paper
+    P2/P3 (R8) incl. non-comparable rows; compute ledger.
 
 ## Generated figures and tables
-All in `paper/figures/thickets-or-tilts/`, regenerated by `python paper/figures/scripts/thickets_or_tilts.py`. Use
-the PDFs in LaTeX.
+All in `paper/figures/thickets-or-tilts/`, regenerated by `python paper/figures/scripts/thickets_or_tilts.py`
+(`... same-run` for Figures 7–8 and Table 4 only). Use the PDFs in LaTeX.
 
 | File | Caption guidance |
 |---|---|
-| `fig1b_sc_vs_randopt` | "point estimates; published RandOpt numbers; GQA not comparable (base gate)". Figure 1(a), the schematic, is still to be drawn |
-| `fig2_sc_at_k` | same caveats |
+| `fig7_same_run_prompt_selection` | "RandOpt K = 50 − SC@50 per row (paired 95% CI), under RandOpt's prompt and under the prompt chosen on RandOpt's selection set. GQA uses a re-implementation." Main headline figure |
+| `fig8_prompt_damage` | "Filled: locked damage measure (plain/direct); open: against the selection-chosen prompt (post-hoc). Damage accompanies both RandOpt wins but does not decide the outcome (Qwen-1.5B)." |
+| `table4_same_run_prompt_selection.md` | the four rows, both prompts |
+| `fig1b_sc_vs_randopt`, `fig2_sc_at_k`, `table1_sc_vs_randopt` | cross-paper (appendix); "published RandOpt numbers; not same-run" |
 | `fig3_tilt_law` | "first-order prediction (no fitted coefficients) vs measurement"; state the slopes |
 | `fig4_localization` | – |
-| `fig5_selection_transfer` | (c) and (d) are exploratory; (c) is "little measured ensemble gain", not "cancellation" |
+| `fig5_selection_transfer` | (c) and (d) exploratory; (c) is "little measured ensemble gain", not "cancellation" |
 | `fig6_cot_regime` | (a) "similarly susceptible questions", not "equivalent mechanism" |
-| `table1_sc_vs_randopt` (.md/.tex) | – |
-| `table2_preregistration_ledger.md` | – |
-| `table3_tilt_law_by_model_sigma.md` | – |
+| `table2_preregistration_ledger.md`, `table3_tilt_law_by_model_sigma.md` | appendix |
 
 ## Abstract (draft; keep every number and qualifier)
 Random-perturbation post-training (RandOpt) samples thousands of Gaussian weight perturbations of a pretrained model,
 keeps the best on a small selection set and majority-votes them, reportedly rivalling PPO and GRPO. We ask what the
-selected perturbations change. In direct-answer settings, we find that a first-order approximation, computed from
-the base model's gradient and each perturbation's noise with no fitted coefficients, closely tracks how
-language-weight perturbations shift answer preferences (r = 0.915–0.938 across two tasks and two Qwen models; r = 0.930
-per question in RandOpt's own GQA setting). The shift is localized to the middle language layers. The account has
-sharp, experimentally demonstrated limits: it fails for vision weights, breaks down at σ = 0.005, does not predict
-chain-of-thought correctness, and does not explain most of a selected model's transferable gain (+2.33 of +2.67
-points survive removing the content shift). In a case study, selection favoured perturbations whose answer-preference
-tilts matched the selection labels, and a train/test format mismatch made the selected model look like a pure
-"mirage"; on fresh matched items it keeps +2.67 of +8.5 points. As a practical baseline, self-consistency over 50
-samples, with no weight search, has higher point estimates than published RandOpt results on the two GSM8K settings
-where we reproduce the base model, while a GQA comparison remains unresolved. Confirmatory tests were locked before
-their runs; we release all locks, data and code.
+weight search buys. Running RandOpt at its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA
+with Qwen2.5-VL-3B), we reproduce its published numbers and decompose its gain into a vote and a shift shared across
+questions. Self-consistency over 50 samples of the unperturbed model supplies the vote at least as well: where the
+selected models barely beat the base model, RandOpt trails it (−2.65 and −1.59 points). Where RandOpt leads (+3.47 on
+GQA, replicated; +8.72 on OLMo), its own prompt costs the base model 11.3 and 31.6 points, and the selected
+perturbations recover part of the lost accuracy; on GQA a single direct-answer generation scores 64.7 vs RandOpt's
+63.5 (no difference detected), with no measurable gain from searching on top of that prompt. Choosing among three prompts on RandOpt's own
+selection questions (600 generations vs its 1,000,000) and sampling matches or beats RandOpt in all four rows. A
+first-order account, computed from the base model's gradient and each perturbation's noise with no fitted
+coefficients, tracks how perturbations shift answer preferences (r = 0.787–0.938 across five models in two families),
+localizes the effect to middle language layers, and explains why selection favours shared shifts; it fails for vision
+weights, large σ and chain-of-thought correctness, and does not explain most of one selected model's transferable
+gain. Confirmatory tests were locked before their runs; we release all locks, data and code.
 
 ## Final checklist
 - [ ] Every number traceable to `RESULTS_MASTER.md`; every locked test in the appendix ledger, with outcome.
-- [ ] No "exact", "noise alone", "cancels", "acts as re-sampling", "every decision pre-registered", or "6–11".
-- [ ] C1-1 (not explained) appears in the abstract, the introduction and Section 4.
-- [ ] GQA described as unresolved in the abstract, Section 6 and Limitations.
-- [ ] The 47-model vote membership stated (the winner + 46 measured top-50 members).
+- [ ] "matches or beats" (never "beats") for PS; Qwen-3B and GQA described as "no difference detected".
+- [ ] RandOpt's wins under its own prompts stated plainly (GQA, OLMo).
+- [ ] The damage caveat (Qwen-1.5B, post-hoc) appears with Figure 8 and in Section 3.4.
+- [ ] OLMo "search on top of the prompt" not cited (fidelity gate failed).
+- [ ] GQA re-implementation stated wherever GQA results appear.
+- [ ] No "exact", "noise alone", "cancels", "acts as re-sampling", "every decision pre-registered", "is
+      self-consistency", "is prompt tuning".
+- [ ] C1-1 (not explained) in the abstract, introduction and Section 5.
 - [ ] Prior work credited; code, locks and per-item outputs released.

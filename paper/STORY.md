@@ -1,95 +1,99 @@
-# STORY: the canonical paper story (supersedes the spine in WRITING_PROMPT.md where they differ)
+# STORY: the canonical paper story
 
-Numbers: only from `RESULTS_MASTER.md` (section refs in brackets). Status as of 2026-10-08 (all planned GPU runs complete).
+Numbers only from `RESULTS_MASTER.md` (sections in brackets). Status 2026-10-09: all confirmatory runs complete.
+
+## Title
+*What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt*
+(alternative: *Thickets or Tilts? A Pre-Registered Re-Examination of Random Weight Perturbation as Post-Training*)
 
 ## The one question
-RandOpt samples thousands of Gaussian weight perturbations, keeps the best K on a small selection set and
-majority-votes them, and reportedly rivals PPO/GRPO. **What does the weight search actually buy, and what do the
-selected perturbations change?**
+RandOpt samples thousands of Gaussian weight perturbations of a pretrained model, keeps the best K on a small
+selection set and majority-votes them, and reportedly rivals PPO and GRPO. **What does the weight search buy, and
+what do the selected perturbations change?**
 
-## The answer in three claims
+## The answer in one paragraph
+RandOpt's gain has two parts: a vote, and a shift in the model's answers that is shared across questions. Sampling
+the unperturbed model supplies the vote at least as well. The shared shifts selection found in our settings are ones
+a prompt also reaches: on the two rows where RandOpt beats self-consistency, its own prompt costs the base model
+11.3 and 31.6 points, and the selected perturbations recover part of that accuracy. Choosing the prompt on RandOpt's own selection
+data (600 generations, 0.06% of its 1,000,000), then sampling, matches or beats RandOpt in all four same-run rows. A
+first-order account explains what a perturbation does to answers and why selection finds shared shifts, within
+limits we demonstrate.
 
-### Claim 1: Choosing the prompt on RandOpt's own selection data matches or beats its weight search in every same-run row; RandOpt's wins over self-consistency come where its prompt damages the model (practical headline)
-Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
-- **GSM8K / Qwen2.5-1.5B and 3B** (RandOpt's own code; published numbers reproduced, 77.18 vs 76.4 and 86.66 vs 87.1):
-  SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
-  and +0.2 pp above base; the gain is the vote, and sampling the base model votes better.
-- **GQA / Qwen2.5-VL-3B** (faithful re-implementation; released code cannot pass images): RandOpt is ahead,
-  **+3.47 [+1.62, +5.41]**, replicated with a disjoint population of 5000 perturbations (+3.63 [+1.78, +5.49];
-  two-seed mean +3.55). But the advantage exists only under RandOpt's chain-of-thought prompt, which costs this
-  model 11 points: the selected perturbations mostly switch reasoning off (median 10 tokens vs 146; shorter members
-  are more accurate, r = −0.89; exploratory). **Asked to answer directly, the base model with one greedy generation
-  scores 64.7, vs RandOpt's 63.5** (G4, pre-registered: RandOpt − SC@50 with the direct prompt −1.21 [−2.83, +0.40],
-  no difference detected; same with a second prompt and the second seed). Search adds nothing on top of the prompt
-  (selected members under the direct prompt vs SC: −0.08 [−0.97, +0.81]). Termination repair explained only a
-  quarter of the CoT-prompt advantage (G3).
-- **GSM8K / OLMo-2-1B (non-Qwen, O1, pre-registered): RandOpt ahead, +8.72 [+6.75, +10.77].** Base scores only 35% under
-  RandOpt's prompt; the selected models are +5.1 pp better individually (a shared shift, as on GQA). So on GSM8K the
-  outcome looks model-dependent, **but it is a prompt effect (O2, pre-registered):** asked just the question, the base
-  model scores 65.3% with one generation and SC@50 74.7%; RandOpt − SC@50 (plain) = **−22.21 [−24.87, −19.56]**.
-  RandOpt's "####" instruction halves this model's accuracy; selection partly repairs it, a prompt fix repairs more.
-- **Damage prediction, all four rows (Q2, pre-registered on Qwen):** prompt damage (plain − RandOpt-prompt base) is
-  +11.3 (GQA), +31.6 (OLMo), +4.7 and −7.2 (Qwen 1.5B, 3B). RandOpt beats SC on the two heavily damaged rows (pre-registered measure). On Qwen the
-  plain prompt is worse than RandOpt's (plain-prompt SC falls below RandOpt: +2.58, +7.05), so no single prompt wins
-  everywhere; but in every row SC under one of two prompts fixed in advance matches or beats RandOpt.
-  Caveat (added after PS, not pre-registered): measured against the prompt chosen on the selection set (boxed) instead
-  of plain, Qwen-1.5B's damage is +10.2 pp, yet RandOpt still lost to SC there. Large damage accompanies both RandOpt
-  wins, but damage alone does not decide the outcome; the robust result is PS. See fig8_prompt_damage.
-- **Prompt selection (PS, pre-registered):** choosing among 3 prompts by greedy accuracy on RandOpt's own 200 selection
-  questions (600 generations vs RandOpt's 1,000,000) picks a non-default prompt for all four models; SC@50 under it vs
-  RandOpt: Qwen-1.5B **−2.96 [−4.62, −1.29]** (SC ahead), Qwen-3B −0.38 [−1.67, +0.91] (equivalent), OLMo **−23.65**
-  (SC ahead), GQA −1.21 [−2.83, +0.40] (n.d.). **No row has RandOpt ahead.**
-- Supporting, cross-paper: SC@50 point estimates above published RandOpt on both gated GSM8K rows, 5.7–10.7 pp above
-  the paper's TT-MV baseline [R8].
-- CoT regime: perturbations and sampling flip similarly susceptible questions (ρ = 0.946), but perturbed models carry
-  persistent effects (r = 0.74), so it is **not** pure re-sampling [R7].
+## Claim 1 (headline, practical): prompt selection plus sampling matches or beats RandOpt's weight search [R8b]
+Four same-run rows at RandOpt's own settings (N = 5000, K = 50): GSM8K with Qwen2.5-1.5B, Qwen2.5-3B and OLMo-2-1B,
+and GQA with Qwen2.5-VL-3B. Two model families, two tasks; RandOpt's published numbers reproduced on the Qwen GSM8K
+rows (77.18 vs 76.4; 86.66 vs 87.1).
+- **The headline result (PS) [R8b.5].** Choose among three prompts by greedy accuracy on RandOpt's 200 selection
+  questions (600 generations vs RandOpt's 1,000,000), then take SC@50. RandOpt − SC: Qwen-1.5B **−2.96 [−4.62, −1.29]**,
+  Qwen-3B **−0.38 [−1.67, +0.91]** (equivalent), OLMo **−23.65 [−26.23, −21.08]**, GQA **−1.21 [−2.83, +0.40]**.
+  Ahead in two rows, no difference in two. **RandOpt is ahead in none.** Selection picks a non-default prompt for
+  every model.
+- **Decomposition under RandOpt's own prompts [R8b.1].**
+  - *Where RandOpt loses* (Qwen GSM8K: −2.65, −1.59): the selected models are only +4.0 and +0.2 pp above base
+    individually, so the gain is the vote, and sampling votes better.
+  - *Where RandOpt wins* (GQA +3.47, replicated with a disjoint population at +3.63; OLMo +8.72): the selected
+    models are about +5 pp above base individually, a shift shared across questions.
+- **What that shift is [R8b.2, R8b.3].**
+  - GQA: RandOpt's chain-of-thought prompt costs the base model 11.3 points. The selected models mostly stop
+    reasoning and answer directly (median 10 tokens vs 146; shorter members are more accurate, r = −0.89;
+    exploratory). One direct-prompt generation scores 64.7 vs RandOpt's 63.5 (G4), and search adds nothing on top of
+    that prompt (−0.08 [−0.97, +0.81]). Termination repair explains only a quarter of the advantage (G3).
+  - OLMo: RandOpt's "####" instruction halves the model's accuracy (33.7 vs 65.3 with just the question). The search
+    partly repairs it (52.5); a prompt change repairs more (SC@50 74.7; one plain generation 65.3).
+- **Damage is part of the story, not all of it [R8b.4].** On the locked measure (plain/direct − RandOpt's prompt)
+  damage is +11.3 and +31.6 where RandOpt wins and +4.7 and −7.2 where it loses (prediction supported 4/4). But
+  against the selection-chosen prompt, Qwen-1.5B is damaged by 10.2 points and RandOpt still lost (post-hoc).
+- **Context.** Cross-paper, SC@50 has higher point estimates than published RandOpt on the two gated GSM8K rows and
+  is 5.7–10.7 pp above the paper's TT-MV baseline [R8]. In the CoT regime, perturbations and sampling flip similarly
+  susceptible questions (ρ = 0.946), but perturbed models carry persistent effects (r = 0.74): not pure re-sampling [R7].
 
-### Claim 2: What a perturbation does to answers is first-order, with sharp limits (mechanism)
-- A folded-gradient prediction, base-model gradient × the perturbation's noise, no fitted coefficients, tracks
-  answer-preference changes: r = 0.915–0.938 for tilts (2 tasks, 2 Qwen-VL models), 0.930 per question in RandOpt's
-  GQA setting, **0.790 on a non-Qwen text model and new benchmark (OLMo-2-1B, ARC-Challenge)**; per item 0.771;
-  localized to middle language layers (block-level r = 0.978) [R4, R5].
+## Claim 2 (mechanism): what a perturbation does to answers is first-order, with demonstrated limits [R4, R5, R7]
+- A folded-gradient prediction (base-model gradient × the perturbation's noise, no fitted coefficients) tracks
+  answer-preference changes: r = 0.915–0.938 for tilts (two tasks, two Qwen-VL models), 0.930 per question in
+  RandOpt's GQA setting, 0.790 / 0.787 on OLMo-2-1B / 7B on ARC-Challenge (non-Qwen, text-only); per item 0.771.
+- It is localized to the middle language layers (block-level r = 0.978).
 - Limits, each demonstrated: vision weights (r = 0.137), σ = 0.005 (r ≈ 0.2–0.3 in two models), chain-of-thought
-  correctness (unrelated to the first-order signal; 22% of answers flip at σ ≤ 0.002) [R4, R7].
+  correctness (unrelated to the first-order signal; 22% of answers flip at σ ≤ 0.002).
 
-### Claim 3: Selection favours label-aligned tilts, and that explains only part of a "winner" (case study)
-- One OmniSpatial search (N = 5000, Qwen3-VL-8B): the winner's +8.0 pp selection gain sat on a format the test set
-  lacked (split mismatch); on fresh matched items it keeps **+2.67 [0.17, 4.93]** [R1, R2].
-- Selection favours tilts toward answer content the selection labels reward (the "front" tilt; noise+gradient
-  predictor works through label priors) [R3, R6].
-- Boundary, stated as a main result: removing the content shift leaves +2.33 of +2.67 (C1-1 not explained), and the
-  full first-order prediction does not explain which items the winner changes (S1-B r = 0.16; its language part
-  alone r = 0.62, exploratory) [R3, R4].
+## Claim 3 (why selection finds shared shifts): theory and a case study [R8c, R1–R3, R6]
+- **Theory (`THEORY.md`).** Under the law, a perturbation shifts question j's margin by N(0, σ²‖g_j‖²). Consequences:
+  flip probabilities are predictable (AUC 0.935, calibrated); an unselected vote returns the base answer (96/96);
+  σ‖g_j‖ acts as a per-question temperature (why perturbations and sampling hit the same questions); top-K selection
+  is a noisy first-order step along the selection set's gradient, so it favours shifts shared across the selection
+  questions (why votes beat members). That the shared shifts we found are ones a prompt also gives is an empirical
+  finding (Claim 1), not a consequence of the theory. T3 is derived,
+  not directly tested. Direct-answer regime only.
+- **Case study (one OmniSpatial search, N = 5000, Qwen3-VL-8B).** The winner's +8.0 pp selection gain sat on a format
+  the test set lacked; on fresh matched items it keeps +2.67 [0.17, 4.93]. Selection favours tilts toward answer
+  content the selection labels reward. Boundary, stated as a main result: removing that content shift leaves +2.33
+  of +2.67 (C1-1, not explained), and the full first-order prediction does not explain which items the winner
+  changes (S1-B r = 0.16). No prompt control was run here.
 
-### The theory that ties the claims together (`paper/THEORY.md`, R8c)
-Under the law, each perturbation shifts question j's margin by N(0, σ²‖g_j‖²): flip probability Φ(−|c_j|/(σ‖g_j‖))
-(AUC 0.935, calibrated), unselected votes return the base answer (96/96), σ‖g_j‖ acts as a per-question temperature
-(why perturbations and sampling hit the same questions), and top-K selection is a noisy first-order step along the
-selection-set gradient (why label-aligned tilts transfer and item-specific fits do not; why votes beat members).
-Direct-answer regime only; CoT is outside it.
+## Closing message
+"Neural thickets" are real in the sense that many nearby models are better than the base on a selection set. In our
+settings, what selection finds there is a vote plus shared shifts in answer form, and those are cheaper to get from
+sampling and from choosing a prompt on the same selection data. Beyond that (vision weights, large σ, CoT
+correctness, the OmniSpatial winner's residual gain) our account stops, and we say so.
 
-**Closing message.** Read through the first-order picture, RandOpt is two things: a vote, which removes perturbation noise
-and which sampling the base model does as well or better (GSM8K), and a selection step that moves the model along
-whatever *shared* direction the selection set rewards, which pays when such a direction exists (GQA: switching off
-chain-of-thought reasoning that a direct prompt also switches off; OmniSpatial's label-aligned tilt). That is where "thickets" are real and useful: shared,
-transferable shifts, often of answer form rather than reasoning. Beyond that (vision weights, large σ, CoT correctness,
-the winner's residual gain) the account stops, and we say so.
+## Scope and limits (say these in the paper)
+Two tasks for the same-run comparisons (GSM8K, GQA); models ≤ 8B; one RandOpt search per GSM8K row (two on GQA);
+three prompt candidates per task, fixed in advance; RandOpt's search cost not charged in the accuracy comparisons;
+OLMo "search on top of the prompt" not valid (fidelity gate failed); GQA uses a re-implementation (released code
+cannot pass images); exploratory analyses are labelled as such.
 
 ## Where each experiment goes
-| Main text | Appendix | Dropped / superseded (mention once) |
+| Main text | Appendix | Superseded (mention once) |
 |---|---|---|
-| C, C3B, G2 same-run (R8b) incl. member-vs-vote decomposition and the GQA format analysis (exploratory); P2/P3 gated rows (R8); SC@K curves | Non-comparable P2/P3 rows (0.5B, MATH-500, GQA gate fail) | Earlier OmniSpatial TEST-based conclusions (random-control transfer, selection-vs-specificity, margin-additivity, causal diagnostic): superseded by CORRECTION_SPLIT_MISMATCH |
+| R8b: C, C3B, G2/G2R, O1 (same-run); PS (headline); G4, O2, Q2 (prompt controls); GQA shift (exploratory); Figures 7–8, Table 4 | G3 details; K = 10; vote curves; member decompositions; O2 fidelity failure; cross-paper P2/P3 (R8) incl. non-comparable rows | G2's exploratory "termination repair" reading (superseded by G3, G4) |
 | Tilt law: Stage 2, R1, R2/R2b, I5, P0, S1-A, S1-7B (R4); localization 3B (R5) | GPU-A fidelity gates (S2a NO-GO → A1), V0/S2b checks, per-σ and per-block tables | Expert/mirage framing of the first draft |
-| Limits: GPU-A F1/S2d, σ breakdown, P0 CoT, C1-1, S1-B | F2/F3, 3A-1/3A-3, τ-check details, C1-2 (flagged) | |
-| Case study: R1 split mismatch, M1 transfer, front tilt, Stage 3A (r = 0.40) | 47-model vs top-10 votes (exploratory), EB shrinkage | |
-| P1-A/B (similar susceptibility; persistence) | P1-C (underpowered) | |
-| Full R9 ledger (appendix table, referenced in Sec. 2) | Compute ledger | |
+| Limits: GPU-A F1/S2d, σ breakdown, P0 CoT, C1-1, S1-B | F2/F3, 3A-1/3A-3, τ-check details, C1-2 (flagged) | Earlier OmniSpatial TEST-based conclusions (CORRECTION_SPLIT_MISMATCH) |
+| Theory T1, T2, T4 (R8c); case study R1, M1, front tilt, Stage 3A | P1-A/B (R7); P1-C; 47-model vs top-10 votes; EB shrinkage | |
+| R9 ledger referenced in Sec. 2 | Full R9 ledger; compute ledger | |
 
-## Gaps a top-tier reviewer will press
-1. ~~One same-run row~~ **closed**: three rows (GSM8K 1.5B, 3B; GQA). They split by task, which the closing message
-   explains; one RandOpt run per row (the paper averages 3).
-2. ~~Text-model scale~~ **closed**: S1-7B r = 0.787 (OLMo-2-7B), same as 1B.
-3. ~~Theory~~ **done** (THEORY.md, R8c). Remaining: T3 (selection as a step along the selection gradient) has no direct
-   test; the GQA format finding is exploratory (keyword heuristic; texts / token counts not saved).
-4. ~~GQA mechanism test~~ **done** (G3): PARTIAL; termination explains ~1 of ~3.6 pp. Remaining open: what the rest of
-   the GQA shift is (answer length/form vs content). Countdown remains optional.
+## What a reviewer will still press (answer in the paper, not with new runs)
+1. Only two tasks and ≤ 8B: stated as scope; Countdown and larger models are future work.
+2. One search per GSM8K row: RandOpt reproduces the published numbers; GQA replicates across two populations.
+3. "You picked prompts that help": the three candidates were fixed before any test output, and PS chose among them
+   on selection data only.
+4. "Damage explains everything": we say it does not (Qwen-1.5B, Figure 8).
