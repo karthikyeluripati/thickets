@@ -350,6 +350,52 @@ def table4():
                                                              'All locked; see results/README.md.\n', encoding='utf-8')
 
 
+def fig9():
+    """Same 5000 perturbations, selection reward under RandOpt's prompt (x) vs under the better prompt (y)."""
+    import re as _re
+
+    def log_rewards(p):
+        t = Path(p).read_text(encoding='utf-8', errors='replace')
+        return np.array([float(x.strip().strip("'")) for m in _re.finditer(r'Batch \d+ \| \d+/5000 \| \[(.*?)\]', t) for x in m.group(1).split(',')])
+
+    def jsonl(d):
+        r = {}
+        for f in Path(d).glob('select_*.jsonl'):
+            for l in f.read_text().splitlines():
+                if l.strip():
+                    x = json.loads(l); r[x['k']] = x['reward']
+        return np.array([r[k] for k in range(5000)])
+    rows = [('GSM8K / OLMo-2-1B', "RandOpt's prompt", 'boxed prompt', log_rewards(PA / 'o1-olmo-sameRun/pod/o1/out/randopt.log'),
+             jsonl(PA / 'gb-gsm8k-boxed-search/pod/gb/olmo/out'), 0.415, 0.795),
+            ('GQA / Qwen2.5-VL-3B', 'CoT prompt', 'direct prompt', jsonl(PA / 'g2-sameRun/pod/g2/out'), jsonl(PA / 'gd-gqa-direct-search/pod/gd/out'),
+             json.loads((PA / 'g2-sameRun/pod/g2/out/base_select.json').read_text())['reward'], json.loads((PA / 'gd-gqa-direct-search/pod/gd/out/base_select.json').read_text())['reward'])]
+    fig, axes = plt.subplots(1, 2, figsize=(6.8, 3.0)); rng = np.random.default_rng(0)
+    for k, (ax, (title, xa, ya, a, b, ba, bb)) in enumerate(zip(axes, rows)):
+        jx, jy = rng.uniform(-.0015, .0015, 5000), rng.uniform(-.0015, .0015, 5000)  # rewards move in steps of 1/200
+        ta, tb = np.argsort(-a, kind='stable')[:50], np.argsort(-b, kind='stable')[:50]
+        ax.scatter(100 * (a + jx), 100 * (b + jy), s=3, color='#BDBDBD', alpha=.5, lw=0, rasterized=True, label='all 5000 perturbations')
+        ax.scatter(100 * (a[ta] + jx[ta]), 100 * (b[ta] + jy[ta]), s=16, color=C['randopt'], ec='white', lw=.4, label=f'top 50 under {xa}')
+        ax.scatter(100 * (a[tb] + jx[tb]), 100 * (b[tb] + jy[tb]), s=16, marker='s', color=C['green'], ec='white', lw=.4, label=f'top 50 under {ya}')
+        ax.axvline(100 * ba, color=C['muted'], lw=.8, ls='--'); ax.axhline(100 * bb, color=C['muted'], lw=.8, ls='--')
+        from scipy.stats import spearmanr
+        ax.text(.03, .03, f'Spearman {spearmanr(a, b).correlation:.3f}\ntop-50 overlap {len(set(ta) & set(tb))}', transform=ax.transAxes, va='bottom',
+                fontsize=7, color=C['ink'], bbox=dict(boxstyle='round,pad=0.25', fc='white', ec='#DDDDDD'))
+        lx, hx = np.percentile(100 * a, [0.5, 100]); ly, hy = np.percentile(100 * b, [0.5, 100])
+        lx, ly = min(lx, 100 * ba) - 2, min(ly, 100 * bb) - 2; hx, hy = hx + 1.5, hy + 1.5
+        off = int(((100 * a < lx) | (100 * b < ly)).sum())
+        ax.set_xlim(lx, hx); ax.set_ylim(ly, hy)
+        if off: ax.text(.97, .03, f'{off} perturbations off-axis (lower)', transform=ax.transAxes, ha='right', va='bottom', fontsize=6.5, color=C['muted'])
+        ax.set_title(f"{'ab'[k]}   {title}", fontsize=9, loc='left', fontweight='bold')
+        ax.set_xlabel(f'selection accuracy, {xa} (%)'); ax.set_ylabel(f'selection accuracy, {ya} (%)')
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, ['all 5000 perturbations', "top 50 under RandOpt's prompt", 'top 50 under the better prompt'], loc='lower center',
+               bbox_to_anchor=(0.5, 1.0), ncol=3, frameon=False, fontsize=7, markerscale=1.6)
+    fig.tight_layout(); save(fig, 'fig9_prompt_specific_experts')
+
+
+if __name__ == '__main__' and sys.argv[1:] == ['experts']:
+    fig9(); sys.exit()
+
 if __name__ == '__main__' and sys.argv[1:] == ['same-run']:
     fig7(); fig8(); table4(); print(sorted(p.name for p in OUT.iterdir() if p.stem.startswith(('fig7', 'fig8', 'table4')))); sys.exit()
 
