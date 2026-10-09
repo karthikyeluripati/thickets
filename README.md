@@ -63,6 +63,9 @@ The practical version: choose among three prompts by greedy accuracy on the same
 
 RandOpt is ahead in none of the four.
 
+Prompt damage is part of the story but not all of it: against the boxed prompt that selection chose, Qwen-1.5B is
+damaged by 10 points too, yet RandOpt still lost to self-consistency there (`paper/figures/thickets-or-tilts/fig8_prompt_damage`).
+
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 
 A prediction built from the base model's gradient and each perturbation's noise, with **no fitted coefficients**,

@@ -9,7 +9,7 @@ selected perturbations change?**
 
 ## The answer in three claims
 
-### Claim 1: Choosing the prompt on RandOpt's own selection data matches or beats its weight search in every same-run row; RandOpt beats self-consistency only where its prompt damages the model (practical headline)
+### Claim 1: Choosing the prompt on RandOpt's own selection data matches or beats its weight search in every same-run row; RandOpt's wins over self-consistency come where its prompt damages the model (practical headline)
 Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
 - **GSM8K / Qwen2.5-1.5B and 3B** (RandOpt's own code; published numbers reproduced, 77.18 vs 76.4 and 86.66 vs 87.1):
   SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
@@ -29,9 +29,12 @@ Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
   model scores 65.3% with one generation and SC@50 74.7%; RandOpt − SC@50 (plain) = **−22.21 [−24.87, −19.56]**.
   RandOpt's "####" instruction halves this model's accuracy; selection partly repairs it, a prompt fix repairs more.
 - **Damage prediction, all four rows (Q2, pre-registered on Qwen):** prompt damage (plain − RandOpt-prompt base) is
-  +11.3 (GQA), +31.6 (OLMo), +4.7 and −7.2 (Qwen 1.5B, 3B). RandOpt beats SC exactly on the two damaged rows. On Qwen the
+  +11.3 (GQA), +31.6 (OLMo), +4.7 and −7.2 (Qwen 1.5B, 3B). RandOpt beats SC on the two heavily damaged rows (pre-registered measure). On Qwen the
   plain prompt is worse than RandOpt's (plain-prompt SC falls below RandOpt: +2.58, +7.05), so no single prompt wins
   everywhere; but in every row SC under one of two prompts fixed in advance matches or beats RandOpt.
+  Caveat (added after PS, not pre-registered): measured against the prompt chosen on the selection set (boxed) instead
+  of plain, Qwen-1.5B's damage is +10.2 pp, yet RandOpt still lost to SC there. Large damage accompanies both RandOpt
+  wins, but damage alone does not decide the outcome; the robust result is PS. See fig8_prompt_damage.
 - **Prompt selection (PS, pre-registered):** choosing among 3 prompts by greedy accuracy on RandOpt's own 200 selection
   questions (600 generations vs RandOpt's 1,000,000) picks a non-default prompt for all four models; SC@50 under it vs
   RandOpt: Qwen-1.5B **−2.96 [−4.62, −1.29]** (SC ahead), Qwen-3B −0.38 [−1.67, +0.91] (equivalent), OLMo **−23.65**

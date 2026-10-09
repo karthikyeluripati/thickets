@@ -1,4 +1,4 @@
-# Q2 result: on the Qwen GSM8K rows, RandOpt's prompt does not hurt the model; the damage prediction holds on all four rows
+# Q2 result: on the Qwen GSM8K rows, RandOpt's prompt does not hurt the model; the damage prediction (as locked) holds on all four rows
 
 Lock 2a55ccc (before any Q2 output). Analysis `scripts/q2_analysis.py` → `pod/q2/q2_results.json`. 1× H100, ≈ $3.3.
 Engineering: a CDN read timeout during the 3B download was retried automatically. The runner's stored `c` field is
@@ -35,3 +35,7 @@ below RandOpt. What holds across all four rows is (a) the damage pattern above a
 without weight search, SC under one of the two prompts fixed in advance (RandOpt's or a plain/direct one), matches or
 beats RandOpt. Which prompt is better is model-dependent and was not selected on test data here; a practical
 "choose the prompt on the selection set" baseline is the natural next control (not run).
+
+Caveat (added after PS, not pre-registered): measured against the prompt chosen on the selection set (boxed) instead
+of plain, Qwen-1.5B's damage is +10.2 pp, yet RandOpt still lost to SC there. Large damage accompanies both RandOpt
+wins, but damage alone does not decide the outcome; the robust result is PS. See fig8_prompt_damage.

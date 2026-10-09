@@ -287,7 +287,73 @@ def tables():
     (OUT / 'table3_tilt_law_by_model_sigma.md').write_text('\n'.join(md3) + '\n', encoding='utf-8')
 
 
+# ---------------------------------------------------------------- Same-run rows, prompt controls, prompt selection
+def j(f):
+    return json.loads((PA / f).read_text())
+
+
+def same_run_rows():
+    """Four same-run rows: RandOpt K = 50 − SC@50 under RandOpt's prompt, and under the prompt chosen on the selection set."""
+    C_, C3, G2 = j('c-sameRun/c_results.json'), j('c3b-sameRun/c3b_results.json'), j('g2-sameRun/g2_results.json')
+    O1, O2, Q2 = j('o1-olmo-sameRun/pod/o1/o1_results.json'), j('o2-olmo-prompt/pod/o2/o2_results.json'), j('q2-qwen-prompt/pod/q2/q2_results.json')
+    G4, PS = j('g4-direct-prompt/pod/g4/g4_results.json'), j('ps-prompt-selection/ps_results.json')
+    rows = [  # name, D under RandOpt's prompt, PS entry, base under RandOpt's prompt, plain/direct base, chosen-prompt base
+        ('GSM8K\nQwen2.5-1.5B', C_['K50'], PS['q15'], Q2['q15']['randopt_prompt_base'], Q2['q15']['plain_base']),
+        ('GSM8K\nQwen2.5-3B', C3['K50'], PS['q3'], Q2['q3']['randopt_prompt_base'], Q2['q3']['plain_base']),
+        ('GQA\nQwen2.5-VL-3B', G2['K50'], PS['gqa'], G4['reference_cot']['base'], G4['direct']['base']),
+        ('GSM8K\nOLMo-2-1B', O1['s42']['K50'], PS['olmo'], O2['randopt_prompt_base'], O2['plain']['base'])]
+    return [dict(name=n, d0=k['D'], ci0=k['D_ci95'], d1=p['D']['D'], ci1=p['D']['ci'], chosen=p['chosen'], randopt=p['randopt_K50'],
+                 sc_chosen=p['sc50_chosen'], base_ro=b0, dmg_plain=bp - b0, dmg_chosen=p['base_chosen'] - b0) for n, k, p, b0, bp in rows]
+
+
+def fig7():
+    R = same_run_rows(); fig, ax = plt.subplots(figsize=(5.4, 2.9)); y = np.arange(len(R))[::-1]
+    for k, r in enumerate(R):
+        for d, ci, col, mk, off in ((r['d0'], r['ci0'], C['sc'], 'o', 0.13), (r['d1'], r['ci1'], C['green'], 's', -0.13)):
+            ax.errorbar(d, y[k] + off, xerr=[[d - ci[0]], [ci[1] - d]], fmt=mk, ms=6, color=col, mec='white', mew=0.8, elinewidth=1.4, capsize=0)
+            ax.text(ci[1] + 0.6, y[k] + off, f'{d:+.1f}', va='center', fontsize=7, color=C['ink'])
+    ax.axvline(0, color=C['muted'], lw=0.9)
+    ax.set_yticks(y); ax.set_yticklabels([r['name'] + f"\n(chosen: {r['chosen']})" for r in R], fontsize=7.5)
+    ax.set_xlabel('RandOpt K=50 − self-consistency@50 (pp, 95% CI)\n← self-consistency better      RandOpt better →')
+    ax.errorbar([], [], xerr=[], fmt='o', color=C['sc'], label="SC under RandOpt's prompt")
+    ax.errorbar([], [], xerr=[], fmt='s', color=C['green'], label='SC under the prompt chosen on the selection set')
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.01), frameon=False, ncol=2, fontsize=7); ax.grid(axis='y', visible=False)
+    ax.set_xlim(-27, 14); save(fig, 'fig7_same_run_prompt_selection')
+
+
+def fig8():
+    R = same_run_rows(); fig, ax = plt.subplots(figsize=(4.2, 3.0))
+    for r in R:
+        ax.errorbar(r['dmg_plain'], r['d0'], yerr=[[r['d0'] - r['ci0'][0]], [r['ci0'][1] - r['d0']]], fmt='o', ms=6, color=C['sc'], mec='white',
+                    elinewidth=1.2, zorder=3)
+        ax.plot(r['dmg_chosen'], r['d0'], marker='o', ms=6, mfc='white', mec=C['sc'], mew=1.2, ls='none', zorder=2)
+        ax.plot([r['dmg_plain'], r['dmg_chosen']], [r['d0'], r['d0']], color='#BBBBBB', lw=0.8, zorder=1)
+        below = '3B' in r['name'] and 'VL' not in r['name']  # keeps the label clear of the 1.5B whisker
+        ax.annotate(r['name'].replace('\n', ' '), (min(r['dmg_plain'], r['dmg_chosen']) if below else max(r['dmg_plain'], r['dmg_chosen']), r['d0']),
+                    xytext=(4, 11) if below else (6, 4), textcoords='offset points', fontsize=6.5, color=C['ink'])
+    ax.axhline(0, color=C['muted'], lw=0.9); ax.axvline(0, color='#DDDDDD', lw=0.8)
+    ax.set_xlabel("Damage of RandOpt's prompt to the base model (pp)\n= base accuracy with another prompt − with RandOpt's prompt")
+    ax.set_ylabel('RandOpt − SC@50, both under\nRandOpt\'s prompt (pp)')
+    ax.plot([], [], 'o', color=C['sc'], label='vs plain / direct prompt (pre-registered, Q2)')
+    ax.plot([], [], 'o', mfc='white', mec=C['sc'], label='vs prompt chosen on the selection set (PS)')
+    ax.legend(loc='upper left', frameon=False, fontsize=6.5); ax.set_xlim(-10, 45); save(fig, 'fig8_prompt_damage')
+
+
+def table4():
+    R = same_run_rows()
+    md = ['| Row | Base (RandOpt prompt) | RandOpt K=50 | RandOpt − SC@50, RandOpt prompt | Prompt chosen on selection set | SC@50, chosen prompt | RandOpt − SC@50, chosen prompt |',
+          '|---|---|---|---|---|---|---|']
+    for r in R:
+        md.append(f"| {r['name'].replace(chr(10), ' / ')} | {r['base_ro']:.1f} | {r['randopt']:.1f} | {r['d0']:+.2f} [{r['ci0'][0]:+.2f}, {r['ci0'][1]:+.2f}] | "
+                  f"{r['chosen']} | {r['sc_chosen']:.1f} | {r['d1']:+.2f} [{r['ci1'][0]:+.2f}, {r['ci1'][1]:+.2f}] |")
+    (OUT / 'table4_same_run_prompt_selection.md').write_text('\n'.join(md) + '\n\nSources: C, C3B, G2, O1 (same-run RandOpt vs SC); PS (prompt selection). '
+                                                             'All locked; see results/README.md.\n', encoding='utf-8')
+
+
+if __name__ == '__main__' and sys.argv[1:] == ['same-run']:
+    fig7(); fig8(); table4(); print(sorted(p.name for p in OUT.iterdir() if p.stem.startswith(('fig7', 'fig8', 'table4')))); sys.exit()
+
 if __name__ == '__main__':
-    fig1(); fig2(); per = fig3(); fig4(); fig5(); rho = fig6(); tables()
+    fig1(); fig2(); per = fig3(); fig4(); fig5(); rho = fig6(); tables(); fig7(); fig8(); table4()
     print('done; I5 per-item median r = %.3f; P1 rho = %.3f' % (np.median(per), rho))
     print(sorted(p.name for p in OUT.iterdir()))
