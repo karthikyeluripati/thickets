@@ -1,0 +1,158 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ . /workspace/repo/scripts/pod_rv_common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_DISABLE_XET=1
+++ VLLM_LOGGING_LEVEL=WARNING
+++ cd /workspace/repo
+++ G=4
+++ A=results/paper-analysis
+++ RV=results/paper-analysis/rv-reviewer-round
+++ cat /workspace/mp_q15.txt
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
++ R=/workspace/rv/rv4
++ mkdir -p /workspace/rv/rv4
++ export VLLM_NO_USAGE_STATS=1 VLLM_DISABLE_COMPILE_SAMPLER=1
++ VLLM_NO_USAGE_STATS=1
++ VLLM_DISABLE_COMPILE_SAMPLER=1
++ for v in "A 4 0,1,2,3" "B 1 0"
++ set -- A 4 0,1,2,3
++ cd /workspace/RandOpt
++ python -u randopt.py --dataset gsm8k --model_name /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --num_engines 4 --tp 1 --cuda_devices 0,1,2,3 --train_samples 200 --test_samples 30 --precision bfloat16 --max_tokens 1024 --sigma_values 0.0005,0.001,0.002 --global_seed 42 --population_size 24 --top_k_ratios 0.25 --experiment_dir /workspace/rv/rv4/smoke_A
++ grep -v RayWorkerWrapper
++ grep -E 'Train reward|Test accuracy|Batch [0-9]+ \|' /workspace/rv/rv4/randopt_A.log
++ head -8
+Train reward: 73.00%
+Test accuracy: 56.67% (17/30)
+  Batch 1 | 4/24 | ['0.525', '0.600', '0.675', '0.685']
+  Batch 2 | 8/24 | ['0.710', '0.715', '0.665', '0.650']
+  Batch 3 | 12/24 | ['0.720', '0.640', '0.735', '0.615']
+  Batch 4 | 16/24 | ['0.595', '0.580', '0.620', '0.740']
+  Batch 5 | 20/24 | ['0.645', '0.690', '0.690', '0.605']
+  Batch 6 | 24/24 | ['0.685', '0.670', '0.730', '0.625']
++ for v in "A 4 0,1,2,3" "B 1 0"
++ set -- B 1 0
++ cd /workspace/RandOpt
++ python -u randopt.py --dataset gsm8k --model_name /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --num_engines 1 --tp 1 --cuda_devices 0 --train_samples 200 --test_samples 30 --precision bfloat16 --max_tokens 1024 --sigma_values 0.0005,0.001,0.002 --global_seed 42 --population_size 24 --top_k_ratios 0.25 --experiment_dir /workspace/rv/rv4/smoke_B
++ grep -v RayWorkerWrapper
++ grep -E 'Train reward|Test accuracy|Batch [0-9]+ \|' /workspace/rv/rv4/randopt_B.log
++ head -8
+Train reward: 73.00%
+Test accuracy: 56.67% (17/30)
+  Batch 1 | 1/24 | ['0.525']
+  Batch 2 | 2/24 | ['0.605']
+  Batch 3 | 3/24 | ['0.675']
+  Batch 4 | 4/24 | ['0.670']
+  Batch 5 | 5/24 | ['0.730']
+  Batch 6 | 6/24 | ['0.765']
++ launch select /workspace/rv/q15 out_fid 1 /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --prompt randopt --first 24 --pop-seed 42
++ local ph=select root=/workspace/rv/q15 o=out_fid wpg=1 mp=/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
++ shift 5
++ local W=4
++ pids=()
++ local -a pids
++ mkdir -p /workspace/rv/q15
++ local mem
+++ python3 -c 'print(round(0.85/1, 2))'
++ mem=0.85
+++ seq 0 0
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ pids[$w]=15651
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 4 --root /workspace/rv/q15 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
++ pids[$w]=15652
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ pids[$w]=15653
++ for g in $(seq 0 $((G - 1)))
++ CUDA_VISIBLE_DEVICES=1
++ local w=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 4 --root /workspace/rv/q15 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 4 --root /workspace/rv/q15 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
++ pids[$w]=15654
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 4 --root /workspace/rv/q15 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ kill -0 15651
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ grep -q ENGINE_READY /workspace/rv/q15/out_fid_select_3.log
++ local bad=
+++ seq 0 3
++ for w in $(seq 0 $((W - 1)))
++ wait 15651
++ for w in $(seq 0 $((W - 1)))
++ wait 15652
++ for w in $(seq 0 $((W - 1)))
++ wait 15653
++ for w in $(seq 0 $((W - 1)))
++ wait 15654
++ '[' -n '' ']'
++ echo 'LAUNCH_DONE select out_fid W=4'
+LAUNCH_DONE select out_fid W=4
++ python -
+RV4 randopt.py_A=73.00 randopt.py_B=73.00 ours=68.00 C_printed=73.00 PS=68.5 GB2=68.00
++ echo RV4_DONE
+RV4_DONE

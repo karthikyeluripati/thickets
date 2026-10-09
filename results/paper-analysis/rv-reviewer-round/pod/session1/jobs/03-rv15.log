@@ -1,0 +1,46 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ . /workspace/repo/scripts/pod_rv_common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_DISABLE_XET=1
+++ VLLM_LOGGING_LEVEL=WARNING
+++ cd /workspace/repo
+++ G=4
+++ A=results/paper-analysis
+++ RV=results/paper-analysis/rv-reviewer-round
++ TOP=results/paper-analysis/o2-olmo-prompt/top50_reconstructed.json
++ p0=17519
++ gsm q15 0
++ p1=17520
++ p2=17521
++ gsm q3 1
++ p3=17523
++ rc=0
++ for p in $p0 $p1 $p2 $p3
++ wait 17519
++ gsm olmo 2
++ gqa 3
++ for p in $p0 $p1 $p2 $p3
++ wait 17520
++ for p in $p0 $p1 $p2 $p3
++ wait 17521
++ for p in $p0 $p1 $p2 $p3
++ wait 17523
++ grep -h 'RV1_CHOSEN\|PIPE_DONE' /workspace/rv/pipe_gqa.log /workspace/rv/pipe_olmo.log /workspace/rv/pipe_q15.log /workspace/rv/pipe_q3.log
++ echo 'RV1_CHOSEN gqa llava'
+RV1_CHOSEN gqa llava
++ echo 'PIPE_DONE gqa'
+PIPE_DONE gqa
++ echo 'RV1_CHOSEN olmo simple_evals'
+RV1_CHOSEN olmo simple_evals
++ echo 'PIPE_DONE olmo'
+PIPE_DONE olmo
++ echo 'RV1_CHOSEN q15 simple_evals'
+RV1_CHOSEN q15 simple_evals
++ echo 'PIPE_DONE q15'
+PIPE_DONE q15
++ echo 'RV1_CHOSEN q3 simple_evals'
+RV1_CHOSEN q3 simple_evals
++ echo 'PIPE_DONE q3'
+PIPE_DONE q3
++ exit 0

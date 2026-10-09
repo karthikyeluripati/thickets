@@ -1,0 +1,97 @@
+============================================================
+ES Ensemble - GSM8K 
+============================================================
+Model: /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
+Population: 24 | Top-K: [6] | Engines: 1 | TP: 1
+2026-10-09 21:14:11,809	WARNING authentication_token_setup.py:85 -- Token authentication is enabled for this Ray cluster. Set RAY_AUTH_MODE=disabled to opt out. For more information, see https://docs.ray.io/en/latest/ray-security/token-auth.html
+2026-10-09 21:14:14,001	WARNING utils.py:473 -- Detecting docker specified CPUs. In previous versions of Ray, CPU detection in containers was incorrect. Please ensure that Ray has enough CPUs allocated. As a temporary workaround to revert to the prior behavior, set `RAY_USE_MULTIPROCESSING_CPU_COUNT=1` as an env var before starting Ray. Set the env var: `RAY_DISABLE_DOCKER_CPU_WARNING=1` to mute this warning.
+2026-10-09 21:14:14,001	WARNING utils.py:485 -- Ray currently does not support initializing Ray with fractional cpus. Your num_cpus will be truncated from 95.2 to 95.
+2026-10-09 21:14:16,343	INFO worker.py:2033 -- Started a local Ray instance.
+Loading gsm8k data...
+  Train: 200 | Test: 30
+Cluster resources: 1 GPUs available, 1 GPUs required
+Creating 1 placement groups (TP=1)...
+Placement groups ready in 0.0s
+Launching batch 1/1 (engines 0-0)...
+[36m(RandOptNcclLLM pid=10060)[0m WARNING 10-09 21:14:23 [model.py:371] The global random seed is set to 0. Since VLLM_ENABLE_V1_MULTIPROCESSING is set to False, this may affect the random state of the Python process that launched vLLM.
+[36m(RandOptNcclLLM pid=10060)[0m `torch_dtype` is deprecated! Use `dtype` instead!
+  Batch 1 initialized in 16.2s
+All 1 engines launched in 16.2s
+
+============================================================
+BASE MODEL EVALUATION
+============================================================
+Train reward: 73.00%
+Test accuracy: 56.67% (17/30)
+
+============================================================
+PERTURBATION SAMPLING
+============================================================
+Budget: 24 | Sigmas: [0.0005, 0.001, 0.002]
+  Batch 1 | 1/24 | ['0.525']
+  Batch 2 | 2/24 | ['0.605']
+  Batch 3 | 3/24 | ['0.675']
+  Batch 4 | 4/24 | ['0.670']
+  Batch 5 | 5/24 | ['0.730']
+  Batch 6 | 6/24 | ['0.765']
+  Batch 7 | 7/24 | ['0.630']
+  Batch 8 | 8/24 | ['0.635']
+  Batch 9 | 9/24 | ['0.755']
+  Batch 10 | 10/24 | ['0.655']
+  Batch 11 | 11/24 | ['0.705']
+  Batch 12 | 12/24 | ['0.600']
+  Batch 13 | 13/24 | ['0.610']
+  Batch 14 | 14/24 | ['0.600']
+  Batch 15 | 15/24 | ['0.595']
+  Batch 16 | 16/24 | ['0.770']
+  Batch 17 | 17/24 | ['0.580']
+  Batch 18 | 18/24 | ['0.725']
+  Batch 19 | 19/24 | ['0.690']
+  Batch 20 | 20/24 | ['0.600']
+  Batch 21 | 21/24 | ['0.720']
+  Batch 22 | 22/24 | ['0.700']
+  Batch 23 | 23/24 | ['0.730']
+  Batch 24 | 24/24 | ['0.625']
+
+Sampling done.
+
+============================================================
+SAMPLING COMPLETE
+============================================================
+  σ=0.0005: mean=0.7160, n=5
+  σ=0.001: mean=0.7038, n=8
+  σ=0.002: mean=0.6077, n=11
+
+★ Best sigma: 0.0005
+
+============================================================
+SELECTION
+============================================================
+Selected top-6 from 24 perturbations
+
+=== Top-6 Perturbations ===
+  1. seed=1662057941, σ=0.001: 0.7700
+  2. seed=929893129, σ=0.001: 0.7650
+  3. seed=1843824977, σ=0.0005: 0.7550
+  4. seed=1497586427, σ=0.0005: 0.7300
+  5. seed=1540770713, σ=0.001: 0.7300
+  6. seed=1990212659, σ=0.001: 0.7250
+  7. seed=275121930, σ=0.001: 0.7200
+  8. seed=202244313, σ=0.0005: 0.7050
+  9. seed=432652530, σ=0.0005: 0.7000
+  10. seed=796282692, σ=0.0005: 0.6900
+
+============================================================
+ENSEMBLE EVALUATION
+============================================================
+K values: [6] | Test samples: 30
+  Batch 1/6 (1 models)...
+  Batch 6/6 (1 models)...
+
+Generation completed.
+
+Majority voting...
+  K=6: 50.00% (15/30) [+-6.67%]
+
+=== Saving Results ===
+Results saved to /workspace/rv/rv4/smoke_B/gsm8k_20261009_211418/

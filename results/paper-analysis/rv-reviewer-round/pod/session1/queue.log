@@ -1,0 +1,52 @@
+RATE=15.96 START=1791580004 CAP=115
++ touch /workspace/JOB_RUNNING
++ python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer accelerate pandas pyarrow datasets==3.6.0
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen2.5-3B-Instruct'\'',revision='\''aa8e72537993ba99e69dfaafa59ed015b17504d1'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1
++ echo 'MODEL_SHA aa8e72537993ba99e69dfaafa59ed015b17504d1'
++ tee /workspace/model_sha.txt
+MODEL_SHA aa8e72537993ba99e69dfaafa59ed015b17504d1
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ pip freeze
++ nvidia-smi -L
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY /workspace/SETUP_DONE
++ echo SETUP_DONE
+SETUP_DONE
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-rv4.sh /workspace/jobs/03-rv15.sh /workspace/jobs/04-rv2a.sh /workspace/jobs/05-rv3.sh /workspace/jobs/06-rv2b.sh /workspace/jobs/07-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/01-prep.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-09T21:11:49Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-rv4.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/02-rv4.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-09T21:20:17Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-rv15.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/03-rv15.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-09T22:10:17Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-rv2a.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/04-rv2a.sh

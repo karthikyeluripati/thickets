@@ -1,0 +1,640 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ . /workspace/repo/scripts/pod_rv_common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_DISABLE_XET=1
+++ VLLM_LOGGING_LEVEL=WARNING
+++ cd /workspace/repo
+++ G=4
+++ A=results/paper-analysis
+++ RV=results/paper-analysis/rv-reviewer-round
+++ grep -o 'CAP=[0-9.]*' /workspace/rate.txt
+++ cut -d= -f2
++ CAP=115
+++ cat /workspace/mp_q3.txt
++ search_row q3 /workspace/rv/q3 /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 boxed 42 84.0 90.0 82.34 results/paper-analysis/c3b-sameRun/pod/c3b/out/randopt.log 115
++ local tag=q3 root=/workspace/rv/q3 mp=/workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 prompt=boxed seed=42 roref=84.0 spref=90.0 tbref=82.34 lg=results/paper-analysis/c3b-sameRun/pod/c3b/out/randopt.log cap=115
++ mkdir -p /workspace/rv/q3
++ launch select /workspace/rv/q3 out_fid 1 /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --prompt randopt --first 24 --pop-seed 42
++ local ph=select root=/workspace/rv/q3 o=out_fid wpg=1 mp=/workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1
++ shift 5
++ local W=4
++ pids=()
++ local -a pids
++ mkdir -p /workspace/rv/q3
++ local mem
+++ python3 -c 'print(round(0.85/1, 2))'
++ mem=0.85
+++ seq 0 0
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ pids[$w]=24355
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ pids[$w]=24356
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 4 --root /workspace/rv/q3 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
++ CUDA_VISIBLE_DEVICES=0
++ pids[$w]=24357
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 4 --root /workspace/rv/q3 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
++ pids[$w]=24358
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 4 --root /workspace/rv/q3 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
+++ seq 0 3
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 4 --root /workspace/rv/q3 --out out_fid --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt randopt --first 24 --pop-seed 42
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ kill -0 24355
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ grep -q ENGINE_READY /workspace/rv/q3/out_fid_select_3.log
++ local bad=
+++ seq 0 3
++ for w in $(seq 0 $((W - 1)))
++ wait 24355
++ for w in $(seq 0 $((W - 1)))
++ wait 24356
++ for w in $(seq 0 $((W - 1)))
++ wait 24357
++ for w in $(seq 0 $((W - 1)))
++ wait 24358
++ '[' -n '' ']'
++ echo 'LAUNCH_DONE select out_fid W=4'
+LAUNCH_DONE select out_fid W=4
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/o2_eval.py --prompt boxed --arms base --top50 results/paper-analysis/o2-olmo-prompt/top50_reconstructed.json --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --out /workspace/rv/q3/envtest
++ launch select /workspace/rv/q3 out 3 /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --prompt boxed --first 180 --pop-seed 42
++ local ph=select root=/workspace/rv/q3 o=out wpg=3 mp=/workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1
++ shift 5
++ local W=12
++ pids=()
++ local -a pids
++ mkdir -p /workspace/rv/q3
++ local mem
+++ python3 -c 'print(round(0.85/3, 2))'
++ mem=0.28
+++ seq 0 2
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ pids[$w]=25641
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=25642
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=25643
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=25644
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 25641
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_1.log
++ kill -0 25642
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_3.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=4
++ pids[$w]=26613
++ for g in $(seq 0 $((G - 1)))
++ local w=5
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 4 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=26614
++ for g in $(seq 0 $((G - 1)))
++ local w=6
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 5 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=26615
++ for g in $(seq 0 $((G - 1)))
++ local w=7
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 6 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=26616
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 7 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=4
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 26613
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ for g in $(seq 0 $((G - 1)))
++ local w=5
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_5.log
++ for g in $(seq 0 $((G - 1)))
++ local w=6
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_6.log
++ for g in $(seq 0 $((G - 1)))
++ local w=7
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_7.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=8
++ pids[$w]=27599
++ CUDA_VISIBLE_DEVICES=0
++ for g in $(seq 0 $((G - 1)))
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 8 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ local w=9
++ pids[$w]=27600
++ for g in $(seq 0 $((G - 1)))
++ local w=10
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 9 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=27601
++ for g in $(seq 0 $((G - 1)))
++ local w=11
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 10 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
++ pids[$w]=27602
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 11 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --first 180 --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=8
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 27599
++ break
++ for g in $(seq 0 $((G - 1)))
++ local w=9
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_9.log
++ kill -0 27600
++ break
++ for g in $(seq 0 $((G - 1)))
++ local w=10
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_10.log
++ kill -0 27601
++ break
++ for g in $(seq 0 $((G - 1)))
++ local w=11
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_11.log
++ kill -0 27602
++ break
++ local bad=
+++ seq 0 11
++ for w in $(seq 0 $((W - 1)))
++ wait 25641
++ for w in $(seq 0 $((W - 1)))
++ wait 25642
++ for w in $(seq 0 $((W - 1)))
++ wait 25643
++ for w in $(seq 0 $((W - 1)))
++ wait 25644
++ for w in $(seq 0 $((W - 1)))
++ wait 26613
++ for w in $(seq 0 $((W - 1)))
++ wait 26614
++ for w in $(seq 0 $((W - 1)))
++ wait 26615
++ for w in $(seq 0 $((W - 1)))
++ wait 26616
++ for w in $(seq 0 $((W - 1)))
++ wait 27599
++ bad=' 8'
++ for w in $(seq 0 $((W - 1)))
++ wait 27600
++ bad=' 8 9'
++ for w in $(seq 0 $((W - 1)))
++ wait 27601
++ bad=' 8 9 10'
++ for w in $(seq 0 $((W - 1)))
++ wait 27602
++ bad=' 8 9 10 11'
++ '[' -n ' 8 9 10 11' ']'
++ echo 'RETRY workers: 8 9 10 11'
+RETRY workers: 8 9 10 11
++ rp=()
++ local -a rp
++ local i=0 rc=0 p
++ for w in $bad
++ local g=0
++ i=1
++ rp+=($!)
++ '[' 1 -eq 0 ']'
++ for w in $bad
++ local g=1
++ i=2
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 8 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt boxed --first 180 --pop-seed 42
++ rp+=($!)
++ '[' 2 -eq 0 ']'
++ for w in $bad
++ local g=2
++ i=3
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 9 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt boxed --first 180 --pop-seed 42
++ rp+=($!)
++ '[' 3 -eq 0 ']'
++ for w in $bad
++ local g=3
++ i=4
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 10 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt boxed --first 180 --pop-seed 42
++ rp+=($!)
++ '[' 0 -eq 0 ']'
++ for p in "${rp[@]}"
++ wait 28232
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 11 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.85 --prompt boxed --first 180 --pop-seed 42
++ for p in "${rp[@]}"
++ wait 28233
++ for p in "${rp[@]}"
++ wait 28234
++ for p in "${rp[@]}"
++ wait 28235
++ rp=()
++ '[' 0 -eq 0 ']'
++ echo 'LAUNCH_DONE select out W=12'
+LAUNCH_DONE select out W=12
++ tee /workspace/rv/q3/gates.txt
+++ spent
+++ python3 -c 'import time;r=dict(x.split('\''='\'') for x in open('\''/workspace/rate.txt'\'').read().split());print(round((time.time()-int(r['\''START'\'']))/3600*float(r['\''RATE'\'']),2))'
++ python scripts/rv_gates.py --root /workspace/rv/q3 --prompt boxed --ro-ref 84.0 --sp-ref 90.0 --tb-ref 82.34 --log results/paper-analysis/c3b-sameRun/pod/c3b/out/randopt.log --spent 18.79 --cap 115 --workers 12 --gpus 4
+FIDELITY n=24 mean_abs_diff=0.0154 signed=+0.0008 CONSISTENT
+ENV randopt_base_sel=84.00 (ref 84.0) boxed_base_sel=90.00 (ref 90.0) boxed_base_test=82.34 (ref 82.34) PASS
+PROJECTION W=12 sec_per_pert=5.87 smoke_n=180 spent=18.79 proj=35.68 cap=115.0 GO
++ grep -q '^ENV .* PASS$' /workspace/rv/q3/gates.txt
++ grep -q '^PROJECTION .* GO$' /workspace/rv/q3/gates.txt
++ launch select /workspace/rv/q3 out 3 /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --prompt boxed --pop-seed 42
++ local ph=select root=/workspace/rv/q3 o=out wpg=3 mp=/workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1
++ shift 5
++ local W=12
++ pids=()
++ local -a pids
++ mkdir -p /workspace/rv/q3
++ local mem
+++ python3 -c 'print(round(0.85/3, 2))'
++ mem=0.28
+++ seq 0 2
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ pids[$w]=29444
++ CUDA_VISIBLE_DEVICES=0
++ for g in $(seq 0 $((G - 1)))
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 0 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ local w=1
++ pids[$w]=29445
++ for g in $(seq 0 $((G - 1)))
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 1 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ local w=2
++ pids[$w]=29446
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 2 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=29447
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 3 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=0
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ kill -0 29444
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_0.log
++ for g in $(seq 0 $((G - 1)))
++ local w=1
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_1.log
++ for g in $(seq 0 $((G - 1)))
++ local w=2
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_2.log
++ for g in $(seq 0 $((G - 1)))
++ local w=3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_3.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=4
++ pids[$w]=30417
++ for g in $(seq 0 $((G - 1)))
++ local w=5
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 4 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=30418
++ for g in $(seq 0 $((G - 1)))
++ local w=6
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 5 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=30419
++ for g in $(seq 0 $((G - 1)))
++ local w=7
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 6 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=30420
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 7 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=4
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ kill -0 30417
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_4.log
++ for g in $(seq 0 $((G - 1)))
++ local w=5
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_5.log
++ for g in $(seq 0 $((G - 1)))
++ local w=6
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_6.log
++ for g in $(seq 0 $((G - 1)))
++ local w=7
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_7.log
++ for layer in $(seq 0 $((wpg - 1)))
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=8
++ pids[$w]=31474
++ for g in $(seq 0 $((G - 1)))
++ local w=9
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 8 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=31475
++ for g in $(seq 0 $((G - 1)))
++ local w=10
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 9 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=31476
++ for g in $(seq 0 $((G - 1)))
++ local w=11
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 10 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
++ pids[$w]=31477
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase select --worker 11 --workers 12 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.28 --prompt boxed --pop-seed 42
+++ seq 0 3
++ for g in $(seq 0 $((G - 1)))
++ local w=8
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ sleep 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_8.log
++ kill -0 31474
++ break
++ for g in $(seq 0 $((G - 1)))
++ local w=9
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_9.log
++ kill -0 31475
++ break
++ for g in $(seq 0 $((G - 1)))
++ local w=10
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_10.log
++ kill -0 31476
++ break
++ for g in $(seq 0 $((G - 1)))
++ local w=11
++ grep -q ENGINE_READY /workspace/rv/q3/out_select_11.log
++ kill -0 31477
++ break
++ local bad=
+++ seq 0 11
++ for w in $(seq 0 $((W - 1)))
++ wait 29444
