@@ -23,6 +23,7 @@ def main():
     ap.add_argument('--ranks', default='0-49'); ap.add_argument('--top50', type=Path, required=True)  # ranks: e.g. 0-4,45-49
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--model-path', required=True)
     ap.add_argument('--out', type=Path, required=True); ap.add_argument('--limit', type=int, default=0)
+    ap.add_argument('--split', choices=['test', 'select'], default='test')  # select = RandOpt's selection set (first 200 train rows)
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream)); os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'OMP_NUM_THREADS': '4'})
     import datasets
@@ -30,7 +31,8 @@ def main():
     from vllm import LLM, SamplingParams
     from data_handlers.gsm8k import GSM8KHandler
     h = GSM8KHandler(); a.out.mkdir(parents=True, exist_ok=True)
-    ds = datasets.load_dataset('openai/gsm8k', 'main', split='test')
+    ds = datasets.load_dataset('openai/gsm8k', 'main', split='train' if a.split == 'select' else 'test')
+    if a.split == 'select': ds = ds.select(range(200))
     items = [{'q': r['question'], 'gt': r['answer'].split('####')[-1].strip().replace(',', '')} for r in ds]
     items = items[: a.limit] if a.limit else items
     tok = AutoTokenizer.from_pretrained(a.model_path)
@@ -47,16 +49,18 @@ def main():
                 'fin': c.finish_reason, 'ntok': len(c.token_ids), 'hash4': '####' in c.text, 'boxed': '\\boxed{' in c.text}
 
     def save(name, recs, texts):
+        name = ('sel_' if a.split == 'select' else '') + name
         (a.out / f'{name}.json').write_text(json.dumps(recs))
         (a.out / f'{name}.texts.json.gz').write_bytes(gzip.compress(json.dumps(texts).encode()))
     top = json.loads(a.top50.read_text())
     ranks = [r for part in a.ranks.split(',') for r in range(int(part.split('-')[0]), int(part.split('-')[-1]) + 1)]
     for arm in a.arms.split(','):
         t0 = time.time()
-        if arm == 'base' and not (a.out / f'{a.prompt}_base.json').exists():
+        pre = 'sel_' if a.split == 'select' else ''
+        if arm == 'base' and not (a.out / f'{pre}{a.prompt}_base.json').exists():
             rpc('reset_to_base_weights'); o = llm.generate(R, greedy, use_tqdm=False)
             save(f'{a.prompt}_base', [rec(x.outputs[0], i) for i, x in enumerate(o)], [x.outputs[0].text for x in o])
-        elif arm == 'sc' and not (a.out / f'{a.prompt}_sc.json').exists():
+        elif arm == 'sc' and not (a.out / f'{pre}{a.prompt}_sc.json').exists():
             rpc('reset_to_base_weights')
             o = llm.generate(R, SamplingParams(temperature=0.7, top_p=1.0, seed=20261007, max_tokens=1024, n=50), use_tqdm=False)
             save(f'{a.prompt}_sc', [[rec(c, i) for c in x.outputs] for i, x in enumerate(o)], [[c.text for c in x.outputs] for x in o])

@@ -25,6 +25,7 @@ def main():
     ap.add_argument('--images', type=Path, default=Path('/workspace/g2/images'))
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--model-path', required=True); ap.add_argument('--prompt', choices=list(PROMPTS), default='cot')
+    ap.add_argument('--split', choices=['test', 'selection'], default='test')
     a = ap.parse_args()
     sys.path.insert(0, str(a.upstream))
     os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '0', 'OMP_NUM_THREADS': '4'})
@@ -33,7 +34,7 @@ def main():
     from vllm import LLM, SamplingParams
     from data_handlers.gqa import GQAHandler
     h = GQAHandler(); a.out.mkdir(parents=True, exist_ok=True)
-    rows = json.loads(Path(a.items).read_text())['test']; rows = rows[: a.limit] if a.limit else rows
+    rows = json.loads(Path(a.items).read_text())[a.split]; rows = rows[: a.limit] if a.limit else rows
     topk = json.loads(Path(a.topk).read_text())[: a.k]
     llm = LLM(model=a.model_path, tokenizer=a.model_path, dtype='bfloat16', tensor_parallel_size=1, distributed_executor_backend='uni',
               worker_extension_cls='utils.worker_extn.WorkerExtension', enforce_eager=False, enable_prefix_caching=False,
@@ -52,6 +53,7 @@ def main():
                 'ntok': len(c.token_ids), 'boxed': '\\boxed{' in t}
 
     def save(name, outs, texts):
+        name = ('sel_' if a.split == 'selection' else '') + name
         (a.out / f'{name}.json').write_text(json.dumps(outs))
         if texts is not None: (a.out / f'{name}.texts.json.gz').write_bytes(gzip.compress(json.dumps(texts).encode()))
     for b in [int(x) for x in a.budgets.split(',')]:
@@ -60,19 +62,19 @@ def main():
             t0 = time.time()
             if arm == 'base':
                 name = f'b{b}_base'
-                if (a.out / f'{name}.json').exists(): continue
+                if (a.out / (('sel_' if a.split == 'selection' else '') + f'{name}.json')).exists(): continue
                 rpc('reset_to_base_weights'); o = llm.generate(R, greedy, use_tqdm=False)
                 save(name, [rec(x.outputs[0], i) for i, x in enumerate(o)], [x.outputs[0].text for x in o])
             elif arm == 'sc':
                 name = f'b{b}_sc'
-                if (a.out / f'{name}.json').exists(): continue
+                if (a.out / (('sel_' if a.split == 'selection' else '') + f'{name}.json')).exists(): continue
                 rpc('reset_to_base_weights')
                 o = llm.generate(R, SamplingParams(temperature=0.7, top_p=1.0, seed=20261007, max_tokens=b, n=50), use_tqdm=False)
                 save(name, [[rec(c, i) for c in x.outputs] for i, x in enumerate(o)], None)
             else:
                 for m in topk:
                     name = f"b{b}_rank{m['rank']}"
-                    if (a.out / f'{name}.json').exists(): continue
+                    if (a.out / (('sel_' if a.split == 'selection' else '') + f'{name}.json')).exists(): continue
                     rpc('apply_perturbation', m['seed'], m['sigma']); o = llm.generate(R, greedy, use_tqdm=False)
                     save(name, [rec(x.outputs[0], i) for i, x in enumerate(o)], [x.outputs[0].text for x in o])
                 rpc('reset_to_base_weights')
