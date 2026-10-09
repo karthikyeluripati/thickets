@@ -67,7 +67,7 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   correctness (unrelated to the first-order signal; 22% of answers flip at σ ≤ 0.002).
 
 ## Claim 3 (why selection finds shared shifts): theory and a case study [R8c, R1–R3, R6]
-- **Theory (`THEORY.md`; criteria fixed before computing, data pre-existing, so exploratory).** Under the law, a perturbation shifts question j's margin by N(0, σ²‖g_j‖²). Consequences:
+- **Theory (RESULTS_MASTER R11; criteria fixed before computing, data pre-existing, so exploratory).** Under the law, a perturbation shifts question j's margin by N(0, σ²‖g_j‖²). Consequences:
   flip probabilities are predictable (AUC 0.935, calibrated); an unselected vote returns the base answer (96/96);
   σ‖g_j‖ acts as a per-question temperature (why perturbations and sampling hit the same questions); top-K selection
   is a noisy first-order step along the selection set's gradient, so it favours shifts shared across the selection
@@ -106,7 +106,7 @@ cannot pass images); exploratory analyses are labelled as such.
 |---|---|---|
 | R8b: C, C3B, G2/G2R, O1 (same-run); PS (headline); G4, O2, Q2 (prompt controls); GQA shift (exploratory); Figures 7–8, Table 4 | G3 details; K = 10; vote curves; member decompositions; O2 fidelity failure; cross-paper P2/P3 (R8) incl. non-comparable rows | G2's exploratory "termination repair" reading (superseded by G3, G4) |
 | Tilt law: Stage 2, R1, R2/R2b, I5, P0, S1-A, S1-7B (R4); localization 3B (R5) | GPU-A fidelity gates (S2a NO-GO → A1), V0/S2b checks, per-σ and per-block tables | Expert/mirage framing of the first draft |
-| Limits: GPU-A F1/S2d, σ breakdown, P0 CoT, C1-1, S1-B | F2/F3, 3A-1/3A-3, τ-check details, C1-2 (flagged) | Earlier OmniSpatial TEST-based conclusions (CORRECTION_SPLIT_MISMATCH) |
+| Limits: GPU-A F1/S2d, σ breakdown, P0 CoT, C1-1, S1-B | F2/F3, 3A-1/3A-3, τ-check details, C1-2 (flagged) | Earlier OmniSpatial TEST-based conclusions (split-mismatch correction, R1) |
 | Theory T1, T2, T4 (R8c); case study R1, M1, front tilt, Stage 3A | P1-A/B (R7); P1-C; 47-model vs top-10 votes; EB shrinkage | |
 | R9 ledger referenced in Sec. 2 | Full R9 ledger; compute ledger | |
 

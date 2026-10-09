@@ -79,7 +79,7 @@ fails for vision weights (r = 0.137), breaks down by σ = 0.005, and does not pr
 ### 3. Why selection finds shared shifts, and where that stops
 
 Under the first-order law, a random perturbation shifts each question's answer margin by a Gaussian with standard
-deviation σ‖∇margin‖ (`paper/THEORY.md`). So flip probabilities are predictable per question (AUC 0.935), an
+deviation σ‖∇margin‖ (`paper/RESULTS_MASTER.md` §R11). So flip probabilities are predictable per question (AUC 0.935), an
 unselected vote returns the base model's answer (96/96 questions), σ‖∇‖ acts like a per-question sampling
 temperature, and top-K selection is a noisy step along the selection set's gradient: it favours shifts shared across
 the selection questions. This covers direct answers at small σ, not chain-of-thought.
@@ -97,10 +97,8 @@ three prompt candidates per task fixed in advance.
 ```
 paper/
   STORY.md                   the paper's argument: one question, three claims, where each experiment goes
-  RESULTS_MASTER.md          every number the paper may use, with its lock commit and source file
-  THEORY.md                  first-order derivations (T1–T4) and their checks
+  RESULTS_MASTER.md          every number the paper may use (lock commit, source file), the ledger (R9) and the theory (R11)
   WRITING_PROMPT.md          drafting rules for the paper (structure, wording, what not to claim, credit)
-  CORRECTION_SPLIT_MISMATCH.md, WHY_INVESTIGATION_9504111.md   the OmniSpatial case-study record
   figures/thickets-or-tilts/ generated figures and tables;  figures/scripts/thickets_or_tilts.py regenerates them
 results/README.md            index: every study's question, lock commit, result, verdict and role in the paper
 results/paper-analysis/<study>/
@@ -152,7 +150,9 @@ perturbation, scoring and voting components.
 
 This repository began as a broader exploration (runtime profiling, adaptive evaluation, complementarity selection,
 visual line-tracing, an "expert mirage" framing). Those directions were removed from the working tree on 2026-10-07
-and are preserved at git tag [`pre-cleanup`](../../tree/pre-cleanup). A smaller cleanup on 2026-10-09 (operational
+and are preserved at git tag [`pre-cleanup`](../../tree/pre-cleanup). The OmniSpatial case-study notes (`CORRECTION_SPLIT_MISMATCH.md`,
+`WHY_INVESTIGATION_9504111.md`) and the standalone `THEORY.md` (now RESULTS_MASTER §R11) are at
+[`pre-cleanup-3`](../../tree/pre-cleanup-3); older plan locks still cite them by their original paths. A smaller cleanup on 2026-10-09 (operational
 logs) is preserved at [`pre-cleanup-2`](../../tree/pre-cleanup-2).
 
 ## Credit

@@ -53,7 +53,7 @@ Paper role: **main** = main text; **appx** = appendix; **sup** = superseded (kep
 | `tau-check` | does the noise-only predictor work through the front tilt? | 8c52ba1 (criteria first) | `TAU_CHECK_RESULT.md` | holds (exploratory data) | main [R6] |
 | `answer-prior` | answer-content priors of candidates (post-hoc) | none | `answer_prior_*.json` | label-aligned front tilt | main, labelled post-hoc [R3] |
 
-## Superseded (split mismatch; see `paper/CORRECTION_SPLIT_MISMATCH.md`)
+## Superseded (split mismatch; see RESULTS_MASTER R1)
 Kept because later analyses read their data (Stage 3, answer priors, GPU-A), directly or through
 `selection_vs_specificity.py`, which imports `selection_vs_shared.py`.
 
