@@ -312,6 +312,18 @@ The selected models are better on test (+4 to +5) where the prompt leaves ≥ 10
 (+0.2, −0.6) where it leaves little or none. Five settings; descriptive only. It explains transfer, not the vote
 comparison (Qwen-1.5B transfers, yet SC still wins).
 
+### R8b.8 Are the selected "experts" prompt-specific? (EXPLORATORY; `expert-specificity/`, `scripts/expert_specificity.py`)
+- Same 5000 perturbations scored under two prompts: rank correlation of selection rewards **0.025** (OLMo: RandOpt's
+  prompt vs boxed) and **0.171** (GQA: CoT vs direct); **top-50 overlap 0** in both; the top 50 selected under
+  RandOpt's prompt sit at the **37th** (OLMo) and **31st** (GQA) mid-rank percentile under the good prompt.
+- GQA: selected members (CoT search) agree with the direct-prompt BASE on 64.9% of answers vs 48.3% with the CoT BASE;
+  on the 616 questions where the two BASE prompts disagree they side with the direct one 48.7% vs 15.3%.
+- OLMo: selected members do not resemble the good-prompt BASE (on 878 disagreements: boxed 24.1% vs RandOpt-prompt
+  27.7%); there the accuracy recovery is not "answering like the good prompt".
+- Reading: what selection finds is specific to the prompt it is run under, and the winners under a damaging prompt are
+  below-median perturbations once the prompt is fixed. On GQA the selected perturbation reproduces the direct prompt's
+  answers; not on OLMo.
+
 **How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
 RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
 two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,

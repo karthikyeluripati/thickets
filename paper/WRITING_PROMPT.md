@@ -100,7 +100,9 @@ exactly how far each result goes and no further.
    OmniSpatial winner (C1-1). As important as Section 4.
 6. **Why selection finds shared shifts (R8c, R8b.7, case study).** Open with the transfer table (R8b.7, exploratory):
    selection gains transfer only where the prompt leaves accuracy unclaimed, and not with the prompt held fixed; this
-   is the bridge from Section 3 to the theory. T1, T2, T4 checks; T3 as derivation; the OmniSpatial
+   is the bridge from Section 3 to the theory. Then R8b.8 (exploratory): the selected "experts" are prompt-specific
+   (same population, near-zero rank correlation across prompts, top-50 overlap 0) and on GQA reproduce the direct
+   prompt's answers; not on OLMo. Say "in our settings", never "there are no task experts". T1, T2, T4 checks; T3 as derivation; the OmniSpatial
    search: split mismatch, matched transfer (+2.67), front tilt, calibration (not explained); Figure 5.
 7. **Recommendations for evaluating weight-space search.** Same-run baselines at matched test-time budget; SC and a
    prompt chosen on the selection set as default baselines; base-reproduction checks; report member vs vote

@@ -79,6 +79,12 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   +5.1) only where the prompt leaves ≥ 10 pp of accuracy unclaimed; with the prompt held fixed (GD, GB) they are not
   (−0.6, −0.8). GD is in the theory's direct-answer regime: with no shared direction left, top-K selection picks up
   selection-set noise, as T3 implies. Five settings, descriptive.
+- **The "experts" are prompt-specific (exploratory, R8b.8).** Over the same 5000 perturbations, selection rewards under
+  two prompts are nearly uncorrelated (Spearman 0.025 OLMo, 0.171 GQA), the two top 50s share no member, and the
+  winners under RandOpt's prompt sit at the 31st–37th percentile under the good prompt. On GQA the selected
+  perturbations reproduce the direct prompt's answers (they side with it 48.7% vs 15.3% where the prompts disagree);
+  on OLMo they do not. This speaks to the original thesis: in our settings the dense "experts" are repairs for a
+  particular prompt, not task experts.
 - **Case study (one OmniSpatial search, N = 5000, Qwen3-VL-8B).** The winner's +8.0 pp selection gain sat on a format
   the test set lacked; on fresh matched items it keeps +2.67 [0.17, 4.93]. Selection favours tilts toward answer
   content the selection labels reward. Boundary, stated as a main result: removing that content shift leaves +2.33

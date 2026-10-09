@@ -20,6 +20,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 | GQA shift (exploratory) | – | `gqa_shift_analysis.py` |
 | Robustness of Claim 1 (exploratory) | – | `robustness_checks.py` |
 | Selection gain vs test gain (exploratory) | – | `transfer_analysis.py` |
+| Prompt-specific experts (exploratory) | – | `expert_specificity.py` |
 | P0–P3 (pilots; SC vs published RandOpt) | `p0_hf.py`, `p1_sample.py`, `p2_sc.py` | `p0_analysis.py`, `p1_analysis.py`, `p2_analysis.py`, `p3_analysis.py` |
 
 ## Claim 2: the first-order tilt law
