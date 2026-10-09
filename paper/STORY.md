@@ -9,7 +9,7 @@ selected perturbations change?**
 
 ## The answer in three claims
 
-### Claim 1: RandOpt's gain is a vote plus, where one exists, a shared shift; on Qwen GSM8K sampling votes better, on GQA a one-line prompt gives the shift (practical headline)
+### Claim 1: RandOpt's gain is a vote plus a shared shift; where it beats self-consistency, the shift repairs damage done by RandOpt's own prompt, and fixing the prompt beats the search (practical headline)
 Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
 - **GSM8K / Qwen2.5-1.5B and 3B** (RandOpt's own code; published numbers reproduced, 77.18 vs 76.4 and 86.66 vs 87.1):
   SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
@@ -25,8 +25,9 @@ Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
   quarter of the CoT-prompt advantage (G3).
 - **GSM8K / OLMo-2-1B (non-Qwen, O1, pre-registered): RandOpt ahead, +8.72 [+6.75, +10.77].** Base scores only 35% under
   RandOpt's prompt; the selected models are +5.1 pp better individually (a shared shift, as on GQA). So on GSM8K the
-  outcome is model-dependent. Whether OLMo's shift is also a prompt effect (as G4 showed for GQA) is **untested**:
-  only extracted answers were saved, not texts.
+  outcome looks model-dependent, **but it is a prompt effect (O2, pre-registered):** asked just the question, the base
+  model scores 65.3% with one generation and SC@50 74.7%; RandOpt − SC@50 (plain) = **−22.21 [−24.87, −19.56]**.
+  RandOpt's "####" instruction halves this model's accuracy; selection partly repairs it, a prompt fix repairs more.
 - Supporting, cross-paper: SC@50 point estimates above published RandOpt on both gated GSM8K rows, 5.7–10.7 pp above
   the paper's TT-MV baseline [R8].
 - CoT regime: perturbations and sampling flip similarly susceptible questions (ρ = 0.946), but perturbed models carry

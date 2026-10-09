@@ -21,7 +21,7 @@ separately. All locks, per-item outputs and analysis code are in this repository
 
 ## Findings
 
-### 1. RandOpt's gain is a vote plus, where one exists, a shared shift in the model's answers
+### 1. Where RandOpt beats self-consistency, fixing its prompt beats the search
 
 Three same-run comparisons at the paper's settings (N = 5000 perturbations, top K = 50), against self-consistency
 with the same number of test-time generations (50 samples at T = 0.7, no weight search):
@@ -33,6 +33,7 @@ with the same number of test-time generations (50 samples at T = 0.7, no weight 
 | GQA / Qwen2.5-VL-3B (1238 questions) | 53.4 | 63.5 (69.0*) | 60.0 | **+3.47 [+1.62, +5.41]** |
 | GQA, second RandOpt run (new perturbations) | 53.4 | 63.7 | 60.0 | **+3.63 [+1.78, +5.49]** |
 | GSM8K / OLMo-2-1B (non-Qwen) | 35.3 | 52.5 (–) | 43.7 | **+8.72 [+6.75, +10.77]** |
+| GSM8K / OLMo-2-1B, model asked just the question | **65.3** (one answer) | 52.5 | 74.7 | **−22.21 [−24.87, −19.56]** |
 | GQA, base model told to answer directly | **64.7** (one answer) | 63.5 | 64.7 | **−1.21 [−2.83, +0.40]** |
 
 <sub>*The paper evaluates GQA on all of testdev with train-split selection; we use image-disjoint testdev splits.</sub>
@@ -43,8 +44,10 @@ which costs this model 11 points. The selected perturbations mostly switch that 
 words. Simply telling the base model to answer directly gives 64.7% from **one** generation with no search, at least as
 good as RandOpt's 5000-model search plus 50-model vote, and search adds nothing on top of that prompt.
 On a non-Qwen model (OLMo-2-1B), RandOpt beats self-consistency on GSM8K by 8.7 pp: like on GQA, its selected
-models are individually better than base, so selection found a shared shift. Whether a prompt also gives that shift
-for OLMo has not been tested yet.
+models are individually better than base. But RandOpt's GSM8K instruction ("output the final answer after ####")
+halves this model's accuracy: asked just the question, one generation scores 65.3% and self-consistency 74.7%, far
+above RandOpt's 52.5%. In both settings where RandOpt beats self-consistency, the search is repairing damage done by
+its own prompt, and repairing the prompt does better.
 
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 

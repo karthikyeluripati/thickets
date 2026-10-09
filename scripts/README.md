@@ -12,6 +12,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 | G1 (frozen GQA items) | `g1_eval.py`, `g1_gradient.py`, `g1_images.py` | `g1_check.py`, `g1_analysis.py` |
 | G2, G2R (GQA same-run) | `g2_prep.py`, `g2_randopt_gqa.py` (`--pop-seed`) | `g2_analysis.py`, `g2r_analysis.py` |
 | O1 (GSM8K same-run, OLMo-2-1B; RandOpt's own `randopt.py`) | – | `o1_analysis.py` (uses `c_prep_gsm8k.py`, `p2_sc.py`) |
+| O2 (OLMo prompt control) | `o2_eval.py` (`--prompt randopt/plain/boxed`) | `o2_analysis.py` |
 | G3, G4 (budgets; prompt controls) | `g3_eval.py` (`--prompt cot/direct/short`) | `g3_analysis.py`, `g4_analysis.py` |
 | GQA shift (exploratory) | – | `gqa_shift_analysis.py` |
 | P0–P3 (pilots; SC vs published RandOpt) | `p0_hf.py`, `p1_sample.py`, `p2_sc.py` | `p0_analysis.py`, `p1_analysis.py`, `p2_analysis.py`, `p3_analysis.py` |

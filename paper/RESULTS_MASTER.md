@@ -220,6 +220,7 @@ base 0.730 (200 items).
 K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead; G2R +4.68 [2.50, 6.95].
 GQA two-seed mean D (K = 50) = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29].
 **O1 (e2e2400): GSM8K / OLMo-2-1B: base 35.25, members 40.3 (+5.1), RandOpt K = 50 52.46, SC@50 43.75: RandOpt ahead +8.72 [+6.75, +10.77].**
+**O2 (6ecafcf): OLMo-2-1B asked just the question: BASE greedy 65.28, SC@50 74.68 (RandOpt's prompt: 33.66 / 43.75); RandOpt − SC@50 (plain) −22.21 [−24.87, −19.56].**
 **G4 (2ad4e46): with a direct-answer prompt, BASE greedy (1 generation) = 64.70 and SC@50 = 64.70 on the same questions;
 RandOpt (CoT) − SC@50 (direct) = −1.21 [−2.83, +0.40], no difference detected. The GQA advantage is a prompt effect.**
 † The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
@@ -311,6 +312,8 @@ How to describe the process:
 | G2R | 9e84c4f + 0754376 | **G2R-1 GQA advantage with a disjoint population (seed 43)** | paired item bootstrap | REPLICATED if CI > 0 | **+3.63 [+1.78, +5.49]**; D₂ − D₁ +0.16 [−0.97, +1.29] | **REPLICATED** |
 | O1 | e2e2400 | **O1-1 same-run RandOpt − SC@50, GSM8K / OLMo-2-1B (non-Qwen)** | paired item bootstrap | as C-1 | **+8.72 [+6.75, +10.77]** | **RANDOPT AHEAD** (Claim 1 model-dependent on GSM8K) |
 | O1 | e2e2400 | K = 10; O1b second seed | same; budget rule | – | +7.58 [+5.31, +9.93]; O1b not run ($87 > $58.5) | RandOpt ahead; skipped by rule |
+| O2 | 6ecafcf | **O2-1 RandOpt (O1) − SC@50 with the plain question prompt, OLMo-2-1B** | paired item bootstrap | as G4 | **−22.21 [−24.87, −19.56]** | **PROMPT-SC AHEAD** (valid env) |
+| O2 | 6ecafcf | member fidelity gate; search on top of prompt | answer agreement ≥ 0.90, acc ≤ 2 pp | as locked | 0.70 / 0.63 pp; −0.91 [−2.27, 0.53] | **gate failed** → members secondary not valid |
 | G4 | 2ad4e46 | **G4-1 RandOpt (CoT) − SC@50 with a direct-answer prompt, GQA** | paired item bootstrap | as C-1, + equivalence ±2 | **−1.21 [−2.83, +0.40]** | **NO DIFFERENCE DETECTED** (not equivalent) |
 | G4 | 2ad4e46 | direct-prompt BASE − CoT BASE; search on top of prompt | paired bootstrap | reported | +11.31 [8.48, 14.14]; −0.08 [−0.97, +0.81] | prompt effect; search adds nothing |
 | G3 | dc19fd4 | **G3-1 does a 1024-token budget remove the GQA advantage?** | Δ = D256 − D1024; D1024 | supported if Δ CI > 0 and D1024 CI ∋ 0 | Δ +0.97 [0.32, 1.70]; D1024 +2.67 [0.73, 4.52] | **PARTIAL** |

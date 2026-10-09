@@ -19,6 +19,7 @@ Paper role: **main** = main text; **appx** = appendix; **sup** = superseded (kep
 | `gqa-shift` | what selected GQA models do differently (CPU, on G3 texts) | none (exploratory) | `SHIFT_RESULT.md` | answer directly; shorter = more accurate | main, labelled exploratory |
 | `g4-direct-prompt` | does a direct-answer prompt match RandOpt on GQA? | 2ad4e46 | `G4_RESULT.md` | **no difference**; 1 direct generation 64.7 vs RandOpt 63.5; search adds nothing on top | main [R8b] |
 | `o1-olmo-sameRun` | same-run RandOpt vs SC@50 on a non-Qwen model, GSM8K / OLMo-2-1B | e2e2400 | `O1_RESULT.md` | **RandOpt ahead**, +8.72 [+6.75, +10.77]; members +5.1 over base | main [R8b] |
+| `o2-olmo-prompt` | is O1's RandOpt win a prompt effect? (plain and boxed prompts) | 6ecafcf | `O2_RESULT.md` | **prompt effect**: plain-prompt SC@50 74.7 vs RandOpt 52.5, −22.21 [−24.87, −19.56]; member fidelity gate failed | main [R8b] |
 | `p2` | SC@50 vs published RandOpt, GSM8K-0.5B/1.5B, GQA | 01efd9d | `P2_RESULT.md` | GSM8K-1.5B matches; others fail the base gate | main (gated rows), appx |
 | `p3` | same, GSM8K-3B, MATH-500 | c60b600 | `P3_RESULT.md` | GSM8K-3B matches; MATH-500 not comparable | main (gated row), appx |
 | `p1` | do perturbations behave like sampling (CoT regime)? | 464aed0 | `P1_RESULT.md` | same items flip; persistent models | main (A/B), appx (C) [R7] |
