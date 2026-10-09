@@ -30,7 +30,8 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   questions (600 generations vs RandOpt's 1,000,000), then take SC@50. RandOpt − SC: Qwen-1.5B **−2.96 [−4.62, −1.29]**,
   Qwen-3B **−0.38 [−1.67, +0.91]** (equivalent), OLMo **−23.65 [−26.23, −21.08]**, GQA **−1.21 [−2.83, +0.40]**.
   Ahead in two rows, no difference in two. **RandOpt is ahead in none.** Selection picks a non-default prompt for
-  every model.
+  every model. Robust (exploratory, R8b.6): holds under strict scoring (where it strengthens, as the lenient scorer
+  under-credits boxed answers), under Holm correction, and at K = 10 (where Qwen-1.5B becomes no-difference).
 - **Decomposition under RandOpt's own prompts [R8b.1].**
   - *Where RandOpt loses* (Qwen GSM8K: −2.65, −1.59): the selected models are only +4.0 and +0.2 pp above base
     individually, so the gain is the vote, and sampling votes better.

@@ -274,6 +274,17 @@ Selection compute: 600 greedy generations vs RandOpt's 1,000,000 (600 / 1,000,00
 RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6.07], −15.39 [−18.20, −12.43], −1.21
 [−2.83, +0.48] (same row order).
 
+### R8b.6 Robustness (EXPLORATORY; `robustness/ROBUSTNESS.md`)
+- Alignment: GSM8K ground truth and question text identical across datasets, RandOpt's parquet and all runs (1319/1319).
+- Strict scoring (boxed-only / "####"-only GSM8K; exact-match GQA): PS with strict SC vs RandOpt on its own lenient
+  scorer: Qwen-1.5B −7.81 [−9.63, −6.06], Qwen-3B −4.78 [−6.07, −3.49], OLMo −26.00 [−28.58, −23.43], GQA (both
+  strict) −1.05 [−2.67, +0.57]. The lenient scorer is conservative for the boxed prompt (BASE 70.20 → 74.45 strict,
+  Qwen-1.5B) and rescues RandOpt's prompt (60.05 → 7.96 strict).
+- McNemar p (PS, K = 50): 0.00083, 0.65, ≈ 1e−67, 0.17; Holm 0.0025, 0.65, ≈ 4e−67, 0.34. GQA image-cluster CI
+  [−2.79, +0.41].
+- K = 10: −0.38 [−2.20, +1.52], −0.53 [−1.97, +0.91], −24.56 [−27.37, −21.83], −0.57 [−2.18, +1.05]: RandOpt ahead
+  in no row; Qwen-1.5B's "SC ahead" is K = 50 only.
+
 **How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
 RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
 two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,

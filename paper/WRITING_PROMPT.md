@@ -40,6 +40,8 @@ exactly how far each result goes and no further.
    - Compute: the comparison is at matched **test-time** budget (50 generations). RandOpt's 1,000,000 selection
      generations vs prompt selection's 600 are stated separately, not folded into accuracy.
    - GQA runs use a faithful re-implementation (the released code cannot pass images); say so where GQA appears.
+   - Robustness (R8b.6, exploratory) goes in the appendix with one sentence in Section 3.5: strict scoring, Holm,
+     K = 10. Do not upgrade Qwen-3B to "SC ahead" in the main claim (that is strict-scoring, exploratory).
 5. **Mechanism language.** The prediction needs the base-model gradient plus the perturbation's noise, with no fitted
    coefficients; it is a first-order approximation (r = 0.915–0.938 for tilts; slopes 0.83–0.95; per-item r = 0.771).
    Never "exact", never "from the noise alone". Selection *favours* answer-preference tilts; that is an
