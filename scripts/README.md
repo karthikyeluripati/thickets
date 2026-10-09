@@ -47,6 +47,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 `pod_g1.sh`, `pod_stage12.sh`, `pod_geometry_a.sh`, `pod_geometry_a2.sh`, `pod_geometry_a2_s2c.sh` (earlier sessions).
 
 ## Superseded (split mismatch; kept so the records reproduce)
-`causal_diag_9504111.py`, `selection_vs_specificity.py`, `selection_vs_shared.py`.
+`causal_diag_9504111.py` (also a shared module: many runners import its image and prompt helpers) and
+`selection_vs_specificity.py` (produces the CSV Stage 3 reads). `selection_vs_shared.py` was removed (tag `pre-cleanup-2`).
 
 Figures and paper tables: `paper/figures/scripts/` (`thickets_or_tilts.py`, `build_master.py`).
