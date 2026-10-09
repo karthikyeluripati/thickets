@@ -1,0 +1,235 @@
+% =====================================================================================================
+% ICML submission skeleton.  Numbers: ONLY from paper/RESULTS_MASTER.md (section refs like [R8b.5] in comments).
+% Rules: paper/WRITING_PROMPT.md.  Argument: paper/STORY.md.
+%
+% STYLE FILES: download the official ICML style kit for the target year (icml20XX.sty, icml20XX.bst,
+% algorithm*.sty, fancyhdr) into this folder and set \icmlstyle below. Until then the file compiles with a
+% plain two-column fallback so you can write and check layout.
+% PAGE LIMIT (check the current CFP): 8 pages of main text; references, impact statement and appendix unlimited.
+% DOUBLE-BLIND: no names, no GitHub links with usernames; use an anonymous repository for code.
+% =====================================================================================================
+\def\icmlstyle{icml2026}   % <- change to the official style name once the files are in this folder
+\IfFileExists{\icmlstyle.sty}{%
+  \documentclass{article}
+  \IfFileExists{microtype.sty}{\usepackage{microtype}}{}\usepackage{graphicx}\usepackage{booktabs}\usepackage{hyperref}
+  \usepackage{\icmlstyle}  % submission mode = anonymous; add [accepted] only for camera-ready
+  \def\usingicml{1}
+}{%
+  \documentclass[10pt,twocolumn]{article}
+  \usepackage[margin=0.75in]{geometry}\IfFileExists{microtype.sty}{\usepackage{microtype}}{}\usepackage{graphicx}\usepackage{booktabs}
+  \usepackage{hyperref}\usepackage{natbib}
+}
+\usepackage{amsmath,amssymb}
+\usepackage{xcolor}
+\newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
+\newcommand{\SC}{SC@50}
+\graphicspath{{../figures/thickets-or-tilts/}}
+
+\begin{document}
+
+\ifdefined\usingicml
+  \twocolumn[
+  \icmltitle{What Does Random Weight Search Buy?\\Votes, Prompts and First-Order Tilts in RandOpt}
+  \begin{icmlauthorlist}\icmlauthor{Anonymous Authors}{anon}\end{icmlauthorlist}
+  \icmlaffiliation{anon}{Anonymous Institution}
+  \icmlcorrespondingauthor{Anonymous}{anon@example.com}
+  \vskip 0.3in]
+  \printAffiliationsAndNotice{}
+\else
+  \title{What Does Random Weight Search Buy?\\Votes, Prompts and First-Order Tilts in RandOpt}
+  \author{Anonymous Authors}\date{}\maketitle
+\fi
+
+% -----------------------------------------------------------------------------------------------------
+\begin{abstract}
+% ~180-200 words. Every number must match RESULTS_MASTER. Keep all qualifiers ("matches or beats", "no difference").
+Random-perturbation post-training (RandOpt) samples thousands of Gaussian weight perturbations of a pretrained model,
+keeps the best on a small selection set and majority-votes them, reportedly rivalling PPO and GRPO. We ask what the
+weight search buys. Running RandOpt at its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA
+with Qwen2.5-VL-3B), we reproduce its published numbers and decompose its gain into a vote and a shift in answers shared
+across questions. Where the selected models barely beat the base model, self-consistency over 50 samples of the
+unperturbed model beats RandOpt. Where RandOpt leads, its own prompt costs the base model 11.3 and 31.6 points and the
+selected perturbations recover part of that accuracy. Choosing among three prompts on RandOpt's own selection
+questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four rows, and
+re-running RandOpt's search under the chosen prompt adds nothing over sampling (GQA: equivalent; OLMo: $-2.12$ points).
+A first-order account, computed from the base model's gradient and each perturbation's noise with no fitted
+coefficients, tracks how perturbations shift answer preferences ($r = 0.787$--$0.938$ across five models in two
+families), localizes the effect to middle language layers, and explains why selection favours shared shifts; it fails
+for vision weights, large $\sigma$ and chain-of-thought correctness. Confirmatory tests were specified in plan locks
+committed before their runs; we release all locks, data and code.
+\end{abstract}
+
+% -----------------------------------------------------------------------------------------------------
+\section{Introduction}\label{sec:intro}
+% Budget ~1 page. Five paragraphs:
+% (1) Hook: RandOpt / Neural Thickets [cite] claims random weight search rivals RL post-training; the "thicket" reading:
+%     task experts are dense around pretrained weights. Credit it fairly (it reproduces; its own paper discusses format).
+% (2) The question: what does the search buy, and what do the selected perturbations change?
+% (3) The answer in one paragraph (STORY "answer in one paragraph"). Point to Figure 1 and Figure 2.
+% (4) Contributions (numbered list, 4 items; WRITING_PROMPT "Contributions").
+% (5) Process sentence (verbatim, Rule 2): "Confirmatory tests were specified in plan locks committed before their
+%     corresponding runs; exploratory analyses are identified separately." + release statement.
+\todo{write}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{1.2cm}\textbf{Figure 1 (schematic, to draw)}\\[2pt]
+  left: RandOpt = sample $N$ perturbations $\to$ select top $K$ on 200 questions $\to$ vote;\\
+  right: its gain = \emph{vote} (sampling supplies it) + \emph{shared shift} (a prompt supplies it);\\
+  with the prompt held fixed, nothing is left.\vspace{1.2cm}}}
+  \caption{\todo{One-sentence takeaway first, then what the panels show.}}
+  \label{fig:schematic}
+\end{figure}
+
+% -----------------------------------------------------------------------------------------------------
+\section{Background and Setup}\label{sec:setup}
+% Budget ~0.6 page.
+% - RandOpt (Alg. box optional): N = 5000, sigma in {0.0005, 0.001, 0.002}, 200 selection questions, greedy, K = 50 vote.
+%   Shared-stream noise and byte-exact verification (one sentence; details appendix).
+% - Models/tasks: Qwen2.5-1.5B/3B-Instruct, OLMo-2-1B-Instruct (GSM8K, 1319 test); Qwen2.5-VL-3B (GQA, 1238 test,
+%   image-disjoint). RandOpt's own prompts and scorers. GQA uses a faithful re-implementation (released code cannot
+%   pass images) -- say this here.
+% - Baseline: self-consistency (SC@K): K samples of the unperturbed model at T = 0.7, same scorer and vote rule.
+%   Matched test-time budget (50 generations). RandOpt's 1,000,000 selection generations not charged.
+% - Statistics: paired item bootstrap (10,000); "ahead" = 95% CI excludes 0; equivalence margin +/-2 pp.
+% - Protocol: plan locks, gates (base reproduction, environment, fidelity), decision rules; full ledger Appendix A.
+\todo{write}
+
+% -----------------------------------------------------------------------------------------------------
+\section{What Weight Search Buys}\label{sec:buys}
+% Budget ~2.6 pages. This is the paper's core.
+
+\subsection{Same-run comparison under RandOpt's own prompts}
+% [R8b.1] Table 1 left half. RandOpt reproduces published numbers on Qwen GSM8K (77.18 vs 76.4; 86.66 vs 87.1).
+% RandOpt loses to SC on Qwen GSM8K (-2.65 [-4.32,-0.99]; -1.59 [-2.65,-0.53]); wins on GQA (+3.47 [+1.62,+5.41],
+% replicated +3.63) and OLMo (+8.72 [+6.75,+10.77]).
+\todo{write}
+
+\subsection{A vote and a shared shift}
+% [R8b.1] members vs vote: where RandOpt loses, selected models are +4.0 / +0.2 above base individually -> the gain
+% is the vote; where it wins, ~+5 individually -> a shift shared across questions.
+% Vote efficiency (EXPLORATORY, R8b.1): sampling's vote adds more in 3 of 4 rows; less on OLMo. Never "always".
+\todo{write}
+
+\subsection{The shift repairs damage done by RandOpt's own prompt}
+% [R8b.2, R8b.3, R8b.4] GQA: CoT prompt costs 11.3 pts; selected members stop reasoning (EXPLORATORY: median 10 vs
+% 146 tokens; r = -0.89). One direct generation 64.70 vs RandOpt 63.49 (G4: -1.21 [-2.83,+0.40], n.d.).
+% OLMo: "####" instruction halves accuracy (33.66 vs 65.28 plain). Qwen control (Q2): plain prompt is worse for Qwen.
+% Damage caveat (Qwen-1.5B, post-hoc) -> point to Appendix figure.
+\todo{write}
+
+\subsection{Choosing a prompt on RandOpt's own selection data}
+% [R8b.5] Headline. Figure 2 + Table 1 right half. "matches or beats" (never "beats"): -2.96, -0.38 (equiv.),
+% -23.65, -1.21 (n.d.). 600 vs 1,000,000 generations. Robustness in one sentence (R8b.6): strict scoring, Holm, K=10.
+\todo{write}
+
+\subsection{With the prompt held fixed, the search adds nothing}
+% [R8b.2 GD, R8b.3 GB] GQA: -0.32 [-1.29,+0.65], equivalent. OLMo: -2.12 [-3.49,-0.83], SC ahead. Selected models no
+% better than base (-0.60, -0.81). Qwen-1.5B gated out (INVALID-ENV) -- say so; Qwen-3B not attempted.
+\todo{write}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig7_same_run_prompt_selection.pdf}
+  \caption{\textbf{Choosing a prompt on RandOpt's own selection data matches or beats its weight search in every row.}
+  RandOpt ($K{=}50$) minus self-consistency ($K{=}50$) per row, paired 95\% CI, under RandOpt's prompt (circles) and
+  under the prompt chosen on the 200 selection questions (squares). GQA uses a faithful re-implementation of RandOpt.
+  \todo{add the prompt-held-fixed search (GD, GB) as a third marker}}
+  \label{fig:headline}
+\end{figure}
+
+\begin{table}[t]
+  \centering\small
+  \caption{\todo{Same-run results, four rows (from table4\_same\_run\_prompt\_selection.md; convert to LaTeX).}}
+  \label{tab:samerun}
+  \todo{table body}
+\end{table}
+
+% -----------------------------------------------------------------------------------------------------
+\section{What a Perturbation Does to Answers}\label{sec:law}
+% Budget ~1.6 pages. [R4, R5, R7]
+% - Folded-gradient first-order law: Delta c_j ~ sigma <g_j, eps>, no fitted coefficients (one paragraph; derivation
+%   Appendix). Results: r = 0.915-0.938 tilts (two tasks, two Qwen-VL models), 0.930 per question (GQA), 0.790 / 0.787
+%   OLMo-2-1B / 7B on ARC (non-Qwen). Slopes 0.76-0.95; per-item pooled 0.771. Never "exact", never "noise alone".
+% - Localization: middle language layers, block-level r = 0.978 (Figure 4).
+% - Limits (as important as the law): vision weights (r = 0.137, falsified); sigma = 0.005 breaks (0.21-0.31);
+%   CoT correctness unrelated (22% flip at sigma <= 0.002); R2 inconclusive then replicated with a pre-fixed remedy.
+\todo{write}
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{fig3_tilt_law.pdf}
+  \caption{\textbf{A first-order prediction with no fitted coefficients tracks how perturbations shift answer
+  preferences.} \todo{add the OLMo-2-1B / 7B (ARC) panels; state slopes; panel (d) shows the breakdown at
+  $\sigma{=}0.005$.}}
+  \label{fig:law}
+\end{figure*}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig4_localization.pdf}
+  \caption{\textbf{The tilt lives in the middle language layers.} \todo{caption}}
+  \label{fig:localization}
+\end{figure}
+
+% -----------------------------------------------------------------------------------------------------
+\section{Why Selection Finds Shared Shifts}\label{sec:selection}
+% Budget ~1 page. [R8b.7, R8c, R11, R1-R3]
+% - Open with the bridge (EXPLORATORY, R8b.7): every search's top 50 beats base on the 200 selection questions
+%   (population mean below base); gains transfer to test only where the prompt leaves >= 10 pp unclaimed; not with the
+%   prompt held fixed. Figure 5 (to make from transfer_table).
+% - Theory (R11; checks R8c are criteria-first exploratory): flip probability AUC 0.935; unselected vote = base 96/96;
+%   T3 selection = noisy step along the selection gradient (derived, not tested). Scope: direct-answer regime; Claim 1
+%   rows are CoT and rest on their own experiments.
+% - Case study (one paragraph): OmniSpatial winner +8.0 selection -> +2.67 [0.17, 4.93] fresh; label-aligned tilt;
+%   C1-1 not explained (+2.33 of +2.67 remain). Details Appendix.
+\todo{write}
+
+\begin{figure}[t]
+  \centering
+  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{1cm}\textbf{Figure 5 (to make):} selection-set gain vs test gain,
+  seven searches (results/paper-analysis/transfer/), points labelled by row and prompt.\vspace{1cm}}}
+  \caption{\textbf{Selection gains transfer only where the prompt leaves accuracy unclaimed} (exploratory).
+  \todo{caption}}
+  \label{fig:transfer}
+\end{figure}
+
+% -----------------------------------------------------------------------------------------------------
+\section{Related Work}\label{sec:related}
+% Budget ~0.5 page. RandOpt / Neural Thickets; ES for LLMs (Salimans et al. 2017 and recent ES fine-tuning);
+% self-consistency and test-time scaling; prompt sensitivity and prompt selection; selection bias in thickets
+% (arXiv 2608.10867); weight averaging / model soups; linear-response / NTK-style analyses; evaluation reliability.
+% Credit (Rule 9): format thickets (original paper), 2608.10867, the two blog posts.
+\todo{write}
+
+% -----------------------------------------------------------------------------------------------------
+\section{Discussion, Recommendations and Limitations}\label{sec:discussion}
+% Budget ~0.6 page.
+% Recommendations: same-run baselines at matched test-time budget; SC and a prompt chosen on the selection set as
+% default baselines; base-reproduction checks; report member vs vote accuracy and selection compute.
+% Limitations (STORY "Scope and limits"): two tasks; <= 8B; 200 selection questions; one search per GSM8K row (two on
+% GQA); prompt-held-fixed in 2 of 4 rows (Qwen-1.5B gated out); three prompt candidates chosen after earlier results;
+% exploratory analyses labelled; theory covers direct answers only.
+\todo{write}
+
+% Required by ICML (check the current CFP for exact wording/placement):
+\section*{Impact Statement}
+\todo{2-4 sentences: evaluation methodology; cheaper baselines reduce compute; no new capabilities.}
+
+\bibliography{refs}
+\ifdefined\usingicml\bibliographystyle{\icmlstyle}\else\bibliographystyle{plainnat}\fi
+
+% -----------------------------------------------------------------------------------------------------
+\appendix
+\onecolumn
+\section{Confirmatory-Test Ledger}\label{app:ledger}  % R9, every locked test incl. falsified / inconclusive / gated
+\section{Methods Details}                              % shared-stream fold, byte-exact checks, runners, fidelity gates
+\section{Additional Same-Run Results}                  % K=10, vote curves, G3 termination, member decompositions,
+                                                       % O2 fidelity failure, fig8 prompt damage, robustness R8b.6
+\section{Theory Derivations}                           % R11 T1-T4
+\section{Tilt-Law Details}                             % per-sigma and per-block tables, R2/R2b, GPU-A gates
+\section{OmniSpatial Case Study}                       % fig5_selection_transfer, M1, C1, tau-check
+\section{Cross-Paper Comparisons}                      % R8: P2/P3 incl. non-comparable rows, fig1b, fig2
+\section{Prompts and Scorers}                          % all prompt candidates verbatim, scorer behaviour
+\section{Compute}                                      % GPU ledger
+\end{document}

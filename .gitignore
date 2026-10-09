@@ -20,3 +20,14 @@ watch*.log
 third_party/RandOpt/
 __pycache__/
 results/paper-analysis/analyses_run.log
+
+# LaTeX build artifacts
+paper/latex/*.aux
+paper/latex/*.log
+paper/latex/*.bbl
+paper/latex/*.blg
+paper/latex/*.out
+paper/latex/*.fls
+paper/latex/*.fdb_latexmk
+paper/latex/*.synctex.gz
+paper/latex/main.pdf
