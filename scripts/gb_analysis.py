@@ -34,7 +34,8 @@ def main():
     R = {K: np.array([vote([E[m][i] for m in range(K)], i) for i in range(n)], float) for K in (50, 10)}
     S = {K: np.array([vote([x['a'] for x in sc[i][:K]], i) for i in range(n)], float) for K in (50, 10)}
     Ero = json.loads(a.ro_ens.read_text()); Rro = np.array([vote([Ero[m][i] for m in range(50)], i) for i in range(n)], float)
-    ro_seeds = {int(t['seed']) for t in json.loads(a.ro_seeds.read_text())[:50]}
+    ro = json.loads(a.ro_seeds.read_text()); ro = ro['top_k_models'] if isinstance(ro, dict) else ro  # randopt.py top_k_seeds.json or a list
+    ro_seeds = {int(t['seed']) for t in ro[:50]}
     sel_base = 100 * json.loads((out / 'base_select.json').read_text())['reward']
     res = {'n': n, 'base_boxed_this_run': 100 * B.mean(), 'base_boxed_ref': 100 * Bref.mean(), 'selection_base_this_run': sel_base,
            'selection_base_ref_PS': a.sel_base_ref,

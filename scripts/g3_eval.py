@@ -13,7 +13,11 @@ import time
 PROMPTS = {  # 'cot' = RandOpt's GQA prompt (G2/G3); 'direct' and 'short' = G4's no-reasoning controls
     'cot': "Look at the image and answer the question.\n\nQuestion: {q}\n\nPlease reason step by step, and put your final answer within \\boxed{{}}.",
     'direct': "Look at the image and answer the question.\n\nQuestion: {q}\n\nAnswer directly without explanation, and put your final answer within \\boxed{{}}.",
-    'short': "Look at the image and answer the question.\n\nQuestion: {q}\n\nAnswer the question using a single word or phrase, and put your final answer within \\boxed{{}}."}
+    'short': "Look at the image and answer the question.\n\nQuestion: {q}\n\nAnswer the question using a single word or phrase, and put your final answer within \\boxed{{}}.",
+    # RV-1 (rv-reviewer-round/plan_lock.md): public evaluation templates, verbatim, never run before RV (no \boxed instruction;
+    # RandOpt's GQA scorer takes a short first line as the answer)
+    'llava': "{q}\nAnswer the question using a single word or phrase.",  # LLaVA-1.5 / lmms-eval GQA template
+    'blip': "Question: {q} Short answer:"}  # BLIP-2 / InstructBLIP GQA template
 
 
 def main():
@@ -26,7 +30,9 @@ def main():
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--out', type=Path, required=True)
     ap.add_argument('--model-path', required=True); ap.add_argument('--prompt', choices=list(PROMPTS), default='cot')
     ap.add_argument('--split', choices=['test', 'selection'], default='test')
+    ap.add_argument('--temperature', type=float, default=0.7)  # RV-5: the sc arm at another T is saved as b<b>_sc_T<T>
     a = ap.parse_args()
+    sc_name = 'sc' if a.temperature == 0.7 else f'sc_T{a.temperature:g}'
     sys.path.insert(0, str(a.upstream))
     os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'PERTURB_VISUAL': '0', 'OMP_NUM_THREADS': '4'})
     from PIL import Image
@@ -66,10 +72,10 @@ def main():
                 rpc('reset_to_base_weights'); o = llm.generate(R, greedy, use_tqdm=False)
                 save(name, [rec(x.outputs[0], i) for i, x in enumerate(o)], [x.outputs[0].text for x in o])
             elif arm == 'sc':
-                name = f'b{b}_sc'
+                name = f'b{b}_{sc_name}'
                 if (a.out / (('sel_' if a.split == 'selection' else '') + f'{name}.json')).exists(): continue
                 rpc('reset_to_base_weights')
-                o = llm.generate(R, SamplingParams(temperature=0.7, top_p=1.0, seed=20261007, max_tokens=b, n=50), use_tqdm=False)
+                o = llm.generate(R, SamplingParams(temperature=a.temperature, top_p=1.0, seed=20261007, max_tokens=b, n=50), use_tqdm=False)
                 save(name, [[rec(c, i) for c in x.outputs] for i, x in enumerate(o)], None)
             else:
                 for m in topk:

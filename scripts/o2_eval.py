@@ -14,7 +14,13 @@ import time
 GSM_INSTR = 'Let\'s think step by step and output the final answer after "####".'  # = p2_sc.py / RandOpt's verl prompt
 PROMPTS = {'randopt': lambda q: q + ' ' + GSM_INSTR,
            'plain': lambda q: q,
-           'boxed': lambda q: q + '\nPlease reason step by step, and put your final answer within \\boxed{}.'}
+           'boxed': lambda q: q + '\nPlease reason step by step, and put your final answer within \\boxed{}.',
+           # RV-1 (rv-reviewer-round/plan_lock.md): public evaluation templates, verbatim, never run before RV
+           'harness_cot': lambda q: f"Q: {q}\nA: Let's think step by step.",  # lm-evaluation-harness gsm8k_cot_zeroshot
+           'harness_plain': lambda q: f'Question: {q}\nAnswer:',  # lm-evaluation-harness gsm8k (zero-shot form)
+           'simple_evals': lambda q: ('Solve the following math problem step by step. The last line of your response should be of the form '
+                                      'Answer: $ANSWER (without quotes) where $ANSWER is the answer to the problem.\n\n' + q +
+                                      '\n\nRemember to put your answer on its own line after "Answer:".')}  # openai/simple-evals math template
 
 
 def main():
@@ -24,7 +30,9 @@ def main():
     ap.add_argument('--upstream', type=Path, default=Path('/workspace/RandOpt')); ap.add_argument('--model-path', required=True)
     ap.add_argument('--out', type=Path, required=True); ap.add_argument('--limit', type=int, default=0)
     ap.add_argument('--split', choices=['test', 'select'], default='test')  # select = RandOpt's selection set (first 200 train rows)
+    ap.add_argument('--temperature', type=float, default=0.7)  # RV-5: the sc arm at another T is saved as <prompt>_sc_T<T>
     a = ap.parse_args()
+    sc_name = 'sc' if a.temperature == 0.7 else f'sc_T{a.temperature:g}'
     sys.path.insert(0, str(a.upstream)); os.environ.update({'VLLM_ENABLE_V1_MULTIPROCESSING': '0', 'OMP_NUM_THREADS': '4'})
     import datasets
     from transformers import AutoTokenizer
@@ -60,10 +68,10 @@ def main():
         if arm == 'base' and not (a.out / f'{pre}{a.prompt}_base.json').exists():
             rpc('reset_to_base_weights'); o = llm.generate(R, greedy, use_tqdm=False)
             save(f'{a.prompt}_base', [rec(x.outputs[0], i) for i, x in enumerate(o)], [x.outputs[0].text for x in o])
-        elif arm == 'sc' and not (a.out / f'{pre}{a.prompt}_sc.json').exists():
+        elif arm == 'sc' and not (a.out / f'{pre}{a.prompt}_{sc_name}.json').exists():
             rpc('reset_to_base_weights')
-            o = llm.generate(R, SamplingParams(temperature=0.7, top_p=1.0, seed=20261007, max_tokens=1024, n=50), use_tqdm=False)
-            save(f'{a.prompt}_sc', [[rec(c, i) for c in x.outputs] for i, x in enumerate(o)], [[c.text for c in x.outputs] for x in o])
+            o = llm.generate(R, SamplingParams(temperature=a.temperature, top_p=1.0, seed=20261007, max_tokens=1024, n=50), use_tqdm=False)
+            save(f'{a.prompt}_{sc_name}', [[rec(c, i) for c in x.outputs] for i, x in enumerate(o)], [[c.text for c in x.outputs] for x in o])
         elif arm == 'members':
             for m in [top[r] for r in ranks]:
                 name = f"{a.prompt}_rank{m['rank']}"
