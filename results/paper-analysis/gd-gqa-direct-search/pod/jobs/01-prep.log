@@ -1,0 +1,14 @@
++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1
++ HF_HOME=/workspace/hf
++ HF_HUB_DISABLE_XET=1
++ cd /workspace/repo
++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''Qwen/Qwen2.5-VL-3B-Instruct'\'',revision='\''66285546d2b821cf421d4f5eb2576359d3770cd3'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
++ tail -1
+Fetching 11 files:   0%|          | 0/11 [00:00<?, ?it/s]Fetching 11 files: 100%|██████████| 11/11 [00:00<00:00, 2916.58it/s]
++ python -u scripts/g2_prep.py
+G2_PREP 200 1238 removed 762 images 389
++ python -
+ITEMS_MATCH 1238 200
++ mkdir -p /workspace/gd
++ ln -sfn /workspace/g2/items.json /workspace/gd/items.json
++ ln -sfn /workspace/g2/images /workspace/gd/images

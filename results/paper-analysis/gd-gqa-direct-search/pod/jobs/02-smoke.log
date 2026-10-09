@@ -1,0 +1,109 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ . /workspace/stage/common.sh
+++ export HF_HOME=/workspace/hf HF_HUB_OFFLINE=1 VLLM_LOGGING_LEVEL=WARNING
+++ HF_HOME=/workspace/hf
+++ HF_HUB_OFFLINE=1
+++ VLLM_LOGGING_LEVEL=WARNING
+++ cd /workspace/repo
++++ cat /workspace/model_path.txt
+++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3
++ run_wave select out_smoke --n 240
++ ph=select
++ o=out_smoke
++ shift 2
++ pids=()
+++ seq 0 11
++ for w in $(seq 0 11)
++ '[' 0 -eq 6 ']'
++ pids[$w]=1962
++ for w in $(seq 0 11)
++ '[' 1 -eq 6 ']'
++ pids[$w]=1963
++ for w in $(seq 0 11)
++ '[' 2 -eq 6 ']'
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 0 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=1964
++ for w in $(seq 0 11)
++ '[' 3 -eq 6 ']'
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 1 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 2 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=1965
++ for w in $(seq 0 11)
++ '[' 4 -eq 6 ']'
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 3 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=1966
++ for w in $(seq 0 11)
++ '[' 5 -eq 6 ']'
++ CUDA_VISIBLE_DEVICES=4
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 4 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=1967
++ for w in $(seq 0 11)
++ '[' 6 -eq 6 ']'
++ sleep 90
++ CUDA_VISIBLE_DEVICES=5
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 5 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=3935
++ for w in $(seq 0 11)
++ '[' 7 -eq 6 ']'
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 6 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=3936
++ for w in $(seq 0 11)
++ '[' 8 -eq 6 ']'
++ pids[$w]=3937
++ CUDA_VISIBLE_DEVICES=1
++ for w in $(seq 0 11)
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 7 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ '[' 9 -eq 6 ']'
++ pids[$w]=3938
++ for w in $(seq 0 11)
++ CUDA_VISIBLE_DEVICES=2
++ '[' 10 -eq 6 ']'
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 8 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=3939
++ for w in $(seq 0 11)
++ '[' 11 -eq 6 ']'
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 9 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ pids[$w]=3940
++ bad=
++ CUDA_VISIBLE_DEVICES=4
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 10 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
++ CUDA_VISIBLE_DEVICES=5
++ python -u scripts/g2_randopt_gqa.py --phase select --worker 11 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240
+++ seq 0 11
++ for w in $(seq 0 11)
++ wait 1962
++ for w in $(seq 0 11)
++ wait 1963
++ for w in $(seq 0 11)
++ wait 1964
++ for w in $(seq 0 11)
++ wait 1965
++ for w in $(seq 0 11)
++ wait 1966
++ for w in $(seq 0 11)
++ wait 1967
++ for w in $(seq 0 11)
++ wait 3935
++ for w in $(seq 0 11)
++ wait 3936
++ for w in $(seq 0 11)
++ wait 3937
++ for w in $(seq 0 11)
++ wait 3938
++ for w in $(seq 0 11)
++ wait 3939
++ for w in $(seq 0 11)
++ wait 3940
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/g2_randopt_gqa.py --phase test --worker 0 --workers 12 --root /workspace/gd --out out_smoke --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-VL-3B-Instruct/snapshots/66285546d2b821cf421d4f5eb2576359d3770cd3 --eager 0 --gpu-mem 0.33 --pop-seed 42 --prompt direct --mm-cache-gb 2 --n 240 --k 12 --limit-test 30
++ ls /workspace/gd/out_smoke/test_base.json /workspace/gd/out_smoke/test_rank0.json
+/workspace/gd/out_smoke/test_base.json
+/workspace/gd/out_smoke/test_rank0.json
++ python -
+SMOKE_OK per_pert=[2.95, 2.96, 2.98, 2.99, 2.99, 3.0, 3.05, 3.08, 3.12, 3.12, 3.15, 3.16] slow9_mean=3.07 spent=3.50 proj=16.56 GO
