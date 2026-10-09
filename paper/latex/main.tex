@@ -71,15 +71,17 @@ committed before their runs; we release all locks, data and code.
 %     corresponding runs; exploratory analyses are identified separately." + release statement.
 \todo{write}
 
-\begin{figure}[t]
+\begin{figure*}[t]
   \centering
-  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{1.2cm}\textbf{Figure 1 (schematic, to draw)}\\[2pt]
-  left: RandOpt = sample $N$ perturbations $\to$ select top $K$ on 200 questions $\to$ vote;\\
-  right: its gain = \emph{vote} (sampling supplies it) + \emph{shared shift} (a prompt supplies it);\\
-  with the prompt held fixed, nothing is left.\vspace{1.2cm}}}
-  \caption{\todo{One-sentence takeaway first, then what the panels show.}}
-  \label{fig:schematic}
-\end{figure}
+  \includegraphics[width=\textwidth]{fig1_overview.pdf}
+  \caption{\textbf{Choosing a prompt on RandOpt's own selection questions matches or beats its weight search, at 0.06\%
+  of the selection compute.} (a) RandOpt scores 5000 random weight perturbations on 200 selection questions and votes the top 50;
+  the cheap route picks one of three prompts on the same questions and votes 50 samples of the unperturbed model.
+  (b, c) The two same-run rows where RandOpt beats self-consistency under its own prompt. RandOpt's prompt damages the
+  base model (dashed); one answer under the chosen prompt already matches (GQA) or beats (OLMo) RandOpt, and re-running
+  RandOpt's search under the chosen prompt adds nothing over sampling. GQA uses a faithful re-implementation of RandOpt.}
+  \label{fig:overview}
+\end{figure*}
 
 % -----------------------------------------------------------------------------------------------------
 \section{Background and Setup}\label{sec:setup}
@@ -133,17 +135,21 @@ committed before their runs; we release all locks, data and code.
   \includegraphics[width=\columnwidth]{fig7_same_run_prompt_selection.pdf}
   \caption{\textbf{Choosing a prompt on RandOpt's own selection data matches or beats its weight search in every row.}
   RandOpt ($K{=}50$) minus self-consistency ($K{=}50$) per row, paired 95\% CI, under RandOpt's prompt (circles) and
-  under the prompt chosen on the 200 selection questions (squares). GQA uses a faithful re-implementation of RandOpt.
-  \todo{add the prompt-held-fixed search (GD, GB) as a third marker}}
+  under the prompt chosen on the 200 selection questions (squares), and with RandOpt's search itself run under the chosen
+  prompt (triangles; run on GQA and OLMo). GQA uses a faithful re-implementation of RandOpt.}
   \label{fig:headline}
 \end{figure}
 
-\begin{table}[t]
+\begin{table*}[t]
   \centering\small
-  \caption{\todo{Same-run results, four rows (from table4\_same\_run\_prompt\_selection.md; convert to LaTeX).}}
+  \caption{\textbf{Same-run results} ($N{=}5000$, $K{=}50$; accuracy in \%, differences in points with paired 95\% CIs).
+  SC: self-consistency over 50 samples of the unperturbed model. The chosen prompt (in parentheses) maximizes base accuracy
+  on RandOpt's 200 selection questions. --: not run (Qwen-1.5B failed its pre-registered environment gate; Qwen-3B not
+  attempted).}
   \label{tab:samerun}
-  \todo{table body}
-\end{table}
+  \footnotesize\setlength{\tabcolsep}{3.5pt}
+  \input{../figures/thickets-or-tilts/table1_same_run.tex}
+\end{table*}
 
 % -----------------------------------------------------------------------------------------------------
 \section{What a Perturbation Does to Answers}\label{sec:law}
@@ -160,8 +166,10 @@ committed before their runs; we release all locks, data and code.
   \centering
   \includegraphics[width=\textwidth]{fig3_tilt_law.pdf}
   \caption{\textbf{A first-order prediction with no fitted coefficients tracks how perturbations shift answer
-  preferences.} \todo{add the OLMo-2-1B / 7B (ARC) panels; state slopes; panel (d) shows the breakdown at
-  $\sigma{=}0.005$.}}
+  preferences, across five models in two families.} (a--c) Answer-content tilts on two OmniSpatial tasks and two Qwen-VL
+  models (slopes 0.83--0.92). (d--f) Per-question answer contrasts in RandOpt's GQA setting and on ARC-Challenge with the
+  non-Qwen OLMo-2-1B and 7B, coloured by noise scale: the account holds at $\sigma \le 0.002$ and breaks at
+  $\sigma{=}0.005$. Inset: per-item correlations (median 0.88).}
   \label{fig:law}
 \end{figure*}
 
@@ -187,11 +195,20 @@ committed before their runs; we release all locks, data and code.
 
 \begin{figure}[t]
   \centering
-  \fbox{\parbox{0.92\columnwidth}{\centering\vspace{1cm}\textbf{Figure 5 (to make):} selection-set gain vs test gain,
-  seven searches (results/paper-analysis/transfer/), points labelled by row and prompt.\vspace{1cm}}}
-  \caption{\textbf{Selection gains transfer only where the prompt leaves accuracy unclaimed} (exploratory).
-  \todo{caption}}
+  \includegraphics[width=\columnwidth]{fig10_transfer.pdf}
+  \caption{\textbf{Selection gains transfer only where the prompt leaves accuracy unclaimed} (exploratory). Every search's
+  top 50 beats the base model on the 200 selection questions; the selected models are better on test only under a
+  damaging prompt, and not once the prompt is chosen (triangles).}
   \label{fig:transfer}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{fig9_prompt_specific_experts.pdf}
+  \caption{\textbf{The selected ``experts'' are specific to the prompt} (exploratory). The same 5000 perturbations scored
+  under two prompts: rank correlations 0.025 (OLMo) and 0.171 (GQA); the two top-50 sets share no member, and RandOpt's
+  winners fall below the base model (dashed) once the prompt is improved.}
+  \label{fig:experts}
 \end{figure}
 
 % -----------------------------------------------------------------------------------------------------
