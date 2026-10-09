@@ -50,13 +50,15 @@ with Qwen2.5-VL-3B), we reproduce its published numbers and decompose its gain i
 across questions. Where the selected models barely beat the base model, self-consistency over 50 samples of the
 unperturbed model beats RandOpt. Where RandOpt leads, its own prompt costs the base model 11.3 and 31.6 points and the
 selected perturbations recover part of that accuracy. Choosing among three prompts on RandOpt's own selection
-questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four rows, and
-re-running RandOpt's search under the chosen prompt adds nothing over sampling (GQA: equivalent; OLMo: $-2.12$ points).
-A first-order account, computed from the base model's gradient and each perturbation's noise with no fitted
-coefficients, tracks how perturbations shift answer preferences ($r = 0.787$--$0.938$ across five models in two
-families), localizes the effect to middle language layers, and explains why selection favours shared shifts; it fails
-for vision weights, large $\sigma$ and chain-of-thought correctness. Confirmatory tests were specified in plan locks
-committed before their runs; we release all locks, data and code.
+questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four rows. With the
+prompt held fixed, RandOpt's selected models are no better than the base model on test, and its search adds nothing
+over sampling (GQA: equivalent; OLMo: $-2.12$ points). What selection finds is specific to the prompt it runs under,
+including an OmniSpatial model whose selected gain held up on fresh, matched data. A first-order account, computed
+from the base model's gradient and each perturbation's noise with no fitted coefficients, tracks how perturbations
+shift answer preferences ($r = 0.787$--$0.938$ across five models in two families), localizes the effect to middle
+language layers, and explains why selection favours shared shifts. It fails for vision weights, large $\sigma$ and
+chain-of-thought correctness, and does not explain most of that model's gain. Confirmatory tests were specified in
+plan locks committed before their runs; we release all locks, data and code.
 \end{abstract}
 
 % -----------------------------------------------------------------------------------------------------
@@ -99,36 +101,99 @@ committed before their runs; we release all locks, data and code.
 
 % -----------------------------------------------------------------------------------------------------
 \section{What Weight Search Buys}\label{sec:buys}
-% Budget ~2.6 pages. This is the paper's core.
+% Budget ~2.6 pages. This is the paper's core. All numbers [R8b]; D = RandOpt - SC, paired 95% CI.
+We run RandOpt at its own settings in four rows and compare it with self-consistency on the same test questions at
+matched test-time budget (Table~\ref{tab:samerun}). We then ask what RandOpt's gain consists of, and whether something
+cheaper than weight search supplies it.
 
-\subsection{Same-run comparison under RandOpt's own prompts}
-% [R8b.1] Table 1 left half. RandOpt reproduces published numbers on Qwen GSM8K (77.18 vs 76.4; 86.66 vs 87.1).
-% RandOpt loses to SC on Qwen GSM8K (-2.65 [-4.32,-0.99]; -1.59 [-2.65,-0.53]); wins on GQA (+3.47 [+1.62,+5.41],
-% replicated +3.63) and OLMo (+8.72 [+6.75,+10.77]).
-\todo{write}
+\subsection{Same-run comparison under RandOpt's own prompts}\label{sec:samerun}
+% [R8b.1]
+RandOpt reproduces. On GSM8K its $K{=}50$ vote scores 77.18 with Qwen2.5-1.5B and 86.66 with Qwen2.5-3B, against the
+published 76.4 and 87.1. Under RandOpt's own prompts, the comparison with \SC{} splits two ways. In the two Qwen GSM8K
+rows self-consistency is ahead ($D = -2.65$ [$-4.32$, $-0.99$] and $-1.59$ [$-2.65$, $-0.53$]). On GQA RandOpt is ahead
+($+3.47$ [$+1.62$, $+5.41$]), and a second search with a different population seed replicates this ($+3.63$ [$+1.78$,
+$+5.49$]; seed-to-seed difference $+0.16$ [$-0.97$, $+1.29$]). On OLMo-2-1B, a model outside the original study,
+RandOpt is ahead by $+8.72$ [$+6.75$, $+10.77$]. The GQA rows use a faithful re-implementation built on RandOpt's
+perturbation, scoring and voting components, because the released code cannot pass images; the published GQA number
+(69.0) uses all of testdev with train-split selection and is not comparable to our image-disjoint split.
 
-\subsection{A vote and a shared shift}
-% [R8b.1] members vs vote: where RandOpt loses, selected models are +4.0 / +0.2 above base individually -> the gain
-% is the vote; where it wins, ~+5 individually -> a shift shared across questions.
-% Vote efficiency (EXPLORATORY, R8b.1): sampling's vote adds more in 3 of 4 rows; less on OLMo. Never "always".
-\todo{write}
+Under its own prompts, then, RandOpt is a real improvement over sampling in two of four rows. The rest of this section
+asks what that improvement is.
 
-\subsection{The shift repairs damage done by RandOpt's own prompt}
-% [R8b.2, R8b.3, R8b.4] GQA: CoT prompt costs 11.3 pts; selected members stop reasoning (EXPLORATORY: median 10 vs
-% 146 tokens; r = -0.89). One direct generation 64.70 vs RandOpt 63.49 (G4: -1.21 [-2.83,+0.40], n.d.).
-% OLMo: "####" instruction halves accuracy (33.66 vs 65.28 plain). Qwen control (Q2): plain prompt is worse for Qwen.
-% Damage caveat (Qwen-1.5B, post-hoc) -> point to Appendix figure.
-\todo{write}
+\subsection{A vote and a shared shift}\label{sec:decomp}
+% [R8b.1] members vs vote; vote efficiency and selection-set shares are EXPLORATORY.
+RandOpt's gain can come from two places: each selected model may be better than the base model, or the vote over them
+may correct errors that single models make. The mean single-model accuracy of the 50 selected models separates the two.
+In the Qwen rows, where RandOpt loses, the selected models are only $+4.0$ (64.3 vs 60.3) and $+0.2$ (80.9 vs 80.7)
+points above the base model individually: the gain is almost all vote, and sampling the unperturbed model votes better.
+On GQA and OLMo, where RandOpt wins, the selected models are about 5 points above base individually (58.4 vs 53.4; 40.3
+vs 35.25). That is a shift in answers shared across questions, which sampling cannot supply, since every sample comes
+from the unchanged model.
 
-\subsection{Choosing a prompt on RandOpt's own selection data}
-% [R8b.5] Headline. Figure 2 + Table 1 right half. "matches or beats" (never "beats"): -2.96, -0.38 (equiv.),
-% -23.65, -1.21 (n.d.). 600 vs 1,000,000 generations. Robustness in one sentence (R8b.6): strict scoring, Holm, K=10.
-\todo{write}
+Two exploratory measurements qualify this. Measured as the vote's gain over its own members' mean accuracy, sampling's
+vote adds more than RandOpt's in three rows (Qwen-1.5B $+21.7$ vs $+12.9$; Qwen-3B $+9.9$ vs $+5.8$; GQA $+10.0$ vs
+$+5.1$) and less on OLMo ($+10.1$ vs $+12.1$). And perturbations that beat the base model on the 200 selection questions
+are common, 10.7--44.7\% of the 5000 depending on the row, although the population mean is below base in every row.
 
-\subsection{With the prompt held fixed, the search adds nothing}
-% [R8b.2 GD, R8b.3 GB] GQA: -0.32 [-1.29,+0.65], equivalent. OLMo: -2.12 [-3.49,-0.83], SC ahead. Selected models no
-% better than base (-0.60, -0.81). Qwen-1.5B gated out (INVALID-ENV) -- say so; Qwen-3B not attempted.
-\todo{write}
+\subsection{The shift repairs damage done by RandOpt's own prompt}\label{sec:damage}
+% [R8b.2 G3/G4 + exploratory shift analysis, R8b.3 O2, R8b.4 Q2, R8b.8 GQA agreement]
+\textbf{GQA.} RandOpt's GQA prompt asks for step-by-step reasoning. Asking the base model for a direct answer instead
+raises its greedy accuracy from 53.39 to 64.70 ($+11.31$ [$+8.48$, $+14.14$]). The selected perturbations largely stop
+reasoning (exploratory): their median generation is 10 tokens against the base model's 146, 43.7\% of their outputs
+contain step-by-step text against 97.0\%, and across the 50 members accuracy and mean length correlate at $r = -0.89$.
+On the 616 test questions where the two base prompts disagree, the members give the direct prompt's answer 48.7\% of
+the time and the step-by-step prompt's 15.3\%. Truncation explains only part of the gain: raising the token limit
+from 256 to 1024 shrinks RandOpt's advantage by 0.97 [0.32, 1.70] points but leaves it at $+2.67$ [$+0.73$, $+4.52$].
+A single direct-prompt generation of the base model scores 64.70, against RandOpt's 63.49 ($-1.21$ [$-2.83$,
+$+0.40$], no difference detected).
+
+\textbf{OLMo.} RandOpt's GSM8K instruction (``\ldots output the final answer after \#\#\#\#'') halves OLMo-2-1B's
+accuracy: greedy 33.66, against 65.28 with the question alone and 67.85 with a boxed-answer instruction. Under the
+plain prompt, \SC{} is ahead of RandOpt by 22.21 points ($-22.21$ [$-24.87$, $-19.56$]), and a single plain generation
+by 12.81 [9.86, 15.69]. Unlike on GQA, the selected members do not answer like the better-prompted model
+(exploratory): on the 878 questions where the boxed and RandOpt-prompt base answers disagree, they side with each about
+equally often (24.1\% vs 27.7\%). Here the shift recovers accuracy without reproducing the better prompt's answers.
+
+\textbf{Damage accompanies RandOpt's wins but does not decide them.} Our locked prediction was that RandOpt beats
+\SC{} where its prompt damages the base model relative to a plain or direct prompt. It held in all four rows: the damage
+was $+11.3$ (GQA) and $+31.6$ (OLMo) points where RandOpt won, and $+4.70$ [$+1.97$, $+7.43$] and $-7.20$ [$-9.55$,
+$-4.78$] for Qwen-1.5B and Qwen-3B, where it lost. For the Qwen models the plain prompt is no fix: \SC{} under it
+trails RandOpt ($+2.58$ [$+0.53$, $+4.62$] and $+7.05$ [$+5.23$, $+8.95$]). Measured post hoc against the prompt chosen
+in Section~\ref{sec:ps}, Qwen-1.5B's damage is $+10.2$ and RandOpt still lost (Appendix~\ref{app:samerun}), so damage
+alone does not decide the outcome.
+
+\subsection{Choosing a prompt on RandOpt's own selection data}\label{sec:ps}
+% [R8b.5] Headline. "matches or beats" (never "beats"). Robustness [R8b.6] in one sentence.
+The controls above fix a prompt after seeing results. A practitioner can instead choose the prompt the way RandOpt
+chooses perturbations: on its 200 selection questions. We fixed three candidates per task (GSM8K: RandOpt's prompt,
+the question alone, a boxed-answer instruction; GQA: RandOpt's step-by-step prompt, a direct-answer prompt, a
+short-answer prompt). Per row, we chose the candidate with the highest greedy base accuracy on the selection questions
+and ran \SC{} under it on test. This costs 600 greedy generations against RandOpt's 1,000,000 (0.06\%). The rule chose
+the boxed prompt in all three GSM8K rows and the direct prompt on GQA.
+
+Prompt selection followed by sampling matches or beats RandOpt in all four rows (Figure~\ref{fig:headline},
+Table~\ref{tab:samerun}). It is ahead on Qwen-1.5B ($-2.96$ [$-4.62$, $-1.29$]) and OLMo ($-23.65$ [$-26.23$,
+$-21.08$]). No difference is detected on Qwen-3B ($-0.38$ [$-1.67$, $+0.91$], equivalent within $\pm 2$ points) or on
+GQA ($-1.21$ [$-2.83$, $+0.40$], not equivalent). The ordering holds under strict answer scoring and McNemar tests with
+Holm correction, and with a $K{=}10$ vote, where RandOpt is ahead in no row (exploratory; Appendix~\ref{app:samerun}).
+The three candidates were fixed before this test but chosen after earlier results.
+
+\subsection{With the prompt held fixed, the search adds nothing}\label{sec:held}
+% [R8b.2 GD, R8b.3 GB] Cite GD/GB only (not G4's re-used members; not O2 members: fidelity failed). GB-2 INVALID-ENV.
+Prompt choice and weight search can be combined: RandOpt can be run under the chosen prompt. We re-ran its search, with
+the same 5000 perturbations, under the direct prompt on GQA and the boxed prompt on OLMo (the latter with a fast
+re-implementation that passed its fidelity gates). In both rows the top 50 again beat the base model on the selection
+questions (GQA 68.0--69.5\% vs 66.0\%; OLMo 84.0--86.0\% vs 79.5\%). On test, though, the selected models were no
+better than base ($-0.60$ [$-1.27$, $+0.05$] and $-0.81$ [$-2.19$, $+0.57$]). RandOpt's vote was equivalent to sampling
+on GQA (64.38 vs 64.70; $-0.32$ [$-1.29$, $+0.65$], within $\pm 2$ points) and behind it on OLMo (74.00 vs 76.12;
+$-2.12$ [$-3.49$, $-0.83$]). On OLMo the better prompt lifts RandOpt itself by 21.53 points [18.88, 24.18], yet it
+still trails sampling. In neither row do the top 50 under the two prompts share a single member
+(Section~\ref{sec:selection}).
+
+We could not run this control for the Qwen rows. The Qwen-1.5B run failed its locked environment gate (base
+selection accuracy 68.00 against the 73.00 printed by RandOpt's script) and is reported as INVALID-ENV
+(Appendix~\ref{app:ledger}); Qwen-3B was not attempted. In both rows where we could test it, holding the prompt fixed
+left weight search with nothing measurable to add over sampling the unperturbed model.
 
 \begin{figure}[t]
   \centering
@@ -241,7 +306,7 @@ committed before their runs; we release all locks, data and code.
 \onecolumn
 \section{Confirmatory-Test Ledger}\label{app:ledger}  % R9, every locked test incl. falsified / inconclusive / gated
 \section{Methods Details}                              % shared-stream fold, byte-exact checks, runners, fidelity gates
-\section{Additional Same-Run Results}                  % K=10, vote curves, G3 termination, member decompositions,
+\section{Additional Same-Run Results}\label{app:samerun} % K=10, vote curves, G3 termination, member decompositions,
                                                        % O2 fidelity failure, fig8 prompt damage, robustness R8b.6
 \section{Theory Derivations}                           % R11 T1-T4
 \section{Tilt-Law Details}                             % per-sigma and per-block tables, R2/R2b, GPU-A gates
