@@ -91,12 +91,16 @@ exactly how far each result goes and no further.
    plan-lock protocol, gates and decision rules (Rule 2 wording); the GQA re-implementation.
 3. **What weight search buys (R8b).** 3.1 same-run rows under RandOpt's prompts (Table 4, left half); 3.2 the
    member-vs-vote decomposition; 3.3 the shared shift: GQA (G3, shift analysis [exploratory], G4) and OLMo (O2);
-   3.4 the Qwen control (Q2) and Figure 8 with the damage caveat; 3.5 prompt selection (PS, Figure 7, Table 4).
+   3.4 the Qwen control (Q2) and Figure 8 with the damage caveat; 3.5 prompt selection (PS, Figure 7, Table 4);
+   3.6 the prompt held fixed: RandOpt's search under the chosen prompt (GD on GQA, GB on OLMo; GB-2 gated out); one
+   sentence on robustness (R8b.6).
 4. **A first-order account of answer-preference changes (R4, R5).** Folded-gradient derivation (one paragraph plus
    appendix); Figure 3; the content vs letter-position control; per-item test (I5); Figure 4.
 5. **Limits of the account.** Vision weights (GPU-A F1/S2d falsified); σ = 0.005; chain-of-thought (P0); the
    OmniSpatial winner (C1-1). As important as Section 4.
-6. **Why selection finds shared shifts (R8c, case study).** T1, T2, T4 checks; T3 as derivation; the OmniSpatial
+6. **Why selection finds shared shifts (R8c, R8b.7, case study).** Open with the transfer table (R8b.7, exploratory):
+   selection gains transfer only where the prompt leaves accuracy unclaimed, and not with the prompt held fixed; this
+   is the bridge from Section 3 to the theory. T1, T2, T4 checks; T3 as derivation; the OmniSpatial
    search: split mismatch, matched transfer (+2.67), front tilt, calibration (not explained); Figure 5.
 7. **Recommendations for evaluating weight-space search.** Same-run baselines at matched test-time budget; SC and a
    prompt chosen on the selection set as default baselines; base-reproduction checks; report member vs vote

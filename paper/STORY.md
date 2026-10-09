@@ -74,6 +74,11 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   questions (why votes beat members). That the shared shifts we found are ones a prompt also gives is an empirical
   finding (Claim 1), not a consequence of the theory. T3 is derived,
   not directly tested. Direct-answer regime only.
+- **Bridge to Claim 1 (exploratory, R8b.7).** In all seven N = 5000 searches the top 50 beat base on the 200
+  selection questions while the population mean is below base. The selected models are better on test (+4.0 to
+  +5.1) only where the prompt leaves ≥ 10 pp of accuracy unclaimed; with the prompt held fixed (GD, GB) they are not
+  (−0.6, −0.8). GD is in the theory's direct-answer regime: with no shared direction left, top-K selection picks up
+  selection-set noise, as T3 implies. Five settings, descriptive.
 - **Case study (one OmniSpatial search, N = 5000, Qwen3-VL-8B).** The winner's +8.0 pp selection gain sat on a format
   the test set lacked; on fresh matched items it keeps +2.67 [0.17, 4.93]. Selection favours tilts toward answer
   content the selection labels reward. Boundary, stated as a main result: removing that content shift leaves +2.33
