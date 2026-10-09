@@ -100,8 +100,9 @@ Nearby models that beat the base on a selection set are common (10.7–44.7% of 
 though the population mean is below base in every row). Under RandOpt's prompts the selected ones are better on test
 in three of four rows (+4.0 to +5.1); with the prompt held fixed (GQA, OLMo) they are not. In our
 settings, what selection finds there is a vote plus shared shifts in answer form, and those are cheaper to get from
-sampling and from choosing a prompt on the same selection data. Beyond that (vision weights, large σ, CoT
-correctness, the OmniSpatial winner's residual gain) our account stops, and we say so.
+sampling and from choosing a prompt on the same selection data. In every setting where we tested it (GQA, OLMo,
+and the OmniSpatial winner), the selected perturbation's advantage was specific to the prompt it was selected
+under. Beyond that (vision weights, large σ, CoT correctness) our account stops, and we say so.
 
 ## Scope and limits (say these in the paper)
 Two tasks for the same-run comparisons (GSM8K, GQA); models ≤ 8B; one RandOpt search per GSM8K row (two on GQA);
