@@ -52,7 +52,14 @@ exactly how far each result goes and no further.
    that prompt selection beats RandOpt on every task or model (two tasks, ≤ 8B, three prompt candidates); anything
    about models above 8B; that the first-order account governs CoT accuracy; that we explain the OmniSpatial winner;
    that prompt choice explains the OmniSpatial case (no prompt control there).
-8. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); selection bias toward the
+8. **Scope statements that must appear.** The first-order theory covers direct answers; the Claim 1 rows use
+   step-by-step prompts, so Claim 1 rests on its own experiments, not on the theory. Theory checks T1/T2 are
+   criteria-first exploratory. The three prompt candidates were fixed before PS but chosen after earlier results.
+   "Search adds nothing on top of the prompt" (GQA) re-uses perturbations selected under the CoT prompt; no search was
+   run under the chosen prompt. Vote efficiency: sampling's vote adds more than RandOpt's in three rows, less on OLMo
+   (exploratory); never write "sampling supplies the vote at least as well". "Nearby better models are common" only
+   with the 10.7–44.7% numbers and the below-base population mean.
+9. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); selection bias toward the
    selection set (arXiv 2608.10867); "A Thicket by Any Other Name" (geometric intuition); "When does RandOpt work?"
    (sequence-length dependence); self-consistency (Wang et al. 2023).
 
@@ -118,8 +125,8 @@ Random-perturbation post-training (RandOpt) samples thousands of Gaussian weight
 keeps the best on a small selection set and majority-votes them, reportedly rivalling PPO and GRPO. We ask what the
 weight search buys. Running RandOpt at its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA
 with Qwen2.5-VL-3B), we reproduce its published numbers and decompose its gain into a vote and a shift shared across
-questions. Self-consistency over 50 samples of the unperturbed model supplies the vote at least as well: where the
-selected models barely beat the base model, RandOpt trails it (−2.65 and −1.59 points). Where RandOpt leads (+3.47 on
+questions. Where the selected models barely beat the base model, self-consistency over 50 samples of the unperturbed
+model beats RandOpt (−2.65 and −1.59 points): the gain is the vote, and sampling votes better. Where RandOpt leads (+3.47 on
 GQA, replicated; +8.72 on OLMo), its own prompt costs the base model 11.3 and 31.6 points, and the selected
 perturbations recover part of the lost accuracy; on GQA a single direct-answer generation scores 64.7 vs RandOpt's
 63.5 (no difference detected), with no measurable gain from searching on top of that prompt. Choosing among three prompts on RandOpt's own

@@ -13,12 +13,14 @@ what do the selected perturbations change?**
 
 ## The answer in one paragraph
 RandOpt's gain has two parts: a vote, and a shift in the model's answers that is shared across questions. Sampling
-the unperturbed model supplies the vote at least as well. The shared shifts selection found in our settings are ones
+the unperturbed model votes better in three of four rows (its vote adds more over single samples than RandOpt's
+vote adds over single members; on OLMo it adds less). The shared shifts selection found in our settings are ones
 a prompt also reaches: on the two rows where RandOpt beats self-consistency, its own prompt costs the base model
 11.3 and 31.6 points, and the selected perturbations recover part of that accuracy. Choosing the prompt on RandOpt's own selection
-data (600 generations, 0.06% of its 1,000,000), then sampling, matches or beats RandOpt in all four same-run rows. A
-first-order account explains what a perturbation does to answers and why selection finds shared shifts, within
-limits we demonstrate.
+data (600 generations, 0.06% of its 1,000,000), then sampling, matches or beats RandOpt in all four same-run rows. In
+direct-answer settings, a first-order account explains what a perturbation does to answers and why selection
+favours shared shifts, within limits we demonstrate; the Claim 1 rows use step-by-step prompts, outside that regime,
+so Claim 1 rests on its own experiments.
 
 ## Claim 1 (headline, practical): prompt selection plus sampling matches or beats RandOpt's weight search [R8b]
 Four same-run rows at RandOpt's own settings (N = 5000, K = 50): GSM8K with Qwen2.5-1.5B, Qwen2.5-3B and OLMo-2-1B,
@@ -57,7 +59,7 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   correctness (unrelated to the first-order signal; 22% of answers flip at σ ≤ 0.002).
 
 ## Claim 3 (why selection finds shared shifts): theory and a case study [R8c, R1–R3, R6]
-- **Theory (`THEORY.md`).** Under the law, a perturbation shifts question j's margin by N(0, σ²‖g_j‖²). Consequences:
+- **Theory (`THEORY.md`; criteria fixed before computing, data pre-existing, so exploratory).** Under the law, a perturbation shifts question j's margin by N(0, σ²‖g_j‖²). Consequences:
   flip probabilities are predictable (AUC 0.935, calibrated); an unselected vote returns the base answer (96/96);
   σ‖g_j‖ acts as a per-question temperature (why perturbations and sampling hit the same questions); top-K selection
   is a noisy first-order step along the selection set's gradient, so it favours shifts shared across the selection
@@ -71,14 +73,17 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   changes (S1-B r = 0.16). No prompt control was run here.
 
 ## Closing message
-"Neural thickets" are real in the sense that many nearby models are better than the base on a selection set. In our
+Nearby models that beat the base on a selection set are common (10.7–44.7% of 5000 perturbations on 200 questions,
+though the population mean is below base in every row), and in two rows the selected ones transfer to test. In our
 settings, what selection finds there is a vote plus shared shifts in answer form, and those are cheaper to get from
 sampling and from choosing a prompt on the same selection data. Beyond that (vision weights, large σ, CoT
 correctness, the OmniSpatial winner's residual gain) our account stops, and we say so.
 
 ## Scope and limits (say these in the paper)
 Two tasks for the same-run comparisons (GSM8K, GQA); models ≤ 8B; one RandOpt search per GSM8K row (two on GQA);
-three prompt candidates per task, fixed in advance; RandOpt's search cost not charged in the accuracy comparisons;
+three prompt candidates per task, fixed before the PS run but chosen after earlier results ("direct" after the GQA
+shift analysis; "boxed" is the standard math prompt), stated as such; no RandOpt search under the chosen prompt
+(GQA's "search on top of the prompt" re-uses perturbations selected under the CoT prompt); RandOpt's search cost not charged in the accuracy comparisons;
 OLMo "search on top of the prompt" not valid (fidelity gate failed); GQA uses a re-implementation (released code
 cannot pass images); exploratory analyses are labelled as such.
 

@@ -214,6 +214,12 @@ RandOpt's 5000 × 200 = 1,000,000 selection generations are not charged to it. O
 - Vote curves K = 1/5/10/20/50, C: RandOpt 68.2/74.6/77.2/77.5/77.2, SC 57.5/69.9/75.2/78.7/79.8; O1: RandOpt
   40.2/49.0/50.1/53.0/52.5.
 - C selection: top-50 train reward 0.780 vs population 0.676 and base 0.730.
+- **EXPLORATORY, vote gain (vote − mean single-model accuracy), RandOpt members vs SC samples:** Qwen-1.5B +12.9 vs
+  +21.7; Qwen-3B +5.8 vs +9.9; GQA +5.1 vs +10.0 (G3 run); OLMo +12.1 vs +10.1. Sampling's vote adds more in three
+  rows, less on OLMo. (SC single samples at T = 0.7: 58.1, 78.3, 49.9, 33.7.)
+- **EXPLORATORY, selection-set distribution:** share of the 5000 perturbations scoring above base on the 200
+  selection questions: Qwen-1.5B 10.7%, Qwen-3B 42.7%, GQA 11.8%, OLMo 44.7%; the population mean is below base in
+  every row (0.676 vs 0.730; 0.837 vs 0.855; 0.501 vs 0.535; 0.406 vs 0.415).
 - † The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
   G2's environment gate passed (base 53.39 vs P2 53.55 on the same questions).
 - **How to state R8b.1:** under RandOpt's prompts, RandOpt beats SC in two rows (GQA, OLMo) and loses in two (Qwen
