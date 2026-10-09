@@ -14,6 +14,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 | O1 (GSM8K same-run, OLMo-2-1B; RandOpt's own `randopt.py`) | – | `o1_analysis.py` (uses `c_prep_gsm8k.py`, `p2_sc.py`) |
 | O2 (OLMo prompt control) | `o2_eval.py` (`--prompt randopt/plain/boxed`) | `o2_analysis.py` |
 | Q2 (Qwen prompt control) | `o2_eval.py` | `q2_analysis.py` |
+| PS (prompt selection, all rows) | `o2_eval.py --split select`, `g3_eval.py --split selection` | `ps_analysis.py` |
 | G3, G4 (budgets; prompt controls) | `g3_eval.py` (`--prompt cot/direct/short`) | `g3_analysis.py`, `g4_analysis.py` |
 | GQA shift (exploratory) | – | `gqa_shift_analysis.py` |
 | P0–P3 (pilots; SC vs published RandOpt) | `p0_hf.py`, `p1_sample.py`, `p2_sc.py` | `p0_analysis.py`, `p1_analysis.py`, `p2_analysis.py`, `p3_analysis.py` |

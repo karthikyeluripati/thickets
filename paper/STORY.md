@@ -9,7 +9,7 @@ selected perturbations change?**
 
 ## The answer in three claims
 
-### Claim 1: RandOpt beats self-consistency exactly where its own prompt damages the base model, and in every same-run row a baseline without weight search matches or beats it (practical headline)
+### Claim 1: Choosing the prompt on RandOpt's own selection data matches or beats its weight search in every same-run row; RandOpt beats self-consistency only where its prompt damages the model (practical headline)
 Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
 - **GSM8K / Qwen2.5-1.5B and 3B** (RandOpt's own code; published numbers reproduced, 77.18 vs 76.4 and 86.66 vs 87.1):
   SC@50 is ahead, **−2.65 [−4.32, −0.99]** and **−1.59 [−2.65, −0.53]**. Selected models are individually only +4.0
@@ -32,6 +32,10 @@ Three same-run comparisons at the paper's settings (N = 5000, K = 50) [R8b]:
   +11.3 (GQA), +31.6 (OLMo), +4.7 and −7.2 (Qwen 1.5B, 3B). RandOpt beats SC exactly on the two damaged rows. On Qwen the
   plain prompt is worse than RandOpt's (plain-prompt SC falls below RandOpt: +2.58, +7.05), so no single prompt wins
   everywhere; but in every row SC under one of two prompts fixed in advance matches or beats RandOpt.
+- **Prompt selection (PS, pre-registered):** choosing among 3 prompts by greedy accuracy on RandOpt's own 200 selection
+  questions (600 generations vs RandOpt's 1,000,000) picks a non-default prompt for all four models; SC@50 under it vs
+  RandOpt: Qwen-1.5B **−2.96 [−4.62, −1.29]** (SC ahead), Qwen-3B −0.38 [−1.67, +0.91] (equivalent), OLMo **−23.65**
+  (SC ahead), GQA −1.21 [−2.83, +0.40] (n.d.). **No row has RandOpt ahead.**
 - Supporting, cross-paper: SC@50 point estimates above published RandOpt on both gated GSM8K rows, 5.7–10.7 pp above
   the paper's TT-MV baseline [R8].
 - CoT regime: perturbations and sampling flip similarly susceptible questions (ρ = 0.946), but perturbed models carry

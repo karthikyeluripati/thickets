@@ -220,6 +220,7 @@ base 0.730 (200 items).
 K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54] RandOpt ahead; G2R +4.68 [2.50, 6.95].
 GQA two-seed mean D (K = 50) = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29].
 **O1 (e2e2400): GSM8K / OLMo-2-1B: base 35.25, members 40.3 (+5.1), RandOpt K = 50 52.46, SC@50 43.75: RandOpt ahead +8.72 [+6.75, +10.77].**
+**PS (a1caf88): prompt chosen on the selection set (boxed for all GSM8K models, direct for GQA); SC@50 under it: 80.14 / 87.04 / 76.12 / 64.70 vs RandOpt 77.18 / 86.66 / 52.46 / 63.49. No row RandOpt ahead.**
 **Q2 (2a55ccc): Qwen plain prompt: base 64.75 / 72.93 (RandOpt prompt 60.05 / 80.14), SC@50 74.60 / 79.61 (RandOpt prompt 79.83 / 88.25); RandOpt beats plain-prompt SC on Qwen; damage prediction supported on all four rows.**
 **O2 (6ecafcf): OLMo-2-1B asked just the question: BASE greedy 65.28, SC@50 74.68 (RandOpt's prompt: 33.66 / 43.75); RandOpt − SC@50 (plain) −22.21 [−24.87, −19.56].**
 **G4 (2ad4e46): with a direct-answer prompt, BASE greedy (1 generation) = 64.70 and SC@50 = 64.70 on the same questions;
@@ -313,6 +314,7 @@ How to describe the process:
 | G2R | 9e84c4f + 0754376 | **G2R-1 GQA advantage with a disjoint population (seed 43)** | paired item bootstrap | REPLICATED if CI > 0 | **+3.63 [+1.78, +5.49]**; D₂ − D₁ +0.16 [−0.97, +1.29] | **REPLICATED** |
 | O1 | e2e2400 | **O1-1 same-run RandOpt − SC@50, GSM8K / OLMo-2-1B (non-Qwen)** | paired item bootstrap | as C-1 | **+8.72 [+6.75, +10.77]** | **RANDOPT AHEAD** (Claim 1 model-dependent on GSM8K) |
 | O1 | e2e2400 | K = 10; O1b second seed | same; budget rule | – | +7.58 [+5.31, +9.93]; O1b not run ($87 > $58.5) | RandOpt ahead; skipped by rule |
+| PS | a1caf88 | **PS: RandOpt K = 50 − SC@50 under the prompt chosen on RandOpt's selection set** (Qwen-1.5B / Qwen-3B / OLMo / GQA) | paired item bootstrap | as G4 | **−2.96 [−4.62, −1.29] / −0.38 [−1.67, 0.91] / −23.65 [−26.23, −21.08] / −1.21 [−2.83, 0.40]** | **SC ahead / equivalent / SC ahead / n.d.: no row RandOpt ahead** |
 | Q2 | 2a55ccc | **Q2-1/2 RandOpt − SC@50 with the plain prompt, Qwen 1.5B / 3B** | paired item bootstrap | as G4 | **+2.58 [0.53, 4.62] / +7.05 [5.23, 8.95]** | **RANDOPT AHEAD** (plain prompt is worse for Qwen) |
 | Q2 | 2a55ccc | damage prediction (all four rows) | plain − RandOpt-prompt base | supported if Qwen both < 5 pp | +4.70, −7.20 (GQA +11.3, OLMo +31.6) | **supported** (4/4 rows) |
 | O2 | 6ecafcf | **O2-1 RandOpt (O1) − SC@50 with the plain question prompt, OLMo-2-1B** | paired item bootstrap | as G4 | **−22.21 [−24.87, −19.56]** | **PROMPT-SC AHEAD** (valid env) |

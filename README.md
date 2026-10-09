@@ -21,7 +21,7 @@ separately. All locks, per-item outputs and analysis code are in this repository
 
 ## Findings
 
-### 1. RandOpt beats self-consistency exactly where its own prompt damages the model
+### 1. Choosing the prompt on RandOpt's own selection data matches or beats its weight search
 
 Three same-run comparisons at the paper's settings (N = 5000 perturbations, top K = 50), against self-consistency
 with the same number of test-time generations (50 samples at T = 0.7, no weight search):
@@ -50,6 +50,18 @@ above RandOpt's 52.5%. In both settings where RandOpt beats self-consistency, th
 its own prompt, and repairing the prompt does better. On the Qwen rows RandOpt's prompt does not hurt (−7 to +5 points),
 and there RandOpt loses to plain self-consistency. The plain prompt is not a universal fix (it is worse for Qwen), but
 in all four rows a baseline without weight search matches or beats RandOpt.
+
+The practical version: choose among three prompts by greedy accuracy on the same 200 selection questions RandOpt uses
+(600 generations instead of RandOpt's 1,000,000), then sample 50 answers and vote. Against RandOpt's 50-model vote:
+
+| Row | RandOpt | Prompt-selected self-consistency | Difference [95% CI] |
+|---|---|---|---|
+| GSM8K / Qwen2.5-1.5B (boxed chosen) | 77.2 | 80.1 | **−2.96 [−4.62, −1.29]** |
+| GSM8K / Qwen2.5-3B (boxed) | 86.7 | 87.0 | −0.38 [−1.67, +0.91], equivalent |
+| GSM8K / OLMo-2-1B (boxed) | 52.5 | 76.1 | **−23.65 [−26.23, −21.08]** |
+| GQA / Qwen2.5-VL-3B (direct) | 63.5 | 64.7 | −1.21 [−2.83, +0.40] |
+
+RandOpt is ahead in none of the four.
 
 ### 2. A perturbation's effect on answers is first-order, within clear limits
 

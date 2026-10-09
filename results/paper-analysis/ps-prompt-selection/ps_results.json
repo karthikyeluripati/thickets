@@ -1,0 +1,121 @@
+{
+ "rule": "argmax greedy BASE accuracy on the selection set; ties by candidate order",
+ "q15": {
+  "selection_acc": {
+   "randopt": 68.5,
+   "plain": 73.0,
+   "boxed": 80.5
+  },
+  "chosen": "boxed",
+  "randopt_K50": 77.17968157695225,
+  "sc50_chosen": 80.13646702047005,
+  "base_chosen": 70.20470053070508,
+  "D": {
+   "D": -2.9567854435178167,
+   "ci": [
+    -4.624715693707354,
+    -1.288855193328279
+   ],
+   "outcome": "PROMPT-SELECTED SC AHEAD",
+   "equivalent_2pp": false
+  },
+  "randopt_minus_base_chosen": {
+   "D": 6.974981046247157,
+   "ci": [
+    4.852160727824109,
+    9.097801364670206
+   ]
+  }
+ },
+ "q3": {
+  "selection_acc": {
+   "randopt": 84.0,
+   "plain": 85.0,
+   "boxed": 90.0
+  },
+  "chosen": "boxed",
+  "randopt_K50": 86.65655799848369,
+  "sc50_chosen": 87.03563305534496,
+  "base_chosen": 82.33510235026536,
+  "D": {
+   "D": -0.37907505686125853,
+   "ci": [
+    -1.6679302501895377,
+    0.9097801364670205
+   ],
+   "outcome": "NO DIFFERENCE DETECTED",
+   "equivalent_2pp": true
+  },
+  "randopt_minus_base_chosen": {
+   "D": 4.321455648218348,
+   "ci": [
+    2.6535253980288096,
+    6.0652009097801365
+   ]
+  }
+ },
+ "olmo": {
+  "selection_acc": {
+   "randopt": 41.5,
+   "plain": 77.0,
+   "boxed": 79.5
+  },
+  "chosen": "boxed",
+  "randopt_K50": 52.463987869598185,
+  "sc50_chosen": 76.11827141774071,
+  "base_chosen": 67.85443517816528,
+  "D": {
+   "D": -23.654283548142534,
+   "ci": [
+    -26.231993934799092,
+    -21.076573161485975
+   ],
+   "outcome": "PROMPT-SELECTED SC AHEAD",
+   "equivalent_2pp": false
+  },
+  "randopt_minus_base_chosen": {
+   "D": -15.390447308567095,
+   "ci": [
+    -18.19560272934041,
+    -12.43366186504928
+   ]
+  }
+ },
+ "gqa": {
+  "selection_acc": {
+   "cot": 53.5,
+   "direct": 66.0,
+   "short": 62.0
+  },
+  "chosen": "direct",
+  "randopt_K50": 63.48949919224556,
+  "sc50_chosen": 64.70113085621972,
+  "base_chosen": 64.70113085621972,
+  "D": {
+   "D": -1.2116316639741518,
+   "ci": [
+    -2.827140549273021,
+    0.40387722132471726
+   ],
+   "outcome": "NO DIFFERENCE DETECTED",
+   "equivalent_2pp": false
+  },
+  "randopt_minus_base_chosen": {
+   "D": -1.2116316639741518,
+   "ci": [
+    -2.827140549273021,
+    0.48465266558966075
+   ]
+  }
+ },
+ "selection_generations": {
+  "prompt_selection": "3 prompts x 200 = 600 greedy",
+  "randopt": "5000 perturbations x 200 = 1,000,000 greedy"
+ },
+ "summary": {
+  "q15": "PROMPT-SELECTED SC AHEAD",
+  "q3": "NO DIFFERENCE DETECTED",
+  "olmo": "PROMPT-SELECTED SC AHEAD",
+  "gqa": "NO DIFFERENCE DETECTED"
+ }
+}
