@@ -50,13 +50,14 @@ Paper role: **main** = main text; **appx** = appendix; **sup** = superseded (kep
 | `answer-prior` | answer-content priors of candidates (post-hoc) | none | `answer_prior_*.json` | label-aligned front tilt | main, labelled post-hoc [R3] |
 
 ## Superseded (split mismatch; see `paper/CORRECTION_SPLIT_MISMATCH.md`)
-Kept because later analyses read their data (Stage 3, answer priors, GPU-A). The unused `selection-vs-shared-response`
-study was removed on 2026-10-09; it is preserved at git tag `pre-cleanup-2`.
+Kept because later analyses read their data (Stage 3, answer priors, GPU-A), directly or through
+`selection_vs_specificity.py`, which imports `selection_vs_shared.py`.
 
 | Folder | Question | Lock | Role |
 |---|---|---|---|
 | `random-control-transfer` | random-control transfer of candidate 9504111 | 42c9718 | sup |
 | `selection-vs-specificity` | selection vs candidate specificity | faf824a | sup |
+| `selection-vs-shared-response` | selection vs shared response | 00aab64 | sup |
 | `causal-diagnostic` | causal diagnostic for 9504111 | (session records) | sup |
 
 ## Other
