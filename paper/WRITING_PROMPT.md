@@ -55,7 +55,8 @@ exactly how far each result goes and no further.
 7. **Do not claim:** that RandOpt "is" self-consistency or "is" prompt tuning; that neural thickets do not exist;
    that prompt selection beats RandOpt on every task or model (two tasks, ≤ 8B, three prompt candidates); anything
    about models above 8B; that the first-order account governs CoT accuracy; that we explain the OmniSpatial winner;
-   that prompt choice explains the OmniSpatial case (no prompt control there).
+   that the OmniSpatial winner's gain is "explained" by the prompt: OS shows it is prompt-specific and not detectably
+   better than a selection-chosen prompt (−1.50 [−5.35, +2.23]), but that is no difference, not equivalence.
 8. **Scope statements that must appear.** The first-order theory covers direct answers; the Claim 1 rows use
    step-by-step prompts, so Claim 1 rests on its own experiments, not on the theory. Theory checks T1/T2 are
    criteria-first exploratory. The three prompt candidates were fixed before PS but chosen after earlier results.

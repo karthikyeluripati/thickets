@@ -63,6 +63,28 @@ predicted +3.7 (`selection-vs-specificity/rerank_reliability_eb.json`).
   winner +2.67; top-10 votes +2.0 to +2.8). The other members average close to zero, so a plurality vote over many of
   them is dominated by near-base answers.
 
+## R2b. Prompt control for the OmniSpatial winner (OS, lock c14ff18)
+**Source:** `results/paper-analysis/os-prompt-control/OS_RESULT.md`, `pod/os/os_results.json`.
+
+**Setup.** M1's engine, fingerprints and hold-out (600 items, 484 images; Qwen3-VL-8B). The OmniSpatial benchmark's own
+three evaluation prompts: direct (as M1, first token), zeroshot_cot and manual_cot ("Answer: X", parse failures scored
+wrong). Prompt chosen by BASE accuracy on SEARCH200 (the winner's own selection data): direct 36.0, zeroshot_cot 38.5,
+**manual_cot 39.5 → chosen**. Valid: direct-prompt BASE and WINNER 208 / 224 of 600, answers identical to M1 on all 600.
+
+| Hold-out | direct | zeroshot_cot | manual_cot |
+|---|---|---|---|
+| BASE | 34.67 | 39.83 | 38.83 |
+| WINNER | 37.33 | 36.00 | 38.17 |
+| Winner gain [image-cluster CI] | +2.67 [+0.17, +4.93] | −3.83 [−6.81, −0.84] | −0.67 [−3.95, +2.51] |
+
+- **OS-1:** WINNER (direct) − BASE (manual_cot) = **−1.50 [−5.35, +2.23] → NO DIFFERENCE DETECTED** (not equivalent;
+  point estimate favours the prompt).
+- **OS-2, prompt held fixed (manual_cot):** winner gain **−0.67 [−3.95, +2.51]**, no difference.
+- **How to state R2b:** the winner's transferable gain exists only under the prompt it was selected with; under the
+  benchmark's step-by-step prompts it disappears or reverses, and a prompt chosen on the winner's own selection data
+  gives the base model a hold-out accuracy at least as high as the winner's point estimate (no difference detected;
+  underpowered for equivalence).
+
 ## R3. What selection favours in the direct-answer regime: answer-preference tilts (an incomplete explanation)
 **Source:** `results/paper-analysis/answer-prior/*.json`, investigation note at tag `pre-cleanup-3` (`paper/WHY_INVESTIGATION_9504111.md`). **POST-HOC.**
 
@@ -404,6 +426,8 @@ How to describe the process:
 | O1 | e2e2400 | **O1-1 same-run RandOpt − SC@50, GSM8K / OLMo-2-1B (non-Qwen)** | paired item bootstrap | as C-1 | **+8.72 [+6.75, +10.77]** | **RANDOPT AHEAD** (Claim 1 model-dependent on GSM8K) |
 | O1 | e2e2400 | K = 10; O1b second seed | same; budget rule | – | +7.58 [+5.31, +9.93]; O1b not run ($87 > $58.5) | RandOpt ahead; skipped by rule |
 | PS | a1caf88 | **PS: RandOpt K = 50 − SC@50 under the prompt chosen on RandOpt's selection set** (Qwen-1.5B / Qwen-3B / OLMo / GQA) | paired item bootstrap | as G4 | **−2.96 [−4.62, −1.29] / −0.38 [−1.67, 0.91] / −23.65 [−26.23, −21.08] / −1.21 [−2.83, 0.40]** | **SC ahead / equivalent / SC ahead / n.d.: no row RandOpt ahead** |
+| OS | c14ff18 | **OS-1 OmniSpatial winner (direct) − BASE under the prompt chosen on SEARCH200 (manual_cot)** | image-cluster bootstrap (as M1) | as G4 | **−1.50 [−5.35, +2.23]** | **NO DIFFERENCE DETECTED** (valid; answers identical to M1) |
+| OS | c14ff18 | OS-2 winner gain with the prompt held fixed (manual_cot) | same | reported | −0.67 [−3.95, +2.51] | no difference (under zeroshot_cot −3.83 [−6.81, −0.84]) |
 | GD | 0bb89eb | **GD-1 RandOpt searched under the direct prompt − SC@50 direct, GQA (prompt held fixed)** | paired item bootstrap | as G4 | **−0.32 [−1.29, +0.65]** | **NO DIFFERENCE, EQUIVALENT (±2 pp)** (valid; finished on a second pod, cross-pod answers identical) |
 | GB | 77332dd | **GB-1 RandOpt searched under the boxed prompt − SC@50 boxed, GSM8K OLMo-2-1B (prompt held fixed)** | paired item bootstrap | as G4 | **−2.12 [−3.49, −0.83]** | **SC AHEAD** (env and fidelity gates passed) |
 | GB | 77332dd | GB-2 same, Qwen2.5-1.5B | environment gate | ±1.0 pp | base selection 68.00 vs 73.00 printed by randopt.py | **INVALID-ENV, not run** |

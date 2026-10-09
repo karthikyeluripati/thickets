@@ -40,6 +40,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 |---|---|---|
 | M1 | `m1_prepare_images.py`, `m1_measure.py` | `m1_analysis.py` |
 | C1 | – | `c1_analysis.py` |
+| OS (prompt control for the winner) | `os_prep.py`, `os_prompt_eval.py` | `os_analysis.py` |
 | Answer priors (post-hoc) | – | `answer_prior_analysis.py`, `answer_prior_bias_model.py`, `answer_prior_checks.py`, `answer_prior_goldsplit.py` |
 
 ## Shared modules (imported by other scripts)

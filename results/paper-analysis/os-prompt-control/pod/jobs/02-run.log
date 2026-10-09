@@ -1,0 +1,116 @@
++ grep -q '^rc=0 ' /workspace/jobs/01-prep.rc
++ export HF_HOME=/workspace/hf VLLM_LOGGING_LEVEL=WARNING
++ HF_HOME=/workspace/hf
++ VLLM_LOGGING_LEVEL=WARNING
++ cd /workspace/repo
++ python -u scripts/os_prompt_eval.py --out /workspace/os/out
+Fetching 14 files:   0%|          | 0/14 [00:00<?, ?it/s]Fetching 14 files: 100%|██████████| 14/14 [00:00<00:00, 1378.70it/s]
+`torch_dtype` is deprecated! Use `dtype` instead!
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+[Gloo] Rank 0 is connected to 0 peer ranks. Expected number of connected peer ranks is : 0
+WARNING 10-09 18:39:42 [topk_topp_sampler.py:66] FlashInfer is not available. Falling back to the PyTorch-native implementation of top-p & top-k sampling. For the best performance, please install FlashInfer.
+Loading safetensors checkpoint shards:   0% Completed | 0/4 [00:00<?, ?it/s]
+Loading safetensors checkpoint shards:  25% Completed | 1/4 [00:00<00:02,  1.19it/s]
+Loading safetensors checkpoint shards:  50% Completed | 2/4 [00:01<00:01,  1.14it/s]
+Loading safetensors checkpoint shards:  75% Completed | 3/4 [00:02<00:00,  1.11it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:03<00:00,  1.32it/s]
+Loading safetensors checkpoint shards: 100% Completed | 4/4 [00:03<00:00,  1.24it/s]
+
+WARNING 10-09 18:39:56 [cudagraph_dispatcher.py:106] cudagraph dispatching keys are not initialized. No cudagraph will be used.
+{"model": "base", "split": "search", "prompt": "direct", "correct": 72, "n": 200, "parse_fail": 0}
+{"model": "base", "split": "search", "prompt": "zeroshot_cot", "correct": 77, "n": 200, "parse_fail": 15}
+{"model": "base", "split": "search", "prompt": "manual_cot", "correct": 79, "n": 200, "parse_fail": 10}
+{"model": "base", "split": "holdout", "prompt": "direct", "correct": 208, "n": 600, "parse_fail": 0}
+{"model": "base", "split": "holdout", "prompt": "zeroshot_cot", "correct": 239, "n": 600, "parse_fail": 39}
+{"model": "base", "split": "holdout", "prompt": "manual_cot", "correct": 233, "n": 600, "parse_fail": 32}
+{"model": "winner", "split": "holdout", "prompt": "direct", "correct": 224, "n": 600, "parse_fail": 0}
+{"model": "winner", "split": "holdout", "prompt": "zeroshot_cot", "correct": 216, "n": 600, "parse_fail": 31}
+{"model": "winner", "split": "holdout", "prompt": "manual_cot", "correct": 229, "n": 600, "parse_fail": 21}
+{"restore_mismatch": 0}
+OS_DONE
+[rank0]:[W1009 18:55:33.321327357 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
++ python -u scripts/os_analysis.py --d /workspace/os/out --out /workspace/os/os_results.json
+{
+ "selection_accuracy_search200": {
+  "direct": 36.0,
+  "zeroshot_cot": 38.5,
+  "manual_cot": 39.5
+ },
+ "chosen": "manual_cot",
+ "n_items": 600,
+ "n_images": 484,
+ "holdout_accuracy": {
+  "base_direct": 34.66666666666667,
+  "base_zeroshot_cot": 39.83333333333333,
+  "base_manual_cot": 38.83333333333333,
+  "winner_direct": 37.333333333333336,
+  "winner_zeroshot_cot": 36.0,
+  "winner_manual_cot": 38.166666666666664
+ },
+ "parse_failures": {
+  "base_direct": 0,
+  "base_zeroshot_cot": 39,
+  "base_manual_cot": 32,
+  "winner_direct": 0,
+  "winner_zeroshot_cot": 31,
+  "winner_manual_cot": 21
+ },
+ "env": {
+  "base_direct_vs_m1": [
+   208,
+   208
+  ],
+  "winner_direct_vs_m1": [
+   224,
+   224
+  ],
+  "base_direct_answer_agreement_with_m1": 1.0,
+  "winner_direct_answer_agreement_with_m1": 1.0
+ },
+ "valid_env": true,
+ "OS_1": {
+  "D_winner_direct_minus_base_chosen": -1.5,
+  "ci95_image_cluster": [
+   -5.349428919120977,
+   2.2261228529805672
+  ],
+  "outcome": "NO DIFFERENCE DETECTED",
+  "equivalent_2pp": false
+ },
+ "OS_2_winner_gain_prompt_held_fixed": {
+  "prompt": "manual_cot",
+  "D": -0.6666666666666667,
+  "ci95_image_cluster": [
+   -3.945657258693279,
+   2.508466244264802
+  ]
+ },
+ "winner_gain_by_prompt": {
+  "direct": {
+   "D": 2.666666666666667,
+   "ci95_image_cluster": [
+    0.17091836734693877,
+    4.932393605906523
+   ]
+  },
+  "zeroshot_cot": {
+   "D": -3.833333333333333,
+   "ci95_image_cluster": [
+    -6.814501384688211,
+    -0.8428897312797966
+   ]
+  },
+  "manual_cot": {
+   "D": -0.6666666666666667,
+   "ci95_image_cluster": [
+    -3.945657258693279,
+    2.508466244264802
+   ]
+  }
+ }
+}
++ touch /workspace/os/OS_DONE

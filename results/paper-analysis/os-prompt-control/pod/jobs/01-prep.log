@@ -1,0 +1,5 @@
++ cd /workspace/repo
++ python -u scripts/os_prep.py
+OS_IMAGES_OK 684 holdout 600 search 200
++ python -c 'import sys; sys.path.insert(0,'\''src'\''); from thicket_runtime import fast_state; print('\''RUNTIME_OK'\'')'
+RUNTIME_OK

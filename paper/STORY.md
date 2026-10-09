@@ -89,7 +89,11 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   the test set lacked; on fresh matched items it keeps +2.67 [0.17, 4.93]. Selection favours tilts toward answer
   content the selection labels reward. Boundary, stated as a main result: removing that content shift leaves +2.33
   of +2.67 (C1-1, not explained), and the full first-order prediction does not explain which items the winner
-  changes (S1-B r = 0.16). No prompt control was run here.
+  changes (S1-B r = 0.16). **Prompt control (OS, pre-registered, R2b):** the winner's +2.67 exists only under the
+  direct prompt it was selected with; under the benchmark's step-by-step prompts its gain is −0.67 [−3.95, +2.51]
+  (manual_cot) or −3.83 [−6.81, −0.84] (zeroshot_cot), and the prompt chosen on its own selection data gives the base
+  model 38.83 vs the winner's 37.33 (−1.50 [−5.35, +2.23], no difference detected). So the one transferable,
+  unexplained gain in the study is also prompt-specific.
 
 ## Closing message
 Nearby models that beat the base on a selection set are common (10.7–44.7% of 5000 perturbations on 200 questions,

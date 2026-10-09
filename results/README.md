@@ -50,6 +50,7 @@ Paper role: **main** = main text; **appx** = appendix; **sup** = superseded (kep
 | Folder | Question | Lock | Result | Verdict | Role |
 |---|---|---|---|---|---|
 | `m1` | does the search winner transfer to fresh matched items? | 5eb864b | `M1_C1_RESULT.md` | transfers, +2.67 [0.17, 4.93] (not full) | main [R2] |
+| `os-prompt-control` | can the benchmark's own prompts, chosen on SEARCH200, reach the winner's gain? | c14ff18 | `OS_RESULT.md` | **no difference** (−1.50 [−5.35, +2.23]); winner's gain prompt-specific (−0.67 held fixed) | main [R2b] |
 | `c1` | does removing answer-content priors remove the winner's gain? | 5aa4c06 | `plan_lock.md`, `c1_results.json` | **not explained** (2.33 of 2.67 remain) | main [R3] |
 | `tau-check` | does the noise-only predictor work through the front tilt? | 8c52ba1 (criteria first) | `TAU_CHECK_RESULT.md` | holds (exploratory data) | main [R6] |
 | `answer-prior` | answer-content priors of candidates (post-hoc) | none | `answer_prior_*.json` | label-aligned front tilt | main, labelled post-hoc [R3] |

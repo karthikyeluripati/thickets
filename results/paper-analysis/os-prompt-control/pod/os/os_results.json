@@ -1,0 +1,79 @@
+{
+ "selection_accuracy_search200": {
+  "direct": 36.0,
+  "zeroshot_cot": 38.5,
+  "manual_cot": 39.5
+ },
+ "chosen": "manual_cot",
+ "n_items": 600,
+ "n_images": 484,
+ "holdout_accuracy": {
+  "base_direct": 34.66666666666667,
+  "base_zeroshot_cot": 39.83333333333333,
+  "base_manual_cot": 38.83333333333333,
+  "winner_direct": 37.333333333333336,
+  "winner_zeroshot_cot": 36.0,
+  "winner_manual_cot": 38.166666666666664
+ },
+ "parse_failures": {
+  "base_direct": 0,
+  "base_zeroshot_cot": 39,
+  "base_manual_cot": 32,
+  "winner_direct": 0,
+  "winner_zeroshot_cot": 31,
+  "winner_manual_cot": 21
+ },
+ "env": {
+  "base_direct_vs_m1": [
+   208,
+   208
+  ],
+  "winner_direct_vs_m1": [
+   224,
+   224
+  ],
+  "base_direct_answer_agreement_with_m1": 1.0,
+  "winner_direct_answer_agreement_with_m1": 1.0
+ },
+ "valid_env": true,
+ "OS_1": {
+  "D_winner_direct_minus_base_chosen": -1.5,
+  "ci95_image_cluster": [
+   -5.349428919120977,
+   2.2261228529805672
+  ],
+  "outcome": "NO DIFFERENCE DETECTED",
+  "equivalent_2pp": false
+ },
+ "OS_2_winner_gain_prompt_held_fixed": {
+  "prompt": "manual_cot",
+  "D": -0.6666666666666667,
+  "ci95_image_cluster": [
+   -3.945657258693279,
+   2.508466244264802
+  ]
+ },
+ "winner_gain_by_prompt": {
+  "direct": {
+   "D": 2.666666666666667,
+   "ci95_image_cluster": [
+    0.17091836734693877,
+    4.932393605906523
+   ]
+  },
+  "zeroshot_cot": {
+   "D": -3.833333333333333,
+   "ci95_image_cluster": [
+    -6.814501384688211,
+    -0.8428897312797966
+   ]
+  },
+  "manual_cot": {
+   "D": -0.6666666666666667,
+   "ci95_image_cluster": [
+    -3.945657258693279,
+    2.508466244264802
+   ]
+  }
+ }
+}
