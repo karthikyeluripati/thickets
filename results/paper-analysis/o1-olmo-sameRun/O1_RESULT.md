@@ -30,3 +30,7 @@ setup; exact figure to be checked and cited). That suggests, as on GQA
 (G4), that the shared shift may be one a prompt also gives. **Not tested:** RandOpt's code and `p2_sc.py` store only the
 extracted final answers (the extractor falls back to the last number), so format failures cannot be measured from
 this data. A G4-style control (base greedy and SC@50 with a different prompt, saving texts) would answer it.
+
+> **Resolved later:** O2 (`o2-olmo-prompt/`) ran that control with texts saved: asked just the question, BASE 65.28 and
+> SC@50 74.68 vs RandOpt 52.46 (−22.21 [−24.87, −19.56]). GB (`gb-gsm8k-boxed-search/`) re-ran RandOpt's search under
+> the boxed prompt: 74.00 vs SC@50 76.12 (−2.12 [−3.49, −0.83]).

@@ -18,6 +18,8 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 | PS (prompt selection, all rows) | `o2_eval.py --split select`, `g3_eval.py --split selection` | `ps_analysis.py` |
 | G3, G4 (budgets; prompt controls) | `g3_eval.py` (`--prompt cot/direct/short`) | `g3_analysis.py`, `g4_analysis.py` |
 | GQA shift (exploratory) | – | `gqa_shift_analysis.py` |
+| Robustness of Claim 1 (exploratory) | – | `robustness_checks.py` |
+| Selection gain vs test gain (exploratory) | – | `transfer_analysis.py` |
 | P0–P3 (pilots; SC vs published RandOpt) | `p0_hf.py`, `p1_sample.py`, `p2_sc.py` | `p0_analysis.py`, `p1_analysis.py`, `p2_analysis.py`, `p3_analysis.py` |
 
 ## Claim 2: the first-order tilt law

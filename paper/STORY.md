@@ -17,7 +17,9 @@ the unperturbed model votes better in three of four rows (its vote adds more ove
 vote adds over single members; on OLMo it adds less). The shared shifts selection found in our settings are ones
 a prompt also reaches: on the two rows where RandOpt beats self-consistency, its own prompt costs the base model
 11.3 and 31.6 points, and the selected perturbations recover part of that accuracy. Choosing the prompt on RandOpt's own selection
-data (600 generations, 0.06% of its 1,000,000), then sampling, matches or beats RandOpt in all four same-run rows. In
+data (600 generations, 0.06% of its 1,000,000), then sampling, matches or beats RandOpt in all four same-run rows, and
+with that prompt held fixed RandOpt's search itself adds nothing over sampling (GQA equivalent, OLMo behind; the
+selected models are no better than base on test). In
 direct-answer settings, a first-order account explains what a perturbation does to answers and why selection
 favours shared shifts, within limits we demonstrate; the Claim 1 rows use step-by-step prompts, outside that regime,
 so Claim 1 rests on its own experiments.
@@ -80,7 +82,8 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
 
 ## Closing message
 Nearby models that beat the base on a selection set are common (10.7–44.7% of 5000 perturbations on 200 questions,
-though the population mean is below base in every row), and in two rows the selected ones transfer to test. In our
+though the population mean is below base in every row). Under RandOpt's prompts the selected ones are better on test
+in three of four rows (+4.0 to +5.1); with the prompt held fixed (GQA, OLMo) they are not. In our
 settings, what selection finds there is a vote plus shared shifts in answer form, and those are cheaper to get from
 sampling and from choosing a prompt on the same selection data. Beyond that (vision weights, large σ, CoT
 correctness, the OmniSpatial winner's residual gain) our account stops, and we say so.
@@ -105,6 +108,10 @@ cannot pass images); exploratory analyses are labelled as such.
 ## What a reviewer will still press (answer in the paper, not with new runs)
 1. Only two tasks and ≤ 8B: stated as scope; Countdown and larger models are future work.
 2. One search per GSM8K row: RandOpt reproduces the published numbers; GQA replicates across two populations.
-3. "You picked prompts that help": the three candidates were fixed before any test output, and PS chose among them
-   on selection data only.
+3. "You picked prompts that help": the three candidates were fixed before the PS run (chosen after earlier results;
+   "boxed" and "direct" are standard prompts), and PS chose among them on selection data only.
 4. "Damage explains everything": we say it does not (Qwen-1.5B, Figure 8).
+5. "With a larger selection set, search would find transferable gains": all searches use RandOpt's 200 questions;
+   stated as "at RandOpt's own setting".
+6. "Prompt held fixed on Qwen GSM8K?": not shown (Qwen-1.5B gated out by its environment check; Qwen-3B not
+   attempted); the claim is made for the two rows where it was run, one per model family.

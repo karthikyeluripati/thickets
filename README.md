@@ -12,7 +12,8 @@ This repository asks: **what does the weight search actually buy, and what do th
 Confirmatory tests were specified in plan locks committed before their runs; exploratory analyses are labelled
 separately. All locks, per-item outputs and analysis code are in this repository.
 
-> **Status (2026-10-09):** all confirmatory runs are complete; the paper is being written.
+> **Status (2026-10-09):** all confirmatory runs are complete (including the prompt-held-fixed searches GD and GB);
+> the paper is being written.
 
 ## Findings
 

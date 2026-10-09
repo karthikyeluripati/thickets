@@ -16,6 +16,8 @@ Paper role: **main** = main text; **appx** = appendix; **sup** = superseded (kep
 | `g2-sameRun` | same-run RandOpt vs SC@50, GQA / Qwen2.5-VL-3B | d2b3d68 + 5be1720 | `G2_RESULT.md` | **RandOpt ahead**, +3.47 [+1.62, +5.41] | main [R8b] |
 | `g2r-seed` | does G2 replicate with a disjoint population (seed 43)? | 9e84c4f + 0754376 | `G2R_RESULT.md` | **replicated**, +3.63 [+1.78, +5.49] | main [R8b] |
 | `g3-termination` | is the GQA advantage a termination repair (256 vs 1024 tokens)? | dc19fd4 | `G3_RESULT.md` | **partial** (about a quarter) | main [R8b] |
+| `robustness` | Claim 1 under strict scoring, McNemar + Holm, image-cluster CIs, K = 10; data alignment | none (exploratory) | `ROBUSTNESS.md` | holds (strengthens under strict scoring) | appx, one sentence in main [R8b.6] |
+| `transfer` | selection-set gain vs test gain across all seven searches | none (exploratory) | `transfer_table.md` | transfers only where the prompt leaves ≥ 10 pp unclaimed | main, bridge [R8b.7] |
 | `gqa-shift` | what selected GQA models do differently (CPU, on G3 texts) | none (exploratory) | `SHIFT_RESULT.md` | answer directly; shorter = more accurate | main, labelled exploratory |
 | `g4-direct-prompt` | does a direct-answer prompt match RandOpt on GQA? | 2ad4e46 | `G4_RESULT.md` | **no difference**; 1 direct generation 64.7 vs RandOpt 63.5; search adds nothing on top | main [R8b] |
 | `o1-olmo-sameRun` | same-run RandOpt vs SC@50 on a non-Qwen model, GSM8K / OLMo-2-1B | e2e2400 | `O1_RESULT.md` | **RandOpt ahead**, +8.72 [+6.75, +10.77]; members +5.1 over base | main [R8b] |

@@ -39,3 +39,6 @@ beats RandOpt. Which prompt is better is model-dependent and was not selected on
 Caveat (added after PS, not pre-registered): measured against the prompt chosen on the selection set (boxed) instead
 of plain, Qwen-1.5B's damage is +10.2 pp, yet RandOpt still lost to SC there. Large damage accompanies both RandOpt
 wins, but damage alone does not decide the outcome; the robust result is PS. See fig8_prompt_damage.
+
+> **Resolved later:** that selection-set control is PS (`ps-prompt-selection/`): boxed chosen for both Qwen models;
+> SC@50 under it vs RandOpt −2.96 [−4.62, −1.29] (1.5B) and −0.38 [−1.67, +0.91] (3B).

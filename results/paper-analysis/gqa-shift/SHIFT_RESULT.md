@@ -41,3 +41,7 @@ questions. That is a shared, transferable shift, so voting over selected models 
 reason). **This analysis cannot say whether weight search is needed for it:** if prompting the base model to answer
 directly (no chain of thought) gives the same gain, RandOpt's GQA advantage is a prompt effect it finds by search. That
 needs a GPU control (base greedy and SC@50 with a direct-answer prompt, same questions).
+
+> **Resolved later:** G4 (`g4-direct-prompt/`) ran that control (one direct-prompt generation 64.70 vs RandOpt 63.49;
+> RandOpt − SC@50 direct −1.21 [−2.83, +0.40]), and GD (`gd-gqa-direct-search/`) re-ran RandOpt's whole search under
+> the direct prompt (equivalent to SC: −0.32 [−1.29, +0.65]).
