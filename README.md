@@ -54,6 +54,9 @@ Why, row by row, under RandOpt's own prompts:
     self-consistency: equivalent within 2 points. With the prompt held fixed, weight search adds nothing.
   - On **OLMo**, the "output the final answer after ####" instruction halves the model's accuracy (33.7% vs 65.3%
     when simply asked the question).
+- **With the prompt held fixed, the search itself adds nothing.** Re-running RandOpt's whole search under the chosen
+  prompt: on GQA 64.4% vs self-consistency 64.7% (equivalent); on OLMo 74.0% vs 76.1% (self-consistency ahead,
+  −2.12 [−3.49, −0.83]). In both, the selected models are no better than the base model on test.
 - Damage is not the whole story: against the boxed prompt selection chose, Qwen-1.5B is damaged by 10 points too, yet
   RandOpt still lost there (`paper/figures/thickets-or-tilts/fig8_prompt_damage`).
 

@@ -35,9 +35,10 @@ exactly how far each result goes and no further.
    - "Damage" claims: the locked measure (plain/direct vs RandOpt's prompt) supports the prediction in 4/4 rows; the
      post-hoc measure against the selection-chosen prompt does not separate the rows (Qwen-1.5B: +10.2, RandOpt still
      lost). Never write "RandOpt wins exactly where its prompt damages the model".
-   - "With the prompt held fixed, weight search adds nothing" is shown on GQA only, by GD (RandOpt searched under the
-     direct prompt: −0.32 [−1.29, +0.65], equivalent). Cite GD, not G4's re-used members. Do not generalise it to
-     GSM8K (not run); the OLMo members check is not valid (fidelity gate failed).
+   - "With the prompt held fixed, weight search adds nothing over sampling" is shown by GD (GQA, direct: −0.32 [−1.29,
+     +0.65], equivalent) and GB (OLMo, boxed: −2.12 [−3.49, −0.83], SC ahead), in both of which the selected models are
+     no better than base. Cite GD/GB, not G4's re-used members or O2's members (fidelity failed). Not shown for the
+     Qwen GSM8K rows: GB-2 (Qwen-1.5B) is INVALID-ENV and must be reported as such in the ledger.
    - Compute: the comparison is at matched **test-time** budget (50 generations). RandOpt's 1,000,000 selection
      generations vs prompt selection's 600 are stated separately, not folded into accuracy.
    - GQA runs use a faithful re-implementation (the released code cannot pass images); say so where GQA appears.
@@ -58,7 +59,8 @@ exactly how far each result goes and no further.
 8. **Scope statements that must appear.** The first-order theory covers direct answers; the Claim 1 rows use
    step-by-step prompts, so Claim 1 rests on its own experiments, not on the theory. Theory checks T1/T2 are
    criteria-first exploratory. The three prompt candidates were fixed before PS but chosen after earlier results.
-   RandOpt's search under the chosen prompt was run on GQA only (GD). Vote efficiency: sampling's vote adds more than RandOpt's in three rows, less on OLMo
+   RandOpt's search under the chosen prompt was run on GQA (GD) and OLMo (GB); GB-2 (Qwen-1.5B) failed its environment
+   gate and was not run. Vote efficiency: sampling's vote adds more than RandOpt's in three rows, less on OLMo
    (exploratory); never write "sampling supplies the vote at least as well". "Nearby better models are common" only
    with the 10.7–44.7% numbers and the below-base population mean.
 9. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); selection bias toward the
@@ -77,7 +79,7 @@ exactly how far each result goes and no further.
    and a prompt fix does better (R8b.2–R8b.4).
 3. **A practical baseline:** choosing the prompt on RandOpt's own selection data (0.06% of its selection compute)
    then sampling matches or beats RandOpt in all four rows (R8b.5); on GQA, RandOpt's search run under that prompt
-   is equivalent to sampling (GD).
+   is equivalent to sampling (GD, GQA) and behind it (GB, OLMo).
 4. **A first-order account** of perturbation-induced answer-preference changes, validated across five models in two
    families, localized to middle language layers, with demonstrated limits (R4, R5, R7), and a theory linking it to
    selection (R8c).
@@ -132,7 +134,8 @@ questions. Where the selected models barely beat the base model, self-consistenc
 model beats RandOpt (−2.65 and −1.59 points): the gain is the vote, and sampling votes better. Where RandOpt leads (+3.47 on
 GQA, replicated; +8.72 on OLMo), its own prompt costs the base model 11.3 and 31.6 points, and the selected
 perturbations recover part of the lost accuracy; on GQA a single direct-answer generation scores 64.7 vs RandOpt's
-63.5 (no difference detected), with no measurable gain from searching on top of that prompt. Choosing among three prompts on RandOpt's own
+63.5 (no difference detected). Re-running RandOpt's search under the chosen prompt, its selected models are no better
+than the base model, and it matches sampling on GQA and trails it on OLMo (−2.12 points). Choosing among three prompts on RandOpt's own
 selection questions (600 generations vs its 1,000,000) and sampling matches or beats RandOpt in all four rows. A
 first-order account, computed from the base model's gradient and each perturbation's noise with no fitted
 coefficients, tracks how perturbations shift answer preferences (r = 0.787–0.938 across five models in two families),
