@@ -3,7 +3,7 @@
 # What Does Random Weight Search Buy?
 ### Votes, Prompts and First-Order Tilts in RandOpt
 
-[![Paper](https://img.shields.io/badge/paper-ICML%202026%20submission-b31b1b.svg)](paper/latex/main.pdf)
+
 [![Pre-registered](https://img.shields.io/badge/pre--registered-71%20locked%20tests-2ea44f.svg)](paper/RESULTS_MASTER.md#r9-confirmatory-test-ledger-every-locked-test-with-its-outcome)
 [![Outputs](https://img.shields.io/badge/per--item%20outputs-released-0969da.svg)](results/README.md)
 [![Re-examines](https://img.shields.io/badge/re--examines-Neural%20Thickets%20(ICML%202026)-8250df.svg)](https://arxiv.org/abs/2603.12228)
