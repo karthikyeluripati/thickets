@@ -1,5 +1,5 @@
 % =====================================================================================================
-% ICML submission.  Numbers: ONLY from paper/RESULTS_MASTER.md (section refs like [R8b.5] in comments).
+% Working draft, formatted for ICML (not yet submitted).  Numbers: ONLY from paper/RESULTS_MASTER.md (section refs like [R8b.5] in comments).
 % Rules: paper/WRITING_PROMPT.md.  Argument: paper/STORY.md.
 %
 % STYLE FILES: download the official ICML style kit for the target year (icml20XX.sty, icml20XX.bst,
@@ -14,7 +14,8 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \newcommand{\theHalgorithm}{\arabic{algorithm}}
-\usepackage{icml2026}            % submission (anonymous); use [accepted] for camera-ready, [preprint] for arXiv
+\usepackage{icml2026}            % anonymous mode; use [accepted] for camera-ready, [preprint] for arXiv
+\makeatletter\renewcommand{\Notice@String}{Working draft. Not yet submitted.}\makeatother  % delete this line when submitting
 \usepackage{amsmath,amssymb}
 \usepackage{xcolor}
 \usepackage{longtable}
@@ -93,9 +94,8 @@ specific to the prompt it runs under.
     (Sections~\ref{sec:law}--\ref{sec:selection}).
 \end{enumerate}
 Confirmatory tests were specified in plan locks committed before their corresponding runs; exploratory analyses are
-identified separately. Every lock, all per-item outputs and the analysis code are released in an anonymized
-repository accompanying this submission.
-% Camera-ready: \url{https://github.com/karthikyeluripati/thickets}
+identified separately. Every lock, all per-item outputs and the analysis code are released with the paper.
+% For review: link an anonymized mirror (anonymous.4open.science). Camera-ready: \url{https://github.com/karthikyeluripati/thickets}
 
 \begin{figure*}[t]
   \centering

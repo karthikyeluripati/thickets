@@ -84,7 +84,7 @@ its lock, result file and role in the paper.
 
 ```
 paper/
-  latex/main.tex             the paper (ICML 2026 template); main.pdf is the compiled draft
+  latex/main.tex             the paper (working draft, ICML format); main.pdf is the compiled draft
   RESULTS_MASTER.md          every number the paper may use, with its lock and source file; ledger (R9); theory (R11)
   STORY.md                   the argument: question, answer, claims, scope, reviewer questions
   WRITING_PROMPT.md          writing rules: what each result supports and what it does not
@@ -114,7 +114,7 @@ python scripts/ps_analysis.py --upstream third_party/RandOpt \
 pytest -q
 ```
 
-**Paper:** `cd paper/latex && latexmk -pdf main.tex` (the ICML 2026 style files are included).
+**Paper:** `cd paper/latex && latexmk -pdf main.tex` (the ICML 2026 style files are included; the draft is not yet submitted).
 
 **GPU runs** used rented H100 pods with a pinned stack (vLLM 0.11.0, transformers 4.57.1, torch 2.8.0).
 `scripts/pod_jobqueue.sh <cap_usd> <model> <revision>` sets up a pod, enforces a hard spending cap and an idle stop,
@@ -137,7 +137,7 @@ settings, what selection recovers is what a prompt also recovers.
   title  = {What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt},
   author = {Yeluripati, Karthik},
   year   = {2026},
-  note   = {Under review},
+  note   = {Working draft},
   url    = {https://github.com/karthikyeluripati/thickets}
 }
 ```
