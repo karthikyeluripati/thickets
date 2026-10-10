@@ -26,7 +26,7 @@ def ledger():
     m = Path('paper/RESULTS_MASTER.md').read_text(encoding='utf-8')
     sec = m.split('## R9.')[1].split('## R10.')[0]
     rows = [l for l in sec.splitlines() if l.startswith('|')][2:]  # drop header and rule
-    L = [r'\begin{longtable}{p{1.2cm}p{1.4cm}p{3.9cm}p{2.2cm}p{2.2cm}p{2.5cm}p{2.8cm}}', r'\toprule',
+    L = [r'\begin{longtable}{p{1.2cm}p{1.3cm}p{3.8cm}p{2.1cm}p{2.1cm}p{2.4cm}p{2.7cm}}', r'\toprule',
          r'Study & Lock & Test & Statistic & Rule (fixed in the lock) & Result & Outcome \\', r'\midrule', r'\endfirsthead',
          r'\toprule', r'Study & Lock & Test & Statistic & Rule & Result & Outcome \\', r'\midrule', r'\endhead']
     for r in rows:

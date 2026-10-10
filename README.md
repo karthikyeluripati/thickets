@@ -1,173 +1,162 @@
-# Thickets or Tilts?
+<div align="center">
 
-**A pre-registered re-examination of random weight perturbation as post-training.**
+# What Does Random Weight Search Buy?
+### Votes, Prompts and First-Order Tilts in RandOpt
 
-[Neural Thickets](https://arxiv.org/abs/2603.12228) (Gan & Isola, ICML 2026) proposes **RandOpt**: sample thousands
-of Gaussian perturbations of a pretrained model's weights, keep the K best on a small selection set, and
-majority-vote their answers. It reports gains that rival PPO and GRPO, and interprets them as evidence that diverse
-task experts are dense around pretrained weights.
+[![Paper](https://img.shields.io/badge/paper-ICML%202026%20submission-b31b1b.svg)](paper/latex/main.pdf)
+[![Pre-registered](https://img.shields.io/badge/pre--registered-71%20locked%20tests-2ea44f.svg)](paper/RESULTS_MASTER.md#r9-confirmatory-test-ledger-every-locked-test-with-its-outcome)
+[![Outputs](https://img.shields.io/badge/per--item%20outputs-released-0969da.svg)](results/README.md)
+[![Re-examines](https://img.shields.io/badge/re--examines-Neural%20Thickets%20(ICML%202026)-8250df.svg)](https://arxiv.org/abs/2603.12228)
+<br>
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776ab.svg?logo=python&logoColor=white)](pyproject.toml)
+[![vLLM](https://img.shields.io/badge/vLLM-0.11.0-30a14e.svg)](scripts/pod_jobqueue.sh)
+[![Code license](https://img.shields.io/badge/code-MIT-yellow.svg)](LICENSE)
+[![Data license](https://img.shields.io/badge/results%20%26%20paper-CC%20BY%204.0-lightgrey.svg)](LICENSE)
 
-This repository asks: **what does the weight search actually buy, and what do the selected perturbations change?**
+</div>
 
-Confirmatory tests were specified in plan locks committed before their runs; exploratory analyses are labelled
-separately. All locks, per-item outputs and analysis code are in this repository.
+[Neural Thickets](https://arxiv.org/abs/2603.12228) (Gan & Isola, ICML 2026) introduced **RandOpt**: sample thousands
+of Gaussian perturbations of a pretrained model's weights, keep the best on a 200-question selection set, and
+majority-vote their answers. It reports gains that rival PPO and GRPO and reads them as evidence that task experts are
+dense around pretrained weights.
 
-> **Status (2026-10-10):** all confirmatory runs are complete, including a pre-registered reviewer round (public
-> prompt templates, the prompt held fixed on every row, a second OLMo search seed, SC temperature, a randopt.py
-> fidelity check). The paper is being written.
+We ask **what that weight search actually buys**, with same-run controls at RandOpt's own settings, every confirmatory
+test locked in a commit before it ran.
 
-## Findings
+## The answer
 
-### 1. Choosing a prompt on RandOpt's own selection data matches or beats its weight search
+> RandOpt's gain is **a vote**, which sampling the unperturbed model supplies, plus **a shift in answers** that repairs
+> damage done by RandOpt's own prompt. Choosing among a few prompts on RandOpt's own 200 selection questions
+> (600 generations instead of 1,000,000) and then sampling **matches or beats RandOpt in all four rows** when a
+> format-fixing prompt is among the candidates. With that prompt held fixed, **the search adds nothing in any row**,
+> and what it selects is specific to the prompt it ran under.
 
-We ran RandOpt at the paper's settings (N = 5000 perturbations, top K = 50) in four rows, and compared it with
-self-consistency: 50 samples of the unperturbed model, majority-voted, the same test-time budget. RandOpt's published
-numbers reproduce on the Qwen GSM8K rows (77.2 vs 76.4; 86.7 vs 87.1).
+<p align="center"><img src="paper/figures/thickets-or-tilts/fig1_overview.png" width="100%" alt="RandOpt versus the cheap route: prompt selection on the same 200 questions, then sampling"></p>
 
-The practical baseline: choose among three prompts by greedy accuracy on the same 200 selection questions RandOpt
-uses (600 generations instead of RandOpt's 1,000,000), then sample and vote.
+## Results
 
-| Row | RandOpt | Self-consistency, prompt chosen on selection data | Difference [95% CI] |
+**Four same-run rows** (N = 5000 perturbations, K = 50 vote; D = RandOpt − self-consistency@50, paired 95% CI):
+
+| Row | Under RandOpt's prompt | vs SC under the prompt chosen on the selection set | RandOpt searched under that prompt |
 |---|---|---|---|
-| GSM8K / Qwen2.5-1.5B (boxed chosen) | 77.2 | 80.1 | **−2.96 [−4.62, −1.29]** |
-| GSM8K / Qwen2.5-3B (boxed) | 86.7 | 87.0 | −0.38 [−1.67, +0.91], equivalent |
-| GSM8K / OLMo-2-1B (boxed) | 52.5 | 76.1 | **−23.65 [−26.23, −21.08]** |
-| GQA / Qwen2.5-VL-3B (direct) | 63.5 | 64.7 | −1.21 [−2.83, +0.40] |
+| GSM8K · Qwen2.5-1.5B | −2.65 [−4.32, −0.99] SC ahead | −2.96 [−4.62, −1.29] SC ahead | −4.32 [−5.91, −2.81] SC ahead |
+| GSM8K · Qwen2.5-3B | −1.59 [−2.65, −0.53] SC ahead | −0.38 [−1.67, +0.91] equivalent | −1.36 [−2.35, −0.38] SC ahead |
+| GQA · Qwen2.5-VL-3B | **+3.47 [+1.62, +5.41] RandOpt ahead** (replicated +3.63) | −1.21 [−2.83, +0.40] no difference | −0.32 [−1.29, +0.65] equivalent |
+| GSM8K · OLMo-2-1B | **+8.72 [+6.75, +10.77] RandOpt ahead** (replicated +10.39) | −23.65 [−26.23, −21.08] SC ahead | −2.12 [−3.49, −0.83] SC ahead |
 
-**RandOpt is ahead in none of the four rows** (self-consistency ahead in two, no difference detected in two).
+- **Where RandOpt loses,** the selected models are barely better than the base model on their own (+4.0, +0.2): the
+  gain is the vote, and sampling votes better.
+- **Where RandOpt wins,** its own prompt damages the base model by 11.3 (GQA) and 31.6 (OLMo) points; the selected
+  models (about +5 each) recover part of it. On GQA they mostly stop reasoning step by step and answer directly.
+- **The condition, stated plainly.** With public evaluation templates only (lm-evaluation-harness, simple-evals,
+  LLaVA, BLIP-2), prompt selection matches or beats RandOpt in three rows; on Qwen-1.5B no public template beats
+  RandOpt's own prompt and **RandOpt is ahead (+4.17 [+1.97, +6.44])**. The cheap route needs a format-fixing
+  candidate.
 
-The condition (pre-registered check with **public evaluation templates** only: lm-evaluation-harness, simple-evals,
-LLaVA, BLIP-2): the result holds in three rows (Qwen-3B equivalent, OLMo −5.23, GQA −2.67), but on Qwen-1.5B no public
-template beats RandOpt's own prompt and **RandOpt is ahead, +4.17 [+1.97, +6.44]**. The cheap route needs a candidate
-that fixes the answer format (a boxed-answer instruction is one); pooling all candidates restores all four rows.
+<p align="center"><img src="paper/figures/thickets-or-tilts/fig7_same_run_prompt_selection.png" width="62%" alt="RandOpt minus self-consistency per row under four comparisons"></p>
 
-Why, row by row, under RandOpt's own prompts:
+**What a perturbation does.** A first-order prediction from the base model's gradient and each perturbation's noise,
+with **no fitted coefficients**, tracks how perturbations shift answer preferences: r = 0.938 and 0.915 (Qwen3-VL-8B,
+two tasks), 0.925 (Qwen2.5-VL-7B), 0.930 per question in RandOpt's GQA setting, 0.790 / 0.787 on OLMo-2-1B / 7B
+(ARC-Challenge). It lives in the middle language layers (block-level r = 0.978) and **fails where we say it fails**:
+vision weights (r = 0.137), σ = 0.005, chain-of-thought correctness.
 
-| Row | Base | Selected models, individually | RandOpt | Self-consistency | RandOpt − SC |
-|---|---|---|---|---|---|
-| GSM8K / Qwen2.5-1.5B | 60.3 | 64.3 | 77.2 | 79.8 | −2.65 [−4.32, −0.99] |
-| GSM8K / Qwen2.5-3B | 80.7 | 80.9 | 86.7 | 88.2 | −1.59 [−2.65, −0.53] |
-| GQA / Qwen2.5-VL-3B | 53.4 | 58.4 | 63.5 | 60.0 | +3.47 [+1.62, +5.41] (replicated: +3.63) |
-| GSM8K / OLMo-2-1B | 35.3 | 40.3 | 52.5 | 43.7 | +8.72 [+6.75, +10.77] (replicated: +10.39) |
+**Why selection finds shared shifts.** Under that law each question's margin moves by a Gaussian of width σ‖g‖, so
+top-K selection is a noisy step along the selection set's gradient: it rewards shifts shared across questions. Across
+ten searches, selection gains transfer to test only where the prompt leaves ≥ 10 points unclaimed, and the "experts"
+found under one prompt are unrelated to those found under another (rank correlation 0.025 and 0.171; top-50 overlap 0).
 
-- **Where RandOpt loses**, the selected models are barely better than the base model on their own. The gain is the
-  vote, and sampling the unperturbed model votes better.
-- **Where RandOpt wins**, the selected models are about 5 points better on their own: selection found a shift
-  shared across questions. In both rows RandOpt's own prompt damages the base model heavily, and the shift recovers
-  part of that accuracy:
-  - On **GQA**, the step-by-step prompt costs the model 11.3 points. The selected models mostly stop reasoning and
-    answer in a few words. Told to answer directly, the base model scores 64.7% with **one** generation (RandOpt:
-    63.5%, no difference detected). Running RandOpt's whole search under the direct prompt gives 64.4% vs 64.7% for
-    self-consistency: equivalent within 2 points. With the prompt held fixed, weight search adds nothing.
-  - On **OLMo**, the "output the final answer after ####" instruction halves the model's accuracy (33.7% vs 65.3%
-    when simply asked the question).
-- **With the prompt held fixed, the search itself adds nothing, in all four rows.** Re-running RandOpt's whole search
-  under the chosen prompt: GQA 64.4% vs self-consistency 64.7% (equivalent); OLMo 74.0 vs 76.1 (−2.12 [−3.49, −0.83]);
-  Qwen-3B 85.7 vs 87.0 (−1.36 [−2.35, −0.38]); Qwen-1.5B 75.8 vs 80.1 (−4.32 [−5.91, −2.81]). In all four, the selected
-  models are no better than the base model on test.
-- Damage is not the whole story: against the boxed prompt selection chose, Qwen-1.5B is damaged by 10 points too, yet
-  RandOpt still lost there (`paper/figures/thickets-or-tilts/fig8_prompt_damage`).
+## Verify the pre-registration yourself
 
-### 2. A perturbation's effect on answers is first-order, within clear limits
+Every confirmatory test has a `plan_lock.md` committed **before** its output existed. Any result can be checked
+against its lock:
 
-A prediction built from the base model's gradient and each perturbation's noise, with **no fitted coefficients**,
-tracks how small language-weight perturbations shift answer preferences:
+```bash
+git log --diff-filter=A --format="%h %ad" -- results/paper-analysis/ps-prompt-selection/plan_lock.md   # lock first ...
+git log --diff-filter=A --format="%h %ad" -- results/paper-analysis/ps-prompt-selection/PS_RESULT.md    # ... result after
+```
 
-| Setting | r (prediction vs measurement) |
-|---|---|
-| Qwen3-VL-8B, two OmniSpatial tasks (tilts) | 0.938, 0.915 |
-| Qwen2.5-VL-7B (after a reliability-gate failure and a pre-registered remedy) | 0.925 |
-| Qwen2.5-VL-3B, RandOpt's GQA setting, per question | 0.930 |
-| **OLMo-2-1B / 7B, ARC-Challenge** (non-Qwen, text-only) | **0.790 / 0.787** |
+[`paper/RESULTS_MASTER.md` §R9](paper/RESULTS_MASTER.md) lists all 71 locked tests with their rule and outcome,
+including the falsified, inconclusive and gated-out ones; [`results/README.md`](results/README.md) maps each study to
+its lock, result file and role in the paper.
 
-The effect is localized to the middle language layers (block-level r = 0.978). The account has tested limits: it
-fails for vision weights (r = 0.137), breaks down by σ = 0.005, and does not predict chain-of-thought correctness.
-
-### 3. Why selection finds shared shifts, and where that stops
-
-Under the first-order law, a random perturbation shifts each question's answer margin by a Gaussian with standard
-deviation σ‖∇margin‖ (`paper/RESULTS_MASTER.md` §R11). So flip probabilities are predictable per question (AUC 0.935), an
-unselected vote returns the base model's answer (96/96 questions), σ‖∇‖ acts like a per-question sampling
-temperature, and top-K selection is a noisy step along the selection set's gradient: it favours shifts shared across
-the selection questions. This covers direct answers at small σ, not chain-of-thought.
-
-In an N = 5000 search on OmniSpatial (Qwen3-VL-8B), the selected model's +8.0 pp selection gain sat on a question
-format the test set lacked; on fresh, format-matched items it keeps **+2.67 pp [0.17, 4.93]**. Selection favours
-perturbations that tilt answers toward content the selection labels reward, but removing that tilt still leaves +2.33
-of the +2.67 pp. We report this as a limit of the account.
-
-**Scope.** Two tasks for the same-run comparisons, models up to 8B, one RandOpt search per GSM8K row (two on GQA),
-three prompt candidates per task fixed in advance.
-
-## Repository layout
+## Repository map
 
 ```
 paper/
-  STORY.md                   the paper's argument: one question, three claims, where each experiment goes
-  RESULTS_MASTER.md          every number the paper may use (lock commit, source file), the ledger (R9) and the theory (R11)
-  WRITING_PROMPT.md          drafting rules for the paper (structure, wording, what not to claim, credit)
-  figures/thickets-or-tilts/ generated figures and tables;  figures/scripts/thickets_or_tilts.py regenerates them
-results/README.md            index: every study's question, lock commit, result, verdict and role in the paper
-results/paper-analysis/<study>/
-  plan_lock.md               the pre-registration (committed before the run)
-  *_RESULT.md, *_results.json   outcome against the locked rule
-  pod/                       raw per-item outputs pulled from the GPU runs
-results/perspective-taking-n5000-20261004/   raw scores of the original N = 5000 OmniSpatial search
-scripts/                     runners (GPU) and locked analyses (CPU); scripts/README.md maps studies to scripts
-                             (kept flat because plan locks cite these paths)
-src/thicket_runtime/         a small library for fast, verified weight-state handling (used by the runners)
-tests/                       unit tests for the perturbation-folding and grouping code
-examples/                    the frozen OmniSpatial item splits used by the case study
+  latex/main.tex             the paper (ICML 2026 template); main.pdf is the compiled draft
+  RESULTS_MASTER.md          every number the paper may use, with its lock and source file; ledger (R9); theory (R11)
+  STORY.md                   the argument: question, answer, claims, scope, reviewer questions
+  WRITING_PROMPT.md          writing rules: what each result supports and what it does not
+  figures/                   generated figures and tables, and the scripts that regenerate them
+results/
+  README.md                  index of every study
+  paper-analysis/<study>/    plan_lock.md (pre-registration) · *_RESULT.md · pod/ (raw per-item outputs)
+  perspective-taking-n5000-20261004/   raw scores of the original OmniSpatial search
+scripts/                     GPU runners and locked CPU analyses (flat: locks cite these paths); see scripts/README.md
+src/thicket_runtime/         verified weight-state handling used by the runners
+tests/                       unit tests for perturbation folding and grouping
+examples/                    frozen OmniSpatial item splits
 ```
 
-The full ledger of every locked test and its outcome, including falsified and inconclusive ones, is in
-`paper/RESULTS_MASTER.md` §R9.
+## Reproduce
 
-## Reproducing
-
-**CPU analyses and figures** (Python ≥ 3.10):
+**Analyses and figures (CPU, Python ≥ 3.10):**
 
 ```bash
 pip install -e '.[test]'
 git clone https://github.com/sunrainyg/RandOpt third_party/RandOpt && git -C third_party/RandOpt checkout 4000d34
-(cd third_party/RandOpt && python ../../scripts/c_prep_gsm8k.py)   # GSM8K in RandOpt's format (needs `datasets`)
-python paper/figures/scripts/thickets_or_tilts.py          # all figures and tables
+(cd third_party/RandOpt && python ../../scripts/c_prep_gsm8k.py)        # GSM8K in RandOpt's format
+python paper/figures/scripts/thickets_or_tilts.py                        # figures and tables
+python paper/figures/scripts/appendix_tables.py                          # appendix ledger, generated from RESULTS_MASTER
 python scripts/ps_analysis.py --upstream third_party/RandOpt \
-       --ps results/paper-analysis/ps-prompt-selection/pod/ps/out --out /tmp/ps_results.json   # the headline (PS)
-python scripts/theory_check.py                              # theory checks (T1, T2, T4)
+       --ps results/paper-analysis/ps-prompt-selection/pod/ps/out --out /tmp/ps.json   # the headline test
 pytest -q
 ```
 
-Each study's `plan_lock.md` gives its exact commands; `results/README.md` lists every study.
+**Paper:** `cd paper/latex && latexmk -pdf main.tex` (the ICML 2026 style files are included).
 
-**GPU runs** used single- and multi-H100 pods with a pinned stack: vLLM 0.11.0, transformers 4.57.1,
-torch 2.8.0, huggingface-hub 0.36.2, datasets 3.6.0. `scripts/pod_jobqueue.sh <cap_usd> <model> <revision>` sets up
-the pod, pins packages, clones RandOpt @ 4000d34, enforces a hard spending cap and an idle stop, and runs queued
-job scripts.
+**GPU runs** used rented H100 pods with a pinned stack (vLLM 0.11.0, transformers 4.57.1, torch 2.8.0).
+`scripts/pod_jobqueue.sh <cap_usd> <model> <revision>` sets up a pod, enforces a hard spending cap and an idle stop,
+and runs queued job scripts; each study's lock gives its exact commands. About $400 of GPU time in total.
 
-Models (pinned revisions in each lock): Qwen3-VL-8B-Instruct, Qwen2.5-VL-7B/3B-Instruct, Qwen2.5-1.5B/3B-Instruct,
-OLMo-2-0425-1B-Instruct, OLMo-2-1124-7B-Instruct. Data: OmniSpatial, GQA (testdev-balanced), GSM8K,
-ARC-Challenge, MATH-500.
+> **GQA note.** RandOpt's released script cannot pass images to the model, so the GQA rows re-implement its loop on
+> RandOpt's own perturbation, scoring and voting components, gated on fidelity to RandOpt's logs.
 
-**A note on GQA:** RandOpt's released `randopt.py` (4000d34) builds text-only prompts and does not pass images to
-vLLM, so it cannot run GQA with images. Our GQA runs (`g2-sameRun/`, `g2r-seed/`) re-implement its loop on RandOpt's own
-perturbation, scoring and voting components.
+## Scope
 
-## History
+Two tasks (GSM8K, GQA), models up to 8B, RandOpt's 200-question selection set, and a first-order account that covers
+direct answers rather than chain-of-thought correctness. We do not claim that nearby better models are absent: they
+are common (11.8–58.3% of perturbations beat the base model on the selection set). We claim that, at RandOpt's
+settings, what selection recovers is what a prompt also recovers.
 
-This repository began as a broader exploration (runtime profiling, adaptive evaluation, complementarity selection,
-visual line-tracing, an "expert mirage" framing). Those directions were removed from the working tree on 2026-10-07
-and are preserved at git tag [`pre-cleanup`](../../tree/pre-cleanup). The OmniSpatial case-study notes (`CORRECTION_SPLIT_MISMATCH.md`,
-`WHY_INVESTIGATION_9504111.md`) and the standalone `THEORY.md` (now RESULTS_MASTER §R11) are at
-[`pre-cleanup-3`](../../tree/pre-cleanup-3); older plan locks still cite them by their original paths. A smaller cleanup on 2026-10-09 (operational
-logs) is preserved at [`pre-cleanup-2`](../../tree/pre-cleanup-2).
+## Citation
+
+```bibtex
+@misc{yeluripati2026randomweightsearch,
+  title  = {What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt},
+  author = {Yeluripati, Karthik},
+  year   = {2026},
+  note   = {Under review},
+  url    = {https://github.com/karthikyeluripati/thickets}
+}
+```
 
 ## Credit
 
-This work builds on and re-examines Neural Thickets and RandOpt (Gan & Isola; code at
-[sunrainyg/RandOpt](https://github.com/sunrainyg/RandOpt)). Related observations we credit:
-- the original paper's own analysis of format effects;
-- selection bias toward the selection set (arXiv 2608.10867);
-- the blog posts *A Thicket by Any Other Name* and *When does RandOpt work?*.
+This work re-examines [Neural Thickets / RandOpt](https://github.com/sunrainyg/RandOpt) (Gan & Isola, ICML 2026), whose
+paper already separates format from reasoning gains. Related work we build on or credit:
+[Cendra et al. (arXiv 2608.10867)](https://arxiv.org/abs/2608.10867) on Bayesian optimization over perturbations;
+[*A Thicket by Any Other Name*](https://noxidog.substack.com/p/a-thicket-by-any-other-name) (Tervel Atanassov);
+[*When does RandOpt work?*](https://kindxiaoming.github.io/blog/2026/randopt/) (Ziming Liu); self-consistency
+(Wang et al., 2023).
 
-Self-consistency follows Wang et al. (2023).
+<details>
+<summary>Repository history</summary>
+
+This repository began as a broader exploration (runtime profiling, adaptive evaluation, complementarity selection,
+visual line-tracing, an "expert mirage" framing). Those directions were removed on 2026-10-07 and are preserved at tag
+[`pre-cleanup`](../../tree/pre-cleanup). The OmniSpatial case-study notes and the standalone theory note are at
+[`pre-cleanup-3`](../../tree/pre-cleanup-3) (older locks cite them by their original paths); operational logs removed
+on 2026-10-09 are at [`pre-cleanup-2`](../../tree/pre-cleanup-2).
+</details>

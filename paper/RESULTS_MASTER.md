@@ -530,9 +530,13 @@ diagnostic) have their own locks. Their TEST-based conclusions are superseded by
 
 ## R10. Prior-work overlap (must be cited and credited)
 - Format effects: the original paper (§8, "format thickets": GSM8K 19.0% format vs 12.3% reasoning).
-- Selection bias / overfitting to the selection set: arXiv 2608.10867 (Bayesian optimization in Neural Thickets).
-- Informal geometric intuition: the blog "A Thicket by Any Other Name".
-- Sequence-length dependence: Ziming Liu's blog "When does RandOpt work?".
+- Search efficiency: Cendra et al., "Can Bayesian Optimization Efficiently Find a Strong Single Expert in Neural
+  Thickets?" (arXiv 2608.10867): Bayesian optimization in a random linear embedding matches or exceeds RandOpt with
+  five times fewer candidate evaluations. (Not about overfitting; an earlier note here misdescribed it.)
+- Interpretation: Tervel Atanassov, "A Thicket by Any Other Name" (Substack, 2026-03-31): the thicket reflects unused
+  parameter capacity rather than pre-solved tasks.
+- Sequence-length dependence: Ziming Liu, "When does RandOpt work?" (blog, March 2026): RandOpt's advantage over
+  gradient methods grows with output sequence length.
 
 ## R11. Theory: first-order account linking the tilt law to voting and selection (derivations; checks in R8c)
 

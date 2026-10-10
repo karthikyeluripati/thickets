@@ -8,58 +8,49 @@
 % PAGE LIMIT (check the current CFP): 8 pages of main text; references, impact statement and appendix unlimited.
 % DOUBLE-BLIND: no names, no GitHub links with usernames; use an anonymous repository for code.
 % =====================================================================================================
-\def\icmlstyle{icml2026}   % <- change to the official style name once the files are in this folder
-\IfFileExists{\icmlstyle.sty}{%
-  \documentclass{article}
-  \IfFileExists{microtype.sty}{\usepackage{microtype}}{}\usepackage{graphicx}\usepackage{booktabs}\usepackage{hyperref}
-  \usepackage{\icmlstyle}  % submission mode = anonymous; add [accepted] only for camera-ready
-  \def\usingicml{1}
-}{%
-  \documentclass[10pt,twocolumn]{article}
-  \usepackage[margin=0.75in]{geometry}\IfFileExists{microtype.sty}{\usepackage{microtype}}{}\usepackage{graphicx}\usepackage{booktabs}
-  \usepackage{hyperref}\usepackage{natbib}
-}
+\documentclass{article}
+\usepackage{microtype}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\newcommand{\theHalgorithm}{\arabic{algorithm}}
+\usepackage{icml2026}            % submission (anonymous); use [accepted] for camera-ready, [preprint] for arXiv
 \usepackage{amsmath,amssymb}
 \usepackage{xcolor}
 \usepackage{longtable}
 \newcommand{\todo}[1]{\textcolor{red}{[TODO: #1]}}
 \newcommand{\SC}{SC@50}
 \graphicspath{{../figures/thickets-or-tilts/}}
+\icmltitlerunning{What Does Random Weight Search Buy?}
 
 \begin{document}
 
-\ifdefined\usingicml
-  \twocolumn[
+\twocolumn[
   \icmltitle{What Does Random Weight Search Buy?\\Votes, Prompts and First-Order Tilts in RandOpt}
   \begin{icmlauthorlist}\icmlauthor{Anonymous Authors}{anon}\end{icmlauthorlist}
-  \icmlaffiliation{anon}{Anonymous Institution}
-  \icmlcorrespondingauthor{Anonymous}{anon@example.com}
-  \vskip 0.3in]
-  \printAffiliationsAndNotice{}
-\else
-  \title{What Does Random Weight Search Buy?\\Votes, Prompts and First-Order Tilts in RandOpt}
-  \author{Anonymous Authors}\date{}\maketitle
-\fi
+  \icmlaffiliation{anon}{Anonymous Institution, Anonymous City, Anonymous Country}
+  \icmlcorrespondingauthor{Anonymous Authors}{anon.email@domain.com}
+  \icmlkeywords{random weight perturbation, RandOpt, self-consistency, prompt selection, evaluation, first-order analysis}
+  \vskip 0.3in
+]
+\printAffiliationsAndNotice{}
+
 
 % -----------------------------------------------------------------------------------------------------
 \begin{abstract}
-% Every number must match RESULTS_MASTER. Keep all qualifiers ("matches or beats", "no difference").
+% ICML: one paragraph, roughly 4--6 sentences. Every number must match RESULTS_MASTER.
 Random-perturbation post-training (RandOpt) samples thousands of Gaussian weight perturbations of a pretrained model,
-keeps the best on a small selection set and majority-votes them, reportedly rivalling PPO and GRPO. We ask what the
-weight search buys. Running RandOpt at its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA
-with Qwen2.5-VL-3B), we reproduce its published numbers and decompose its gain into a vote and a shift in answers
-shared across questions. Where the selected models barely beat the base model, self-consistency over 50 samples of the
-unperturbed model beats RandOpt. Where RandOpt leads, its own prompt costs the base model 11.3 and 31.6 points and the
-selected perturbations recover part of that accuracy. Choosing among a few prompts on RandOpt's own selection
-questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four rows when the
-candidates include a format-fixing prompt, and in three of four with public evaluation templates alone. With the
-chosen prompt held fixed, RandOpt's search adds nothing over sampling in any row, and its selected models are no better
-than the base model on test: what selection finds is specific to the prompt it runs under. A first-order account,
-computed from the base model's gradient and each perturbation's noise with no fitted coefficients, tracks how
-perturbations shift answer preferences ($r = 0.787$--$0.938$ across five models in two families), localizes the effect
-to middle language layers and explains why selection favours shared shifts; it fails for vision weights, large
-$\sigma$ and chain-of-thought correctness. Confirmatory tests were specified in plan locks committed before their
-runs; we release all locks, data and code.
+keeps the best on a small selection set and majority-votes them; we ask what this weight search buys. Running RandOpt at
+its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA with Qwen2.5-VL-3B), we find its gain is a
+vote, which sampling the unperturbed model supplies, plus a shift in answers that repairs damage done by RandOpt's own
+prompt (11.3 and 31.6 points in the two rows where it beats self-consistency). Choosing among a few prompts on
+RandOpt's own selection questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in
+all four rows when the candidates include a format-fixing prompt, and in three of four with public evaluation templates
+alone. With the chosen prompt held fixed, RandOpt's search adds nothing over sampling in any row, and what it selects is
+specific to the prompt it ran under. A first-order account with no fitted coefficients tracks how perturbations shift
+answer preferences ($r = 0.787$--$0.938$ across five models in two families), localizes the effect to middle language
+layers and explains why selection favours shared shifts, while failing for vision weights, large $\sigma$ and
+chain-of-thought correctness; all confirmatory tests were specified in plan locks committed before their runs.
 \end{abstract}
 
 % -----------------------------------------------------------------------------------------------------
@@ -102,7 +93,9 @@ specific to the prompt it runs under.
     (Sections~\ref{sec:law}--\ref{sec:selection}).
 \end{enumerate}
 Confirmatory tests were specified in plan locks committed before their corresponding runs; exploratory analyses are
-identified separately. We release every lock, all per-item outputs and the analysis code.
+identified separately. Every lock, all per-item outputs and the analysis code are released in an anonymized
+repository accompanying this submission.
+% Camera-ready: \url{https://github.com/karthikyeluripati/thickets}
 
 \begin{figure*}[t]
   \centering
@@ -401,10 +394,11 @@ accuracy at least as high ($-1.50$ [$-5.35$, $+2.23$], no difference detected, n
 \textbf{Random weight search.} RandOpt \citep{gan2026thickets} belongs to the family of zeroth-order, population-based
 methods such as evolution strategies \citep{salimans2017evolution}, applied here as a single round of sampling and
 selection around a pretrained model. Its authors already separate format from reasoning gains on GSM8K (``format
-thickets''); our results agree with that reading and quantify it against cheap baselines. Concurrent work shows that
-selection on small sets overfits in this setting and proposes Bayesian optimization over perturbations
-\citep{bo2026thickets}; informal analyses discuss the geometry of the thicket \citep{blog_thicket_other_name} and when
-RandOpt helps as a function of sequence length \citep{liu_when_randopt}. We add same-run baselines, controls that
+thickets''); our results agree with that reading and quantify it against cheap baselines. Concurrent work finds that
+Bayesian optimization within a random linear embedding of weight space matches or exceeds RandOpt with five times fewer
+candidate evaluations \citep{cendra2026bo}. Informal analyses argue that the thicket reflects unused parameter
+capacity rather than pre-solved tasks \citep{atanassov2026thicket}, and that RandOpt's advantage over gradient methods
+grows with output sequence length \citep{liu2026randopt}. We add same-run baselines, controls that
 isolate each component, and a tested account of what single perturbations do.
 
 \textbf{Voting and prompts.} Self-consistency \citep{wang2023selfconsistency} is the natural baseline for any method
@@ -449,7 +443,7 @@ weight search that costs more than 1,600 times as much selection compute, which 
 post-training experiments of this kind.
 
 \bibliography{refs}
-\ifdefined\usingicml\bibliographystyle{\icmlstyle}\else\bibliographystyle{plainnat}\fi
+\bibliographystyle{icml2026}
 
 % =====================================================================================================
 \appendix
@@ -612,7 +606,7 @@ prediction's variance with $r = -0.008$, and the language part alone gives $r = 
 
 \section{OmniSpatial Case Study}\label{app:omnispatial}
 A pre-committed $N{=}5000$ search on Qwen3-VL-8B (all parameters including vision; $\sigma \in \{0.00025, 0.0005,
-0.001, 0.002\}$) on OmniSpatial perspective taking \citep{omnispatial}, direct-letter prompt, in three stages: a
+0.001, 0.002\}$) on OmniSpatial perspective taking \citep{jia2026omnispatial}, direct-letter prompt, in three stages: a
 selection set of 200, a re-ranking set of 200 (543 candidates) and the official test set of 561 items. The winner
 (seed 9504111, $\sigma = 0.002$) gained $+2.5$ points on selection and $+8.0$ on re-ranking, and lost $2.67$ on the
 official test. The selection and re-ranking sets are 185/200 and 189/200 eight-way compass-format items; the official

@@ -71,9 +71,10 @@ exactly how far each result goes and no further.
    replicate with a second population (G2R; RV-3, fast runner). Five public templates were fixed in the RV lock. Vote efficiency: sampling's vote adds more than RandOpt's in three rows, less on OLMo
    (exploratory); never write "sampling supplies the vote at least as well". "Nearby better models are common" only
    with the 11.8–58.3% numbers (same-engine base) and "the population mean is at or below base".
-9. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); selection bias toward the
-   selection set (arXiv 2608.10867); "A Thicket by Any Other Name" (geometric intuition); "When does RandOpt work?"
-   (sequence-length dependence); self-consistency (Wang et al. 2023).
+9. **Credit prior work** (R10): the original paper's format analysis ("format thickets"); Bayesian optimization
+   finding a strong single expert with fewer evaluations (Cendra et al., arXiv 2608.10867; not an overfitting result);
+   "A Thicket by Any Other Name" (Atanassov: unused capacity, not pre-solved tasks); "When does RandOpt work?" (Liu:
+   sequence-length dependence); self-consistency (Wang et al. 2023). Describe each only as its own abstract does.
 
 ## Title
 *What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt*
@@ -112,7 +113,7 @@ exactly how far each result goes and no further.
    prompt's answers; not on OLMo. Say "in our settings", never "there are no task experts". T1, T2, T4 checks; T3 as derivation; the OmniSpatial
    search: split mismatch, matched transfer (+2.67), front tilt, calibration (not explained); Figure 5.
 6. **Related work.** RandOpt / Neural Thickets; ES for LLMs; self-consistency and test-time scaling; prompt
-   sensitivity and prompt selection; 2608.10867; model soups and weight averaging; linear-response / NTK-style
+   sensitivity and prompt selection; Cendra et al. (2608.10867); model soups and weight averaging; linear-response / NTK-style
    analyses; evaluation reliability and selection bias.
 7. **Discussion, recommendations and limitations.** What weight search buys in our settings; five recommendations
    for evaluating weight-space search; the scope list from STORY ("Scope and limits").

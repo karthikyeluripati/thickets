@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt"
+authors:
+  - family-names: Yeluripati
+    given-names: Karthik
+date-released: 2026-10-10
+version: 1.0.0
+repository-code: "https://github.com/karthikyeluripati/thickets"
+license: MIT
+keywords:
+  - random weight perturbation
+  - RandOpt
+  - neural thickets
+  - self-consistency
+  - prompt selection
+  - pre-registration
+  - evaluation
+references:
+  - type: conference-paper
+    title: "Neural Thickets: Diverse Task Experts Are Dense Around Pretrained Weights"
+    authors:
+      - family-names: Gan
+        given-names: Yulu
+      - family-names: Isola
+        given-names: Phillip
+    year: 2026
+    conference:
+      name: "International Conference on Machine Learning (ICML)"
