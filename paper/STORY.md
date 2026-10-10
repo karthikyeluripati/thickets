@@ -1,6 +1,7 @@
 # STORY: the canonical paper story
 
-Numbers only from `RESULTS_MASTER.md` (sections in brackets). Status 2026-10-10: all confirmatory runs complete,
+Numbers only from `RESULTS_MASTER.md` (sections in brackets). Status 2026-10-10: all confirmatory runs complete and
+the LaTeX draft is complete (8 pages main text + appendices A–I; every number audited against RESULTS_MASTER);
 including the reviewer round (RV, R8b.5/R8b.9/R8b.10; RV-3 replicated the OLMo row with a second seed).
 
 ## Title
