@@ -1,4 +1,4 @@
-RATE=15.96 START=1791584669 CAP=94
+RATE=15.96 START=1791589696 CAP=19
 + touch /workspace/JOB_RUNNING
 + python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer accelerate pandas pyarrow datasets==3.6.0
 + tail -1
@@ -6,8 +6,8 @@ WARNING: Running pip as the 'root' user can result in broken permissions and con
 + HF_HUB_ENABLE_HF_TRANSFER=1
 + python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''Qwen/Qwen2.5-3B-Instruct'\'',revision='\''aa8e72537993ba99e69dfaafa59ed015b17504d1'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
 MODEL /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1
-+ echo 'MODEL_SHA aa8e72537993ba99e69dfaafa59ed015b17504d1'
 + tee /workspace/model_sha.txt
++ echo 'MODEL_SHA aa8e72537993ba99e69dfaafa59ed015b17504d1'
 MODEL_SHA aa8e72537993ba99e69dfaafa59ed015b17504d1
 + git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
 + git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
@@ -20,23 +20,166 @@ MODEL_SHA aa8e72537993ba99e69dfaafa59ed015b17504d1
 + echo SETUP_DONE
 SETUP_DONE
 + true
-++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-rv4.sh /workspace/jobs/03-rv15.sh /workspace/jobs/04-rv2a.sh /workspace/jobs/05-rv3.sh /workspace/jobs/06-rv2b.sh /workspace/jobs/07-done.sh
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
 ++ sort
 + for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
 + '[' -e /workspace/jobs/01-prep.rc ']'
 + touch /workspace/JOB_RUNNING
 + bash /workspace/jobs/01-prep.sh
 ++ date -u +%FT%TZ
-+ echo 'rc=0 2026-10-09T22:34:07Z'
++ echo 'rc=0 2026-10-09T23:53:09Z'
 + rm -f /workspace/JOB_RUNNING
 + touch /workspace/LAST_ACTIVITY
 + for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
-+ '[' -e /workspace/jobs/02-rv4.rc ']'
-+ continue
-+ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
-+ '[' -e /workspace/jobs/03-rv15.rc ']'
-+ continue
-+ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
-+ '[' -e /workspace/jobs/04-rv2a.rc ']'
++ '[' -e /workspace/jobs/02-select.rc ']'
 + touch /workspace/JOB_RUNNING
-+ bash /workspace/jobs/04-rv2a.sh
++ bash /workspace/jobs/02-select.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-10T00:26:43Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/03-test.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-10T00:30:58Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/04-done.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-10T00:30:58Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10
++ true
+++ sort
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-select.sh /workspace/jobs/03-test.sh /workspace/jobs/04-done.sh
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-select.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-test.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/04-done.rc ']'
++ continue
++ sleep 10

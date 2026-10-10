@@ -1,0 +1,123 @@
++ grep -q '^rc=0 ' /workspace/jobs/02-select.rc
++ export HF_HOME=/workspace/hf VLLM_LOGGING_LEVEL=WARNING
++ HF_HOME=/workspace/hf
++ VLLM_LOGGING_LEVEL=WARNING
++ cd /workspace/repo
+++ cat /workspace/mp_q3.txt
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1
++ ROOT=/workspace/rv/q3
++ pids=()
++ for layer in 0 1
++ for g in 0 1 2 3
++ w=0
++ pids[$w]=8150
++ for g in 0 1 2 3
++ w=1
++ CUDA_VISIBLE_DEVICES=0
++ pids[$w]=8151
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 0 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ for g in 0 1 2 3
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 1 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ w=2
++ pids[$w]=8152
++ for g in 0 1 2 3
++ w=3
++ pids[$w]=8153
++ '[' 0 = 0 ']'
++ for g in 0 1 2 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 3 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 2 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ sleep 3
++ kill -0 8150
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_0.log
++ for g in 0 1 2 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_1.log
++ for g in 0 1 2 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_2.log
++ for g in 0 1 2 3
++ grep -q ENGINE_READY /workspace/rv/q3/out_test_3.log
++ for layer in 0 1
++ for g in 0 1 2 3
++ w=4
++ pids[$w]=9173
++ for g in 0 1 2 3
++ w=5
++ CUDA_VISIBLE_DEVICES=0
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 4 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ pids[$w]=9174
++ for g in 0 1 2 3
++ w=6
++ CUDA_VISIBLE_DEVICES=1
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 5 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ pids[$w]=9175
++ for g in 0 1 2 3
++ w=7
++ CUDA_VISIBLE_DEVICES=2
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 6 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ pids[$w]=9176
++ '[' 1 = 0 ']'
++ rc=0
++ for p in "${pids[@]}"
++ wait 8150
++ CUDA_VISIBLE_DEVICES=3
++ python -u scripts/gsm_randopt_fast.py --phase test --worker 7 --workers 8 --root /workspace/rv/q3 --out out --model-path /workspace/hf/hub/models--Qwen--Qwen2.5-3B-Instruct/snapshots/aa8e72537993ba99e69dfaafa59ed015b17504d1 --gpu-mem 0.38 --prompt boxed --pop-seed 42
++ for p in "${pids[@]}"
++ wait 8151
++ for p in "${pids[@]}"
++ wait 8152
++ for p in "${pids[@]}"
++ wait 8153
++ for p in "${pids[@]}"
++ wait 9173
++ for p in "${pids[@]}"
++ wait 9174
++ for p in "${pids[@]}"
++ wait 9175
++ for p in "${pids[@]}"
++ wait 9176
++ wc -l
++ ls /workspace/rv/q3/out/test_rank0.json /workspace/rv/q3/out/test_rank1.json /workspace/rv/q3/out/test_rank10.json /workspace/rv/q3/out/test_rank11.json /workspace/rv/q3/out/test_rank12.json /workspace/rv/q3/out/test_rank13.json /workspace/rv/q3/out/test_rank14.json /workspace/rv/q3/out/test_rank15.json /workspace/rv/q3/out/test_rank16.json /workspace/rv/q3/out/test_rank17.json /workspace/rv/q3/out/test_rank18.json /workspace/rv/q3/out/test_rank19.json /workspace/rv/q3/out/test_rank2.json /workspace/rv/q3/out/test_rank20.json /workspace/rv/q3/out/test_rank21.json /workspace/rv/q3/out/test_rank22.json /workspace/rv/q3/out/test_rank23.json /workspace/rv/q3/out/test_rank24.json /workspace/rv/q3/out/test_rank25.json /workspace/rv/q3/out/test_rank26.json /workspace/rv/q3/out/test_rank27.json /workspace/rv/q3/out/test_rank28.json /workspace/rv/q3/out/test_rank29.json /workspace/rv/q3/out/test_rank3.json /workspace/rv/q3/out/test_rank30.json /workspace/rv/q3/out/test_rank31.json /workspace/rv/q3/out/test_rank32.json /workspace/rv/q3/out/test_rank33.json /workspace/rv/q3/out/test_rank34.json /workspace/rv/q3/out/test_rank35.json /workspace/rv/q3/out/test_rank36.json /workspace/rv/q3/out/test_rank37.json /workspace/rv/q3/out/test_rank38.json /workspace/rv/q3/out/test_rank39.json /workspace/rv/q3/out/test_rank4.json /workspace/rv/q3/out/test_rank40.json /workspace/rv/q3/out/test_rank41.json /workspace/rv/q3/out/test_rank42.json /workspace/rv/q3/out/test_rank43.json /workspace/rv/q3/out/test_rank44.json /workspace/rv/q3/out/test_rank45.json /workspace/rv/q3/out/test_rank46.json /workspace/rv/q3/out/test_rank47.json /workspace/rv/q3/out/test_rank48.json /workspace/rv/q3/out/test_rank49.json /workspace/rv/q3/out/test_rank5.json /workspace/rv/q3/out/test_rank6.json /workspace/rv/q3/out/test_rank7.json /workspace/rv/q3/out/test_rank8.json /workspace/rv/q3/out/test_rank9.json
+50
++ '[' -e /workspace/rv/q3/out/test_rank49.json ']'
++ '[' -e /workspace/rv/q3/out/test_base.json ']'
++ exit 0
