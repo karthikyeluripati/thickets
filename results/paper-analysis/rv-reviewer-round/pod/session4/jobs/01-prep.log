@@ -1,0 +1,29 @@
++ export HF_HOME=/workspace/hf HF_HUB_DISABLE_XET=1
++ HF_HOME=/workspace/hf
++ HF_HUB_DISABLE_XET=1
++ cd /workspace/repo
++ for i in 1 2 3 4 5
+++ python -c 'from huggingface_hub import snapshot_download as s;print(s('\''Qwen/Qwen2.5-1.5B-Instruct'\'',revision='\''989aa7980e4cf806f80c7fef2b1adb7bc71aa306'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+++ tail -1
+Fetching 7 files:   0%|          | 0/7 [00:00<?, ?it/s]Fetching 7 files: 100%|██████████| 7/7 [00:00<00:00, 2026.93it/s]
++ MP=/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
++ ls /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/model.safetensors
+/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/model.safetensors
++ python -c 'import safetensors.torch as s,glob;[s.load_file(f,device='\''cpu'\'') for f in glob.glob('\''/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/*.safetensors'\'')];print('\''WEIGHTS_OK'\'')'
+WEIGHTS_OK
++ break
++ echo /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306
++ ls /workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/model.safetensors
+/workspace/hf/hub/models--Qwen--Qwen2.5-1.5B-Instruct/snapshots/989aa7980e4cf806f80c7fef2b1adb7bc71aa306/model.safetensors
++ cd /workspace/RandOpt
++ python -u /workspace/repo/scripts/c_prep_gsm8k.py
++ tee /workspace/data_hashes.txt
+Generating train split:   0%|          | 0/7473 [00:00<?, ? examples/s]Generating train split: 100%|██████████| 7473/7473 [00:00<00:00, 276081.05 examples/s]
+Generating test split:   0%|          | 0/1319 [00:00<?, ? examples/s]Generating test split: 100%|██████████| 1319/1319 [00:00<00:00, 235817.86 examples/s]
+train 7473 c6f812ae33c9159d
+test 1319 59ec1b7f9357c7a2
++ grep -q 'train 7473 c6f812ae33c9159d' /workspace/data_hashes.txt
++ grep -q 'test 1319 59ec1b7f9357c7a2' /workspace/data_hashes.txt
++ python -c 'import datasets; datasets.load_dataset('\''openai/gsm8k'\'','\''main'\'',split='\''train'\''); datasets.load_dataset('\''openai/gsm8k'\'','\''main'\'',split='\''test'\''); print('\''GSM8K cached'\'')'
+GSM8K cached
++ mkdir -p /workspace/rv
