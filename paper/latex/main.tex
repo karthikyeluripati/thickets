@@ -306,7 +306,47 @@ with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger
 % - Localization: middle language layers, block-level r = 0.978 (Figure 4).
 % - Limits (as important as the law): vision weights (r = 0.137, falsified); sigma = 0.005 breaks (0.21-0.31);
 %   CoT correctness unrelated (22% flip at sigma <= 0.002); R2 inconclusive then replicated with a pre-fixed remedy.
-\todo{write}
+Section~\ref{sec:buys} treated the selected perturbations as black boxes. Here we ask what a single perturbation does to
+a model's answers, in the regime where that can be measured cleanly: direct answers, where each question has a
+well-defined preference between candidate answers.
+
+\textbf{A first-order prediction.} Let $c_j(\theta)$ be a contrast for question $j$, for example the log-probability of
+one answer option minus another, or a tilt averaged over questions toward options containing a given content word. A
+perturbation $\theta_0 + \sigma\epsilon$ changes it by
+\begin{equation}
+  \Delta c_j \approx \sigma \langle g_j, \epsilon \rangle, \qquad g_j = \mathrm{fold}\big(\nabla_\theta c_j(\theta_0)\big),
+  \label{eq:law}
+\end{equation}
+where $\mathrm{fold}$ maps each parameter tensor's gradient onto the coordinates of RandOpt's shared noise stream
+(Appendix~\ref{app:theory}). The prediction needs the base model's gradient and the perturbation's own noise; it has no
+fitted coefficients. We reconstructed every perturbation byte-exactly from RandOpt's generator and verified it against
+the engine's weights.
+
+\textbf{It tracks the measurements across models and tasks} (Figure~\ref{fig:law}). For content tilts on two OmniSpatial
+tasks, prediction and measurement correlate at $r = 0.938$ and $0.915$ (Qwen3-VL-8B), and at
+$0.925$ for Qwen2.5-VL-7B, after a first attempt failed its reliability gate (0.52) and a remedy fixed in advance was
+applied (slopes 0.83--0.92 across these three tests). Per question, in RandOpt's own GQA setting with direct answers, $r = 0.930$ for $\sigma \le 0.002$. On a
+different family and a text-only task, OLMo-2-1B and OLMo-2-7B on ARC-Challenge \citep{clark2018arc}, $r = 0.790$ and
+$0.787$ (slopes 0.76 and 0.77). The law also holds item by item rather than only on average: the pooled per-item
+correlation is $0.771$, with a per-item median of 0.88. In the first test, 99\% of the measured tilt variance is answer
+content, not letter position. The prediction is first-order, not exact: slopes are below one and the scatter is real.
+
+\textbf{It is localized to the middle language layers} (Figure~\ref{fig:localization}). Inserting the perturbation one
+block at a time, the block-level prediction holds at $r = 0.978$ (slope 0.95), contributions add up ($r = 0.96$), and
+layers 6--23 of 36 carry 0.91 of the measured tilt variance (0.41, 0.22 and 0.28 for layers 6--11, 12--17 and 18--23;
+predicted 0.44, 0.22, 0.23). The middle layers carry most of the predicted variance for a second task (0.73) and a
+second model (0.77).
+
+\textbf{Its limits are as clear as its successes.} (i) \emph{Vision weights}: with the vision encoder perturbed too, the
+whole-model first-order prediction of per-example contrasts fails its locked test ($r = 0.137$, falsified); the vision
+group alone gives $r = 0.05$, while language groups give 0.71--0.96. (ii) \emph{Noise scale}: at $\sigma = 0.005$, beyond
+RandOpt's grid, the law breaks in every model we tested ($r = 0.21$--$0.31$), consistent with second-order drift.
+(iii) \emph{Chain of thought}: under RandOpt's step-by-step GQA prompt, 22\% of question--perturbation pairs flip
+correctness at $\sigma \le 0.002$, unrelated to the first-order contrast (sign agreement 0.52). Perturbations and
+sampling flip similarly susceptible questions (Spearman 0.946 between per-question flip propensities), but perturbed
+models carry persistent effects across question sets ($r = 0.74$), so perturbation is not pure re-sampling. The
+accounts of Sections~\ref{sec:law} and~\ref{sec:selection} therefore cover the direct-answer regime; Section~\ref{sec:buys}
+rests on its own experiments.
 
 \begin{figure*}[t]
   \centering
@@ -337,7 +377,40 @@ with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger
 %   rows are CoT and rest on their own experiments.
 % - Case study (one paragraph): OmniSpatial winner +8.0 selection -> +2.67 [0.17, 4.93] fresh; label-aligned tilt;
 %   C1-1 not explained (+2.33 of +2.67 remain). Details Appendix.
-\todo{write}
+\textbf{Selection gains transfer only where the prompt leaves accuracy unclaimed} (exploratory; Figure~\ref{fig:transfer}).
+In every one of our nine $N{=}5000$ searches, the top 50 beat the base model on the 200 selection questions, while the
+population mean is at or below base. Whether that gain survives on test depends on the prompt. Under a prompt that
+damages the base model by 10 points or more, the selected models are better on test by 4.0--5.1 points (GQA twice, OLMo,
+Qwen-1.5B); under RandOpt's prompt for Qwen-3B, which costs little, by 0.2; and under every chosen prompt they are
+slightly worse than base ($-0.5$ to $-0.8$). Selection always finds models that look better on 200 questions; only a
+shared, prompt-repairing shift carries over.
+
+\textbf{What selection finds is specific to the prompt} (exploratory; Figure~\ref{fig:experts}). Scoring the same 5000
+perturbations under two prompts, their selection rewards are nearly unrelated (Spearman 0.025 on OLMo, 0.171 on GQA),
+and the winners under RandOpt's prompt fall to the 37th and 31st percentile under the better prompt. On GQA the selected
+perturbations reproduce the direct prompt's answers: where the two base prompts disagree, they side with the direct
+one 48.7\% of the time against 15.3\%. On OLMo they do not (24.1\% vs 27.7\%). In our settings, then, the dense
+``experts'' near the pretrained weights are repairs for a particular prompt rather than task experts.
+
+\textbf{Why selection favours shared shifts.} Under Equation~\ref{eq:law}, a perturbation moves question $j$'s margin
+by a Gaussian amount with standard deviation $\sigma\|g_j\|$ (Appendix~\ref{app:theory}). Three consequences follow,
+which we checked against criteria fixed before computing them (exploratory, on existing data). A question flips with
+probability $\Phi(-|c_j|/\sigma\|g_j\|)$, which predicts observed flips (AUC 0.935, calibrated within a factor of 1.41).
+An unselected vote returns the base answer, as it does on 96 of 96 questions. And top-$K$ selection acts as a noisy
+first-order step along the selection set's folded gradient: it rewards directions shared across the selection
+questions, such as a format or answer-preference shift, and otherwise fits selection-set noise. This last step is
+derived, not tested directly. The account covers direct answers at small $\sigma$; that the shared shifts we found are
+ones a prompt also gives is an empirical finding of Section~\ref{sec:buys}, not a consequence of the theory.
+
+\textbf{A case study at its boundary.} One OmniSpatial search (Qwen3-VL-8B, $N{=}5000$) produced a winner whose $+8.0$
+point gain on its re-ranking set sat entirely on a question format (compass directions) that the official test set
+nearly lacks (2 of 561 items); on fresh items matched to the selection data it keeps $+2.67$ [$+0.17$,
+$+4.93$]. Selection had favoured a tilt toward the answer content the selection labels reward, as the theory predicts.
+But removing that content shift leaves $+2.33$ of the $+2.67$ (not explained), and the full first-order prediction does
+not explain which items the winner changes ($r = 0.16$, failing its locked test). The winner's gain is also
+prompt-specific: under the benchmark's step-by-step prompts it becomes $-0.67$ [$-3.95$, $+2.51$] or $-3.83$
+[$-6.81$, $-0.84$], and a prompt chosen on the winner's own selection data gives the unperturbed model an accuracy at
+least as high ($-1.50$ [$-5.35$, $+2.23$], no difference detected, not equivalent; Appendix~\ref{app:omnispatial}).
 
 \begin{figure}[t]
   \centering
@@ -363,7 +436,24 @@ with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger
 % self-consistency and test-time scaling; prompt sensitivity and prompt selection; selection bias in thickets
 % (arXiv 2608.10867); weight averaging / model soups; linear-response / NTK-style analyses; evaluation reliability.
 % Credit (Rule 9): format thickets (original paper), 2608.10867, the two blog posts.
-\todo{write}
+\textbf{Random weight search.} RandOpt \citep{gan2026thickets} belongs to the family of zeroth-order, population-based
+methods such as evolution strategies \citep{salimans2017evolution}, applied here as a single round of sampling and
+selection around a pretrained model. Its authors already separate format from reasoning gains on GSM8K (``format
+thickets''); our results agree with that reading and quantify it against cheap baselines. Concurrent work shows that
+selection on small sets overfits in this setting and proposes Bayesian optimization over perturbations
+\citep{bo2026thickets}; informal analyses discuss the geometry of the thicket \citep{blog_thicket_other_name} and when
+RandOpt helps as a function of sequence length \citep{liu_when_randopt}. We add same-run baselines, controls that
+isolate each component, and a tested account of what single perturbations do.
+
+\textbf{Voting and prompts.} Self-consistency \citep{wang2023selfconsistency} is the natural baseline for any method
+that votes over generations at test time; we find it supplies most of what RandOpt's vote supplies. Language models are
+sensitive to prompt format \citep{sclar2024quantifying}; RandOpt's wins coincide with prompts that damage the base model,
+and choosing among a few prompts on the selection data recovers them. Weight averaging \citep{wortsman2022soups}
+combines models in weight space rather than voting over their outputs.
+
+\textbf{Linear response.} Our first-order account is a linearization of the model around its pretrained weights in the
+direction of each perturbation. Its use here is narrow: it predicts answer-preference shifts with no fitted
+coefficients, and we report where it fails.
 
 % -----------------------------------------------------------------------------------------------------
 \section{Discussion, Recommendations and Limitations}\label{sec:discussion}
@@ -373,11 +463,34 @@ with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger
 % Limitations (STORY "Scope and limits"): two tasks; <= 8B; 200 selection questions; one search per GSM8K row (two on
 % GQA); prompt-held-fixed in 2 of 4 rows (Qwen-1.5B gated out); three prompt candidates chosen after earlier results;
 % exploratory analyses labelled; theory covers direct answers only.
-\todo{write}
+\textbf{What weight search buys, in our settings.} A vote, and shifts in answer form shared across questions. The vote
+is available from sampling; the shifts were, in every row we tested, available from a prompt chosen on the same 200
+selection questions, provided a format-fixing prompt is among the candidates. With that prompt held fixed, the search
+added nothing in any row, and what selection found was specific to the prompt it ran under. This does not show that
+nearby better models are absent: perturbations that beat the base model on the selection set are common (11.8--58.3\%),
+and under a damaging prompt the selected ones are better on test. It shows that, at RandOpt's settings, what selection
+recovers is what a prompt also recovers.
+
+\textbf{Recommendations for evaluating weight-space search.} (1) Compare against self-consistency in the same run, at
+the same test-time budget, with the same scorer. (2) Include a prompt chosen on the selection data as a baseline, with a
+format-fixing candidate. (3) Report the selected models' individual accuracy next to the vote's, so the vote and the
+shift can be told apart. (4) Report selection compute. (5) Check that the base model reproduces before comparing, and
+compare like with like: in one case the same 200 prompts gave a base accuracy of 73.0\% in RandOpt's script and 68.0\%
+in our engine, reproducibly.
+
+\textbf{Limitations.} Two tasks and models up to 8B parameters; one RandOpt search per GSM8K row under its own prompt
+(two on GQA and on OLMo), each row with a second search under the chosen prompt; RandOpt's selection set of 200
+questions throughout, so we do not test whether larger selection sets change the picture; our prompt candidates were
+chosen after earlier results, which the public-template test addresses for three of four rows; the first-order account
+covers direct answers at small $\sigma$, not chain-of-thought correctness or vision weights, and does not explain most
+of the OmniSpatial winner's gain. Exploratory analyses are labelled as such throughout.
 
 % Required by ICML (check the current CFP for exact wording/placement):
 \section*{Impact Statement}
-\todo{2-4 sentences: evaluation methodology; cheaper baselines reduce compute; no new capabilities.}
+This paper re-examines an evaluation and proposes cheaper baselines for it. It introduces no new capability. Its
+main practical consequence is that a prompt chosen on a small selection set, followed by sampling, can replace a
+weight search that costs more than 1,600 times as much selection compute, which reduces the compute spent on post-training
+experiments of this kind.
 
 \bibliography{refs}
 \ifdefined\usingicml\bibliographystyle{\icmlstyle}\else\bibliographystyle{plainnat}\fi
@@ -389,9 +502,9 @@ with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger
 \section{Methods Details}                              % shared-stream fold, byte-exact checks, runners, fidelity gates
 \section{Additional Same-Run Results}\label{app:samerun} % K=10, vote curves, G3 termination, member decompositions,
                                                        % O2 fidelity failure, fig8 prompt damage, robustness R8b.6
-\section{Theory Derivations}                           % R11 T1-T4
+\section{Theory Derivations}\label{app:theory}                           % R11 T1-T4
 \section{Tilt-Law Details}                             % per-sigma and per-block tables, R2/R2b, GPU-A gates
-\section{OmniSpatial Case Study}                       % fig5_selection_transfer, M1, C1, tau-check
+\section{OmniSpatial Case Study}\label{app:omnispatial} % fig5_selection_transfer, M1, C1, tau-check
 \section{Cross-Paper Comparisons}                      % R8: P2/P3 incl. non-comparable rows, fig1b, fig2
 \section{Prompts and Scorers}                          % all prompt candidates verbatim, scorer behaviour
 \section{Compute}                                      % GPU ledger
