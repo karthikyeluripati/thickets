@@ -12,8 +12,9 @@ This repository asks: **what does the weight search actually buy, and what do th
 Confirmatory tests were specified in plan locks committed before their runs; exploratory analyses are labelled
 separately. All locks, per-item outputs and analysis code are in this repository.
 
-> **Status (2026-10-09):** all confirmatory runs are complete (including the prompt-held-fixed searches GD and GB);
-> the paper is being written.
+> **Status (2026-10-10):** all confirmatory runs are complete, including a pre-registered reviewer round (public
+> prompt templates, the prompt held fixed on every row, SC temperature, a randopt.py fidelity check). Not run: a second
+> OLMo search seed (budget). The paper is being written.
 
 ## Findings
 
@@ -35,6 +36,11 @@ uses (600 generations instead of RandOpt's 1,000,000), then sample and vote.
 
 **RandOpt is ahead in none of the four rows** (self-consistency ahead in two, no difference detected in two).
 
+The condition (pre-registered check with **public evaluation templates** only: lm-evaluation-harness, simple-evals,
+LLaVA, BLIP-2): the result holds in three rows (Qwen-3B equivalent, OLMo −5.23, GQA −2.67), but on Qwen-1.5B no public
+template beats RandOpt's own prompt and **RandOpt is ahead, +4.17 [+1.97, +6.44]**. The cheap route needs a candidate
+that fixes the answer format (a boxed-answer instruction is one); pooling all candidates restores all four rows.
+
 Why, row by row, under RandOpt's own prompts:
 
 | Row | Base | Selected models, individually | RandOpt | Self-consistency | RandOpt − SC |
@@ -55,9 +61,10 @@ Why, row by row, under RandOpt's own prompts:
     self-consistency: equivalent within 2 points. With the prompt held fixed, weight search adds nothing.
   - On **OLMo**, the "output the final answer after ####" instruction halves the model's accuracy (33.7% vs 65.3%
     when simply asked the question).
-- **With the prompt held fixed, the search itself adds nothing.** Re-running RandOpt's whole search under the chosen
-  prompt: on GQA 64.4% vs self-consistency 64.7% (equivalent); on OLMo 74.0% vs 76.1% (self-consistency ahead,
-  −2.12 [−3.49, −0.83]). In both, the selected models are no better than the base model on test.
+- **With the prompt held fixed, the search itself adds nothing, in all four rows.** Re-running RandOpt's whole search
+  under the chosen prompt: GQA 64.4% vs self-consistency 64.7% (equivalent); OLMo 74.0 vs 76.1 (−2.12 [−3.49, −0.83]);
+  Qwen-3B 85.7 vs 87.0 (−1.36 [−2.35, −0.38]); Qwen-1.5B 75.8 vs 80.1 (−4.32 [−5.91, −2.81]). In all four, the selected
+  models are no better than the base model on test.
 - Damage is not the whole story: against the boxed prompt selection chose, Qwen-1.5B is damaged by 10 points too, yet
   RandOpt still lost there (`paper/figures/thickets-or-tilts/fig8_prompt_damage`).
 

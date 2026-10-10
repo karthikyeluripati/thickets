@@ -317,18 +317,24 @@ def same_run_rows():
         ('GSM8K\nOLMo-2-1B', O1['s42']['K50'], PS['olmo'], O2['randopt_prompt_base'], O2['plain']['base'])]
     held = {'GQA\nQwen2.5-VL-3B': j('gd-gqa-direct-search/pod2/gd/gd_results.json')['K50'],
             'GSM8K\nOLMo-2-1B': j('gb-gsm8k-boxed-search/pod/gb/olmo/gb_results.json')['K50']}  # RandOpt searched under the chosen prompt
+    for n, f in (('GSM8K\nQwen2.5-3B', 'rv-reviewer-round/rv2a_results.json'), ('GSM8K\nQwen2.5-1.5B', 'rv-reviewer-round/rv2b_results.json')):
+        if (PA / f).exists(): held[n] = j(f)['K50']
+    RV = j('rv-reviewer-round/rv_results.json')  # RV-1: SC@50 under the public template chosen on the selection set
+    rvk = {'GSM8K\nQwen2.5-1.5B': 'q15', 'GSM8K\nQwen2.5-3B': 'q3', 'GQA\nQwen2.5-VL-3B': 'gqa', 'GSM8K\nOLMo-2-1B': 'olmo'}
     return [dict(name=n, d0=k['D'], ci0=k['D_ci95'], d1=p['D']['D'], ci1=p['D']['ci'], chosen=p['chosen'], randopt=p['randopt_K50'],
                  sc_chosen=p['sc50_chosen'], base_ro=b0, dmg_plain=bp - b0, dmg_chosen=p['base_chosen'] - b0,
                  d2=held[n]['D'] if n in held else None, ci2=held[n]['ci'] if n in held else None,
-                 randopt_held=(held[n].get('randopt_direct', held[n].get('randopt_boxed')) if n in held else None))
+                 randopt_held=(held[n].get('randopt_direct', held[n].get('randopt_boxed')) if n in held else None),
+                 d3=RV[rvk[n]]['RV1']['D'], ci3=RV[rvk[n]]['RV1']['ci'], chosen_public=RV[rvk[n]]['chosen_new'],
+                 sc_public=RV[rvk[n]]['sc50_chosen_new'])
             for n, k, p, b0, bp in rows]
 
 
 def fig7():
-    R = same_run_rows(); fig, ax = plt.subplots(figsize=(5.4, 3.3)); y = np.arange(len(R))[::-1]
+    R = same_run_rows(); fig, ax = plt.subplots(figsize=(5.4, 4.0)); y = np.arange(len(R))[::-1]
     for k, r in enumerate(R):
-        marks = [(r['d0'], r['ci0'], C['sc'], 'o', 0.22), (r['d1'], r['ci1'], C['green'], 's', 0.0)]
-        if r['d2'] is not None: marks.append((r['d2'], r['ci2'], C['pert'], '^', -0.22))
+        marks = [(r['d0'], r['ci0'], C['sc'], 'o', 0.27), (r['d1'], r['ci1'], C['green'], 's', 0.09), (r['d3'], r['ci3'], C['sky'], 'D', -0.09)]
+        if r['d2'] is not None: marks.append((r['d2'], r['ci2'], C['pert'], '^', -0.27))
         for d, ci, col, mk, off in marks:
             ax.errorbar(d, y[k] + off, xerr=[[d - ci[0]], [ci[1] - d]], fmt=mk, ms=6, color=col, mec='white', mew=0.8, elinewidth=1.4, capsize=0)
             ax.text(ci[1] + 0.6, y[k] + off, f'{d:+.1f}', va='center', fontsize=7, color=C['ink'])
@@ -337,20 +343,21 @@ def fig7():
     ax.set_xlabel('RandOpt K=50 − self-consistency@50 (pp, 95% CI)\n← self-consistency better      RandOpt better →')
     ax.errorbar([], [], xerr=[], fmt='o', color=C['sc'], label="RandOpt vs SC, both under RandOpt's prompt")
     ax.errorbar([], [], xerr=[], fmt='s', color=C['green'], label="RandOpt (its prompt) vs SC under the prompt chosen on the selection set")
+    ax.errorbar([], [], xerr=[], fmt='D', color=C['sky'], label='RandOpt (its prompt) vs SC under the public template chosen on the selection set')
     ax.errorbar([], [], xerr=[], fmt='^', color=C['pert'], label='RandOpt searched under the chosen prompt vs SC under it')
     ax.legend(loc='lower center', bbox_to_anchor=(0.45, 1.01), frameon=False, ncol=1, fontsize=7); ax.grid(axis='y', visible=False)
     ax.set_xlim(-27, 14); save(fig, 'fig7_same_run_prompt_selection')
 
 
 def fig10():
-    """Selection-set gain vs test gain of the selected models, seven N = 5000 searches (exploratory)."""
+    """Selection-set gain vs test gain of the selected models, every N = 5000 search (exploratory)."""
     T = json.loads((PA / 'transfer/transfer_results.json').read_text())
-    held = {'GQA Qwen2.5-VL-3B (GD)', 'GSM8K OLMo-2-1B (GB)'}
+    held = {'GQA Qwen2.5-VL-3B (GD)', 'GSM8K OLMo-2-1B (GB)', 'GSM8K Qwen2.5-3B (RV-2a)', 'GSM8K Qwen2.5-1.5B (RV-2b)'}
     short = {'GSM8K Qwen2.5-1.5B (C)': 'Qwen-1.5B', 'GSM8K Qwen2.5-3B (C3B)': 'Qwen-3B', 'GSM8K OLMo-2-1B (O1)': 'OLMo-1B',
              'GQA Qwen2.5-VL-3B (G2)': 'GQA (seed 42)', 'GQA Qwen2.5-VL-3B (G2R)': 'GQA (seed 43)', 'GQA Qwen2.5-VL-3B (GD)': 'GQA, direct',
-             'GSM8K OLMo-2-1B (GB)': 'OLMo-1B, boxed'}
+             'GSM8K OLMo-2-1B (GB)': 'OLMo-1B, boxed', 'GSM8K Qwen2.5-3B (RV-2a)': 'Qwen-3B, boxed', 'GSM8K Qwen2.5-1.5B (RV-2b)': 'Qwen-1.5B, boxed'}
     off = {'GQA (seed 42)': (8, 6), 'GQA (seed 43)': (-70, 10), 'Qwen-1.5B': (16, -14), 'Qwen-3B': (6, 4), 'OLMo-1B': (-36, -16),
-           'GQA, direct': (6, 4), 'OLMo-1B, boxed': (6, -10)}
+           'GQA, direct': (6, 4), 'OLMo-1B, boxed': (6, -10), 'Qwen-3B, boxed': (-10, -16), 'Qwen-1.5B, boxed': (8, 8)}
     fig, ax = plt.subplots(figsize=(3.6, 2.9))
     lim = [-2, 14]; ax.plot(lim, lim, color='#BBBBBB', lw=0.8, ls='--', zorder=1); ax.axhline(0, color=C['muted'], lw=0.8)
     ax.text(2.75, 2.2, 'full transfer\n(y = x)', fontsize=6.5, color=C['muted'])
@@ -371,14 +378,15 @@ def fig10():
 def table_same_run_tex():
     R = same_run_rows()
     fmt = lambda d, ci: rf"${d:+.2f}$ {{\scriptsize[${ci[0]:+.2f}$, ${ci[1]:+.2f}$]}}"
-    L = [r'\begin{tabular}{lcccccc}', r'\toprule',
-         r" & \multicolumn{2}{c}{RandOpt's prompt} & \multicolumn{2}{c}{Prompt chosen on selection set} & \multicolumn{2}{c}{Search under chosen prompt} \\",
-         r'\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}',
-         r'Row & RandOpt & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & RandOpt & RandOpt $-$ SC \\', r'\midrule']
+    L = [r'\begin{tabular}{lcccccccc}', r'\toprule',
+         r" & \multicolumn{2}{c}{RandOpt's prompt} & \multicolumn{2}{c}{Prompt chosen on selection set} & \multicolumn{2}{c}{Public template chosen} & \multicolumn{2}{c}{Search under chosen prompt} \\",
+         r'\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}',
+         r'Row & RandOpt & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & RandOpt & RandOpt $-$ SC \\', r'\midrule']
     for r in R:
         nm = r['name'].replace('\n', ' / ') + f" ({r['chosen']})"
         held = (f"{r['randopt_held']:.1f} & " + fmt(r['d2'], r['ci2'])) if r['d2'] is not None else r'-- & --'
-        L.append(f"{nm} & {r['randopt']:.1f} & {fmt(r['d0'], r['ci0'])} & {r['sc_chosen']:.1f} & {fmt(r['d1'], r['ci1'])} & {held} \\\\")
+        L.append(f"{nm} & {r['randopt']:.1f} & {fmt(r['d0'], r['ci0'])} & {r['sc_chosen']:.1f} & {fmt(r['d1'], r['ci1'])} & "
+                 f"{r['sc_public']:.1f} & {fmt(r['d3'], r['ci3'])} & {held} \\\\")
     L += [r'\bottomrule', r'\end{tabular}']
     (OUT / 'table1_same_run.tex').write_text('\n'.join(L) + '\n', encoding='utf-8')
 

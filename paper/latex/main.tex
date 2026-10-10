@@ -42,23 +42,24 @@
 
 % -----------------------------------------------------------------------------------------------------
 \begin{abstract}
-% ~180-200 words. Every number must match RESULTS_MASTER. Keep all qualifiers ("matches or beats", "no difference").
+% ~200 words. Every number must match RESULTS_MASTER. Keep all qualifiers ("matches or beats", "no difference").
 Random-perturbation post-training (RandOpt) samples thousands of Gaussian weight perturbations of a pretrained model,
 keeps the best on a small selection set and majority-votes them, reportedly rivalling PPO and GRPO. We ask what the
 weight search buys. Running RandOpt at its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA
 with Qwen2.5-VL-3B), we reproduce its published numbers and decompose its gain into a vote and a shift in answers shared
 across questions. Where the selected models barely beat the base model, self-consistency over 50 samples of the
 unperturbed model beats RandOpt. Where RandOpt leads, its own prompt costs the base model 11.3 and 31.6 points and the
-selected perturbations recover part of that accuracy. Choosing among three prompts on RandOpt's own selection
-questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four rows. With the
-prompt held fixed, RandOpt's selected models are no better than the base model on test, and its search adds nothing
-over sampling (GQA: equivalent; OLMo: $-2.12$ points). What selection finds is specific to the prompt it runs under,
-including an OmniSpatial model whose selected gain held up on fresh, matched data. A first-order account, computed
-from the base model's gradient and each perturbation's noise with no fitted coefficients, tracks how perturbations
-shift answer preferences ($r = 0.787$--$0.938$ across five models in two families), localizes the effect to middle
-language layers, and explains why selection favours shared shifts. It fails for vision weights, large $\sigma$ and
-chain-of-thought correctness, and does not explain most of that model's gain. Confirmatory tests were specified in
-plan locks committed before their runs; we release all locks, data and code.
+selected perturbations recover part of that accuracy. Choosing among a few prompts on RandOpt's own selection questions
+(600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four rows when the candidates
+include a format-fixing prompt, and in three of four with public evaluation templates alone. With the chosen prompt held
+fixed, RandOpt's selected models are no better than the base model on test and its search adds nothing over sampling in
+any row. What selection finds is specific to the prompt it runs under, including an OmniSpatial model whose selected
+gain held up on fresh, matched data. A first-order account, computed from the base model's gradient and each
+perturbation's noise with no fitted coefficients, tracks how perturbations shift answer preferences ($r =
+0.787$--$0.938$ across five models in two families), localizes the effect to middle language layers, and explains why
+selection favours shared shifts. It fails for vision weights, large $\sigma$ and chain-of-thought correctness, and does
+not explain most of that model's gain. Confirmatory tests were specified in plan locks committed before their runs; we
+release all locks, data and code.
 \end{abstract}
 
 % -----------------------------------------------------------------------------------------------------
@@ -133,7 +134,11 @@ from the unchanged model.
 Two exploratory measurements qualify this. Measured as the vote's gain over its own members' mean accuracy, sampling's
 vote adds more than RandOpt's in three rows (Qwen-1.5B $+21.7$ vs $+12.9$; Qwen-3B $+9.9$ vs $+5.8$; GQA $+10.0$ vs
 $+5.1$) and less on OLMo ($+10.1$ vs $+12.1$). And perturbations that beat the base model on the 200 selection questions
-are common, 10.7--44.7\% of the 5000 depending on the row, although the population mean is below base in every row.
+are common, 11.8--58.3\% of the 5000 depending on the row; the population mean is level with base on the Qwen rows
+($-0.4$ and $-0.3$ points) and below it on GQA and OLMo.\footnote{For the Qwen rows we use the base selection accuracy
+measured by the same engine that reproduces RandOpt's perturbed rewards (68.0 and 84.0). RandOpt's script prints 73.00
+and 85.50 for the same 200 prompts, reproducibly across engine counts, while its test-set base agrees with ours (60.27
+vs 60.05); we treat the print as engine-specific (Appendix~\ref{app:samerun}). No confirmatory comparison uses it.}
 
 \subsection{The shift repairs damage done by RandOpt's own prompt}\label{sec:damage}
 % [R8b.2 G3/G4 + exploratory shift analysis, R8b.3 O2, R8b.4 Q2, R8b.8 GQA agreement]
@@ -176,32 +181,47 @@ Table~\ref{tab:samerun}). It is ahead on Qwen-1.5B ($-2.96$ [$-4.62$, $-1.29$]) 
 $-21.08$]). No difference is detected on Qwen-3B ($-0.38$ [$-1.67$, $+0.91$], equivalent within $\pm 2$ points) or on
 GQA ($-1.21$ [$-2.83$, $+0.40$], not equivalent). The ordering holds under strict answer scoring and McNemar tests with
 Holm correction, and with a $K{=}10$ vote, where RandOpt is ahead in no row (exploratory; Appendix~\ref{app:samerun}).
-The three candidates were fixed before this test but chosen after earlier results.
+It does not depend on the sampling temperature: at $T = 0.5$ and $1.0$ the two no-difference rows stay no-difference
+(pre-registered; Appendix~\ref{app:samerun}).
+
+\textbf{Does the result depend on our candidates?} The three candidates were fixed before this test but chosen after
+earlier results. We therefore repeated it with candidates we could not have tuned: public evaluation templates from
+lm-evaluation-harness, simple-evals, LLaVA and BLIP-2, fixed in a plan lock before any of them was run, and chosen by
+the same rule (Figure~\ref{fig:headline}, diamonds). Prompt-selected sampling then matches or beats RandOpt in three
+rows: Qwen-3B ($-0.45$ [$-1.67$, $+0.76$], equivalent), OLMo ($-5.23$ [$-7.66$, $-2.81$]) and GQA ($-2.67$ [$-4.60$,
+$-0.73$], now ahead). On Qwen-1.5B no public template beats RandOpt's own prompt on the selection questions (67.5 vs
+68.5), and RandOpt is ahead ($+4.17$ [$+1.97$, $+6.44$]). Pooling all six candidates, the rule picks the boxed prompt
+for the GSM8K rows and the LLaVA template for GQA, and matches or beats RandOpt in all four rows. The cheap route
+therefore needs a candidate that fixes the answer format; a boxed-answer instruction, standard for math, is one.
 
 \subsection{With the prompt held fixed, the search adds nothing}\label{sec:held}
-% [R8b.2 GD, R8b.3 GB] Cite GD/GB only (not G4's re-used members; not O2 members: fidelity failed). GB-2 INVALID-ENV.
+% [R8b.2 GD, R8b.3 GB, R8b.9 RV-2a/RV-2b] Cite these only (not G4's re-used members; not O2 members: fidelity failed).
 Prompt choice and weight search can be combined: RandOpt can be run under the chosen prompt. We re-ran its search, with
-the same 5000 perturbations, under the direct prompt on GQA and the boxed prompt on OLMo (the latter with a fast
-re-implementation that passed its fidelity gates). In both rows the top 50 again beat the base model on the selection
-questions (GQA 68.0--69.5\% vs 66.0\%; OLMo 84.0--86.0\% vs 79.5\%). On test, though, the selected models were no
-better than base ($-0.60$ [$-1.27$, $+0.05$] and $-0.81$ [$-2.19$, $+0.57$]). RandOpt's vote was equivalent to sampling
-on GQA (64.38 vs 64.70; $-0.32$ [$-1.29$, $+0.65$], within $\pm 2$ points) and behind it on OLMo (74.00 vs 76.12;
-$-2.12$ [$-3.49$, $-0.83$]). On OLMo the better prompt lifts RandOpt itself by 21.53 points [18.88, 24.18], yet it
-still trails sampling. In neither row do the top 50 under the two prompts share a single member
-(Section~\ref{sec:selection}).
+the same 5000 perturbations as in Section~\ref{sec:samerun}, under the direct prompt on GQA and the boxed prompt in the
+three GSM8K rows (the latter with a fast re-implementation that passed its environment and fidelity gates). In every
+row the top 50 again beat the base model on the selection questions (for example GQA 68.0--69.5\% vs 66.0\%; OLMo
+84.0--86.0\% vs 79.5\%). On test, though, the selected models were no better than base in any row ($-0.60$ [$-1.27$,
+$+0.05$] on GQA, $-0.81$ [$-2.19$, $+0.57$] on OLMo, $-0.47$ [$-1.45$, $+0.53$] on Qwen-3B, $-0.51$ [$-1.71$, $+0.73$]
+on Qwen-1.5B), and RandOpt's vote never beat sampling (Table~\ref{tab:samerun}, Figure~\ref{fig:headline},
+triangles). It was equivalent on GQA ($-0.32$ [$-1.29$, $+0.65$], within $\pm 2$ points) and behind on OLMo ($-2.12$
+[$-3.49$, $-0.83$]), Qwen-3B ($-1.36$ [$-2.35$, $-0.38$]) and Qwen-1.5B ($-4.32$ [$-5.91$, $-2.81$]). On OLMo the
+better prompt lifts RandOpt itself by 21.53 points [18.88, 24.18], yet it still trails sampling. The top 50 found
+under the two prompts share no member in three rows and three members on Qwen-1.5B (Section~\ref{sec:selection}).
 
-We could not run this control for the Qwen rows. The Qwen-1.5B run failed its locked environment gate (base
-selection accuracy 68.00 against the 73.00 printed by RandOpt's script) and is reported as INVALID-ENV
-(Appendix~\ref{app:ledger}); Qwen-3B was not attempted. In both rows where we could test it, holding the prompt fixed
-left weight search with nothing measurable to add over sampling the unperturbed model.
+With the prompt held fixed, then, weight search added nothing measurable over sampling the unperturbed model in any of
+the four rows. (The Qwen-1.5B search first failed a gate that compared our engine with the base accuracy printed by
+RandOpt's script; we traced that print to an engine-specific effect, re-ran the search under gates that compare like
+with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger}.)
 
 \begin{figure}[t]
   \centering
   \includegraphics[width=\columnwidth]{fig7_same_run_prompt_selection.pdf}
-  \caption{\textbf{Choosing a prompt on RandOpt's own selection data matches or beats its weight search in every row.}
-  RandOpt ($K{=}50$) minus self-consistency ($K{=}50$) per row, paired 95\% CI, under RandOpt's prompt (circles) and
-  under the prompt chosen on the 200 selection questions (squares), and with RandOpt's search itself run under the chosen
-  prompt (triangles; run on GQA and OLMo). GQA uses a faithful re-implementation of RandOpt.}
+  \caption{\textbf{Choosing a prompt on RandOpt's own selection data matches or beats its weight search in every row,
+  and with that prompt held fixed the search adds nothing.} RandOpt ($K{=}50$) minus self-consistency ($K{=}50$) per
+  row, paired 95\% CI: both under RandOpt's prompt (circles); SC under the prompt chosen on the 200 selection questions
+  (squares) or under the public template chosen the same way (diamonds; on Qwen-1.5B no public template beats RandOpt's
+  prompt and RandOpt is ahead); and RandOpt's search itself run under the chosen prompt (triangles). GQA uses a
+  faithful re-implementation of RandOpt.}
   \label{fig:headline}
 \end{figure}
 
@@ -209,11 +229,11 @@ left weight search with nothing measurable to add over sampling the unperturbed 
   \centering\small
   \caption{\textbf{Same-run results} ($N{=}5000$, $K{=}50$; accuracy in \%, differences in points with paired 95\% CIs).
   SC: self-consistency over 50 samples of the unperturbed model. The chosen prompt (in parentheses) maximizes base accuracy
-  on RandOpt's 200 selection questions. --: not run (Qwen-1.5B failed its pre-registered environment gate; Qwen-3B not
-  attempted).}
+  on RandOpt's 200 selection questions among our three candidates; the public template is chosen by the same rule among
+  public evaluation templates fixed before any was run (Section~\ref{sec:ps}).}
   \label{tab:samerun}
-  \footnotesize\setlength{\tabcolsep}{3.5pt}
-  \input{../figures/thickets-or-tilts/table1_same_run.tex}
+  \footnotesize\setlength{\tabcolsep}{3pt}
+  \resizebox{\textwidth}{!}{\input{../figures/thickets-or-tilts/table1_same_run.tex}}
 \end{table*}
 
 % -----------------------------------------------------------------------------------------------------
@@ -263,7 +283,7 @@ left weight search with nothing measurable to add over sampling the unperturbed 
   \includegraphics[width=\columnwidth]{fig10_transfer.pdf}
   \caption{\textbf{Selection gains transfer only where the prompt leaves accuracy unclaimed} (exploratory). Every search's
   top 50 beats the base model on the 200 selection questions; the selected models are better on test only under a
-  damaging prompt, and not once the prompt is chosen (triangles).}
+  damaging prompt, and in none of the four searches run under the chosen prompt (triangles).}
   \label{fig:transfer}
 \end{figure}
 

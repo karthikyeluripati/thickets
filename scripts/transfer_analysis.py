@@ -1,6 +1,9 @@
 """EXPLORATORY: does selection-set gain transfer to test? For every N = 5000 search: mean selection reward of the top 50
 minus the base model's selection reward (selection gain), vs the top 50's mean single-model test accuracy minus the
-base model's test accuracy (test gain). Same scorer as each run. Output: results/paper-analysis/transfer/."""
+base model's test accuracy (test gain). Same scorer as each run. Output: results/paper-analysis/transfer/.
+Base selection reward for the two Qwen randopt.py searches: the same-engine value (our runner, which reproduces
+randopt.py's perturbed rewards with no offset: 68.00 and 84.00), not randopt.py's single base print (73.00 and 85.50),
+which RV-4 showed is engine-specific (rv-reviewer-round/plan_lock.md, RV-4); the print is kept as a column."""
 import json
 from pathlib import Path
 import re
@@ -16,8 +19,13 @@ def log_rewards(p):
     return [float(x.strip().strip("'")) for m in re.finditer(r'Batch \d+ \| \d+/5000 \| \[(.*?)\]', t) for x in m.group(1).split(',')]
 
 
-def jsonl_rewards(d):
-    return [json.loads(l)['reward'] for f in sorted(Path(d).glob('select_*.jsonl')) for l in f.read_text().splitlines() if l.strip()]
+def jsonl_rewards(d):  # one reward per perturbation index (RV-2a's resumed run seeded duplicate lines)
+    by_k = {}
+    for f in sorted(Path(d).glob('select_*.jsonl')):
+        for l in f.read_text().splitlines():
+            if l.strip():
+                r = json.loads(l); by_k[r['k']] = r['reward']
+    return list(by_k.values())
 
 
 def members_test(ens=None, d=None):
@@ -35,9 +43,9 @@ def main():
     OUT.mkdir(exist_ok=True)
     gd_out = A / 'gd-gqa-direct-search/pod/gd/out'
     rows = [  # name, prompt, selection rewards, base selection reward, members test %, base test %
-        ('GSM8K Qwen2.5-1.5B (C)', "RandOpt's", log_rewards(A / 'c-sameRun/pod6/c/out/randopt.log'), 0.730,
+        ('GSM8K Qwen2.5-1.5B (C)', "RandOpt's", log_rewards(A / 'c-sameRun/pod6/c/out/randopt.log'), 0.680,
          members_test(ens=A / 'c-sameRun/pod6/c/out/ensemble_answers.json'), 60.27),
-        ('GSM8K Qwen2.5-3B (C3B)', "RandOpt's", log_rewards(A / 'c3b-sameRun/pod/c3b/out/randopt.log'), 0.855,
+        ('GSM8K Qwen2.5-3B (C3B)', "RandOpt's", log_rewards(A / 'c3b-sameRun/pod/c3b/out/randopt.log'), 0.840,
          members_test(ens=A / 'c3b-sameRun/pod/c3b/out/ensemble_answers.json'), 80.67),
         ('GSM8K OLMo-2-1B (O1)', "RandOpt's", log_rewards(A / 'o1-olmo-sameRun/pod/o1/out/randopt.log'), 0.415,
          members_test(ens=A / 'o1-olmo-sameRun/pod/o1/out/ensemble_answers.json'), 35.25),
@@ -50,6 +58,11 @@ def main():
         ('GSM8K OLMo-2-1B (GB)', 'boxed', jsonl_rewards(A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out'),
          json.loads((A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out/base_select.json').read_text())['reward'],
          members_test(d=A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out'), 67.85)]
+    rv = A / 'rv-reviewer-round/pod/rv'
+    for name, d, bt in (('GSM8K Qwen2.5-3B (RV-2a)', rv / 'q3/out', 82.34), ('GSM8K Qwen2.5-1.5B (RV-2b)', rv / 'q15/out', 70.20)):
+        if (d / 'test_rank49.json').exists():
+            rows.append((name, 'boxed', jsonl_rewards(d), json.loads((d / 'base_select.json').read_text())['reward'], members_test(d=d), bt))
+    printed = {'GSM8K Qwen2.5-1.5B (C)': 73.0, 'GSM8K Qwen2.5-3B (C3B)': 85.5}
     res = []
     for name, prompt, rew, b, mt, bt in rows:
         rew = np.array(rew); top = np.sort(rew)[-50:]
@@ -57,7 +70,8 @@ def main():
                     'share_above_base': 100 * float((rew > b).mean()), 'top50_selection_mean': 100 * float(top.mean()),
                     'selection_gain': 100 * float(top.mean() - b), 'members_test': mt, 'base_test': bt,
                     'test_gain': None if mt is None else mt - bt,
-                    'transfer_ratio': None if mt is None else (mt - bt) / (100 * float(top.mean() - b))})
+                    'transfer_ratio': None if mt is None else (mt - bt) / (100 * float(top.mean() - b)),
+                    'randopt_printed_base_selection': printed.get(name)})
     (OUT / 'transfer_results.json').write_text(json.dumps(res, indent=1))
     md = ['| Search | Prompt | Selection gain (top-50 mean − base, pp) | Test gain (members − base, pp) | Transfer ratio | Share above base | Population mean − base |',
           '|---|---|---|---|---|---|---|']

@@ -15,6 +15,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 | GB (GSM8K search under the boxed prompt) | `gsm_randopt_fast.py` | `gb_analysis.py` |
 | O2 (OLMo prompt control) | `o2_eval.py` (`--prompt randopt/plain/boxed`) | `o2_analysis.py` |
 | Q2 (Qwen prompt control) | `o2_eval.py` | `q2_analysis.py` |
+| RV (reviewer round: public templates, Qwen boxed searches, base print, temperature) | `o2_eval.py`, `g3_eval.py` (new templates, `--temperature`), `gsm_randopt_fast.py`, `rv_choose.py`, `rv_gates.py`, `rv_resume_q3.py`; pod: `pod_rv_common.sh`, `rv_deploy.sh`, `rv_watch.sh` | `rv_analysis.py`, `gb_analysis.py` |
 | PS (prompt selection, all rows) | `o2_eval.py --split select`, `g3_eval.py --split selection` | `ps_analysis.py` |
 | G3, G4 (budgets; prompt controls) | `g3_eval.py` (`--prompt cot/direct/short`) | `g3_analysis.py`, `g4_analysis.py` |
 | GQA shift (exploratory) | – | `gqa_shift_analysis.py` |
@@ -49,6 +50,7 @@ pods via `pod_jobqueue.sh`; analysis scripts are CPU-only.
 
 ## Pod session scripts
 `pod_jobqueue.sh` (current: guard with hard cost cap, idle stop and stop-on-retrieved, setup, ordered job queue);
+`pod_rv_common.sh` (shared launcher: layered worker launch, retry, gates, search row), `rv_deploy.sh`, `rv_watch.sh`;
 `pod_g1.sh`, `pod_stage12.sh`, `pod_geometry_a.sh`, `pod_geometry_a2.sh`, `pod_geometry_a2_s2c.sh` (earlier sessions).
 
 ## Superseded (split mismatch; kept so the records reproduce)

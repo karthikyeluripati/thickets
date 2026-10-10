@@ -41,3 +41,33 @@
 | C | 1437d44 + 6118222 | validity; base gate | recomputed = printed; ±2.0 | exact; required | 1018 = 1018; +1.5 / +0.5 | valid; pass |
 | C | 1437d44 + 6118222 | **C-1 same-run RandOpt (N = 5000, K = 50) − SC@50** | paired item bootstrap | CI > 0 RandOpt ahead; CI < 0 SC ahead | **−2.65 [−4.32, −0.99]** | **SC AHEAD** |
 | C | 1437d44 + 6118222 | K = 10 (secondary) | same | same | +1.97 [0.00, 3.87] | no difference detected |
+| C3B | e78cfd0 | validity; base gate | recomputed = printed; ±2.0 | required | 1143 = 1143; +0.9 / +0.5 | valid; pass |
+| C3B | e78cfd0 | **C3B-1 same-run RandOpt − SC@50, GSM8K-3B** | paired item bootstrap | as C-1 | **−1.59 [−2.65, −0.53]** | **SC AHEAD** |
+| C3B | e78cfd0 | K = 10 | same | same | −1.06 [−2.35, 0.15] | no difference detected |
+| G2 | d2b3d68 + 5be1720 | environment gate | base vs P2 greedy, same items | ≤ 1.0 pp | 0.16 | valid |
+| G2 | d2b3d68 + 5be1720 | **G2-1 same-run RandOpt − SC@50, GQA** | paired item bootstrap | as C-1 | **+3.47 [+1.62, +5.41]** | **RANDOPT AHEAD** |
+| G2 | d2b3d68 + 5be1720 | K = 10 | same | same | +4.36 [+2.26, +6.54] | RandOpt ahead |
+| G2R | 9e84c4f + 0754376 | **G2R-1 GQA advantage with a disjoint population (seed 43)** | paired item bootstrap | REPLICATED if CI > 0 | **+3.63 [+1.78, +5.49]**; D₂ − D₁ +0.16 [−0.97, +1.29] | **REPLICATED** |
+| O1 | e2e2400 | **O1-1 same-run RandOpt − SC@50, GSM8K / OLMo-2-1B (non-Qwen)** | paired item bootstrap | as C-1 | **+8.72 [+6.75, +10.77]** | **RANDOPT AHEAD** (Claim 1 model-dependent on GSM8K) |
+| O1 | e2e2400 | K = 10; O1b second seed | same; budget rule | – | +7.58 [+5.31, +9.93]; O1b not run ($87 > $58.5) | RandOpt ahead; skipped by rule |
+| PS | a1caf88 | **PS: RandOpt K = 50 − SC@50 under the prompt chosen on RandOpt's selection set** (Qwen-1.5B / Qwen-3B / OLMo / GQA) | paired item bootstrap | as G4 | **−2.96 [−4.62, −1.29] / −0.38 [−1.67, 0.91] / −23.65 [−26.23, −21.08] / −1.21 [−2.83, 0.40]** | **SC ahead / equivalent / SC ahead / n.d.: no row RandOpt ahead** |
+| OS | c14ff18 | **OS-1 OmniSpatial winner (direct) − BASE under the prompt chosen on SEARCH200 (manual_cot)** | image-cluster bootstrap (as M1) | as G4 | **−1.50 [−5.35, +2.23]** | **NO DIFFERENCE DETECTED** (valid; answers identical to M1) |
+| OS | c14ff18 | OS-2 winner gain with the prompt held fixed (manual_cot) | same | reported | −0.67 [−3.95, +2.51] | no difference (under zeroshot_cot −3.83 [−6.81, −0.84]) |
+| GD | 0bb89eb | **GD-1 RandOpt searched under the direct prompt − SC@50 direct, GQA (prompt held fixed)** | paired item bootstrap | as G4 | **−0.32 [−1.29, +0.65]** | **NO DIFFERENCE, EQUIVALENT (±2 pp)** (valid; finished on a second pod, cross-pod answers identical) |
+| GB | 77332dd | **GB-1 RandOpt searched under the boxed prompt − SC@50 boxed, GSM8K OLMo-2-1B (prompt held fixed)** | paired item bootstrap | as G4 | **−2.12 [−3.49, −0.83]** | **SC AHEAD** (env and fidelity gates passed) |
+| GB | 77332dd | GB-2 same, Qwen2.5-1.5B | environment gate | ±1.0 pp | base selection 68.00 vs 73.00 printed by randopt.py | **INVALID-ENV, not run** |
+| Q2 | 2a55ccc | **Q2-1/2 RandOpt − SC@50 with the plain prompt, Qwen 1.5B / 3B** | paired item bootstrap | as G4 | **+2.58 [0.53, 4.62] / +7.05 [5.23, 8.95]** | **RANDOPT AHEAD** (plain prompt is worse for Qwen) |
+| Q2 | 2a55ccc | damage prediction (all four rows) | plain − RandOpt-prompt base | supported if Qwen both < 5 pp | +4.70, −7.20 (GQA +11.3, OLMo +31.6) | **supported** (4/4 rows, locked measure); not decisive: vs the PS-chosen prompt Qwen-1.5B damage is +10.2 and RandOpt still lost |
+| O2 | 6ecafcf | **O2-1 RandOpt (O1) − SC@50 with the plain question prompt, OLMo-2-1B** | paired item bootstrap | as G4 | **−22.21 [−24.87, −19.56]** | **PROMPT-SC AHEAD** (valid env) |
+| O2 | 6ecafcf | member fidelity gate; search on top of prompt | answer agreement ≥ 0.90, acc ≤ 2 pp | as locked | 0.70 / 0.63 pp; −0.91 [−2.27, 0.53] | **gate failed** → members secondary not valid |
+| G4 | 2ad4e46 | **G4-1 RandOpt (CoT) − SC@50 with a direct-answer prompt, GQA** | paired item bootstrap | as C-1, + equivalence ±2 | **−1.21 [−2.83, +0.40]** | **NO DIFFERENCE DETECTED** (not equivalent) |
+| G4 | 2ad4e46 | direct-prompt BASE − CoT BASE; search on top of prompt | paired bootstrap | reported | +11.31 [8.48, 14.14]; −0.08 [−0.97, +0.81] | prompt effect; search adds nothing |
+| G3 | dc19fd4 | **G3-1 does a 1024-token budget remove the GQA advantage?** | Δ = D256 − D1024; D1024 | supported if Δ CI > 0 and D1024 CI ∋ 0 | Δ +0.97 [0.32, 1.70]; D1024 +2.67 [0.73, 4.52] | **PARTIAL** |
+| G3 | dc19fd4 | G3-2 base vs members non-termination at 256 | difference, CI | supported if CI > 0 | +1.90 [0.31, 3.48] | supported (small) |
+| S1-7B | d64a1ad | **7B-1 law at 7B** (OLMo-2-7B, ARC) | pooled r, σ ≤ 0.002 | ≥ 0.5 GO; < 0.3 NO-GO | **0.787** [0.758, 0.820] | **GO** |
+| RV | c33fec2 | **RV-1 RandOpt − SC@50 under the public template chosen on the selection set** (Qwen-1.5B / Qwen-3B / OLMo / GQA) | paired item bootstrap | as PS | **+4.17 [+1.97, +6.44] / −0.45 [−1.67, +0.76] / −5.23 [−7.66, −2.81] / −2.67 [−4.60, −0.73]** | **RandOpt ahead / equivalent / SC ahead / SC ahead** (pooled six-candidate rule: SC ahead / equiv. / SC ahead / SC ahead) |
+| RV | c33fec2 | **RV-2a RandOpt searched under boxed − SC@50 boxed, Qwen2.5-3B (prompt held fixed)** | paired item bootstrap | as GB | **−1.36 [−2.35, −0.38]** | **SC AHEAD** (gates passed; resumed across sessions, amendment 1) |
+| RV | c33fec2 | **RV-2b same, Qwen2.5-1.5B** (amendment 2; GB-2 re-run with the lock's gates) | paired item bootstrap | as GB | **−4.32 [−5.91, −2.81]** | **SC AHEAD** (gates passed) |
+| RV | c33fec2 | RV-3 second OLMo-2-1B search (seed 43) | – | – | – | **not run** (GPU budget; amendments 1–2) |
+| RV | c33fec2 | RV-4 randopt.py base print, Qwen2.5-1.5B, fresh pod | reproduction | reading fixed in the lock | randopt.py 73.00 (4 and 1 engines) vs our runner 68.00 | **engine-specific base print**: fidelity limitation; exploratory R8b.1/R8b.7 recomputed |
+| RV | c33fec2 | RV-5 SC@50 at T = 0.5 / 1.0 (Qwen-3B boxed; GQA direct) | paired item bootstrap | reported; T = 0.7 stays primary | −0.23 / −1.14; −1.05 / +0.24 (all CIs ∋ 0) | no outcome changes |

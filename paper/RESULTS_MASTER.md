@@ -235,16 +235,18 @@ RandOpt's 5000 × 200 = 1,000,000 selection generations are not charged to it. O
   skipped by its pre-registered budget rule.
 - Vote curves K = 1/5/10/20/50, C: RandOpt 68.2/74.6/77.2/77.5/77.2, SC 57.5/69.9/75.2/78.7/79.8; O1: RandOpt
   40.2/49.0/50.1/53.0/52.5.
-- C selection: top-50 train reward 0.780 vs population 0.676 and base 0.730.
+- C selection: top-50 train reward 0.780 vs population 0.676; base 0.680 same-engine (randopt.py's single base print
+  0.730 is engine-specific, RV-4; R8b.10).
 - **EXPLORATORY, vote gain (vote − mean single-model accuracy), RandOpt members vs SC samples:** Qwen-1.5B +12.9 vs
   +21.7; Qwen-3B +5.8 vs +9.9; GQA +5.1 vs +10.0 (G3 run); OLMo +12.1 vs +10.1. Sampling's vote adds more in three
   rows, less on OLMo. (SC single samples at T = 0.7: 58.1, 78.3, 49.9, 33.7.)
-- **EXPLORATORY, selection-set distribution:** share of the 5000 perturbations scoring above base on the 200
-  selection questions: Qwen-1.5B 10.7%, Qwen-3B 42.7%, GQA 11.8%, OLMo 44.7%; the population mean is below base in
-  every row (0.676 vs 0.730; 0.837 vs 0.855; 0.501 vs 0.535; 0.406 vs 0.415).
+- **EXPLORATORY, selection-set distribution (corrected after RV-4; same-engine base for the Qwen rows):** share of the
+  5000 perturbations scoring above base on the 200 selection questions: Qwen-1.5B 52.7%, Qwen-3B 58.3%, GQA 11.8%,
+  OLMo 44.7% (**11.8–58.3%**). Population mean − base: Qwen-1.5B −0.4, Qwen-3B −0.3 (level with base), GQA −3.4,
+  OLMo −0.9 pp. (Superseded: 10.7% / 42.7% and "below base in every row", which used randopt.py's base print.)
 - † The paper's GQA number is on all of testdev with train-split selection; G2 uses image-disjoint testdev splits.
   G2's environment gate passed (base 53.39 vs P2 53.55 on the same questions).
-- **How to state R8b.1:** under RandOpt's prompts, RandOpt beats SC in two rows (GQA, OLMo) and loses in two (Qwen
+- **How to state R8b.1 (unchanged by RV-4; the test-set bases agree: randopt.py 60.27 / 80.67 vs Q2 60.05 / 80.14):** under RandOpt's prompts, RandOpt beats SC in two rows (GQA, OLMo) and loses in two (Qwen
   GSM8K). Where it loses, the selected models are 0–4 pp above base individually, so its gain is the vote, and
   sampling votes better. Where it wins, the selected models are about 5 pp above base individually: a shift shared
   across questions.
@@ -309,6 +311,32 @@ Selection compute: 600 greedy generations vs RandOpt's 1,000,000 (600 / 1,000,00
 RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6.07], −15.39 [−18.20, −12.43], −1.21
 [−2.83, +0.48] (same row order).
 
+**RV-1 (lock c33fec2): candidates fixed from public evaluation templates, never run before the lock.** Same rule, but
+choosing only among GSM8K `harness_cot` (lm-evaluation-harness gsm8k_cot_zeroshot), `harness_plain` (lm-evaluation-
+harness gsm8k), `simple_evals` (openai/simple-evals math); GQA `llava` (LLaVA-1.5 / lmms-eval), `blip` (BLIP-2).
+`rv-reviewer-round/rv_results.json`.
+
+| Row | Selection accuracy of the public templates | Chosen | SC@50, chosen | One generation | **D = RandOpt − SC@50 [95% CI]** | Outcome |
+|---|---|---|---|---|---|---|
+| GSM8K / Qwen2.5-1.5B | 60.0 / 65.0 / 67.5 (RandOpt's prompt: 68.5) | simple_evals | 73.01 | 54.36 | **+4.17 [+1.97, +6.44]** | **RandOpt ahead** |
+| GSM8K / Qwen2.5-3B | 77.5 / 72.0 / 89.0 | simple_evals | 87.11 | 80.44 | **−0.45 [−1.67, +0.76]** | n.d.; equivalent (±2 pp) |
+| GSM8K / OLMo-2-1B | 8.0 / 31.0 / 58.0 | simple_evals | 57.70 | 46.25 | **−5.23 [−7.66, −2.81]** | SC ahead |
+| GQA / Qwen2.5-VL-3B | 67.0 / 64.0 | llava | 66.16 | 66.24 | **−2.67 [−4.60, −0.73]** | SC ahead |
+
+- K = 10: +7.81 [+5.38, +10.31], +1.14 [−0.23, +2.50], −2.58 [−5.16, −0.08], −1.94 [−3.88, +0.00].
+- **Pooled rule (secondary; all six candidates, PS's three + the public ones):** chooses boxed, boxed, boxed, llava:
+  −2.96 [−4.62, −1.29], −0.38 [−1.67, +0.91], −23.65 [−26.23, −21.08], −2.67 [−4.60, −0.73]: **matches or beats
+  RandOpt in all four rows**, and SC is ahead on GQA.
+- **How to state RV-1:** with public harness templates alone, choosing on RandOpt's selection data matches or beats
+  RandOpt in three of four rows; on Qwen-1.5B none of them beats RandOpt's own prompt on the selection set (67.5 vs
+  68.5) and RandOpt is ahead (+4.17). Choosing among candidates that include a boxed-answer (format-fixing) prompt
+  matches or beats RandOpt in all four. The headline therefore needs a candidate that fixes the answer format.
+
+**RV-5 (lock c33fec2): SC@50 temperature** (the PS-chosen prompt; T = 0.7 stays the locked comparison).
+Qwen-3B boxed: T 0.5 / 0.7 / 1.0 → SC 86.88 / 87.04 / 87.79; D −0.23 [−1.52, +1.06] / −0.38 / −1.14 [−2.50, +0.23].
+GQA direct: SC 64.54 / 64.70 / 63.25; D −1.05 [−2.67, +0.65] / −1.21 / +0.24 [−1.53, +2.02]. No outcome changes;
+RandOpt ahead at no temperature.
+
 ### R8b.6 Robustness (EXPLORATORY; `robustness/ROBUSTNESS.md`)
 - Alignment: GSM8K ground truth and question text identical across datasets, RandOpt's parquet and all runs (1319/1319).
 - Strict scoring (boxed-only / "####"-only GSM8K; exact-match GQA): PS with strict SC vs RandOpt on its own lenient
@@ -319,20 +347,26 @@ RandOpt − one chosen-prompt generation: +6.97 [+4.85, +9.10], +4.32 [+2.65, +6
   [−2.79, +0.41].
 - K = 10: −0.38 [−2.20, +1.52], −0.53 [−1.97, +0.91], −24.56 [−27.37, −21.83], −0.57 [−2.18, +1.05]: RandOpt ahead
   in no row; Qwen-1.5B's "SC ahead" is K = 50 only.
+- SC temperature: RV-5 (R8b.5).
 
 ### R8b.7 Does selection gain transfer? (EXPLORATORY; `transfer/transfer_table.md`, `scripts/transfer_analysis.py`)
+Qwen rows use the same-engine base selection reward (68.0 / 84.0; RV-4, R8b.10); test bases as in R8b.1.
+
 | Search | Selection gain (top-50 − base, pp) | Test gain (members − base, pp) | Transfer ratio | Prompt damage vs the PS-chosen prompt |
 |---|---|---|---|---|
-| Qwen-1.5B, RandOpt's prompt (C) | +5.0 | +4.0 | 0.81 | +10.2 |
-| Qwen-3B, RandOpt's prompt (C3B) | +5.5 | +0.2 | 0.04 | +2.2 |
+| Qwen-1.5B, RandOpt's prompt (C) | +10.0 | +4.0 | 0.40 | +10.2 |
+| Qwen-3B, RandOpt's prompt (C3B) | +7.0 | +0.2 | 0.03 | +2.2 |
 | OLMo-1B, RandOpt's prompt (O1) | +13.0 | +5.1 | 0.39 | +34.2 |
 | GQA, CoT (G2 / G2R) | +6.4 / +5.2 | +5.0 / +4.4 | 0.78 / 0.84 | +11.3 |
 | GQA, direct (GD) | +2.6 | −0.6 | −0.23 | 0 (prompt already chosen) |
 | OLMo-1B, boxed (GB) | +4.9 | −0.8 | −0.17 | 0 (prompt already chosen) |
-Every search's top 50 beat base on the 200 selection questions, while the population mean is below base in all seven.
-The selected models are better on test (+4 to +5) where the prompt leaves ≥ 10 pp of accuracy on the table, and not
-(+0.2, −0.6) where it leaves little or none. Five settings; descriptive only. It explains transfer, not the vote
-comparison (Qwen-1.5B transfers, yet SC still wins).
+| Qwen-3B, boxed (RV-2a) | +1.9 | −0.5 | −0.25 | 0 (prompt already chosen) |
+| Qwen-1.5B, boxed (RV-2b) | +3.3 | −0.5 | −0.16 | 0 (prompt already chosen) |
+Every search's top 50 beat base on the 200 selection questions; the population mean is at or below base in all nine
+(Qwen rows level with base: −0.4 and −0.3 pp). The selected models are better on test (+4 to +5) where the prompt
+leaves ≥ 10 pp of accuracy on the table, and not (+0.2, −0.5, −0.5, −0.6, −0.8) where it leaves little or none. Descriptive
+only. It explains transfer, not the vote comparison (Qwen-1.5B transfers, yet SC still wins). (Superseded: Qwen-1.5B
++5.0 / 0.81 and Qwen-3B +5.5 / 0.04, computed against randopt.py's base print.)
 
 ### R8b.8 Are the selected "experts" prompt-specific? (EXPLORATORY; `expert-specificity/`, `scripts/expert_specificity.py`)
 - Same 5000 perturbations scored under two prompts: rank correlation of selection rewards **0.025** (OLMo: RandOpt's
@@ -346,14 +380,47 @@ comparison (Qwen-1.5B transfers, yet SC still wins).
   below-median perturbations once the prompt is fixed. On GQA the selected perturbation reproduces the direct prompt's
   answers; not on OLMo.
 
+### R8b.9 The prompt held fixed on the Qwen rows (RV-2a, RV-2b; lock c33fec2, amendments 1–2)
+Design exactly GB (`gsm_randopt_fast.py`, population seed 42 = C3B's / C's perturbations, boxed prompt).
+- **RV-2a, Qwen2.5-3B:** gates PASS (selection BASE 84.00 under RandOpt's prompt = PS; 90.00 boxed = PS; boxed BASE
+  test 82.34 = Q2; fidelity vs randopt.py's C3B log mean |Δ| 0.0154, signed +0.0008). RandOpt (boxed) 85.67 vs SC@50
+  (boxed) 87.04: **D = −1.36 [−2.35, −0.38], SC AHEAD**; K = 10 −1.36 [−2.65, −0.08]. Members 81.86 (80.29–82.87) vs
+  boxed base 82.34 (−0.47 [−1.45, +0.53]); vote +3.81 over members; selection reward 91.5–94.0 vs 90.0; top-50 overlap
+  with C3B 0; σ of the top 50: 27 × 0.0005, 22 × 0.001, 1 × 0.002. RandOpt (boxed) − RandOpt (own prompt) −0.99
+  [−2.35, +0.38]. Run across three pod sessions (amendment 1): selection resumed from 3209 pulled rewards with the
+  same population and rule; 5000/5000 scored once each. `rv-reviewer-round/rv2a_results.json`.
+- **RV-2b, Qwen2.5-1.5B (amendment 2):** gates PASS (selection BASE 68.00 under RandOpt's prompt vs PS 68.5; 80.50
+  boxed = PS; boxed BASE test 70.20 = Q2; fidelity vs randopt.py's C log mean |Δ| 0.0181, signed −0.0010). RandOpt
+  (boxed) 75.82 vs SC@50 (boxed) 80.14: **D = −4.32 [−5.91, −2.81], SC AHEAD**; K = 10 −3.26 [−5.00, −1.52]. Members
+  69.69 (68.39–71.19) vs boxed base 70.20 (−0.51 [−1.71, +0.73]); vote +6.12 over members; selection reward 83.0–86.0
+  vs 80.5; top-50 overlap with C 3; σ of the top 50: 28 × 0.0005, 22 × 0.001. RandOpt (boxed) − RandOpt (own prompt)
+  −1.36 [−3.11, +0.38]. `rv-reviewer-round/rv2b_results.json`.
+- **How to state R8b.9:** with the prompt held fixed, RandOpt's search adds nothing over sampling in all four rows
+  (GQA equivalent; OLMo, Qwen-3B, Qwen-1.5B SC ahead), and in all four the selected models are no better than base on
+  test. The top 50 under the two prompts share 0, 0, 0 and 3 members (GQA, OLMo, Qwen-3B, Qwen-1.5B).
+
+### R8b.10 randopt.py's printed base selection reward (RV-4; lock c33fec2)
+randopt.py @ 4000d34 on a fresh pod, C's smoke invocation: **73.00 with 4 engines and with 1 engine**; our runner on the
+same 200 byte-identical prompts: **68.00** (PS 68.5; GB-2 68.00). The perturbed rewards of the same 24 perturbations
+agree between the two implementations with no offset (signed mean −0.001, mean |Δ| 0.018), and the test-set bases agree
+(60.27 vs 60.05). Qwen-3B: print 85.50 vs 84.00 (PS, RV-2a); OLMo: 41.50 both. Reading (lock): randopt.py and our runner
+disagree on this model's base selection reward by 5 pp; an engine-configuration effect on greedy bf16 decoding confined
+to randopt.py's single base evaluation; disclosed as a fidelity limitation. Consequences: the exploratory R8b.1 and
+R8b.7 statements were recomputed with the same-engine base (above); no confirmatory comparison uses that number.
+
 **How to state R8b (overall):** in all four same-run rows (two model families, two tasks), choosing the prompt on
-RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search: ahead in
-two rows, no difference detected in two (one equivalent within ±2 pp). Say "matches" for the Qwen-3B and GQA rows,
-never "beats". With the prompt held fixed, RandOpt's search itself is equivalent to sampling on GQA (GD) and behind it
-on OLMo (GB, −2.12 [−3.49, −0.83]); in both, the selected models are no better than base on test. Not run for the Qwen rows
-(GB-2 gated out). RandOpt's wins under its own prompts occur where that prompt damages the base model heavily, and on
-GQA the shift selection finds (switching off step-by-step reasoning) is one a prompt also gives; damage alone does
-not decide the outcome (Qwen-1.5B). Scope: two tasks, models ≤ 8B, one search per GSM8K row, three prompt candidates.
+RandOpt's own selection data and sampling the unperturbed model **matches or beats** RandOpt's weight search when the
+candidates include a format-fixing (boxed-answer) prompt: ahead in two rows, no difference detected in two (one
+equivalent within ±2 pp) (PS); the pooled six-candidate rule does the same, with GQA now ahead (RV-1). With public
+harness templates alone it matches or beats RandOpt in three rows; on Qwen-1.5B RandOpt is ahead (+4.17 [+1.97, +6.44])
+because no public template beats RandOpt's own prompt there. Say "matches" for the Qwen-3B and (PS) GQA rows, never
+"beats". **With the prompt held fixed, RandOpt's search adds nothing over sampling in all four rows**: equivalent on
+GQA (GD), SC ahead on OLMo (GB, −2.12), Qwen-3B (RV-2a, −1.36) and Qwen-1.5B (RV-2b, −4.32); in all four the selected
+models are no better than base on test. RandOpt's wins under its own prompts occur where that prompt damages the base
+model heavily, and on GQA the shift selection finds (switching off step-by-step reasoning) is one a prompt also gives;
+damage alone does not decide the outcome (Qwen-1.5B). SC temperature (0.5–1.0) changes no outcome (RV-5). Scope: two
+tasks, models ≤ 8B, one search per GSM8K row under RandOpt's prompt (second OLMo seed not run), 200 selection
+questions, three PS candidates (+ five public templates).
 
 ## R8c. Theory checks (criteria committed before computing, f06f3c6; status: criteria-first EXPLORATORY)
 **Source:** `results/paper-analysis/theory/theory_results.json`, derivations in R11. Data: P0 (96 GQA
@@ -440,7 +507,15 @@ How to describe the process:
 | G3 | dc19fd4 | **G3-1 does a 1024-token budget remove the GQA advantage?** | Δ = D256 − D1024; D1024 | supported if Δ CI > 0 and D1024 CI ∋ 0 | Δ +0.97 [0.32, 1.70]; D1024 +2.67 [0.73, 4.52] | **PARTIAL** |
 | G3 | dc19fd4 | G3-2 base vs members non-termination at 256 | difference, CI | supported if CI > 0 | +1.90 [0.31, 3.48] | supported (small) |
 | S1-7B | d64a1ad | **7B-1 law at 7B** (OLMo-2-7B, ARC) | pooled r, σ ≤ 0.002 | ≥ 0.5 GO; < 0.3 NO-GO | **0.787** [0.758, 0.820] | **GO** |
+| RV | c33fec2 | **RV-1 RandOpt − SC@50 under the public template chosen on the selection set** (Qwen-1.5B / Qwen-3B / OLMo / GQA) | paired item bootstrap | as PS | **+4.17 [+1.97, +6.44] / −0.45 [−1.67, +0.76] / −5.23 [−7.66, −2.81] / −2.67 [−4.60, −0.73]** | **RandOpt ahead / equivalent / SC ahead / SC ahead** (pooled six-candidate rule: SC ahead / equiv. / SC ahead / SC ahead) |
+| RV | c33fec2 | **RV-2a RandOpt searched under boxed − SC@50 boxed, Qwen2.5-3B (prompt held fixed)** | paired item bootstrap | as GB | **−1.36 [−2.35, −0.38]** | **SC AHEAD** (gates passed; resumed across sessions, amendment 1) |
+| RV | c33fec2 | **RV-2b same, Qwen2.5-1.5B** (amendment 2; GB-2 re-run with the lock's gates) | paired item bootstrap | as GB | **−4.32 [−5.91, −2.81]** | **SC AHEAD** (gates passed) |
+| RV | c33fec2 | RV-3 second OLMo-2-1B search (seed 43) | – | – | – | **not run** (GPU budget; amendments 1–2) |
+| RV | c33fec2 | RV-4 randopt.py base print, Qwen2.5-1.5B, fresh pod | reproduction | reading fixed in the lock | randopt.py 73.00 (4 and 1 engines) vs our runner 68.00 | **engine-specific base print**: fidelity limitation; exploratory R8b.1/R8b.7 recomputed |
+| RV | c33fec2 | RV-5 SC@50 at T = 0.5 / 1.0 (Qwen-3B boxed; GQA direct) | paired item bootstrap | reported; T = 0.7 stays primary | −0.23 / −1.14; −1.05 / +0.24 (all CIs ∋ 0) | no outcome changes |
 
+**RV sessions** (amendments 1–2): session 1 pod reset (container wiped) during RV-2a; session 2 pod stopped with its
+job running (3209/5000 RV-2a rewards pulled); RV-2a resumed and completed in session 3; RV-2b in session 4.
 **Engineering failures that produced no data:** P0 attempt 1 (offline-mode bug); P2 attempt 1 (package conflict);
 S1 smoke attempt 1 (tar ownership); C on 1× H100 (RandOpt arm skipped by the locked budget rule, `N_DOES_NOT_FIT`).
 The earlier OmniSpatial studies (random-control transfer, selection-vs-specificity, margin-additivity, causal
