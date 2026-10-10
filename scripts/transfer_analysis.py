@@ -59,9 +59,10 @@ def main():
          json.loads((A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out/base_select.json').read_text())['reward'],
          members_test(d=A / 'gb-gsm8k-boxed-search/pod/gb/olmo/out'), 67.85)]
     rv = A / 'rv-reviewer-round/pod/rv'
-    for name, d, bt in (('GSM8K Qwen2.5-3B (RV-2a)', rv / 'q3/out', 82.34), ('GSM8K Qwen2.5-1.5B (RV-2b)', rv / 'q15/out', 70.20)):
+    for name, prompt, d, bt in (('GSM8K Qwen2.5-3B (RV-2a)', 'boxed', rv / 'q3/out', 82.34), ('GSM8K Qwen2.5-1.5B (RV-2b)', 'boxed', rv / 'q15/out', 70.20),
+                                ('GSM8K OLMo-2-1B (RV-3)', "RandOpt's", rv / 'olmo2/out', 33.66)):
         if (d / 'test_rank49.json').exists():
-            rows.append((name, 'boxed', jsonl_rewards(d), json.loads((d / 'base_select.json').read_text())['reward'], members_test(d=d), bt))
+            rows.append((name, prompt, jsonl_rewards(d), json.loads((d / 'base_select.json').read_text())['reward'], members_test(d=d), bt))
     printed = {'GSM8K Qwen2.5-1.5B (C)': 73.0, 'GSM8K Qwen2.5-3B (C3B)': 85.5}
     res = []
     for name, prompt, rew, b, mt, bt in rows:

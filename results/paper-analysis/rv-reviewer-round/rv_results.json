@@ -299,6 +299,56 @@
    "equivalent_2pp": false
   }
  },
+ "RV3": {
+  "randopt_seed43_K50": 54.13191811978771,
+  "sc50_own_prompt": 43.745261561789235,
+  "RV3": {
+   "D": 10.386656557998483,
+   "ci": [
+    8.263836239575435,
+    12.509476876421532
+   ],
+   "outcome": "RANDOPT AHEAD",
+   "equivalent_2pp": false
+  },
+  "K10": {
+   "D": 11.675511751326763,
+   "ci": [
+    9.249431387414708,
+    14.101592115238818
+   ],
+   "outcome": "RANDOPT AHEAD",
+   "equivalent_2pp": false
+  },
+  "seed_to_seed_minus_O1": {
+   "D": 1.6679302501895377,
+   "ci": [
+    0.1516300227445034,
+    3.184230477634572
+   ],
+   "outcome": "RANDOPT AHEAD",
+   "equivalent_2pp": false
+  },
+  "O1_K50": 52.463987869598185,
+  "members_mean": 41.57846853677028,
+  "members_minus_base": {
+   "D": 7.916603487490524,
+   "ci": [
+    5.959059893858984,
+    9.862092494313874
+   ],
+   "outcome": "RANDOPT AHEAD",
+   "equivalent_2pp": false
+  },
+  "base_this_run": 33.66186504927976,
+  "base_O2": 33.66186504927976,
+  "selection_base": 41.5,
+  "selection_top_reward": [
+   60.5,
+   53.5
+  ],
+  "vote_gain_over_members": 12.553449583017434
+ },
  "RV4": {
   "randopt_A": 73.0,
   "randopt_B": 73.0,

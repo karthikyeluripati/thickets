@@ -133,5 +133,20 @@
   "test_gain": -0.5078089461713517,
   "transfer_ratio": -0.15576961538998538,
   "randopt_printed_base_selection": null
+ },
+ {
+  "search": "GSM8K OLMo-2-1B (RV-3)",
+  "prompt": "RandOpt's",
+  "n": 5000,
+  "base_selection": 41.5,
+  "population_mean_selection": 40.588499999999996,
+  "share_above_base": 43.7,
+  "top50_selection_mean": 54.95000000000001,
+  "selection_gain": 13.450000000000012,
+  "members_test": 41.57846853677028,
+  "base_test": 33.66,
+  "test_gain": 7.918468536770284,
+  "transfer_ratio": 0.5887337202059686,
+  "randopt_printed_base_selection": null
  }
 ]

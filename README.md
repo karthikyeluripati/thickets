@@ -13,8 +13,8 @@ Confirmatory tests were specified in plan locks committed before their runs; exp
 separately. All locks, per-item outputs and analysis code are in this repository.
 
 > **Status (2026-10-10):** all confirmatory runs are complete, including a pre-registered reviewer round (public
-> prompt templates, the prompt held fixed on every row, SC temperature, a randopt.py fidelity check). Not run: a second
-> OLMo search seed (budget). The paper is being written.
+> prompt templates, the prompt held fixed on every row, a second OLMo search seed, SC temperature, a randopt.py
+> fidelity check). The paper is being written.
 
 ## Findings
 
@@ -48,7 +48,7 @@ Why, row by row, under RandOpt's own prompts:
 | GSM8K / Qwen2.5-1.5B | 60.3 | 64.3 | 77.2 | 79.8 | −2.65 [−4.32, −0.99] |
 | GSM8K / Qwen2.5-3B | 80.7 | 80.9 | 86.7 | 88.2 | −1.59 [−2.65, −0.53] |
 | GQA / Qwen2.5-VL-3B | 53.4 | 58.4 | 63.5 | 60.0 | +3.47 [+1.62, +5.41] (replicated: +3.63) |
-| GSM8K / OLMo-2-1B | 35.3 | 40.3 | 52.5 | 43.7 | +8.72 [+6.75, +10.77] |
+| GSM8K / OLMo-2-1B | 35.3 | 40.3 | 52.5 | 43.7 | +8.72 [+6.75, +10.77] (replicated: +10.39) |
 
 - **Where RandOpt loses**, the selected models are barely better than the base model on their own. The gain is the
   vote, and sampling the unperturbed model votes better.

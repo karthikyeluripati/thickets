@@ -1,0 +1,75 @@
+RATE=15.96 START=1791598653 CAP=17
++ touch /workspace/JOB_RUNNING
++ python -m pip install --no-input vllm==0.11.0 transformers==4.57.1 numpy==2.1.2 Pillow==12.3.0 tokenizers==0.22.2 huggingface-hub==0.36.2 torch==2.8.0 hf_transfer accelerate pandas pyarrow datasets==3.6.0
++ tail -1
+WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
++ HF_HUB_ENABLE_HF_TRANSFER=1
++ python -c 'from huggingface_hub import snapshot_download;print('\''MODEL'\'',snapshot_download('\''allenai/OLMo-2-0425-1B-Instruct'\'',revision='\''48d788eca847d4d7548f375ad03d3c9312f6139e'\'',allow_patterns=['\''*.json'\'','\''*.safetensors'\'','\''*.txt'\'','\''*.model'\'','\''*.jinja'\'']))'
+MODEL /workspace/hf/hub/models--allenai--OLMo-2-0425-1B-Instruct/snapshots/48d788eca847d4d7548f375ad03d3c9312f6139e
++ echo 'MODEL_SHA 48d788eca847d4d7548f375ad03d3c9312f6139e'
++ tee /workspace/model_sha.txt
+MODEL_SHA 48d788eca847d4d7548f375ad03d3c9312f6139e
++ git clone -q https://github.com/sunrainyg/RandOpt.git /workspace/RandOpt
++ git -C /workspace/RandOpt checkout -q 4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ git -C /workspace/RandOpt rev-parse HEAD
+4000d34fb5b69a3121cf1d2c564aa0be5a6a41ca
++ pip freeze
++ nvidia-smi -L
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY /workspace/SETUP_DONE
++ echo SETUP_DONE
+SETUP_DONE
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-rv3.sh /workspace/jobs/03-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/01-prep.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-10T02:20:05Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-rv3.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/02-rv3.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-10T03:17:11Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-done.rc ']'
++ touch /workspace/JOB_RUNNING
++ bash /workspace/jobs/03-done.sh
+++ date -u +%FT%TZ
++ echo 'rc=0 2026-10-10T03:17:11Z'
++ rm -f /workspace/JOB_RUNNING
++ touch /workspace/LAST_ACTIVITY
++ sleep 10
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-rv3.sh /workspace/jobs/03-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-rv3.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-done.rc ']'
++ continue
++ sleep 10
++ true
+++ ls /workspace/jobs/01-prep.sh /workspace/jobs/02-rv3.sh /workspace/jobs/03-done.sh
+++ sort
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/01-prep.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/02-rv3.rc ']'
++ continue
++ for j in $(ls /workspace/jobs/*.sh 2> /dev/null | sort)
++ '[' -e /workspace/jobs/03-done.rc ']'
++ continue
++ sleep 10

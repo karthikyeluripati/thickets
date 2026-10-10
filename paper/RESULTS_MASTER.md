@@ -228,11 +228,15 @@ RandOpt's 5000 × 200 = 1,000,000 selection generations are not charged to it. O
 | GQA / Qwen2.5-VL-3B, 1238 q (G2, d2b3d68+5be1720) | 53.4 | 58.4 | 63.49 (69.0†) | 60.02 | **+3.47 [+1.62, +5.41]** | RandOpt ahead |
 | GQA, second population seed (G2R, 9e84c4f+0754376) | 53.4 | 57.8 | 63.65 | 60.02 | **+3.63 [+1.78, +5.49]** | RandOpt ahead (replicated) |
 | GSM8K / OLMo-2-1B (O1, e2e2400) | 35.25 | 40.3 | 52.46 (–) | 43.75 | **+8.72 [+6.75, +10.77]** | RandOpt ahead |
+| OLMo, second population seed (RV-3, c33fec2 + amendment 3; fast runner) | 33.66 | 41.6 | 54.13 | 43.75 | **+10.39 [+8.26, +12.51]** | RandOpt ahead (replicated) |
 
 - K = 10: C +1.97 [0.00, 3.87] n.d.; C3B −1.06 [−2.35, 0.15] n.d.; G2 +4.36 [2.26, 6.54]; G2R +4.68 [2.50, 6.95];
   O1 +7.58 [+5.31, +9.93].
 - GQA two-seed mean D = +3.55 [+1.78, +5.37]; seed-to-seed difference +0.16 [−0.97, +1.29]. O1's second seed was
-  skipped by its pre-registered budget rule.
+  skipped by its pre-registered budget rule and run later as RV-3 (seed 43, fast runner with exact weight reset; gates:
+  selection BASE 41.50, test BASE 33.66 = O2): K = 50 +10.39 [+8.26, +12.51], K = 10 +11.68 [+9.25, +14.10]; members
+  41.58 vs base 33.66 (+7.92 [+5.96, +9.86]); vote +12.55 over members; seed 43 − seed 42 (O1, randopt.py) +1.67
+  [+0.15, +3.18] (two populations and two implementations; descriptive). `rv-reviewer-round/rv_results.json`.
 - Vote curves K = 1/5/10/20/50, C: RandOpt 68.2/74.6/77.2/77.5/77.2, SC 57.5/69.9/75.2/78.7/79.8; O1: RandOpt
   40.2/49.0/50.1/53.0/52.5.
 - C selection: top-50 train reward 0.780 vs population 0.676; base 0.680 same-engine (randopt.py's single base print
@@ -362,9 +366,11 @@ Qwen rows use the same-engine base selection reward (68.0 / 84.0; RV-4, R8b.10);
 | OLMo-1B, boxed (GB) | +4.9 | −0.8 | −0.17 | 0 (prompt already chosen) |
 | Qwen-3B, boxed (RV-2a) | +1.9 | −0.5 | −0.25 | 0 (prompt already chosen) |
 | Qwen-1.5B, boxed (RV-2b) | +3.3 | −0.5 | −0.16 | 0 (prompt already chosen) |
-Every search's top 50 beat base on the 200 selection questions; the population mean is at or below base in all nine
-(Qwen rows level with base: −0.4 and −0.3 pp). The selected models are better on test (+4 to +5) where the prompt
-leaves ≥ 10 pp of accuracy on the table, and not (+0.2, −0.5, −0.5, −0.6, −0.8) where it leaves little or none. Descriptive
+| OLMo-1B, RandOpt's prompt, seed 43 (RV-3) | +13.5 | +7.9 | 0.59 | +34.2 |
+Every search's top 50 beat base on the 200 selection questions; the population mean is at or below base in all ten
+(Qwen rows level with base: −0.4 and −0.3 pp). The selected models are better on test (+4.0 to +7.9) where the
+prompt leaves ≥ 10 pp of accuracy on the table, and not (+0.2, −0.5, −0.5, −0.6, −0.8) where it leaves little or none.
+Descriptive
 only. It explains transfer, not the vote comparison (Qwen-1.5B transfers, yet SC still wins). (Superseded: Qwen-1.5B
 +5.0 / 0.81 and Qwen-3B +5.5 / 0.04, computed against randopt.py's base print.)
 
@@ -419,7 +425,7 @@ GQA (GD), SC ahead on OLMo (GB, −2.12), Qwen-3B (RV-2a, −1.36) and Qwen-1.5B
 models are no better than base on test. RandOpt's wins under its own prompts occur where that prompt damages the base
 model heavily, and on GQA the shift selection finds (switching off step-by-step reasoning) is one a prompt also gives;
 damage alone does not decide the outcome (Qwen-1.5B). SC temperature (0.5–1.0) changes no outcome (RV-5). Scope: two
-tasks, models ≤ 8B, one search per GSM8K row under RandOpt's prompt (second OLMo seed not run), 200 selection
+tasks, models ≤ 8B, one search per Qwen GSM8K row under RandOpt's prompt (two on GQA and OLMo), 200 selection
 questions, three PS candidates (+ five public templates).
 
 ## R8c. Theory checks (criteria committed before computing, f06f3c6; status: criteria-first EXPLORATORY)
@@ -510,12 +516,13 @@ How to describe the process:
 | RV | c33fec2 | **RV-1 RandOpt − SC@50 under the public template chosen on the selection set** (Qwen-1.5B / Qwen-3B / OLMo / GQA) | paired item bootstrap | as PS | **+4.17 [+1.97, +6.44] / −0.45 [−1.67, +0.76] / −5.23 [−7.66, −2.81] / −2.67 [−4.60, −0.73]** | **RandOpt ahead / equivalent / SC ahead / SC ahead** (pooled six-candidate rule: SC ahead / equiv. / SC ahead / SC ahead) |
 | RV | c33fec2 | **RV-2a RandOpt searched under boxed − SC@50 boxed, Qwen2.5-3B (prompt held fixed)** | paired item bootstrap | as GB | **−1.36 [−2.35, −0.38]** | **SC AHEAD** (gates passed; resumed across sessions, amendment 1) |
 | RV | c33fec2 | **RV-2b same, Qwen2.5-1.5B** (amendment 2; GB-2 re-run with the lock's gates) | paired item bootstrap | as GB | **−4.32 [−5.91, −2.81]** | **SC AHEAD** (gates passed) |
-| RV | c33fec2 | RV-3 second OLMo-2-1B search (seed 43) | – | – | – | **not run** (GPU budget; amendments 1–2) |
+| RV | c33fec2 | **RV-3 second OLMo-2-1B search (seed 43), RandOpt − SC@50 under RandOpt's prompt** (amendment 3) | paired item bootstrap | as O1 | **+10.39 [+8.26, +12.51]** | **RANDOPT AHEAD** (O1 replicated; gates passed) |
 | RV | c33fec2 | RV-4 randopt.py base print, Qwen2.5-1.5B, fresh pod | reproduction | reading fixed in the lock | randopt.py 73.00 (4 and 1 engines) vs our runner 68.00 | **engine-specific base print**: fidelity limitation; exploratory R8b.1/R8b.7 recomputed |
 | RV | c33fec2 | RV-5 SC@50 at T = 0.5 / 1.0 (Qwen-3B boxed; GQA direct) | paired item bootstrap | reported; T = 0.7 stays primary | −0.23 / −1.14; −1.05 / +0.24 (all CIs ∋ 0) | no outcome changes |
 
-**RV sessions** (amendments 1–2): session 1 pod reset (container wiped) during RV-2a; session 2 pod stopped with its
-job running (3209/5000 RV-2a rewards pulled); RV-2a resumed and completed in session 3; RV-2b in session 4.
+**RV sessions** (amendments 1–3): session 1 pod reset (container wiped) during RV-2a; session 2 pod stopped with its
+job running (3209/5000 RV-2a rewards pulled); RV-2a resumed and completed in session 3; RV-2b in session 4; RV-3 in
+session 5.
 **Engineering failures that produced no data:** P0 attempt 1 (offline-mode bug); P2 attempt 1 (package conflict);
 S1 smoke attempt 1 (tar ownership); C on 1× H100 (RandOpt arm skipped by the locked budget rule, `N_DOES_NOT_FIT`).
 The earlier OmniSpatial studies (random-control transfer, selection-vs-specificity, margin-additivity, causal

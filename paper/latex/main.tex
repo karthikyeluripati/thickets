@@ -175,7 +175,8 @@ published 76.4 and 87.1. Under RandOpt's own prompts, the comparison with \SC{} 
 rows self-consistency is ahead ($D = -2.65$ [$-4.32$, $-0.99$] and $-1.59$ [$-2.65$, $-0.53$]). On GQA RandOpt is ahead
 ($+3.47$ [$+1.62$, $+5.41$]), and a second search with a different population seed replicates this ($+3.63$ [$+1.78$,
 $+5.49$]; seed-to-seed difference $+0.16$ [$-0.97$, $+1.29$]). On OLMo-2-1B, a model outside the original study,
-RandOpt is ahead by $+8.72$ [$+6.75$, $+10.77$]. The GQA rows use a faithful re-implementation built on RandOpt's
+RandOpt is ahead by $+8.72$ [$+6.75$, $+10.77$], and a second search with a different population, run with our
+re-implementation, replicates this ($+10.39$ [$+8.26$, $+12.51$]). The GQA rows use a faithful re-implementation built on RandOpt's
 perturbation, scoring and voting components, because the released code cannot pass images; the published GQA number
 (69.0) uses all of testdev with train-split selection and is not comparable to our image-disjoint split.
 
@@ -378,10 +379,10 @@ rests on its own experiments.
 % - Case study (one paragraph): OmniSpatial winner +8.0 selection -> +2.67 [0.17, 4.93] fresh; label-aligned tilt;
 %   C1-1 not explained (+2.33 of +2.67 remain). Details Appendix.
 \textbf{Selection gains transfer only where the prompt leaves accuracy unclaimed} (exploratory; Figure~\ref{fig:transfer}).
-In every one of our nine $N{=}5000$ searches, the top 50 beat the base model on the 200 selection questions, while the
+In every one of our ten $N{=}5000$ searches, the top 50 beat the base model on the 200 selection questions, while the
 population mean is at or below base. Whether that gain survives on test depends on the prompt. Under a prompt that
-damages the base model by 10 points or more, the selected models are better on test by 4.0--5.1 points (GQA twice, OLMo,
-Qwen-1.5B); under RandOpt's prompt for Qwen-3B, which costs little, by 0.2; and under every chosen prompt they are
+damages the base model by 10 points or more, the selected models are better on test by 4.0--7.9 points (GQA and OLMo,
+two searches each, and Qwen-1.5B); under RandOpt's prompt for Qwen-3B, which costs little, by 0.2; and under every chosen prompt they are
 slightly worse than base ($-0.5$ to $-0.8$). Selection always finds models that look better on 200 questions; only a
 shared, prompt-repairing shift carries over.
 
@@ -478,8 +479,8 @@ shift can be told apart. (4) Report selection compute. (5) Check that the base m
 compare like with like: in one case the same 200 prompts gave a base accuracy of 73.0\% in RandOpt's script and 68.0\%
 in our engine, reproducibly.
 
-\textbf{Limitations.} Two tasks and models up to 8B parameters; one RandOpt search per GSM8K row under its own prompt
-(two on GQA and on OLMo), each row with a second search under the chosen prompt; RandOpt's selection set of 200
+\textbf{Limitations.} Two tasks and models up to 8B parameters; one RandOpt search per Qwen GSM8K row under its own
+prompt (two on GQA and on OLMo), each row with a further search under the chosen prompt; RandOpt's selection set of 200
 questions throughout, so we do not test whether larger selection sets change the picture; our prompt candidates were
 chosen after earlier results, which the public-template test addresses for three of four rows; the first-order account
 covers direct answers at small $\sigma$, not chain-of-thought correctness or vision weights, and does not explain most

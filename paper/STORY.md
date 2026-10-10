@@ -1,7 +1,7 @@
 # STORY: the canonical paper story
 
 Numbers only from `RESULTS_MASTER.md` (sections in brackets). Status 2026-10-10: all confirmatory runs complete,
-including the reviewer round (RV, R8b.5/R8b.9/R8b.10). Not run: a second OLMo search seed (budget).
+including the reviewer round (RV, R8b.5/R8b.9/R8b.10; RV-3 replicated the OLMo row with a second seed).
 
 ## Title
 *What Does Random Weight Search Buy? Votes, Prompts and First-Order Tilts in RandOpt*
@@ -45,7 +45,8 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
 - **Decomposition under RandOpt's own prompts [R8b.1].**
   - *Where RandOpt loses* (Qwen GSM8K: −2.65, −1.59): the selected models are only +4.0 and +0.2 pp above base
     individually, so the gain is the vote, and sampling votes better.
-  - *Where RandOpt wins* (GQA +3.47, replicated with a disjoint population at +3.63; OLMo +8.72): the selected
+  - *Where RandOpt wins* (GQA +3.47, replicated with a disjoint population at +3.63; OLMo +8.72, replicated at
+    +10.39 [+8.26, +12.51] with a second population, RV-3): the selected
     models are about +5 pp above base individually, a shift shared across questions.
 - **What that shift is [R8b.2, R8b.3].**
   - GQA: RandOpt's chain-of-thought prompt costs the base model 11.3 points. The selected models mostly stop
@@ -85,9 +86,9 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   questions (why votes beat members). That the shared shifts we found are ones a prompt also gives is an empirical
   finding (Claim 1), not a consequence of the theory. T3 is derived,
   not directly tested. Direct-answer regime only.
-- **Bridge to Claim 1 (exploratory, R8b.7).** In all nine N = 5000 searches the top 50 beat base on the 200
+- **Bridge to Claim 1 (exploratory, R8b.7).** In all ten N = 5000 searches the top 50 beat base on the 200
   selection questions while the population mean is at or below base. The selected models are better on test (+4.0 to
-  +5.1) only where the prompt leaves ≥ 10 pp of accuracy unclaimed; with the prompt held fixed (GD, GB, RV-2a, RV-2b)
+  +7.9) only where the prompt leaves ≥ 10 pp of accuracy unclaimed; with the prompt held fixed (GD, GB, RV-2a, RV-2b)
   they are not (−0.5 to −0.8). GD is in the theory's direct-answer regime: with no shared direction left, top-K
   selection picks up selection-set noise, as T3 implies. Descriptive.
 - **The "experts" are prompt-specific (exploratory, R8b.8).** Over the same 5000 perturbations, selection rewards under
@@ -109,7 +110,7 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
 ## Closing message
 Nearby models that beat the base on a selection set are common (11.8–58.3% of 5000 perturbations on 200 questions;
 the population mean is level with base on the Qwen rows and below it on GQA and OLMo). Under RandOpt's prompts the
-selected ones are better on test in three of four rows (+4.0 to +5.1); with the prompt held fixed they are not, in any
+selected ones are better on test in three of four rows (+4.0 to +7.9); with the prompt held fixed they are not, in any
 row. In our
 settings, what selection finds there is a vote plus shared shifts in answer form, and those are cheaper to get from
 sampling and from choosing a prompt on the same selection data. In every setting where we tested it (GQA, OLMo,
@@ -118,7 +119,7 @@ under. Beyond that (vision weights, large σ, CoT correctness) our account stops
 
 ## Scope and limits (say these in the paper)
 Two tasks for the same-run comparisons (GSM8K, GQA); models ≤ 8B; one RandOpt search per GSM8K row under RandOpt's
-prompt (two on GQA; the second OLMo seed was locked but not run, budget); 200 selection questions (RandOpt's setting);
+prompt for the Qwen rows (two populations on GQA and on OLMo); 200 selection questions (RandOpt's setting);
 three PS candidates per task, fixed before the PS run but chosen after earlier results, plus five public templates
 fixed before RV (with public templates alone the headline holds in three of four rows); RandOpt's search cost not
 charged in the accuracy comparisons; randopt.py's base print for the Qwen rows is engine-specific (RV-4; disclosed, no
@@ -137,8 +138,9 @@ exploratory analyses are labelled as such.
 
 ## What a reviewer will still press (answer in the paper, not with new runs)
 1. Only two tasks and ≤ 8B: stated as scope; Countdown and larger models are future work.
-2. One search per GSM8K row under RandOpt's prompt: RandOpt reproduces the published numbers; GQA replicates across
-   two populations; every row also has a second, independent search under the chosen prompt (GD, GB, RV-2a, RV-2b).
+2. One search per Qwen GSM8K row under RandOpt's prompt: RandOpt reproduces the published numbers there; both rows
+   where RandOpt wins (GQA, OLMo) replicate with a second population; every row also has an independent search under
+   the chosen prompt (GD, GB, RV-2a, RV-2b).
 3. "You picked prompts that help": answered by RV-1 (public templates fixed before the run): three of four rows hold;
    Qwen-1.5B does not, and we say the cheap route needs a format-fixing candidate.
 4. "Damage explains everything": we say it does not (Qwen-1.5B, Figure 8).

@@ -9,5 +9,6 @@
 | GSM8K OLMo-2-1B (GB) | boxed | +4.9 | -0.8 | -0.17 | 41.8% | -0.6 |
 | GSM8K Qwen2.5-3B (RV-2a) | boxed | +1.9 | -0.5 | -0.25 | 6.6% | -2.6 |
 | GSM8K Qwen2.5-1.5B (RV-2b) | boxed | +3.3 | -0.5 | -0.16 | 14.8% | -2.7 |
+| GSM8K OLMo-2-1B (RV-3) | RandOpt's | +13.5 | +7.9 | 0.59 | 43.7% | -0.9 |
 
 EXPLORATORY. Selection: 200 questions; test: 1319 (GSM8K) / 1238 (GQA).

@@ -355,9 +355,9 @@ def fig10():
     held = {'GQA Qwen2.5-VL-3B (GD)', 'GSM8K OLMo-2-1B (GB)', 'GSM8K Qwen2.5-3B (RV-2a)', 'GSM8K Qwen2.5-1.5B (RV-2b)'}
     short = {'GSM8K Qwen2.5-1.5B (C)': 'Qwen-1.5B', 'GSM8K Qwen2.5-3B (C3B)': 'Qwen-3B', 'GSM8K OLMo-2-1B (O1)': 'OLMo-1B',
              'GQA Qwen2.5-VL-3B (G2)': 'GQA (seed 42)', 'GQA Qwen2.5-VL-3B (G2R)': 'GQA (seed 43)', 'GQA Qwen2.5-VL-3B (GD)': 'GQA, direct',
-             'GSM8K OLMo-2-1B (GB)': 'OLMo-1B, boxed', 'GSM8K Qwen2.5-3B (RV-2a)': 'Qwen-3B, boxed', 'GSM8K Qwen2.5-1.5B (RV-2b)': 'Qwen-1.5B, boxed'}
-    off = {'GQA (seed 42)': (8, 6), 'GQA (seed 43)': (-70, 10), 'Qwen-1.5B': (16, -14), 'Qwen-3B': (6, 4), 'OLMo-1B': (-36, -16),
-           'GQA, direct': (6, 4), 'OLMo-1B, boxed': (6, -10), 'Qwen-3B, boxed': (-10, -16), 'Qwen-1.5B, boxed': (8, 8)}
+             'GSM8K OLMo-2-1B (GB)': 'OLMo-1B, boxed', 'GSM8K Qwen2.5-3B (RV-2a)': 'Qwen-3B, boxed', 'GSM8K Qwen2.5-1.5B (RV-2b)': 'Qwen-1.5B, boxed', 'GSM8K OLMo-2-1B (RV-3)': 'OLMo-1B (seed 43)'}
+    off = {'GQA (seed 42)': (8, 6), 'GQA (seed 43)': (-70, 10), 'Qwen-1.5B': (16, -14), 'Qwen-3B': (6, 4), 'OLMo-1B': (-40, -14),
+           'GQA, direct': (-34, 12), 'OLMo-1B, boxed': (16, -10), 'Qwen-3B, boxed': (-30, -18), 'Qwen-1.5B, boxed': (2, -24), 'OLMo-1B (seed 43)': (-78, -2)}
     fig, ax = plt.subplots(figsize=(3.6, 2.9))
     lim = [-2, 14]; ax.plot(lim, lim, color='#BBBBBB', lw=0.8, ls='--', zorder=1); ax.axhline(0, color=C['muted'], lw=0.8)
     ax.text(2.75, 2.2, 'full transfer\n(y = x)', fontsize=6.5, color=C['muted'])
@@ -369,8 +369,8 @@ def fig10():
                     arrowprops=dict(arrowstyle='-', color='#999999', lw=0.5, shrinkA=0, shrinkB=3))
     ax.scatter([], [], marker='o', color=C['randopt'], label="searched under RandOpt's prompt")
     ax.scatter([], [], marker='^', color=C['pert'], label='searched under the chosen prompt')
-    ax.legend(loc='upper right', frameon=False, fontsize=6.5)
-    ax.set_xlim(0, 14); ax.set_ylim(-2, 7)
+    ax.legend(loc='lower center', bbox_to_anchor=(0.5, 1.0), ncol=2, frameon=False, fontsize=6.5, handletextpad=0.3, columnspacing=1.0)
+    ax.set_xlim(0, 15); ax.set_ylim(-2.6, 9)
     ax.set_xlabel('selection gain: top-50 mean − base\non the 200 selection questions (pp)'); ax.set_ylabel('test gain: selected models\n(mean) − base (pp)')
     save(fig, 'fig10_transfer')
 
