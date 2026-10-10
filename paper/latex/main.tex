@@ -72,7 +72,43 @@ release all locks, data and code.
 % (4) Contributions (numbered list, 4 items; WRITING_PROMPT "Contributions").
 % (5) Process sentence (verbatim, Rule 2): "Confirmatory tests were specified in plan locks committed before their
 %     corresponding runs; exploratory analyses are identified separately." + release statement.
-\todo{write}
+Random-perturbation post-training \citep{gan2026thickets} is a striking result. RandOpt samples thousands of Gaussian
+perturbations of a pretrained model's weights, keeps those that score best on a small selection set, and majority-votes
+their answers; it reportedly rivals PPO and GRPO on reasoning and vision benchmarks. Its authors read this as evidence
+that diverse task experts are dense around pretrained weights, a ``neural thicket''. The method reproduces, and the
+original paper itself notes that part of the gain on GSM8K is a change in answer format. What is not yet known is what
+the weight search contributes beyond things that are much cheaper to obtain.
+
+We ask two questions. \emph{What does the weight search buy?} And \emph{what do the selected perturbations change in
+the model's answers?} We answer the first with same-run comparisons at RandOpt's own settings, in four rows spanning
+two tasks and two model families, against self-consistency at the same test-time budget, plus controls that each
+isolate one component. We answer the second with a first-order account of how a perturbation shifts answer
+preferences, which we test directly.
+
+The answer is short (Figure~\ref{fig:overview}). RandOpt's gain has two parts: a vote, and a shift in the model's
+answers shared across questions. Where the selected models barely beat the base model, sampling the unperturbed model
+votes better, and self-consistency beats RandOpt. Where RandOpt beats self-consistency, its own prompt damages the base
+model (by 11.3 and 31.6 points) and the selected perturbations recover part of that accuracy. Choosing among a few
+prompts on RandOpt's own 200 selection questions, at 0.06\% of its selection compute, then sampling, matches or beats
+RandOpt in all four rows when the candidates include a format-fixing prompt, and in three of four with public
+evaluation templates alone (Figure~\ref{fig:headline}). With the chosen prompt held fixed, RandOpt's search adds nothing
+over sampling in any row, and its selected models are no better than the base model on test. What selection finds is
+specific to the prompt it runs under.
+
+\textbf{Contributions.}
+\begin{enumerate}
+  \item Same-run comparisons of RandOpt with self-consistency at RandOpt's settings in four rows (two model families, two
+    tasks), reproducing its published numbers (Section~\ref{sec:samerun}).
+  \item A decomposition of the gain into a vote and a shared shift, and evidence that the shift repairs damage done by
+    RandOpt's own prompt (Sections~\ref{sec:decomp}--\ref{sec:damage}).
+  \item A practical baseline and its condition: prompt selection on the same selection data, then sampling, matches or
+    beats RandOpt when a format-fixing candidate is included; with the prompt held fixed, the search adds nothing in all
+    four rows (Sections~\ref{sec:ps}--\ref{sec:held}).
+  \item A first-order account of perturbation-induced answer shifts, validated across five models in two families, with
+    demonstrated limits, and a theory of why selection favours shared shifts (Sections~\ref{sec:law}--\ref{sec:selection}).
+\end{enumerate}
+Confirmatory tests were specified in plan locks committed before their corresponding runs; exploratory analyses are
+identified separately. We release every lock, all per-item outputs and the analysis code.
 
 \begin{figure*}[t]
   \centering
@@ -98,7 +134,32 @@ release all locks, data and code.
 %   Matched test-time budget (50 generations). RandOpt's 1,000,000 selection generations not charged.
 % - Statistics: paired item bootstrap (10,000); "ahead" = 95% CI excludes 0; equivalence margin +/-2 pp.
 % - Protocol: plan locks, gates (base reproduction, environment, fidelity), decision rules; full ledger Appendix A.
-\todo{write}
+\textbf{RandOpt.} Given a pretrained model with weights $\theta_0$, RandOpt \citep{gan2026thickets} draws $N$ seeds and
+noise scales $\sigma \in \{0.0005, 0.001, 0.002\}$, forms $\theta_0 + \sigma\epsilon$ with $\epsilon$ a Gaussian vector
+generated from the seed, scores each perturbed model by its reward on a selection set of 200 training questions under
+greedy decoding, and answers each test question by a majority vote over the greedy answers of the top $K$. We use its
+settings throughout: $N{=}5000$, $K{=}50$ ($K{=}10$ as a secondary), its prompts, answer extractors, scorers and vote rule.
+This costs $5000 \times 200 = 1{,}000{,}000$ greedy generations for selection and 50 per test question.
+
+\textbf{Rows.} GSM8K \citep{cobbe2021gsm8k} with Qwen2.5-1.5B-Instruct and Qwen2.5-3B-Instruct \citep{qwen2025qwen25}
+(the original paper's models) and with OLMo-2-0425-1B-Instruct \citep{olmo2024olmo2} (a second family), evaluated on all
+1319 test questions; and GQA \citep{hudson2019gqa} with Qwen2.5-VL-3B-Instruct \citep{bai2025qwen25vl}, evaluated on 1238 testdev questions
+whose images are disjoint from the selection questions' images. The GSM8K rows run RandOpt's released script; its
+recomputed vote equals the count it prints. The released code cannot pass images to the model, so the GQA rows use a
+re-implementation built on RandOpt's own perturbation, scoring and voting components. All model revisions are pinned.
+
+\textbf{Baseline.} Self-consistency \citep{wang2023selfconsistency} (SC@$K$) majority-votes $K$ samples of the
+\emph{unperturbed} model at temperature 0.7, with RandOpt's scorer and vote rule. SC@50 matches RandOpt's test-time
+budget of 50 generations per question; RandOpt's selection generations are not charged to it.
+
+\textbf{Statistics and protocol.} Every comparison is paired on the same test questions. We report differences $D$ in
+accuracy points with 95\% confidence intervals from a paired item bootstrap (10{,}000 resamples); a method is
+\emph{ahead} when the interval excludes zero, and two methods are \emph{equivalent} when it lies within $\pm 2$ points.
+Confirmatory tests were specified in plan locks committed before their corresponding runs; exploratory analyses are
+identified separately. Each lock fixes the comparison, its decision rule and its gates: a base-model reproduction or
+environment check against an earlier independent measurement, a fidelity check against RandOpt's own logs where a
+re-implementation is used, and a budget rule that stops a run rather than shrink it. Appendix~\ref{app:ledger} lists
+every locked test with its outcome, including failed gates and runs that were not completed.
 
 % -----------------------------------------------------------------------------------------------------
 \section{What Weight Search Buys}\label{sec:buys}
