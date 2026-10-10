@@ -1,7 +1,3 @@
-This repository is released under two licenses, by content type.
-
-1. Code (scripts/, src/, tests/, paper/figures/scripts/, pyproject.toml): MIT License
-
 MIT License
 
 Copyright (c) 2026 Karthik Yeluripati
@@ -23,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-2. Paper, figures, results and documentation (paper/, results/, *.md): Creative Commons Attribution 4.0
-International (CC BY 4.0), https://creativecommons.org/licenses/by/4.0/
-
-Third-party material keeps its own license and is not covered above: third_party/omnispatial/ (OmniSpatial
-benchmark code), examples/ (OmniSpatial item splits), and model outputs on GSM8K, GQA, ARC-Challenge and OmniSpatial
-items, which remain subject to those datasets' terms. RandOpt (https://github.com/sunrainyg/RandOpt) is not
-redistributed here.

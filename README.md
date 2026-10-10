@@ -11,7 +11,7 @@
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776ab.svg?logo=python&logoColor=white)](pyproject.toml)
 [![vLLM](https://img.shields.io/badge/vLLM-0.11.0-30a14e.svg)](scripts/pod_jobqueue.sh)
 [![Code license](https://img.shields.io/badge/code-MIT-yellow.svg)](LICENSE)
-[![Data license](https://img.shields.io/badge/results%20%26%20paper-CC%20BY%204.0-lightgrey.svg)](LICENSE)
+[![Content license](https://img.shields.io/badge/results%20%26%20paper-CC%20BY%204.0-lightgrey.svg)](LICENSE-CONTENT.md)
 
 </div>
 
