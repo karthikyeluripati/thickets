@@ -1,0 +1,151 @@
+{
+ "note": "EXPLORATORY; selection-set bootstrap and subsampling; D = RandOpt K=50 - SC@50 on test per candidate",
+ "q15": {
+  "selection_acc": {
+   "randopt": 68.5,
+   "plain": 73.0,
+   "boxed": 80.5
+  },
+  "D_by_candidate": {
+   "randopt": -2.6535253980288096,
+   "plain": 2.577710386656558,
+   "boxed": -2.9567854435178167
+  },
+  "bootstrap_200": {
+   "randopt": 0.0005,
+   "plain": 0.004,
+   "boxed": 0.9955
+  },
+  "subsample": {
+   "25": {
+    "randopt": 0.1248,
+    "plain": 0.173,
+    "boxed": 0.7022
+   },
+   "50": {
+    "randopt": 0.033,
+    "plain": 0.0762,
+    "boxed": 0.8908
+   },
+   "100": {
+    "randopt": 0.0008,
+    "plain": 0.0056,
+    "boxed": 0.9936
+   }
+  },
+  "expected_D_bootstrap_200": -2.9344958301743747,
+  "expected_D_subsample_50": -2.5250492797573925,
+  "chosen": "boxed"
+ },
+ "q3": {
+  "selection_acc": {
+   "randopt": 84.0,
+   "plain": 85.0,
+   "boxed": 90.0
+  },
+  "D_by_candidate": {
+   "randopt": -1.592115238817286,
+   "plain": 7.050796057619409,
+   "boxed": -0.37907505686125853
+  },
+  "bootstrap_200": {
+   "randopt": 0.0167,
+   "plain": 0.0284,
+   "boxed": 0.9549
+  },
+  "subsample": {
+   "25": {
+    "randopt": 0.2564,
+    "plain": 0.2236,
+    "boxed": 0.52
+   },
+   "50": {
+    "randopt": 0.1262,
+    "plain": 0.1434,
+    "boxed": 0.7304
+   },
+   "100": {
+    "randopt": 0.0192,
+    "plain": 0.0312,
+    "boxed": 0.9496
+   }
+  },
+  "expected_D_bootstrap_200": -0.1883244882486732,
+  "expected_D_subsample_50": 0.5332827899924185,
+  "chosen": "boxed"
+ },
+ "olmo": {
+  "selection_acc": {
+   "randopt": 41.5,
+   "plain": 77.0,
+   "boxed": 79.5
+  },
+  "D_by_candidate": {
+   "randopt": 8.718726307808947,
+   "plain": -22.21379833206975,
+   "boxed": -23.654283548142534
+  },
+  "bootstrap_200": {
+   "randopt": 0.0,
+   "plain": 0.2247,
+   "boxed": 0.7753
+  },
+  "subsample": {
+   "25": {
+    "randopt": 0.0002,
+    "plain": 0.4766,
+    "boxed": 0.5232
+   },
+   "50": {
+    "randopt": 0.0,
+    "plain": 0.3892,
+    "boxed": 0.6108
+   },
+   "100": {
+    "randopt": 0.0,
+    "plain": 0.2626,
+    "boxed": 0.7374
+   }
+  },
+  "expected_D_bootstrap_200": -23.33060652009098,
+  "expected_D_subsample_50": -23.093646702047003,
+  "chosen": "boxed"
+ },
+ "gqa": {
+  "selection_acc": {
+   "cot": 53.5,
+   "direct": 66.0,
+   "short": 62.0
+  },
+  "D_by_candidate": {
+   "cot": 3.634894991922456,
+   "direct": -1.2116316639741518,
+   "short": -0.5654281098546041
+  },
+  "bootstrap_200": {
+   "cot": 0.0,
+   "direct": 0.9959,
+   "short": 0.0041
+  },
+  "subsample": {
+   "25": {
+    "cot": 0.113,
+    "direct": 0.823,
+    "short": 0.064
+   },
+   "50": {
+    "cot": 0.0222,
+    "direct": 0.9408,
+    "short": 0.037
+   },
+   "100": {
+    "cot": 0.0,
+    "direct": 0.9966,
+    "short": 0.0034
+   }
+  },
+  "expected_D_bootstrap_200": -1.2089822294022616,
+  "expected_D_subsample_50": -1.0801292407108238,
+  "chosen": "direct"
+ }
+}

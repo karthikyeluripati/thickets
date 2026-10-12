@@ -38,6 +38,9 @@ rows (77.18 vs 76.4; 86.66 vs 87.1).
   every model. Robust (exploratory, R8b.6): holds under strict scoring (where it strengthens, as the lenient scorer
   under-credits boxed answers), under Holm correction, and at K = 10 (where Qwen-1.5B becomes no-difference); SC
   temperature 0.5-1.0 changes no outcome (RV-5, pre-registered).
+  The choice is stable at 200 selection questions (same prompt in 77.5–99.6% of bootstrap draws; OLMo's switches go to
+  a near-equal prompt); with 50 questions Qwen-3B risks the plain prompt, which loses by 7.05 (exploratory, R8b.5).
+  Table 1 separates prompt from vote: one chosen-prompt answer beats RandOpt on OLMo and matches it on GQA.
 - **Candidate independence (RV-1, pre-registered) [R8b.5].** Repeated with public evaluation templates
   (lm-evaluation-harness, simple-evals, LLaVA, BLIP-2) fixed before any was run: Qwen-3B −0.45 (equivalent), OLMo
   −5.23, GQA −2.67 (now SC ahead), but **Qwen-1.5B +4.17 [+1.97, +6.44], RandOpt ahead**: no public template beats

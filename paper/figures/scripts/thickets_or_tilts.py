@@ -378,14 +378,17 @@ def fig10():
 def table_same_run_tex():
     R = same_run_rows()
     fmt = lambda d, ci: rf"${d:+.2f}$ {{\scriptsize[${ci[0]:+.2f}$, ${ci[1]:+.2f}$]}}"
-    L = [r'\begin{tabular}{lcccccccc}', r'\toprule',
-         r" & \multicolumn{2}{c}{RandOpt's prompt} & \multicolumn{2}{c}{Prompt chosen on selection set} & \multicolumn{2}{c}{Public template chosen} & \multicolumn{2}{c}{Search under chosen prompt} \\",
-         r'\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}\cmidrule(lr){8-9}',
-         r'Row & RandOpt & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & RandOpt & RandOpt $-$ SC \\', r'\midrule']
+    # 1 gen. = one greedy answer of the unperturbed model (same engine as SC): with SC@50 beside it, each prompt block
+    # separates the prompt effect (1 gen. across blocks) from the voting effect (SC@50 - 1 gen. within a block).
+    L = [r'\begin{tabular}{lcccccccccccc}', r'\toprule',
+         r" & \multicolumn{4}{c}{RandOpt's prompt} & \multicolumn{3}{c}{Prompt chosen on selection set} & \multicolumn{2}{c}{Public template chosen} & \multicolumn{2}{c}{Search under chosen prompt} \\",
+         r'\cmidrule(lr){2-5}\cmidrule(lr){6-8}\cmidrule(lr){9-10}\cmidrule(lr){11-12}',
+         r'Row & 1 gen. & SC@50 & RandOpt & RandOpt $-$ SC & 1 gen. & SC@50 & RandOpt $-$ SC & SC@50 & RandOpt $-$ SC & RandOpt & RandOpt $-$ SC \\', r'\midrule']
     for r in R:
         nm = r['name'].replace('\n', ' / ') + f" ({r['chosen']})"
         held = (f"{r['randopt_held']:.1f} & " + fmt(r['d2'], r['ci2'])) if r['d2'] is not None else r'-- & --'
-        L.append(f"{nm} & {r['randopt']:.1f} & {fmt(r['d0'], r['ci0'])} & {r['sc_chosen']:.1f} & {fmt(r['d1'], r['ci1'])} & "
+        L.append(f"{nm} & {r['base_ro']:.1f} & {r['randopt'] - r['d0']:.1f} & {r['randopt']:.1f} & {fmt(r['d0'], r['ci0'])} & "
+                 f"{r['base_ro'] + r['dmg_chosen']:.1f} & {r['sc_chosen']:.1f} & {fmt(r['d1'], r['ci1'])} & "
                  f"{r['sc_public']:.1f} & {fmt(r['d3'], r['ci3'])} & {held} \\\\")
     L += [r'\bottomrule', r'\end{tabular}']
     (OUT / 'table1_same_run.tex').write_text('\n'.join(L) + '\n', encoding='utf-8')

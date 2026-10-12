@@ -336,6 +336,20 @@ harness gsm8k), `simple_evals` (openai/simple-evals math); GQA `llava` (LLaVA-1.
   68.5) and RandOpt is ahead (+4.17). Choosing among candidates that include a boxed-answer (format-fixing) prompt
   matches or beats RandOpt in all four. The headline therefore needs a candidate that fixes the answer format.
 
+**Prompt vs vote (Table 1; derived from R8b.1, R8b.4, R8b.5; same-engine greedy BASE).** One greedy answer under
+RandOpt's prompt / under the chosen prompt, and SC@50 under the chosen prompt: Qwen-1.5B 60.0 / 70.2 / 80.1; Qwen-3B
+80.1 / 82.3 / 87.0; GQA 53.4 / 64.7 / 64.7; OLMo 33.7 / 67.9 / 76.1 (RandOpt 77.2, 86.7, 63.5, 52.5). One chosen-prompt
+answer beats RandOpt on OLMo and matches it on GQA (voting then adds 0.0 there); on the Qwen rows voting closes the gap.
+
+**Stability of prompt selection (EXPLORATORY; `ps-stability/`, `scripts/ps_stability.py`; no new generations).**
+P(same choice), bootstrap of the 200 selection questions (10,000 draws): Qwen-1.5B 0.996, Qwen-3B 0.955, OLMo 0.775,
+GQA 0.996; 50 questions (without replacement): 0.891, 0.730, 0.611, 0.941; 25: 0.702, 0.520, 0.523, 0.823. D under
+each candidate (RandOpt − SC@50): Qwen-1.5B −2.65 / +2.58 / −2.96 (randopt / plain / boxed); Qwen-3B −1.59 / +7.05 /
+−0.38; OLMo +8.72 / −22.21 / −23.65; GQA +3.63 / −1.21 / −0.57 (cot from G3's 256-token run / direct / short).
+Expected D under the choice distribution: 200 questions −2.93, −0.19, −23.33, −1.21; 50 questions −2.53, +0.53, −23.09,
+−1.08. **How to state:** stable at RandOpt's 200 questions (OLMo's switches go to a near-equal alternative); with
+smaller selection sets Qwen-3B risks the plain prompt, which loses to RandOpt by 7.05.
+
 **RV-5 (lock c33fec2): SC@50 temperature** (the PS-chosen prompt; T = 0.7 stays the locked comparison).
 Qwen-3B boxed: T 0.5 / 0.7 / 1.0 → SC 86.88 / 87.04 / 87.79; D −0.23 [−1.52, +1.06] / −0.38 / −1.14 [−2.50, +0.23].
 GQA direct: SC 64.54 / 64.70 / 63.25; D −1.05 [−2.67, +0.65] / −1.21 / +0.24 [−1.53, +2.02]. No outcome changes;

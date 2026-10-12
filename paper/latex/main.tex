@@ -44,10 +44,10 @@ Random-perturbation post-training (RandOpt) samples thousands of Gaussian weight
 keeps the best on a small selection set and majority-votes them; we ask what this weight search buys. Running RandOpt at
 its own settings in four rows (GSM8K with two Qwen models and OLMo-2-1B; GQA with Qwen2.5-VL-3B), we find its gain is a
 vote, which sampling the unperturbed model supplies, plus a shift in answers that repairs damage done by RandOpt's own
-prompt (11.3 and 31.6 points in the two rows where it beats self-consistency). Choosing among a few prompts on
-RandOpt's own selection questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in
-all four rows when the candidates include a format-fixing prompt, and in three of four with public evaluation templates
-alone. With the chosen prompt held fixed, RandOpt's search adds nothing over sampling in any row, and what it selects is
+prompt (11.3 and 31.6 points in the two rows where it beats self-consistency). Choosing a prompt on RandOpt's own
+200 selection questions (600 generations versus its 1,000,000) and then sampling matches or beats RandOpt in all four
+rows when a boxed-answer prompt is among the candidates; with public evaluation templates alone it does so in three of
+four, and RandOpt stays ahead on Qwen2.5-1.5B. With the chosen prompt held fixed, RandOpt's search adds nothing over sampling in any row, and what it selects is
 specific to the prompt it ran under. A first-order account with no fitted coefficients tracks how perturbations shift
 answer preferences ($r = 0.787$--$0.938$ across five models in two families), localizes the effect to middle language
 layers and explains why selection favours shared shifts, while failing for vision weights, large $\sigma$ and
@@ -224,6 +224,15 @@ Holm correction, and with a $K{=}10$ vote, where RandOpt is ahead in no row (exp
 It does not depend on the sampling temperature: at $T = 0.5$ and $1.0$ the two no-difference rows stay no-difference
 (pre-registered; Appendix~\ref{app:samerun}).
 
+Table~\ref{tab:samerun} also separates what the prompt does from what the vote does. One greedy answer under the
+chosen prompt already beats RandOpt on OLMo (67.9 vs 52.5) and matches it on GQA (64.7 vs 63.5), so there the prompt
+does the work; on GQA voting then adds nothing (\SC{} 64.7). On the Qwen rows the single answer is below RandOpt
+(70.2 vs 77.2; 82.3 vs 86.7) and voting closes the gap (80.1; 87.0). The choice itself is stable at RandOpt's
+selection-set size (exploratory): resampling the 200 selection questions, the rule picks the same prompt in 99.6\%,
+95.5\%, 77.5\% and 99.6\% of bootstrap draws, and where it switches on OLMo the alternative is nearly as good. With 50
+questions the Qwen-3B choice becomes fragile (73\%), and its runner-up, the plain prompt, loses to RandOpt by 7.05
+points (Appendix~\ref{app:samerun}).
+
 \textbf{Does the result depend on our candidates?} The three candidates were fixed before this test but chosen after
 earlier results. We therefore repeated it with candidates we could not have tuned: public evaluation templates from
 lm-evaluation-harness, simple-evals, LLaVA and BLIP-2, fixed in a plan lock before any of them was run, and chosen by
@@ -268,9 +277,11 @@ with like, and report the failed attempt in the ledger; Appendix~\ref{app:ledger
 \begin{table*}[t]
   \centering\small
   \caption{\textbf{Same-run results} ($N{=}5000$, $K{=}50$; accuracy in \%, differences in points with paired 95\% CIs).
-  SC: self-consistency over 50 samples of the unperturbed model. The chosen prompt (in parentheses) maximizes base
-  accuracy on RandOpt's 200 selection questions among our three candidates; the public template is chosen by the same
-  rule among public evaluation templates fixed before any was run (Section~\ref{sec:ps}).}
+  SC: self-consistency over 50 samples of the unperturbed model; 1 gen.: one greedy answer of the unperturbed model
+  (same engine as SC), so within a prompt block SC@50 $-$ 1 gen.\ is the voting effect and across blocks 1 gen.\ is the
+  prompt effect. The chosen prompt (in parentheses) maximizes base accuracy on RandOpt's 200 selection questions among
+  our three candidates; the public template is chosen by the same rule among public evaluation templates fixed before
+  any was run (Section~\ref{sec:ps}).}
   \label{tab:samerun}
   \footnotesize\setlength{\tabcolsep}{3pt}
   \resizebox{\textwidth}{!}{\input{../figures/thickets-or-tilts/table1_same_run.tex}}
@@ -503,6 +514,16 @@ bootstrap gives [$-2.79$, $+0.41$].
 \textbf{Temperature (RV-5, pre-registered).} SC@50 at $T = 0.5 / 0.7 / 1.0$ under the chosen prompt: Qwen-3B boxed
 86.88 / 87.04 / 87.79, $D = -0.23$ [$-1.52$, $+1.06$] / $-0.38$ / $-1.14$ [$-2.50$, $+0.23$]; GQA direct 64.54 / 64.70 /
 63.25, $D = -1.05$ [$-2.67$, $+0.65$] / $-1.21$ / $+0.24$ [$-1.53$, $+2.02$]. No outcome changes.
+
+\textbf{Stability of prompt selection (exploratory, no new generations).} Bootstrapping the 200 selection questions
+(10,000 draws), the rule picks the same prompt in 99.6\% (Qwen-1.5B), 95.5\% (Qwen-3B), 77.5\% (OLMo) and 99.6\% (GQA)
+of draws; with 50 questions drawn without replacement, 89\%, 73\%, 61\% and 94\%; with 25, 70\%, 52\%, 52\% and 82\%.
+$D$ = RandOpt $-$ SC@50 under each candidate: Qwen-1.5B $-2.65$ / $+2.58$ / $-2.96$ (RandOpt's / plain / boxed),
+Qwen-3B $-1.59$ / $+7.05$ / $-0.38$, OLMo $+8.72$ / $-22.21$ / $-23.65$, GQA $+3.63$ / $-1.21$ / $-0.57$ (step-by-step /
+direct / short; step-by-step from the 256-token rerun). Weighting these by the bootstrap choice frequencies gives an
+expected $D$ of $-2.93$, $-0.19$, $-23.33$ and $-1.21$ at 200 questions, and $-2.53$, $+0.53$, $-23.09$ and $-1.08$ at
+50. Selection is stable where it matters at RandOpt's setting; smaller selection sets put Qwen-3B at risk of choosing
+the plain prompt, which is worse for Qwen models (Section~\ref{sec:damage}).
 
 \textbf{Termination (G3).} Raising the GQA token budget from 256 to 1024 shrinks RandOpt's advantage by 0.97 [0.32,
 1.70] but leaves $+2.67$ [$+0.73$, $+4.52$]; at 256 tokens the base model fails to terminate more often than the
